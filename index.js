@@ -2,15 +2,17 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Import routes
+const hrRoutes = require('./hr/routes/hrRoutes');
+const financeRoutes = require('./finance/routes/financeRoutes');
+
 // Middleware
 app.use(express.json());
 
-// Simple route
-app.get('/', (req, res) => {
-  res.send('Lake Zone ERP Microservice Running...');
-});
+// Use routes
+app.use('/hr', hrRoutes);
+app.use('/finance', financeRoutes);
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Lake Zone ERP server running on port ${PORT}`);
 });
