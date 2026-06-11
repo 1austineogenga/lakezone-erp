@@ -1,0 +1,100 @@
+import uuid
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db import models
+
+
+class Branch(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    location = models.CharField(max_length=500)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "branches"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Department(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name="departments")
+    head = models.ForeignKey(
+        "User", on_delete=models.SET_NULL, null=True, blank=True, related_name="headed_departments"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} — {self.branch.name}"
+
+
+class UserRole(models.TextChoices):
+    SYSTEM_ADMIN = "system_admin", "System Administrator"
+    MANAGING_DIRECTOR = "managing_director", "Managing Director"
+    FINANCE_MANAGER = "finance_manager", "Finance Manager"
+    HR_MANAGER = "hr_manager", "HR Manager"
+    PROJECT_MANAGER = "project_manager", "Project Manager"
+    PROCUREMENT_OFFICER = "procurement_officer", "Procurement Officer"
+    STOREKEEPER = "storekeeper", "Storekeeper"
+    FLEET_MANAGER = "fleet_manager", "Fleet Manager"
+    SITE_ENGINEER = "site_engineer", "Site Engineer"
+    EQUIPMENT_OPERATOR = "equipment_operator", "Equipment Operator"
+    DRIVER = "driver", "Driver"
+    SALES_OFFICER = "sales_officer", "Sales Officer"
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Email is required")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("role", UserRole.SYSTEM_ADMIN)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        return self.create_user(email, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    role = models.CharField(max_length=50, choices=UserRole.choices, default=UserRole.SITE_ENGINEER)
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="users"
+    )
+    department = models.ForeignKey(
+        Department, on_delete=models.SET_NULL, null=True, blank=True, related_name="users"
+    )
+    phone = models.CharField(max_length=20, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(auto_now_add=True)
+    last_login = models.DateTimeField(null=True, blank=True)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["first_name", "last_name"]
+
+    class Meta:
+        ordering = ["first_name", "last_name"]
+
+    def __str__(self):
+        return f"{self.get_full_name()} ({self.get_role_display()})"
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def has_role(self, *roles):
+        return self.role in roles
