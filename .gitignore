@@ -1,6 +1,28 @@
 # Node dependencies
 node_modules/
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+.eggs/
+*.egg-info/
+
+# Django
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
 # Environment variables
 .env
 
