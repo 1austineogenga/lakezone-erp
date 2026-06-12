@@ -344,3 +344,41 @@ class ExpenseClaimItem(models.Model):
 
     def __str__(self):
         return f'{self.description} — KES {self.amount}'
+
+
+# ── Retention Releases ─────────────────────────────────────────────────────────
+
+class RetentionRelease(models.Model):
+    class RetentionType(models.TextChoices):
+        RECEIVABLE = 'receivable', 'Receivable (Client owes us)'
+        PAYABLE    = 'payable',    'Payable (We owe subcontractor)'
+
+    class Status(models.TextChoices):
+        PENDING  = 'pending',  'Pending Release'
+        RELEASED = 'released', 'Released'
+        PAID     = 'paid',     'Paid'
+
+    id               = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    retention_type   = models.CharField(max_length=15, choices=RetentionType.choices)
+    invoice          = models.ForeignKey(Invoice, on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='retention_releases')
+    bill             = models.ForeignKey(Bill, on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='retention_releases')
+    project          = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='retention_releases')
+    amount           = models.DecimalField(max_digits=15, decimal_places=2)
+    release_date     = models.DateField()
+    status           = models.CharField(max_length=15, choices=Status.choices,
+                                        default=Status.PENDING)
+    notes            = models.TextField(blank=True)
+    released_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                         null=True, blank=True, related_name='retentions_released')
+    released_at      = models.DateTimeField(null=True, blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['release_date']
+
+    def __str__(self):
+        src = self.invoice or self.bill
+        return f'{self.get_retention_type_display()} — KES {self.amount} ({self.status})'

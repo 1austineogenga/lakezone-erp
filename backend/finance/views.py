@@ -5,13 +5,14 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from .models import Account, Invoice, Bill, Payment, ExpenseClaim
+from .models import Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease
 from .serializers import (
     AccountSerializer,
     InvoiceSerializer, InvoiceCreateSerializer,
     BillSerializer, BillCreateSerializer,
     PaymentSerializer,
     ExpenseClaimSerializer, ExpenseClaimCreateSerializer, ExpenseReviewSerializer,
+    RetentionReleaseSerializer, RetentionReleaseCreateSerializer,
 )
 
 
@@ -281,6 +282,12 @@ class FinanceDashboardView(APIView):
             many=True
         ).data
 
+        retention_held = Invoice.objects.aggregate(
+            total=Sum('retention_amount'))['total'] or 0
+        retention_payable = Bill.objects.filter(
+            bill_type=Bill.BillType.SUBCONTRACTOR
+        ).aggregate(total=Sum('retention_amount') if hasattr(Bill, 'retention_amount') else Sum('withholding_tax'))['total'] or 0
+
         return Response({
             'ar': {
                 'total_billed':      ar['total_billed'] or 0,
@@ -294,7 +301,179 @@ class FinanceDashboardView(APIView):
                 'total_outstanding': ap['total_outstanding'] or 0,
                 'overdue':           overdue_ap['total'] or 0,
             },
-            'pending_expenses': pending_expenses['count'] or 0,
-            'recent_invoices':  recent_invoices,
-            'recent_bills':     recent_bills,
+            'pending_expenses':   pending_expenses['count'] or 0,
+            'retention_held':     float(retention_held),
+            'recent_invoices':    recent_invoices,
+            'recent_bills':       recent_bills,
+        })
+
+
+# ── Retention Management ───────────────────────────────────────────────────────
+
+class RetentionScheduleView(APIView):
+    """Summary of all retention held (receivable) and owed (payable)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # AR retention — amounts held by clients on our invoices
+        ar_retention = Invoice.objects.filter(
+            retention_amount__gt=0
+        ).select_related('client', 'project').values(
+            'id', 'invoice_number', 'client__company_name',
+            'project__name', 'issue_date', 'retention_amount',
+        )
+
+        # Released AR retention
+        released_ar = RetentionRelease.objects.filter(
+            retention_type='receivable'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
+        total_ar_held = Invoice.objects.aggregate(
+            t=Sum('retention_amount'))['t'] or 0
+
+        # AP retention — amounts we are holding from subcontractors (on bills)
+        # We track this via RetentionRelease payable records recorded manually
+        ap_retention = RetentionRelease.objects.filter(
+            retention_type='payable'
+        ).select_related('bill', 'project')
+
+        releases = RetentionRelease.objects.select_related(
+            'invoice', 'bill', 'project', 'released_by'
+        ).order_by('release_date')
+
+        return Response({
+            'summary': {
+                'ar_retention_held':    float(total_ar_held),
+                'ar_retention_released': float(released_ar),
+                'ar_retention_net':     float(total_ar_held) - float(released_ar),
+            },
+            'ar_invoices': list(ar_retention),
+            'releases':    RetentionReleaseSerializer(releases, many=True).data,
+        })
+
+
+class RetentionReleaseListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return RetentionReleaseCreateSerializer if self.request.method == 'POST' else RetentionReleaseSerializer
+
+    def get_queryset(self):
+        return RetentionRelease.objects.select_related(
+            'invoice', 'bill', 'project', 'released_by'
+        ).all()
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+class RetentionReleaseDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = RetentionReleaseSerializer
+    queryset           = RetentionRelease.objects.all()
+
+
+class RetentionMarkReleasedView(APIView):
+    """Mark a retention release as released / paid."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            release = RetentionRelease.objects.get(pk=pk)
+        except RetentionRelease.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get('status', 'released')
+        if new_status not in ('released', 'paid'):
+            return Response({'detail': 'status must be released or paid.'},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+        release.status      = new_status
+        release.released_by = request.user
+        release.released_at = timezone.now()
+        release.save(update_fields=['status', 'released_by', 'released_at'])
+        return Response(RetentionReleaseSerializer(release).data)
+
+
+# ── Aged Debtors / Creditors ───────────────────────────────────────────────────
+
+def _age_band(days_overdue):
+    if days_overdue <= 0:   return 'current'
+    if days_overdue <= 30:  return '1_30'
+    if days_overdue <= 60:  return '31_60'
+    if days_overdue <= 90:  return '61_90'
+    return '90_plus'
+
+
+class AgedDebtorsView(APIView):
+    """Aged debtors — outstanding AR invoices bucketed by how overdue they are."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        today = date.today()
+        bands = {'current': 0, '1_30': 0, '31_60': 0, '61_90': 0, '90_plus': 0}
+        rows  = []
+
+        unpaid = Invoice.objects.filter(
+            balance_due__gt=0,
+            status__in=[Invoice.Status.SENT, Invoice.Status.CERTIFIED,
+                        Invoice.Status.PARTIAL, Invoice.Status.OVERDUE, Invoice.Status.DISPUTED]
+        ).select_related('client', 'project')
+
+        client_totals = {}
+        for inv in unpaid:
+            days = (today - inv.due_date).days
+            band = _age_band(days)
+            bands[band] += float(inv.balance_due)
+            key = str(inv.client_id)
+            if key not in client_totals:
+                client_totals[key] = {
+                    'client_id':   key,
+                    'client_name': inv.client.company_name,
+                    'current': 0, '1_30': 0, '31_60': 0, '61_90': 0, '90_plus': 0,
+                    'total': 0,
+                }
+            client_totals[key][band]  += float(inv.balance_due)
+            client_totals[key]['total'] += float(inv.balance_due)
+
+        return Response({
+            'totals': bands,
+            'grand_total': sum(bands.values()),
+            'by_client': sorted(client_totals.values(), key=lambda x: -x['total']),
+        })
+
+
+class AgedCreditorsView(APIView):
+    """Aged creditors — outstanding AP bills bucketed by how overdue they are."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        today = date.today()
+        bands = {'current': 0, '1_30': 0, '31_60': 0, '61_90': 0, '90_plus': 0}
+
+        unpaid = Bill.objects.filter(
+            balance_due__gt=0,
+            status__in=[Bill.Status.APPROVED, Bill.Status.PARTIAL,
+                        Bill.Status.OVERDUE, Bill.Status.DISPUTED]
+        ).select_related('supplier', 'project')
+
+        supplier_totals = {}
+        for bill in unpaid:
+            days = (today - bill.due_date).days
+            band = _age_band(days)
+            bands[band] += float(bill.balance_due)
+            key = str(bill.supplier_id)
+            if key not in supplier_totals:
+                supplier_totals[key] = {
+                    'supplier_id':   key,
+                    'supplier_name': bill.supplier.company_name,
+                    'current': 0, '1_30': 0, '31_60': 0, '61_90': 0, '90_plus': 0,
+                    'total': 0,
+                }
+            supplier_totals[key][band]    += float(bill.balance_due)
+            supplier_totals[key]['total'] += float(bill.balance_due)
+
+        return Response({
+            'totals': bands,
+            'grand_total': sum(bands.values()),
+            'by_supplier': sorted(supplier_totals.values(), key=lambda x: -x['total']),
         })

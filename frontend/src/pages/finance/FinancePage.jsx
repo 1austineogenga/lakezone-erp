@@ -8,9 +8,12 @@ import ExpensesPage from './ExpensesPage'
 import NewExpensePage from './NewExpensePage'
 import CashFlowPage from './CashFlowPage'
 import ProfitabilityPage from './ProfitabilityPage'
+import RetentionPage from './RetentionPage'
+import AgedDebtorsPage from './AgedDebtorsPage'
 import {
   BanknotesIcon, DocumentTextIcon, CreditCardIcon,
   ChartBarIcon, ReceiptPercentIcon, ArrowTrendingUpIcon,
+  LockClosedIcon, ClockIcon,
 } from '@heroicons/react/24/outline'
 
 const tabs = [
@@ -18,6 +21,8 @@ const tabs = [
   { to: '/finance/invoices',      label: 'Invoices (AR)',  icon: DocumentTextIcon },
   { to: '/finance/bills',         label: 'Bills (AP)',     icon: CreditCardIcon },
   { to: '/finance/expenses',      label: 'Expenses',       icon: ReceiptPercentIcon },
+  { to: '/finance/retention',     label: 'Retention',      icon: LockClosedIcon },
+  { to: '/finance/aged',          label: 'Aged Report',    icon: ClockIcon },
   { to: '/finance/cash-flow',     label: 'Cash Flow',      icon: ArrowTrendingUpIcon },
   { to: '/finance/profitability', label: 'Profitability',  icon: BanknotesIcon },
 ]
@@ -32,7 +37,7 @@ export default function FinancePage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-brand-slate">Finance</h1>
-          <p className="text-sm text-gray-500">Invoices, bills, expenses, cash flow & profitability</p>
+          <p className="text-sm text-gray-500">Invoices, bills, retention, aged debtors, cash flow & profitability</p>
         </div>
       </div>
 
@@ -62,6 +67,8 @@ export default function FinancePage() {
         <Route path="bills/new"       element={<NewBillPage />} />
         <Route path="expenses"        element={<ExpensesPage />} />
         <Route path="expenses/new"    element={<NewExpensePage />} />
+        <Route path="retention"       element={<RetentionPage />} />
+        <Route path="aged"            element={<AgedDebtorsPage />} />
         <Route path="cash-flow"       element={<CashFlowPage />} />
         <Route path="profitability"   element={<ProfitabilityPage />} />
       </Routes>

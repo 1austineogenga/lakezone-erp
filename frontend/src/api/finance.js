@@ -24,3 +24,11 @@ export const reviewExpense    = (id, data) => api.post(`/finance/expenses/${id}/
 
 export const getCashFlow      = ()       => api.get('/finance/cash-flow/')
 export const getProfitability = ()       => api.get('/finance/profitability/')
+
+export const getRetentionSchedule = ()       => api.get('/finance/retention/')
+export const getRetentionReleases  = ()       => api.get('/finance/retention/releases/')
+export const createRetentionRelease = (data)  => api.post('/finance/retention/releases/', data)
+export const actionRetentionRelease = (id, data) => api.post(`/finance/retention/releases/${id}/action/`, data)
+
+export const getAgedDebtors   = ()       => api.get('/finance/aged-debtors/')
+export const getAgedCreditors = ()       => api.get('/finance/aged-creditors/')

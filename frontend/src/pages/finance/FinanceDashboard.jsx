@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getFinanceDashboard } from '../../api/finance'
 import {
   ArrowTrendingUpIcon, ArrowTrendingDownIcon,
-  ExclamationTriangleIcon, CheckCircleIcon, ReceiptPercentIcon,
+  ExclamationTriangleIcon, CheckCircleIcon, ReceiptPercentIcon, LockClosedIcon,
 } from '@heroicons/react/24/outline'
 
 const fmt = (n) => `KES ${Number(n || 0).toLocaleString()}`
@@ -39,7 +39,7 @@ export default function FinanceDashboard() {
   if (isLoading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
   if (!data) return null
 
-  const { ar, ap, recent_invoices, recent_bills } = data
+  const { ar, ap, recent_invoices, recent_bills, retention_held } = data
 
   return (
     <div className="space-y-6">
@@ -82,6 +82,17 @@ export default function FinanceDashboard() {
             sub="Past due date" subColor="text-red-500" />
         </div>
       </div>
+
+      {/* Retention alert */}
+      {retention_held > 0 && (
+        <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-3">
+          <LockClosedIcon className="h-5 w-5 text-orange-600 shrink-0" />
+          <p className="text-sm text-orange-800">
+            <span className="font-semibold">KES {Number(retention_held).toLocaleString()}</span> in client retention held on invoices.
+          </p>
+          <Link to="/finance/retention" className="ml-auto text-xs text-orange-700 font-medium hover:underline">View Schedule →</Link>
+        </div>
+      )}
 
       {/* Pending Expenses alert */}
       {data.pending_expenses > 0 && (

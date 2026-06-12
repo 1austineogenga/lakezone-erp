@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem
+from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem, RetentionRelease
 
 
 @admin.register(Account)
@@ -67,3 +67,10 @@ class ExpenseClaimAdmin(admin.ModelAdmin):
     search_fields = ['reference', 'title']
     readonly_fields = ['reference', 'total_amount', 'reviewed_by', 'reviewed_at']
     inlines = [ExpenseClaimItemInline]
+
+
+@admin.register(RetentionRelease)
+class RetentionReleaseAdmin(admin.ModelAdmin):
+    list_display  = ['retention_type', 'project', 'amount', 'release_date', 'status', 'released_by']
+    list_filter   = ['retention_type', 'status']
+    readonly_fields = ['released_by', 'released_at']

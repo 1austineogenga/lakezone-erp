@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem
+from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem, RetentionRelease
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -157,3 +157,27 @@ class ExpenseClaimCreateSerializer(serializers.ModelSerializer):
 class ExpenseReviewSerializer(serializers.Serializer):
     action       = serializers.ChoiceField(choices=['approved', 'rejected'])
     review_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class RetentionReleaseSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
+    bill_number    = serializers.CharField(source='bill.bill_number',       read_only=True)
+    project_name   = serializers.CharField(source='project.name',           read_only=True)
+    released_by_name = serializers.CharField(source='released_by.get_full_name', read_only=True)
+
+    class Meta:
+        model  = RetentionRelease
+        fields = [
+            'id', 'retention_type', 'status',
+            'invoice', 'invoice_number', 'bill', 'bill_number',
+            'project', 'project_name', 'amount', 'release_date',
+            'notes', 'released_by', 'released_by_name', 'released_at', 'created_at',
+        ]
+        read_only_fields = ['released_by', 'released_at']
+
+
+class RetentionReleaseCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = RetentionRelease
+        fields = ['retention_type', 'invoice', 'bill', 'project',
+                  'amount', 'release_date', 'notes']
