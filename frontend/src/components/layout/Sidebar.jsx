@@ -3,8 +3,8 @@ import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
   CubeIcon, UserGroupIcon, ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
-import logoFull from '../../assets/logo-full.svg'
-import logoIcon from '../../assets/logo-icon.svg'
+import logoFull from '../../assets/logo-full.png'
+import logoIcon from '../../assets/logo-icon.png'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 

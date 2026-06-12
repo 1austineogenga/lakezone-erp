@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login, getMe } from '../../api/auth'
 import useAuthStore from '../../store/authStore'
-import logoFull from '../../assets/logo-full.svg'
+import logoFull from '../../assets/logo-full.png'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -66,7 +66,7 @@ export default function LoginPage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent"
-                  placeholder="you@lakezone.co.tz"
+                  placeholder="you@lakezone.ke"
                 />
               </div>
               <div>
