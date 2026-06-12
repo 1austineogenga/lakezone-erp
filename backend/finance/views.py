@@ -6,7 +6,8 @@ from django.utils import timezone
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from .models import (Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease,
-                     ProjectBudget, PaymentCertificate, PerformanceBond)
+                     ProjectBudget, PaymentCertificate, PerformanceBond,
+                     Timesheet, JournalEntry, JournalLine)
 from .serializers import (
     AccountSerializer,
     InvoiceSerializer, InvoiceCreateSerializer,
@@ -15,6 +16,8 @@ from .serializers import (
     ExpenseClaimSerializer, ExpenseClaimCreateSerializer, ExpenseReviewSerializer,
     RetentionReleaseSerializer, RetentionReleaseCreateSerializer,
     ProjectBudgetSerializer, PaymentCertificateSerializer, PerformanceBondSerializer,
+    TimesheetSerializer, TimesheetCreateSerializer,
+    JournalEntrySerializer, JournalEntryCreateSerializer,
 )
 
 
@@ -709,3 +712,231 @@ class PerformanceBondDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class   = PerformanceBondSerializer
     queryset           = PerformanceBond.objects.all()
+
+
+# ── Payroll / Timesheets ───────────────────────────────────────────────────────
+
+class TimesheetListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return TimesheetCreateSerializer if self.request.method == 'POST' else TimesheetSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        privileged = {'finance_officer', 'finance_manager', 'managing_director', 'admin', 'superuser', 'hr_manager'}
+        qs = Timesheet.objects.select_related('employee').prefetch_related('lines').all()
+        if role not in privileged:
+            qs = qs.filter(employee=user)
+        status = self.request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+
+class TimesheetDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = TimesheetSerializer
+    queryset           = Timesheet.objects.prefetch_related('lines').all()
+
+
+class TimesheetSubmitView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            ts = Timesheet.objects.get(pk=pk, employee=request.user)
+        except Timesheet.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if ts.status != Timesheet.Status.DRAFT:
+            return Response({'detail': 'Already submitted.'}, status=drf_status.HTTP_400_BAD_REQUEST)
+        ts.status = Timesheet.Status.SUBMITTED
+        ts.save(update_fields=['status'])
+        return Response(TimesheetSerializer(ts).data)
+
+
+class TimesheetReviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            ts = Timesheet.objects.get(pk=pk)
+        except Timesheet.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        action = request.data.get('action')
+        if action not in ('approved', 'rejected'):
+            return Response({'detail': 'action must be approved or rejected.'},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+        ts.status      = action
+        ts.reviewed_by = request.user
+        ts.reviewed_at = timezone.now()
+        ts.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
+        return Response(TimesheetSerializer(ts).data)
+
+
+class PayrollSummaryView(APIView):
+    """Aggregate approved timesheet cost by project + cost_code."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Sum
+        from .models import TimesheetLine
+
+        project_id = request.query_params.get('project')
+        qs = TimesheetLine.objects.filter(timesheet__status='approved').select_related('project')
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+
+        rows = (
+            qs.values('project_id', 'project__name', 'cost_code')
+              .annotate(total_hours=Sum('hours'), total_amount=Sum('amount'))
+              .order_by('project__name', 'cost_code')
+        )
+
+        result = [
+            {
+                'project_id':   str(r['project_id']),
+                'project_name': r['project__name'],
+                'cost_code':    r['cost_code'],
+                'total_hours':  float(r['total_hours'] or 0),
+                'total_amount': float(r['total_amount'] or 0),
+            }
+            for r in rows
+        ]
+
+        return Response({
+            'rows':         result,
+            'grand_total':  sum(r['total_amount'] for r in result),
+            'total_hours':  sum(r['total_hours']  for r in result),
+        })
+
+
+# ── General Ledger Journal ─────────────────────────────────────────────────────
+
+class JournalEntryListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return JournalEntryCreateSerializer if self.request.method == 'POST' else JournalEntrySerializer
+
+    def get_queryset(self):
+        qs = JournalEntry.objects.select_related('project', 'created_by').prefetch_related('lines__account').all()
+        status  = self.request.query_params.get('status')
+        period  = self.request.query_params.get('period')
+        etype   = self.request.query_params.get('entry_type')
+        project = self.request.query_params.get('project')
+        if status:  qs = qs.filter(status=status)
+        if period:  qs = qs.filter(period=period)
+        if etype:   qs = qs.filter(entry_type=etype)
+        if project: qs = qs.filter(project_id=project)
+        return qs
+
+
+class JournalEntryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = JournalEntrySerializer
+    queryset           = JournalEntry.objects.prefetch_related('lines__account').all()
+
+
+class JournalPostView(APIView):
+    """Post a draft journal entry to the ledger."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status != JournalEntry.Status.DRAFT:
+            return Response({'detail': 'Only draft entries can be posted.'},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+        if not entry.is_balanced:
+            return Response({'detail': f'Journal is not balanced. Debits={entry.total_debits}, Credits={entry.total_credits}'},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+        entry.status    = JournalEntry.Status.POSTED
+        entry.posted_by = request.user
+        entry.posted_at = timezone.now()
+        entry.save(update_fields=['status', 'posted_by', 'posted_at'])
+        return Response(JournalEntrySerializer(entry).data)
+
+
+class JournalReverseView(APIView):
+    """Create a reversing entry for a posted journal."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status != JournalEntry.Status.POSTED:
+            return Response({'detail': 'Only posted entries can be reversed.'},
+                            status=drf_status.HTTP_400_BAD_REQUEST)
+
+        reversal = JournalEntry.objects.create(
+            entry_type   = entry.entry_type,
+            entry_date   = date.today(),
+            description  = f'Reversal of {entry.reference}: {entry.description}',
+            project      = entry.project,
+            is_reversing = True,
+            reversal_of  = entry,
+            created_by   = request.user,
+        )
+        for line in entry.lines.all():
+            JournalLine.objects.create(
+                journal=reversal,
+                account=line.account,
+                description=line.description,
+                debit=line.credit,   # swap
+                credit=line.debit,   # swap
+                project=line.project,
+                cost_code=line.cost_code,
+            )
+        entry.status = JournalEntry.Status.REVERSED
+        entry.save(update_fields=['status'])
+        return Response(JournalEntrySerializer(reversal).data, status=drf_status.HTTP_201_CREATED)
+
+
+class TrialBalanceView(APIView):
+    """Trial balance: sum of debits and credits per account for a period."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Sum
+        from .models import JournalLine
+
+        period = request.query_params.get('period')  # YYYY-MM
+        qs = JournalLine.objects.filter(journal__status='posted').select_related('account')
+        if period:
+            qs = qs.filter(journal__period=period)
+
+        rows = (
+            qs.values('account__code', 'account__name', 'account__account_type')
+              .annotate(total_debit=Sum('debit'), total_credit=Sum('credit'))
+              .order_by('account__code')
+        )
+
+        result = []
+        for r in rows:
+            debit  = float(r['total_debit']  or 0)
+            credit = float(r['total_credit'] or 0)
+            result.append({
+                'account_code': r['account__code'],
+                'account_name': r['account__name'],
+                'account_type': r['account__account_type'],
+                'total_debit':  debit,
+                'total_credit': credit,
+                'balance':      debit - credit,
+            })
+
+        total_debits  = sum(r['total_debit']  for r in result)
+        total_credits = sum(r['total_credit'] for r in result)
+
+        return Response({
+            'period':        period or 'all',
+            'rows':          result,
+            'total_debits':  total_debits,
+            'total_credits': total_credits,
+            'is_balanced':   abs(total_debits - total_credits) < 0.01,
+        })

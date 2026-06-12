@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
                      ExpenseClaim, ExpenseClaimItem, RetentionRelease,
-                     ProjectBudget, PaymentCertificate, PerformanceBond)
+                     ProjectBudget, PaymentCertificate, PerformanceBond,
+                     Timesheet, TimesheetLine, JournalEntry, JournalLine)
 
 
 @admin.register(Account)
@@ -96,3 +97,32 @@ class PaymentCertificateAdmin(admin.ModelAdmin):
 class PerformanceBondAdmin(admin.ModelAdmin):
     list_display = ['bond_type', 'project', 'issuing_bank', 'amount', 'expiry_date', 'status']
     list_filter  = ['bond_type', 'status']
+
+
+class TimesheetLineInline(admin.TabularInline):
+    model  = TimesheetLine
+    extra  = 0
+    fields = ['work_date', 'project', 'cost_code', 'description', 'hours', 'hourly_rate', 'amount']
+    readonly_fields = ['amount']
+
+
+@admin.register(Timesheet)
+class TimesheetAdmin(admin.ModelAdmin):
+    list_display    = ['reference', 'employee', 'week_start', 'total_amount', 'status']
+    list_filter     = ['status']
+    readonly_fields = ['reference', 'total_amount']
+    inlines         = [TimesheetLineInline]
+
+
+class JournalLineInline(admin.TabularInline):
+    model  = JournalLine
+    extra  = 2
+    fields = ['account', 'description', 'debit', 'credit', 'project', 'cost_code']
+
+
+@admin.register(JournalEntry)
+class JournalEntryAdmin(admin.ModelAdmin):
+    list_display    = ['reference', 'entry_type', 'entry_date', 'period', 'description', 'status']
+    list_filter     = ['entry_type', 'status', 'period']
+    readonly_fields = ['reference', 'period', 'posted_by', 'posted_at']
+    inlines         = [JournalLineInline]

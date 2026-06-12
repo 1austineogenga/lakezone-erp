@@ -506,3 +506,152 @@ class PerformanceBond(models.Model):
 
     def __str__(self):
         return f'{self.get_bond_type_display()} — {self.issuing_bank} — KES {self.amount}'
+
+
+# ── Payroll Cost Allocation (Timesheets) ───────────────────────────────────────
+
+class Timesheet(models.Model):
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        SUBMITTED = 'submitted', 'Submitted'
+        APPROVED  = 'approved',  'Approved'
+        REJECTED  = 'rejected',  'Rejected'
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference    = models.CharField(max_length=20, unique=True, blank=True)
+    employee     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                     related_name='timesheets')
+    week_start   = models.DateField()  # Monday of the week
+    status       = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    notes        = models.TextField(blank=True)
+    reviewed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='timesheets_reviewed')
+    reviewed_at  = models.DateTimeField(null=True, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-week_start']
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            from datetime import date as d
+            year = d.today().year
+            count = Timesheet.objects.filter(reference__startswith=f'TS-{year}-').count()
+            self.reference = f'TS-{year}-{str(count + 1).zfill(4)}'
+        super().save(*args, **kwargs)
+
+    def recalculate(self):
+        self.total_amount = sum(line.amount for line in self.lines.all())
+        self.save(update_fields=['total_amount'])
+
+    def __str__(self):
+        return f'{self.reference} — {self.employee} w/e {self.week_start}'
+
+
+class TimesheetLine(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    timesheet   = models.ForeignKey(Timesheet, on_delete=models.CASCADE, related_name='lines')
+    work_date   = models.DateField()
+    project     = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name='timesheet_lines')
+    cost_code   = models.CharField(max_length=20, choices=Account.CostCode.choices,
+                                   default=Account.CostCode.LABOUR)
+    description = models.CharField(max_length=255)
+    hours       = models.DecimalField(max_digits=5, decimal_places=2)
+    hourly_rate = models.DecimalField(max_digits=12, decimal_places=2)
+    amount      = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+
+    def save(self, *args, **kwargs):
+        self.amount = self.hours * self.hourly_rate
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.work_date} — {self.project} — {self.hours}hrs'
+
+
+# ── General Ledger Journal ─────────────────────────────────────────────────────
+
+class JournalEntry(models.Model):
+    class EntryType(models.TextChoices):
+        MANUAL     = 'manual',     'Manual Journal'
+        INVOICE    = 'invoice',    'Invoice (AR)'
+        PAYMENT    = 'payment',    'Payment Receipt'
+        BILL       = 'bill',       'Supplier Bill (AP)'
+        EXPENSE    = 'expense',    'Expense Claim'
+        PAYROLL    = 'payroll',    'Payroll Allocation'
+        ADJUSTMENT = 'adjustment', 'Adjustment'
+        PERIOD_CLOSE = 'period_close', 'Period-End Close'
+
+    class Status(models.TextChoices):
+        DRAFT    = 'draft',    'Draft'
+        POSTED   = 'posted',   'Posted'
+        REVERSED = 'reversed', 'Reversed'
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference    = models.CharField(max_length=30, unique=True, blank=True)
+    entry_type   = models.CharField(max_length=20, choices=EntryType.choices,
+                                    default=EntryType.MANUAL)
+    entry_date   = models.DateField()
+    period       = models.CharField(max_length=7, blank=True)  # YYYY-MM
+    description  = models.CharField(max_length=500)
+    project      = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='journal_entries')
+    status       = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    is_reversing = models.BooleanField(default=False)
+    reversal_of  = models.ForeignKey('self', on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='reversal')
+    created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                     related_name='journal_entries_created')
+    posted_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='journal_entries_posted')
+    posted_at    = models.DateTimeField(null=True, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-entry_date', '-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            from datetime import date as d
+            year = d.today().year
+            count = JournalEntry.objects.filter(reference__startswith=f'JNL-{year}-').count()
+            self.reference = f'JNL-{year}-{str(count + 1).zfill(4)}'
+        if not self.period and self.entry_date:
+            self.period = self.entry_date.strftime('%Y-%m')
+        super().save(*args, **kwargs)
+
+    @property
+    def total_debits(self):
+        return sum(l.debit for l in self.lines.all())
+
+    @property
+    def total_credits(self):
+        return sum(l.credit for l in self.lines.all())
+
+    @property
+    def is_balanced(self):
+        return abs(self.total_debits - self.total_credits) < 0.01
+
+    def __str__(self):
+        return f'{self.reference} — {self.description}'
+
+
+class JournalLine(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    journal     = models.ForeignKey(JournalEntry, on_delete=models.CASCADE, related_name='lines')
+    account     = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='journal_lines')
+    description = models.CharField(max_length=255, blank=True)
+    debit       = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    credit      = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    project     = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                    null=True, blank=True)
+    cost_code   = models.CharField(max_length=20, choices=Account.CostCode.choices, blank=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.account} Dr {self.debit} / Cr {self.credit}'

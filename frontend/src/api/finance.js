@@ -49,3 +49,15 @@ export const updateCertificate = (id, data) => api.patch(`/finance/certificates/
 export const getBonds         = (params) => api.get('/finance/bonds/', { params })
 export const createBond       = (data)   => api.post('/finance/bonds/', data)
 export const updateBond       = (id, data) => api.patch(`/finance/bonds/${id}/`, data)
+
+export const getTimesheets    = (params) => api.get('/finance/timesheets/', { params })
+export const createTimesheet  = (data)   => api.post('/finance/timesheets/', data)
+export const submitTimesheet  = (id)     => api.post(`/finance/timesheets/${id}/submit/`)
+export const reviewTimesheet  = (id, data) => api.post(`/finance/timesheets/${id}/review/`, data)
+export const getPayrollSummary = (params) => api.get('/finance/payroll-summary/', { params })
+
+export const getJournals      = (params) => api.get('/finance/journals/', { params })
+export const createJournal    = (data)   => api.post('/finance/journals/', data)
+export const postJournal      = (id)     => api.post(`/finance/journals/${id}/post/`)
+export const reverseJournal   = (id)     => api.post(`/finance/journals/${id}/reverse/`)
+export const getTrialBalance  = (params) => api.get('/finance/trial-balance/', { params })

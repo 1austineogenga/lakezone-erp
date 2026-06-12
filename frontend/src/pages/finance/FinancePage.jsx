@@ -14,26 +14,31 @@ import BudgetVsActualPage from './BudgetVsActualPage'
 import TaxCompliancePage from './TaxCompliancePage'
 import PaymentCertificatesPage from './PaymentCertificatesPage'
 import PerformanceBondsPage from './PerformanceBondsPage'
+import TimesheetsPage from './TimesheetsPage'
+import GLJournalPage from './GLJournalPage'
 import {
   BanknotesIcon, DocumentTextIcon, CreditCardIcon,
   ChartBarIcon, ReceiptPercentIcon, ArrowTrendingUpIcon,
   LockClosedIcon, ClockIcon, CalculatorIcon,
   ScaleIcon, ShieldCheckIcon, DocumentCheckIcon,
+  ClipboardDocumentListIcon, BookOpenIcon,
 } from '@heroicons/react/24/outline'
 
 const tabs = [
-  { to: '/finance',               label: 'Dashboard',      icon: ChartBarIcon,        end: true },
-  { to: '/finance/invoices',      label: 'Invoices (AR)',  icon: DocumentTextIcon },
-  { to: '/finance/bills',         label: 'Bills (AP)',     icon: CreditCardIcon },
-  { to: '/finance/expenses',      label: 'Expenses',       icon: ReceiptPercentIcon },
-  { to: '/finance/certificates',  label: 'IPC / Certs',   icon: DocumentCheckIcon },
-  { to: '/finance/retention',     label: 'Retention',      icon: LockClosedIcon },
-  { to: '/finance/aged',          label: 'Aged Report',    icon: ClockIcon },
-  { to: '/finance/cash-flow',     label: 'Cash Flow',      icon: ArrowTrendingUpIcon },
-  { to: '/finance/profitability', label: 'Profitability',  icon: BanknotesIcon },
+  { to: '/finance',               label: 'Dashboard',        icon: ChartBarIcon,              end: true },
+  { to: '/finance/invoices',      label: 'Invoices (AR)',    icon: DocumentTextIcon },
+  { to: '/finance/bills',         label: 'Bills (AP)',       icon: CreditCardIcon },
+  { to: '/finance/expenses',      label: 'Expenses',         icon: ReceiptPercentIcon },
+  { to: '/finance/certificates',  label: 'IPC / Certs',     icon: DocumentCheckIcon },
+  { to: '/finance/retention',     label: 'Retention',        icon: LockClosedIcon },
+  { to: '/finance/aged',          label: 'Aged Report',      icon: ClockIcon },
+  { to: '/finance/cash-flow',     label: 'Cash Flow',        icon: ArrowTrendingUpIcon },
+  { to: '/finance/profitability', label: 'Profitability',    icon: BanknotesIcon },
   { to: '/finance/budget',        label: 'Budget vs Actual', icon: CalculatorIcon },
-  { to: '/finance/tax',           label: 'Tax & VAT',      icon: ScaleIcon },
-  { to: '/finance/bonds',         label: 'Bonds',          icon: ShieldCheckIcon },
+  { to: '/finance/tax',           label: 'Tax & VAT',        icon: ScaleIcon },
+  { to: '/finance/bonds',         label: 'Bonds',            icon: ShieldCheckIcon },
+  { to: '/finance/timesheets',    label: 'Payroll / Time',   icon: ClipboardDocumentListIcon },
+  { to: '/finance/gl',            label: 'GL Journal',       icon: BookOpenIcon },
 ]
 
 export default function FinancePage() {
@@ -84,6 +89,8 @@ export default function FinancePage() {
         <Route path="tax"             element={<TaxCompliancePage />} />
         <Route path="certificates"    element={<PaymentCertificatesPage />} />
         <Route path="bonds"           element={<PerformanceBondsPage />} />
+        <Route path="timesheets"      element={<TimesheetsPage />} />
+        <Route path="gl"              element={<GLJournalPage />} />
       </Routes>
     </div>
   )

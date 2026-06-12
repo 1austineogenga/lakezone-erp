@@ -15,6 +15,10 @@ from .views import (
     VATSummaryView, WHTRegisterView,
     PaymentCertificateListCreateView, PaymentCertificateDetailView,
     PerformanceBondListCreateView, PerformanceBondDetailView,
+    TimesheetListCreateView, TimesheetDetailView, TimesheetSubmitView, TimesheetReviewView,
+    PayrollSummaryView,
+    JournalEntryListCreateView, JournalEntryDetailView,
+    JournalPostView, JournalReverseView, TrialBalanceView,
 )
 
 urlpatterns = [
@@ -51,4 +55,16 @@ urlpatterns = [
     # Performance Bonds
     path('bonds/',                                PerformanceBondListCreateView.as_view(),    name='bond-list'),
     path('bonds/<uuid:pk>/',                      PerformanceBondDetailView.as_view(),        name='bond-detail'),
+    # Payroll / Timesheets
+    path('timesheets/',                           TimesheetListCreateView.as_view(),          name='timesheet-list'),
+    path('timesheets/<uuid:pk>/',                 TimesheetDetailView.as_view(),              name='timesheet-detail'),
+    path('timesheets/<uuid:pk>/submit/',          TimesheetSubmitView.as_view(),              name='timesheet-submit'),
+    path('timesheets/<uuid:pk>/review/',          TimesheetReviewView.as_view(),              name='timesheet-review'),
+    path('payroll-summary/',                      PayrollSummaryView.as_view(),               name='payroll-summary'),
+    # GL Journal
+    path('journals/',                             JournalEntryListCreateView.as_view(),       name='journal-list'),
+    path('journals/<uuid:pk>/',                   JournalEntryDetailView.as_view(),           name='journal-detail'),
+    path('journals/<uuid:pk>/post/',              JournalPostView.as_view(),                  name='journal-post'),
+    path('journals/<uuid:pk>/reverse/',           JournalReverseView.as_view(),               name='journal-reverse'),
+    path('trial-balance/',                        TrialBalanceView.as_view(),                 name='trial-balance'),
 ]

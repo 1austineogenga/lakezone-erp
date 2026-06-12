@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
                      ExpenseClaim, ExpenseClaimItem, RetentionRelease,
-                     ProjectBudget, PaymentCertificate, PerformanceBond)
+                     ProjectBudget, PaymentCertificate, PerformanceBond,
+                     Timesheet, TimesheetLine, JournalEntry, JournalLine)
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -247,3 +248,105 @@ class PerformanceBondSerializer(serializers.ModelSerializer):
             **validated_data,
             created_by=self.context['request'].user,
         )
+
+
+class TimesheetLineSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model  = TimesheetLine
+        fields = ['id', 'work_date', 'project', 'project_name', 'cost_code',
+                  'description', 'hours', 'hourly_rate', 'amount']
+        read_only_fields = ['amount']
+
+
+class TimesheetSerializer(serializers.ModelSerializer):
+    lines              = TimesheetLineSerializer(many=True, read_only=True)
+    employee_name      = serializers.CharField(source='employee.get_full_name', read_only=True)
+
+    class Meta:
+        model  = Timesheet
+        fields = ['id', 'reference', 'employee', 'employee_name', 'week_start',
+                  'status', 'total_amount', 'notes',
+                  'reviewed_by', 'reviewed_at', 'lines', 'created_at']
+        read_only_fields = ['reference', 'employee', 'total_amount', 'reviewed_by', 'reviewed_at']
+
+
+class TimesheetCreateSerializer(serializers.ModelSerializer):
+    lines = TimesheetLineSerializer(many=True)
+
+    class Meta:
+        model  = Timesheet
+        fields = ['week_start', 'notes', 'lines']
+
+    def create(self, validated_data):
+        lines_data = validated_data.pop('lines')
+        ts = Timesheet.objects.create(
+            **validated_data,
+            employee=self.context['request'].user,
+        )
+        for line in lines_data:
+            TimesheetLine.objects.create(timesheet=ts, **line)
+        ts.recalculate()
+        return ts
+
+
+class JournalLineSerializer(serializers.ModelSerializer):
+    account_name = serializers.CharField(source='account.name', read_only=True)
+    account_code = serializers.CharField(source='account.code', read_only=True)
+    project_name = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model  = JournalLine
+        fields = ['id', 'account', 'account_code', 'account_name',
+                  'description', 'debit', 'credit',
+                  'project', 'project_name', 'cost_code']
+
+
+class JournalEntrySerializer(serializers.ModelSerializer):
+    lines           = JournalLineSerializer(many=True, read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    posted_by_name  = serializers.CharField(source='posted_by.get_full_name',  read_only=True)
+    total_debits    = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    total_credits   = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    is_balanced     = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model  = JournalEntry
+        fields = [
+            'id', 'reference', 'entry_type', 'status', 'entry_date', 'period',
+            'description', 'project', 'is_reversing', 'reversal_of',
+            'created_by', 'created_by_name', 'posted_by', 'posted_by_name', 'posted_at',
+            'total_debits', 'total_credits', 'is_balanced',
+            'lines', 'created_at',
+        ]
+        read_only_fields = ['reference', 'period', 'posted_by', 'posted_at',
+                            'total_debits', 'total_credits', 'is_balanced']
+
+
+class JournalEntryCreateSerializer(serializers.ModelSerializer):
+    lines = JournalLineSerializer(many=True)
+
+    class Meta:
+        model  = JournalEntry
+        fields = ['entry_type', 'entry_date', 'description', 'project', 'notes', 'lines']
+
+    def validate_lines(self, lines):
+        if len(lines) < 2:
+            raise serializers.ValidationError('A journal entry requires at least 2 lines.')
+        total_debit  = sum(l.get('debit', 0) for l in lines)
+        total_credit = sum(l.get('credit', 0) for l in lines)
+        if abs(total_debit - total_credit) >= 0.01:
+            raise serializers.ValidationError(
+                f'Journal is not balanced: debits={total_debit}, credits={total_credit}')
+        return lines
+
+    def create(self, validated_data):
+        lines_data = validated_data.pop('lines')
+        entry = JournalEntry.objects.create(
+            **validated_data,
+            created_by=self.context['request'].user,
+        )
+        for line in lines_data:
+            JournalLine.objects.create(journal=entry, **line)
+        return entry
