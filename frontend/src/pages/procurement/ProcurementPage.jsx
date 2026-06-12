@@ -10,7 +10,7 @@ const prColumns = [
   { key: 'reference_number', label: 'Reference' },
   { key: 'title',            label: 'Title' },
   { key: 'requested_by_name',label: 'Requested By' },
-  { key: 'total_amount',     label: 'Amount', render: (r) => r.total_amount ? `TZS ${Number(r.total_amount).toLocaleString()}` : '—' },
+  { key: 'total_amount',     label: 'Amount', render: (r) => r.total_amount ? `KES ${Number(r.total_amount).toLocaleString()}` : '—' },
   { key: 'date_required',    label: 'Date Required' },
   { key: 'status',           label: 'Status', render: (r) => <Badge status={r.status} /> },
 ]
@@ -18,7 +18,7 @@ const prColumns = [
 const poColumns = [
   { key: 'reference_number', label: 'PO Number' },
   { key: 'supplier_name',    label: 'Supplier' },
-  { key: 'total_amount',     label: 'Amount', render: (r) => r.total_amount ? `TZS ${Number(r.total_amount).toLocaleString()}` : '—' },
+  { key: 'total_amount',     label: 'Amount', render: (r) => r.total_amount ? `KES ${Number(r.total_amount).toLocaleString()}` : '—' },
   { key: 'order_date',       label: 'Order Date' },
   { key: 'expected_delivery',label: 'Delivery Date' },
   { key: 'status',           label: 'Status', render: (r) => <Badge status={r.status} /> },

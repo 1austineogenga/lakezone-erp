@@ -9,7 +9,7 @@ const columns = [
   { key: 'name',          label: 'Project Name' },
   { key: 'client_name',   label: 'Client' },
   { key: 'location',      label: 'Location' },
-  { key: 'contract_value',label: 'Contract Value', render: (r) => r.contract_value ? `TZS ${Number(r.contract_value).toLocaleString()}` : '—' },
+  { key: 'contract_value',label: 'Contract Value', render: (r) => r.contract_value ? `KES ${Number(r.contract_value).toLocaleString()}` : '—' },
   { key: 'start_date',    label: 'Start Date' },
   { key: 'status',        label: 'Status', render: (r) => <Badge status={r.status} /> },
 ]

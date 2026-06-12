@@ -81,7 +81,7 @@ export default function RequisitionsPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {['Reference', 'Title', 'Type', 'Priority', 'Status', 'Amount (TZS)', 'Date Required', ''].map(h => (
+                {['Reference', 'Title', 'Type', 'Priority', 'Status', 'Amount (KES)', 'Date Required', ''].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>

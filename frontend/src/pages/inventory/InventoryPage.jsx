@@ -10,7 +10,7 @@ const itemColumns = [
   { key: 'name',          label: 'Item Name' },
   { key: 'category',      label: 'Category' },
   { key: 'unit_of_measure', label: 'UOM' },
-  { key: 'weighted_avg_cost', label: 'WAC', render: (r) => r.weighted_avg_cost ? `TZS ${Number(r.weighted_avg_cost).toLocaleString()}` : '—' },
+  { key: 'weighted_avg_cost', label: 'WAC', render: (r) => r.weighted_avg_cost ? `KES ${Number(r.weighted_avg_cost).toLocaleString()}` : '—' },
   { key: 'is_active',     label: 'Status', render: (r) => <Badge status={r.is_active ? 'active' : 'cancelled'} label={r.is_active ? 'Active' : 'Inactive'} /> },
 ]
 
@@ -26,7 +26,7 @@ const txColumns = [
   { key: 'item_name',      label: 'Item' },
   { key: 'transaction_type', label: 'Type', render: (r) => <Badge status={r.transaction_type === 'in' ? 'active' : 'pending'} label={r.transaction_type?.toUpperCase()} /> },
   { key: 'quantity',       label: 'Qty', render: (r) => Number(r.quantity).toLocaleString() },
-  { key: 'unit_cost',      label: 'Unit Cost', render: (r) => r.unit_cost ? `TZS ${Number(r.unit_cost).toLocaleString()}` : '—' },
+  { key: 'unit_cost',      label: 'Unit Cost', render: (r) => r.unit_cost ? `KES ${Number(r.unit_cost).toLocaleString()}` : '—' },
   { key: 'transaction_date', label: 'Date' },
   { key: 'reference',      label: 'Reference' },
 ]

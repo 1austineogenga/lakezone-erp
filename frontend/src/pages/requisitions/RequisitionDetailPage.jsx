@@ -105,7 +105,7 @@ export default function RequisitionDetailPage() {
               <div><dt className="text-gray-400 text-xs">Department</dt><dd className="font-medium">{req.department_name || '—'}</dd></div>
               <div><dt className="text-gray-400 text-xs">Project</dt><dd className="font-medium">{req.project_name || '—'}</dd></div>
               <div><dt className="text-gray-400 text-xs">Date Required</dt><dd className="font-medium">{req.date_required}</dd></div>
-              <div><dt className="text-gray-400 text-xs">Total Amount</dt><dd className="font-bold text-brand-slate">TZS {Number(req.total_amount).toLocaleString()}</dd></div>
+              <div><dt className="text-gray-400 text-xs">Total Amount</dt><dd className="font-bold text-brand-slate">KES {Number(req.total_amount).toLocaleString()}</dd></div>
               <div><dt className="text-gray-400 text-xs">Created</dt><dd className="font-medium">{new Date(req.created_at).toLocaleDateString()}</dd></div>
             </dl>
             {req.description && (
@@ -143,7 +143,7 @@ export default function RequisitionDetailPage() {
               <tfoot className="bg-gray-50 border-t border-gray-200">
                 <tr>
                   <td colSpan={4} className="px-4 py-2.5 text-right text-sm font-semibold text-gray-600">Total</td>
-                  <td className="px-4 py-2.5 font-bold text-brand-slate">TZS {Number(req.total_amount).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 font-bold text-brand-slate">KES {Number(req.total_amount).toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>

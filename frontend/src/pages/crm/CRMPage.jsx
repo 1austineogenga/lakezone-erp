@@ -18,7 +18,7 @@ const oppColumns = [
   { key: 'title',        label: 'Opportunity' },
   { key: 'client_name',  label: 'Client' },
   { key: 'tender_number', label: 'Tender No.' },
-  { key: 'estimated_value', label: 'Est. Value', render: (r) => r.estimated_value ? `TZS ${Number(r.estimated_value).toLocaleString()}` : '—' },
+  { key: 'estimated_value', label: 'Est. Value', render: (r) => r.estimated_value ? `KES ${Number(r.estimated_value).toLocaleString()}` : '—' },
   { key: 'submission_deadline', label: 'Deadline' },
   { key: 'status',       label: 'Status', render: (r) => <Badge status={r.status} /> },
 ]

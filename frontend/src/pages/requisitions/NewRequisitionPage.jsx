@@ -143,7 +143,7 @@ export default function NewRequisitionPage() {
                   />
                 </div>
                 <div className="col-span-3">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Unit Price (TZS)</label>}
+                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Unit Price (KES)</label>}
                   <input
                     type="number" min="0" step="0.01" value={item.unit_price}
                     onChange={e => setItem(i, 'unit_price', e.target.value)}
@@ -171,7 +171,7 @@ export default function NewRequisitionPage() {
             <div className="text-sm">
               <span className="text-gray-500 mr-3">Estimated Total:</span>
               <span className="font-bold text-brand-slate">
-                TZS {items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0), 0).toLocaleString()}
+                KES {items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0), 0).toLocaleString()}
               </span>
             </div>
           </div>

@@ -9,8 +9,8 @@ const boqColumns = [
   { key: 'description',  label: 'Description' },
   { key: 'unit',         label: 'Unit' },
   { key: 'quantity',     label: 'Qty', render: (r) => Number(r.quantity).toLocaleString() },
-  { key: 'unit_rate',    label: 'Unit Rate', render: (r) => `TZS ${Number(r.unit_rate).toLocaleString()}` },
-  { key: 'total_cost',   label: 'Total Cost', render: (r) => `TZS ${Number(r.total_cost).toLocaleString()}` },
+  { key: 'unit_rate',    label: 'Unit Rate', render: (r) => `KES ${Number(r.unit_rate).toLocaleString()}` },
+  { key: 'total_cost',   label: 'Total Cost', render: (r) => `KES ${Number(r.total_cost).toLocaleString()}` },
 ]
 
 export default function ProjectDetailPage() {
@@ -43,9 +43,9 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Status',          value: <Badge status={project.status} /> },
-          { label: 'Contract Value',  value: project.contract_value ? `TZS ${Number(project.contract_value).toLocaleString()}` : '—' },
-          { label: 'BOQ Total',       value: costing.boq_total ? `TZS ${Number(costing.boq_total).toLocaleString()}` : '—' },
-          { label: 'Actual Cost',     value: costing.actual_total ? `TZS ${Number(costing.actual_total).toLocaleString()}` : '—' },
+          { label: 'Contract Value',  value: project.contract_value ? `KES ${Number(project.contract_value).toLocaleString()}` : '—' },
+          { label: 'BOQ Total',       value: costing.boq_total ? `KES ${Number(costing.boq_total).toLocaleString()}` : '—' },
+          { label: 'Actual Cost',     value: costing.actual_total ? `KES ${Number(costing.actual_total).toLocaleString()}` : '—' },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <p className="text-xs text-gray-500 mb-1">{c.label}</p>
