@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "procurement",
     "inventory",
     "crm",
+    "requisitions",
 ]
 
 MIDDLEWARE = [

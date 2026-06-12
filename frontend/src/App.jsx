@@ -12,6 +12,9 @@ import ProcurementPage from './pages/procurement/ProcurementPage'
 import NewPRPage from './pages/procurement/NewPRPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import CRMPage from './pages/crm/CRMPage'
+import RequisitionsPage from './pages/requisitions/RequisitionsPage'
+import NewRequisitionPage from './pages/requisitions/NewRequisitionPage'
+import RequisitionDetailPage from './pages/requisitions/RequisitionDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -31,6 +34,9 @@ export default function App() {
             <Route path="/procurement/new-pr" element={<NewPRPage />} />
             <Route path="/inventory"          element={<InventoryPage />} />
             <Route path="/crm"                element={<CRMPage />} />
+            <Route path="/requisitions"       element={<RequisitionsPage />} />
+            <Route path="/requisitions/new"   element={<NewRequisitionPage />} />
+            <Route path="/requisitions/:id"   element={<RequisitionDetailPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

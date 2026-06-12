@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
   CubeIcon, UserGroupIcon, ArrowRightOnRectangleIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import logoIcon from '../../assets/logo-icon.png'
@@ -14,6 +15,7 @@ const links = [
   { to: '/procurement',  icon: ClipboardDocumentListIcon,   label: 'Procurement' },
   { to: '/inventory',    icon: CubeIcon,                    label: 'Inventory' },
   { to: '/crm',          icon: UserGroupIcon,               label: 'CRM' },
+  { to: '/requisitions', icon: DocumentTextIcon,            label: 'Requisitions' },
 ]
 
 export default function Sidebar({ collapsed }) {
