@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getFinanceDashboard } from '../../api/finance'
 import {
   ArrowTrendingUpIcon, ArrowTrendingDownIcon,
-  ExclamationTriangleIcon, CheckCircleIcon,
+  ExclamationTriangleIcon, CheckCircleIcon, ReceiptPercentIcon,
 } from '@heroicons/react/24/outline'
 
 const fmt = (n) => `KES ${Number(n || 0).toLocaleString()}`
@@ -82,6 +82,17 @@ export default function FinanceDashboard() {
             sub="Past due date" subColor="text-red-500" />
         </div>
       </div>
+
+      {/* Pending Expenses alert */}
+      {data.pending_expenses > 0 && (
+        <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-3">
+          <ReceiptPercentIcon className="h-5 w-5 text-yellow-600 shrink-0" />
+          <p className="text-sm text-yellow-800">
+            <span className="font-semibold">KES {Number(data.pending_expenses).toLocaleString()}</span> in expense claims pending review.
+          </p>
+          <Link to="/finance/expenses" className="ml-auto text-xs text-yellow-700 font-medium hover:underline">Review →</Link>
+        </div>
+      )}
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

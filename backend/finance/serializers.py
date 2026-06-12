@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment
+from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -112,3 +112,48 @@ class PaymentSerializer(serializers.ModelSerializer):
             **validated_data,
             recorded_by=self.context['request'].user,
         )
+
+
+class ExpenseClaimItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = ExpenseClaimItem
+        fields = ['id', 'date', 'description', 'category', 'amount', 'receipt_ref']
+
+
+class ExpenseClaimSerializer(serializers.ModelSerializer):
+    items              = ExpenseClaimItemSerializer(many=True, read_only=True)
+    submitted_by_name  = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
+    project_name       = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model  = ExpenseClaim
+        fields = ['id', 'reference', 'title', 'status', 'submitted_by', 'submitted_by_name',
+                  'project', 'project_name', 'total_amount', 'notes',
+                  'reviewed_by', 'reviewed_at', 'review_notes', 'items', 'created_at']
+        read_only_fields = ['reference', 'submitted_by', 'total_amount',
+                            'reviewed_by', 'reviewed_at']
+
+
+class ExpenseClaimCreateSerializer(serializers.ModelSerializer):
+    items = ExpenseClaimItemSerializer(many=True)
+
+    class Meta:
+        model  = ExpenseClaim
+        fields = ['title', 'project', 'notes', 'items']
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        claim = ExpenseClaim.objects.create(
+            **validated_data,
+            submitted_by=self.context['request'].user,
+            status=ExpenseClaim.Status.DRAFT,
+        )
+        for item in items_data:
+            ExpenseClaimItem.objects.create(claim=claim, **item)
+        claim.recalculate()
+        return claim
+
+
+class ExpenseReviewSerializer(serializers.Serializer):
+    action       = serializers.ChoiceField(choices=['approved', 'rejected'])
+    review_notes = serializers.CharField(required=False, allow_blank=True)

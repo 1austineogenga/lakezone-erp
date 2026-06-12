@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment
+from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem
 
 
 @admin.register(Account)
@@ -51,3 +51,19 @@ class PaymentAdmin(admin.ModelAdmin):
                      'payment_date', 'reference', 'recorded_by']
     list_filter   = ['payment_type', 'payment_method']
     search_fields = ['reference']
+
+
+class ExpenseClaimItemInline(admin.TabularInline):
+    model  = ExpenseClaimItem
+    extra  = 0
+    fields = ['date', 'description', 'category', 'amount', 'receipt_ref']
+
+
+@admin.register(ExpenseClaim)
+class ExpenseClaimAdmin(admin.ModelAdmin):
+    list_display  = ['reference', 'title', 'submitted_by', 'project',
+                     'status', 'total_amount', 'created_at']
+    list_filter   = ['status']
+    search_fields = ['reference', 'title']
+    readonly_fields = ['reference', 'total_amount', 'reviewed_by', 'reviewed_at']
+    inlines = [ExpenseClaimItemInline]

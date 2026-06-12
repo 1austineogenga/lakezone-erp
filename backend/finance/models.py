@@ -282,3 +282,65 @@ class Payment(models.Model):
             elif bill.amount_paid > 0:
                 bill.status = Bill.Status.PARTIAL
             bill.save(update_fields=['amount_paid', 'balance_due', 'status'])
+
+
+# ── Expense Claims ─────────────────────────────────────────────────────────────
+
+class ExpenseClaim(models.Model):
+    class Status(models.TextChoices):
+        DRAFT    = 'draft',    'Draft'
+        SUBMITTED = 'submitted', 'Submitted'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+        PAID     = 'paid',     'Paid'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference   = models.CharField(max_length=20, unique=True, blank=True)
+    title       = models.CharField(max_length=255)
+    submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                     related_name='expense_claims')
+    project     = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name='expense_claims')
+    status      = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    notes       = models.TextField(blank=True)
+
+    reviewed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='expenses_reviewed')
+    reviewed_at  = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True)
+
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.reference} — {self.title}'
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            from datetime import date
+            year = date.today().year
+            count = ExpenseClaim.objects.filter(reference__startswith=f'EXP-{year}-').count()
+            self.reference = f'EXP-{year}-{str(count + 1).zfill(4)}'
+        super().save(*args, **kwargs)
+
+    def recalculate(self):
+        self.total_amount = sum(item.amount for item in self.items.all())
+        self.save(update_fields=['total_amount'])
+
+
+class ExpenseClaimItem(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim       = models.ForeignKey(ExpenseClaim, on_delete=models.CASCADE, related_name='items')
+    date        = models.DateField()
+    description = models.CharField(max_length=255)
+    category    = models.CharField(max_length=20, choices=Account.CostCode.choices,
+                                   default=Account.CostCode.OTHER)
+    amount      = models.DecimalField(max_digits=15, decimal_places=2)
+    receipt_ref = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return f'{self.description} — KES {self.amount}'

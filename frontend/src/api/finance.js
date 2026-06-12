@@ -15,3 +15,12 @@ export const createBill = (data)   => api.post('/finance/bills/', data)
 export const updateBill = (id, data) => api.patch(`/finance/bills/${id}/`, data)
 
 export const createPayment = (data) => api.post('/finance/payments/', data)
+
+export const getExpenses      = (params) => api.get('/finance/expenses/', { params })
+export const getExpense       = (id)     => api.get(`/finance/expenses/${id}/`)
+export const createExpense    = (data)   => api.post('/finance/expenses/', data)
+export const submitExpense    = (id)     => api.post(`/finance/expenses/${id}/submit/`)
+export const reviewExpense    = (id, data) => api.post(`/finance/expenses/${id}/review/`, data)
+
+export const getCashFlow      = ()       => api.get('/finance/cash-flow/')
+export const getProfitability = ()       => api.get('/finance/profitability/')
