@@ -27,11 +27,13 @@ export default function Sidebar({ collapsed }) {
   return (
     <aside className={`flex flex-col bg-brand-slate-dark text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'}`}>
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-brand-slate px-3">
-        {collapsed
-          ? <img src={logoIcon} alt="LZ" className="h-9 w-9" />
-          : <img src={logoFull} alt="Lake Zone Enterprises" className="h-10" />
-        }
+      <div className="flex items-center justify-center border-b border-brand-slate px-3 py-3">
+        <div className="bg-white rounded-xl flex items-center justify-center px-3 py-2 w-full">
+          {collapsed
+            ? <img src={logoIcon} alt="LZ" className="h-8 w-8 object-contain" />
+            : <img src={logoFull} alt="Lake Zone Enterprises" className="h-10 w-auto object-contain" />
+          }
+        </div>
       </div>
 
       {/* Nav links */}
