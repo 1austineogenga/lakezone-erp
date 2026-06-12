@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem, RetentionRelease
+from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
+                     ExpenseClaim, ExpenseClaimItem, RetentionRelease,
+                     ProjectBudget, PaymentCertificate, PerformanceBond)
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -181,3 +183,67 @@ class RetentionReleaseCreateSerializer(serializers.ModelSerializer):
         model  = RetentionRelease
         fields = ['retention_type', 'invoice', 'bill', 'project',
                   'amount', 'release_date', 'notes']
+
+
+class ProjectBudgetSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model  = ProjectBudget
+        fields = ['id', 'project', 'project_name', 'cost_code', 'description',
+                  'budgeted_amount', 'notes', 'created_at']
+        read_only_fields = ['created_at']
+
+    def create(self, validated_data):
+        return ProjectBudget.objects.create(
+            **validated_data,
+            created_by=self.context['request'].user,
+        )
+
+
+class PaymentCertificateSerializer(serializers.ModelSerializer):
+    project_name   = serializers.CharField(source='project.name',          read_only=True)
+    invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
+
+    class Meta:
+        model  = PaymentCertificate
+        fields = [
+            'id', 'certificate_number', 'status',
+            'invoice', 'invoice_number', 'project', 'project_name',
+            'certified_by', 'certificate_date', 'period_from', 'period_to',
+            'contract_value', 'work_done_to_date', 'previous_certified',
+            'certified_amount', 'retention_held', 'net_payment_due',
+            'notes', 'created_at',
+        ]
+        read_only_fields = ['certificate_number', 'certified_amount', 'net_payment_due']
+
+    def create(self, validated_data):
+        return PaymentCertificate.objects.create(
+            **validated_data,
+            created_by=self.context['request'].user,
+        )
+
+
+class PerformanceBondSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source='project.name', read_only=True)
+    days_to_expiry = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = PerformanceBond
+        fields = [
+            'id', 'bond_type', 'reference', 'project', 'project_name',
+            'issuing_bank', 'beneficiary', 'amount',
+            'issue_date', 'expiry_date', 'status', 'days_to_expiry',
+            'notes', 'created_at',
+        ]
+        read_only_fields = ['status', 'created_at']
+
+    def get_days_to_expiry(self, obj):
+        from datetime import date
+        return (obj.expiry_date - date.today()).days
+
+    def create(self, validated_data):
+        return PerformanceBond.objects.create(
+            **validated_data,
+            created_by=self.context['request'].user,
+        )

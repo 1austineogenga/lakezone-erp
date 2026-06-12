@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Account, Invoice, InvoiceLine, Bill, BillLine, Payment, ExpenseClaim, ExpenseClaimItem, RetentionRelease
+from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
+                     ExpenseClaim, ExpenseClaimItem, RetentionRelease,
+                     ProjectBudget, PaymentCertificate, PerformanceBond)
 
 
 @admin.register(Account)
@@ -74,3 +76,23 @@ class RetentionReleaseAdmin(admin.ModelAdmin):
     list_display  = ['retention_type', 'project', 'amount', 'release_date', 'status', 'released_by']
     list_filter   = ['retention_type', 'status']
     readonly_fields = ['released_by', 'released_at']
+
+
+@admin.register(ProjectBudget)
+class ProjectBudgetAdmin(admin.ModelAdmin):
+    list_display = ['project', 'cost_code', 'budgeted_amount', 'created_by']
+    list_filter  = ['cost_code']
+
+
+@admin.register(PaymentCertificate)
+class PaymentCertificateAdmin(admin.ModelAdmin):
+    list_display = ['certificate_number', 'project', 'certified_by', 'certificate_date',
+                    'certified_amount', 'status']
+    list_filter  = ['status']
+    readonly_fields = ['certificate_number', 'certified_amount', 'net_payment_due']
+
+
+@admin.register(PerformanceBond)
+class PerformanceBondAdmin(admin.ModelAdmin):
+    list_display = ['bond_type', 'project', 'issuing_bank', 'amount', 'expiry_date', 'status']
+    list_filter  = ['bond_type', 'status']

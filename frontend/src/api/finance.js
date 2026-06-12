@@ -32,3 +32,20 @@ export const actionRetentionRelease = (id, data) => api.post(`/finance/retention
 
 export const getAgedDebtors   = ()       => api.get('/finance/aged-debtors/')
 export const getAgedCreditors = ()       => api.get('/finance/aged-creditors/')
+
+export const getBudgets       = (params) => api.get('/finance/budgets/', { params })
+export const createBudget     = (data)   => api.post('/finance/budgets/', data)
+export const updateBudget     = (id, data) => api.patch(`/finance/budgets/${id}/`, data)
+export const deleteBudget     = (id)     => api.delete(`/finance/budgets/${id}/`)
+export const getBudgetVsActual = (params) => api.get('/finance/budget-vs-actual/', { params })
+
+export const getVATSummary    = ()       => api.get('/finance/vat-summary/')
+export const getWHTRegister   = (params) => api.get('/finance/wht-register/', { params })
+
+export const getCertificates  = (params) => api.get('/finance/certificates/', { params })
+export const createCertificate = (data)  => api.post('/finance/certificates/', data)
+export const updateCertificate = (id, data) => api.patch(`/finance/certificates/${id}/`, data)
+
+export const getBonds         = (params) => api.get('/finance/bonds/', { params })
+export const createBond       = (data)   => api.post('/finance/bonds/', data)
+export const updateBond       = (id, data) => api.patch(`/finance/bonds/${id}/`, data)

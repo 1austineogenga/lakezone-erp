@@ -5,7 +5,8 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from .models import Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease
+from .models import (Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease,
+                     ProjectBudget, PaymentCertificate, PerformanceBond)
 from .serializers import (
     AccountSerializer,
     InvoiceSerializer, InvoiceCreateSerializer,
@@ -13,6 +14,7 @@ from .serializers import (
     PaymentSerializer,
     ExpenseClaimSerializer, ExpenseClaimCreateSerializer, ExpenseReviewSerializer,
     RetentionReleaseSerializer, RetentionReleaseCreateSerializer,
+    ProjectBudgetSerializer, PaymentCertificateSerializer, PerformanceBondSerializer,
 )
 
 
@@ -477,3 +479,233 @@ class AgedCreditorsView(APIView):
             'grand_total': sum(bands.values()),
             'by_supplier': sorted(supplier_totals.values(), key=lambda x: -x['total']),
         })
+
+
+# ── Budget vs Actual ───────────────────────────────────────────────────────────
+
+class ProjectBudgetListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = ProjectBudgetSerializer
+
+    def get_queryset(self):
+        qs = ProjectBudget.objects.select_related('project').all()
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
+
+
+class ProjectBudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = ProjectBudgetSerializer
+    queryset           = ProjectBudget.objects.all()
+
+
+class BudgetVsActualView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import Account, BillLine, ExpenseClaimItem
+        from django.db.models import Sum
+
+        project_id = request.query_params.get('project')
+
+        budget_qs = ProjectBudget.objects.select_related('project').all()
+        if project_id:
+            budget_qs = budget_qs.filter(project_id=project_id)
+
+        # Actual costs = bill lines + approved expense items grouped by cost code
+        bill_actuals = (
+            BillLine.objects
+            .filter(cost_code__isnull=False)
+            .exclude(cost_code='')
+        )
+        if project_id:
+            bill_actuals = bill_actuals.filter(bill__project_id=project_id)
+        bill_actuals = (
+            bill_actuals
+            .values('cost_code', 'bill__project_id', 'bill__project__name')
+            .annotate(actual=Sum('amount'))
+        )
+
+        expense_actuals = (
+            ExpenseClaimItem.objects
+            .filter(claim__status='approved')
+        )
+        if project_id:
+            expense_actuals = expense_actuals.filter(claim__project_id=project_id)
+        expense_actuals = (
+            expense_actuals
+            .values('category', 'claim__project_id', 'claim__project__name')
+            .annotate(actual=Sum('amount'))
+        )
+
+        # Build lookup: (project_id, cost_code) -> actual amount
+        actuals = {}
+        for row in bill_actuals:
+            k = (str(row['bill__project_id']), row['cost_code'])
+            actuals[k] = actuals.get(k, 0) + float(row['actual'] or 0)
+        for row in expense_actuals:
+            k = (str(row['claim__project_id']), row['category'])
+            actuals[k] = actuals.get(k, 0) + float(row['actual'] or 0)
+
+        rows = []
+        for b in budget_qs:
+            k = (str(b.project_id), b.cost_code)
+            actual = actuals.get(k, 0)
+            budgeted = float(b.budgeted_amount)
+            variance = budgeted - actual
+            rows.append({
+                'id': str(b.id),
+                'project_id':   str(b.project_id),
+                'project_name': b.project.name,
+                'cost_code':    b.cost_code,
+                'description':  b.description,
+                'budgeted':     budgeted,
+                'actual':       actual,
+                'variance':     variance,
+                'variance_pct': round((variance / budgeted * 100) if budgeted else 0, 1),
+            })
+
+        total_budgeted = sum(r['budgeted'] for r in rows)
+        total_actual   = sum(r['actual']   for r in rows)
+
+        return Response({
+            'rows': rows,
+            'totals': {
+                'budgeted': total_budgeted,
+                'actual':   total_actual,
+                'variance': total_budgeted - total_actual,
+            }
+        })
+
+
+# ── Tax & Compliance ───────────────────────────────────────────────────────────
+
+class VATSummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models.functions import TruncMonth
+
+        output_vat = (
+            Invoice.objects
+            .exclude(status='cancelled')
+            .annotate(month=TruncMonth('issue_date'))
+            .values('month')
+            .annotate(total=Sum('vat_amount'))
+            .order_by('month')
+        )
+        input_vat = (
+            Bill.objects
+            .exclude(status='draft')
+            .annotate(month=TruncMonth('issue_date'))
+            .values('month')
+            .annotate(total=Sum('vat_amount'))
+            .order_by('month')
+        )
+
+        months = {}
+        for row in output_vat:
+            m = row['month'].strftime('%Y-%m') if row['month'] else 'unknown'
+            months.setdefault(m, {'month': m, 'output_vat': 0, 'input_vat': 0})
+            months[m]['output_vat'] = float(row['total'] or 0)
+        for row in input_vat:
+            m = row['month'].strftime('%Y-%m') if row['month'] else 'unknown'
+            months.setdefault(m, {'month': m, 'output_vat': 0, 'input_vat': 0})
+            months[m]['input_vat'] = float(row['total'] or 0)
+
+        result = sorted(months.values(), key=lambda x: x['month'])
+        for r in result:
+            r['net_vat_payable'] = r['output_vat'] - r['input_vat']
+
+        totals = {
+            'output_vat': sum(r['output_vat'] for r in result),
+            'input_vat':  sum(r['input_vat']  for r in result),
+        }
+        totals['net_vat_payable'] = totals['output_vat'] - totals['input_vat']
+
+        return Response({'monthly': result, 'totals': totals})
+
+
+class WHTRegisterView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        bills = (
+            Bill.objects
+            .filter(withholding_tax__gt=0)
+            .select_related('supplier', 'project')
+            .order_by('-issue_date')
+        )
+        supplier_id = request.query_params.get('supplier')
+        if supplier_id:
+            bills = bills.filter(supplier_id=supplier_id)
+
+        rows = [
+            {
+                'bill_id':        str(b.id),
+                'bill_number':    b.bill_number,
+                'supplier_id':    str(b.supplier_id),
+                'supplier_name':  b.supplier.company_name,
+                'project_name':   b.project.name if b.project else None,
+                'issue_date':     b.issue_date.isoformat(),
+                'subtotal':       float(b.subtotal),
+                'wht_amount':     float(b.withholding_tax),
+                'wht_rate':       round(float(b.withholding_tax) / float(b.subtotal) * 100, 2) if b.subtotal else 0,
+            }
+            for b in bills
+        ]
+
+        supplier_totals = {}
+        for r in rows:
+            s = r['supplier_name']
+            supplier_totals.setdefault(s, {'supplier_name': s, 'total_wht': 0, 'count': 0})
+            supplier_totals[s]['total_wht'] += r['wht_amount']
+            supplier_totals[s]['count']     += 1
+
+        return Response({
+            'entries':          rows,
+            'by_supplier':      sorted(supplier_totals.values(), key=lambda x: -x['total_wht']),
+            'total_wht':        sum(r['wht_amount'] for r in rows),
+        })
+
+
+# ── Payment Certificates ───────────────────────────────────────────────────────
+
+class PaymentCertificateListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = PaymentCertificateSerializer
+
+    def get_queryset(self):
+        qs = PaymentCertificate.objects.select_related('project', 'invoice').all()
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
+
+
+class PaymentCertificateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = PaymentCertificateSerializer
+    queryset           = PaymentCertificate.objects.all()
+
+
+# ── Performance Bonds ──────────────────────────────────────────────────────────
+
+class PerformanceBondListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = PerformanceBondSerializer
+
+    def get_queryset(self):
+        qs = PerformanceBond.objects.select_related('project').all()
+        status = self.request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+
+class PerformanceBondDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = PerformanceBondSerializer
+    queryset           = PerformanceBond.objects.all()

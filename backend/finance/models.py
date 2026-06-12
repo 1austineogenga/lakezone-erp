@@ -382,3 +382,127 @@ class RetentionRelease(models.Model):
     def __str__(self):
         src = self.invoice or self.bill
         return f'{self.get_retention_type_display()} — KES {self.amount} ({self.status})'
+
+
+# ── Project Budget (Budget vs Actual) ─────────────────────────────────────────
+
+class ProjectBudget(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project     = models.ForeignKey('projects.Project', on_delete=models.CASCADE,
+                                    related_name='budgets')
+    cost_code   = models.CharField(max_length=20, choices=Account.CostCode.choices)
+    description = models.CharField(max_length=255, blank=True)
+    budgeted_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    notes       = models.TextField(blank=True)
+    created_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                    related_name='budgets_created')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['project', 'cost_code']
+        unique_together = ['project', 'cost_code']
+
+    def __str__(self):
+        return f'{self.project} / {self.cost_code} — KES {self.budgeted_amount}'
+
+
+# ── Payment Certificate (Architect/Engineer IPC Certification) ─────────────────
+
+class PaymentCertificate(models.Model):
+    class Status(models.TextChoices):
+        DRAFT    = 'draft',    'Draft'
+        ISSUED   = 'issued',   'Issued'
+        APPROVED = 'approved', 'Approved'
+        PAID     = 'paid',     'Paid'
+
+    id                 = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    certificate_number = models.CharField(max_length=30, unique=True, blank=True)
+    invoice            = models.ForeignKey(Invoice, on_delete=models.SET_NULL,
+                                           null=True, blank=True, related_name='certificates')
+    project            = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                           null=True, blank=True, related_name='certificates')
+    certified_by       = models.CharField(max_length=255)  # Architect / Quantity Surveyor name
+    certificate_date   = models.DateField()
+    period_from        = models.DateField(null=True, blank=True)
+    period_to          = models.DateField(null=True, blank=True)
+    contract_value     = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    work_done_to_date  = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    previous_certified = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    certified_amount   = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    retention_held     = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    net_payment_due    = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    status             = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    notes              = models.TextField(blank=True)
+    created_by         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                           related_name='certificates_created')
+    created_at         = models.DateTimeField(auto_now_add=True)
+    updated_at         = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-certificate_date']
+
+    def save(self, *args, **kwargs):
+        if not self.certificate_number:
+            from datetime import date
+            year = date.today().year
+            count = PaymentCertificate.objects.filter(
+                certificate_number__startswith=f'IPC-{year}-').count()
+            self.certificate_number = f'IPC-{year}-{str(count + 1).zfill(4)}'
+        self.certified_amount  = self.work_done_to_date - self.previous_certified
+        self.net_payment_due   = self.certified_amount - self.retention_held
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.certificate_number} — {self.project}'
+
+
+# ── Performance Bonds & Bank Guarantees ────────────────────────────────────────
+
+class PerformanceBond(models.Model):
+    class BondType(models.TextChoices):
+        PERFORMANCE  = 'performance',  'Performance Bond'
+        ADVANCE      = 'advance',      'Advance Payment Guarantee'
+        RETENTION    = 'retention',    'Retention Bond'
+        BID          = 'bid',          'Bid Bond / Tender Security'
+        MAINTENANCE  = 'maintenance',  'Maintenance Bond'
+        OTHER        = 'other',        'Other'
+
+    class Status(models.TextChoices):
+        ACTIVE   = 'active',   'Active'
+        EXPIRING = 'expiring', 'Expiring Soon (30 days)'
+        EXPIRED  = 'expired',  'Expired'
+        RELEASED = 'released', 'Released'
+        CALLED   = 'called',   'Called / Claimed'
+
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    bond_type     = models.CharField(max_length=20, choices=BondType.choices)
+    reference     = models.CharField(max_length=100, blank=True)
+    project       = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name='bonds')
+    issuing_bank  = models.CharField(max_length=255)
+    beneficiary   = models.CharField(max_length=255)
+    amount        = models.DecimalField(max_digits=15, decimal_places=2)
+    issue_date    = models.DateField()
+    expiry_date   = models.DateField()
+    status        = models.CharField(max_length=15, choices=Status.choices, default=Status.ACTIVE)
+    notes         = models.TextField(blank=True)
+    created_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                      related_name='bonds_created')
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['expiry_date']
+
+    def save(self, *args, **kwargs):
+        today = date.today()
+        if self.status not in (self.Status.RELEASED, self.Status.CALLED):
+            if self.expiry_date < today:
+                self.status = self.Status.EXPIRED
+            elif (self.expiry_date - today).days <= 30:
+                self.status = self.Status.EXPIRING
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.get_bond_type_display()} — {self.issuing_bank} — KES {self.amount}'

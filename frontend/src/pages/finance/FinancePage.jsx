@@ -10,10 +10,15 @@ import CashFlowPage from './CashFlowPage'
 import ProfitabilityPage from './ProfitabilityPage'
 import RetentionPage from './RetentionPage'
 import AgedDebtorsPage from './AgedDebtorsPage'
+import BudgetVsActualPage from './BudgetVsActualPage'
+import TaxCompliancePage from './TaxCompliancePage'
+import PaymentCertificatesPage from './PaymentCertificatesPage'
+import PerformanceBondsPage from './PerformanceBondsPage'
 import {
   BanknotesIcon, DocumentTextIcon, CreditCardIcon,
   ChartBarIcon, ReceiptPercentIcon, ArrowTrendingUpIcon,
-  LockClosedIcon, ClockIcon,
+  LockClosedIcon, ClockIcon, CalculatorIcon,
+  ScaleIcon, ShieldCheckIcon, DocumentCheckIcon,
 } from '@heroicons/react/24/outline'
 
 const tabs = [
@@ -21,10 +26,14 @@ const tabs = [
   { to: '/finance/invoices',      label: 'Invoices (AR)',  icon: DocumentTextIcon },
   { to: '/finance/bills',         label: 'Bills (AP)',     icon: CreditCardIcon },
   { to: '/finance/expenses',      label: 'Expenses',       icon: ReceiptPercentIcon },
+  { to: '/finance/certificates',  label: 'IPC / Certs',   icon: DocumentCheckIcon },
   { to: '/finance/retention',     label: 'Retention',      icon: LockClosedIcon },
   { to: '/finance/aged',          label: 'Aged Report',    icon: ClockIcon },
   { to: '/finance/cash-flow',     label: 'Cash Flow',      icon: ArrowTrendingUpIcon },
   { to: '/finance/profitability', label: 'Profitability',  icon: BanknotesIcon },
+  { to: '/finance/budget',        label: 'Budget vs Actual', icon: CalculatorIcon },
+  { to: '/finance/tax',           label: 'Tax & VAT',      icon: ScaleIcon },
+  { to: '/finance/bonds',         label: 'Bonds',          icon: ShieldCheckIcon },
 ]
 
 export default function FinancePage() {
@@ -71,6 +80,10 @@ export default function FinancePage() {
         <Route path="aged"            element={<AgedDebtorsPage />} />
         <Route path="cash-flow"       element={<CashFlowPage />} />
         <Route path="profitability"   element={<ProfitabilityPage />} />
+        <Route path="budget"          element={<BudgetVsActualPage />} />
+        <Route path="tax"             element={<TaxCompliancePage />} />
+        <Route path="certificates"    element={<PaymentCertificatesPage />} />
+        <Route path="bonds"           element={<PerformanceBondsPage />} />
       </Routes>
     </div>
   )
