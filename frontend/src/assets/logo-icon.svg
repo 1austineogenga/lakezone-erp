@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- L shape - red -->
+  <polygon points="10,10 30,10 30,70 70,70 70,90 10,90" fill="#BF2026"/>
+  <!-- Z shape - slate -->
+  <polygon points="35,10 90,10 90,30 55,30 90,70 90,90 35,90 35,70 70,70 35,30" fill="#3C4F5C"/>
+  <!-- 3D depth on L - dark red -->
+  <polygon points="30,10 45,10 45,25 30,25" fill="#9B1A1F"/>
+  <!-- 3D depth on Z - dark slate -->
+  <polygon points="75,10 90,10 90,25 75,25" fill="#2B3A44"/>
+</svg>
