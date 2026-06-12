@@ -15,6 +15,7 @@ import CRMPage from './pages/crm/CRMPage'
 import RequisitionsPage from './pages/requisitions/RequisitionsPage'
 import NewRequisitionPage from './pages/requisitions/NewRequisitionPage'
 import RequisitionDetailPage from './pages/requisitions/RequisitionDetailPage'
+import FinancePage from './pages/finance/FinancePage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/requisitions"       element={<RequisitionsPage />} />
             <Route path="/requisitions/new"   element={<NewRequisitionPage />} />
             <Route path="/requisitions/:id"   element={<RequisitionDetailPage />} />
+            <Route path="/finance/*"          element={<FinancePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
