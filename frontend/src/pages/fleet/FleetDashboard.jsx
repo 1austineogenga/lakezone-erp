@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   TruckIcon, BoltIcon, ExclamationTriangleIcon, BeakerIcon,
   ArrowPathIcon, MapPinIcon, CheckCircleIcon,
@@ -61,11 +61,11 @@ export default function FleetDashboard() {
   const lowFuelCount  = live.filter(v => v.last_fuel != null && Number(v.last_fuel) < 10).length
 
   const stats = [
-    { label: 'Total Vehicles', val: totalVehicles,                      icon: TruckIcon,               color: 'text-brand-slate' },
-    { label: 'Online (10 min)', val: onlineCount,                        icon: BoltIcon,                color: 'text-green-600' },
-    { label: 'Moving Now',      val: movingCount,                        icon: MapPinIcon,              color: 'text-blue-600' },
-    { label: 'Unread Alerts',   val: dash?.unacknowledged_alerts ?? 0,  icon: ExclamationTriangleIcon, color: 'text-red-600' },
-    { label: 'Low Fuel (<10%)', val: lowFuelCount,                       icon: BeakerIcon,              color: 'text-orange-600' },
+    { label: 'Total Vehicles', val: totalVehicles,                      icon: TruckIcon,               color: 'text-brand-slate', bg: 'bg-slate-50',  border: 'border-l-4 border-l-slate-400' },
+    { label: 'Online (10 min)', val: onlineCount,                        icon: BoltIcon,                color: 'text-green-600',   bg: 'bg-green-50',  border: 'border-l-4 border-l-green-500' },
+    { label: 'Moving Now',      val: movingCount,                        icon: MapPinIcon,              color: 'text-blue-600',    bg: 'bg-blue-50',   border: 'border-l-4 border-l-blue-500' },
+    { label: 'Unread Alerts',   val: dash?.unacknowledged_alerts ?? 0,  icon: ExclamationTriangleIcon, color: 'text-red-600',     bg: 'bg-red-50',    border: 'border-l-4 border-l-red-500' },
+    { label: 'Low Fuel (<10%)', val: lowFuelCount,                       icon: BeakerIcon,              color: 'text-orange-600',  bg: 'bg-orange-50', border: 'border-l-4 border-l-orange-500' },
   ]
 
   const statusGroups = live.reduce((acc, v) => {
@@ -73,8 +73,9 @@ export default function FleetDashboard() {
     acc[s] = (acc[s] || 0) + 1
     return acc
   }, {})
+  const STATUS_COLOR = { MOVING: '#22c55e', IDLE: '#facc15', STOP: '#9ca3af', INACTIVE: '#ef4444' }
   const statusChartData = Object.entries(statusGroups).map(([name, value]) => ({
-    name: STATUS_LABEL[name] || name, value,
+    name: STATUS_LABEL[name] || name, value, color: STATUS_COLOR[name] || '#9ca3af',
   }))
 
   return (
@@ -95,7 +96,7 @@ export default function FleetDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {stats.map(s => (
-          <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
+          <div key={s.label} className={`${s.bg} border border-gray-200 ${s.border} rounded-xl p-4`}>
             <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
             <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
@@ -183,7 +184,11 @@ export default function FleetDashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="value" fill="#c0392b" radius={[4,4,0,0]} />
+              <Bar dataKey="value" radius={[4,4,0,0]}>
+                {statusChartData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
