@@ -721,10 +721,46 @@ class TransferReviewView(APIView):
         transfer.review_notes = serializer.validated_data.get('review_notes', '')
         transfer.save()
 
-        # If approved and it's a permanent transfer, update employee's location/branch
-        if transfer.status == EmployeeTransfer.Status.APPROVED and transfer.transfer_type == EmployeeTransfer.TransferType.PERMANENT:
-            emp = transfer.employee
-            emp.notes = f'{emp.notes}\nTransferred to {transfer.to_location} on {transfer.start_date}.'.strip()
-            emp.save()
+        if transfer.status == EmployeeTransfer.Status.APPROVED:
+            # Update employee notes for permanent transfers
+            if transfer.transfer_type == EmployeeTransfer.TransferType.PERMANENT:
+                emp = transfer.employee
+                emp.notes = f'{emp.notes}\nTransferred to {transfer.to_location} on {transfer.start_date}.'.strip()
+                emp.save()
+
+            # Auto-create Finance ExpenseClaim if allowances are present
+            if transfer.total_allowance > 0:
+                try:
+                    from finance.models import ExpenseClaim, ExpenseClaimItem, Account
+                    claim = ExpenseClaim.objects.create(
+                        title=f'Transfer Allowance — {transfer.employee.full_name} → {transfer.to_location}',
+                        submitted_by=transfer.requested_by,
+                        project=transfer.project,
+                        status=ExpenseClaim.Status.SUBMITTED,
+                        notes=(
+                            f'Auto-generated on approval of transfer request.\n'
+                            f'Employee: {transfer.employee.full_name} ({transfer.employee.employee_number})\n'
+                            f'Transfer: {transfer.from_location} → {transfer.to_location}'
+                        ),
+                    )
+                    if transfer.relocation_allowance > 0:
+                        ExpenseClaimItem.objects.create(
+                            claim=claim,
+                            date=transfer.start_date,
+                            description=f'Relocation allowance — {transfer.to_location}',
+                            category=Account.CostCode.LABOUR,
+                            amount=transfer.relocation_allowance,
+                        )
+                    if transfer.daily_allowance > 0 and transfer.daily_allowance_days > 0:
+                        ExpenseClaimItem.objects.create(
+                            claim=claim,
+                            date=transfer.start_date,
+                            description=f'Daily allowance — {transfer.daily_allowance_days} days @ KES {transfer.daily_allowance}/day',
+                            category=Account.CostCode.LABOUR,
+                            amount=transfer.daily_allowance * transfer.daily_allowance_days,
+                        )
+                    claim.recalculate()
+                except Exception:
+                    pass  # Finance integration is best-effort; don't fail the approval
 
         return Response(EmployeeTransferSerializer(transfer).data)

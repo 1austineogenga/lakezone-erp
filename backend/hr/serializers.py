@@ -211,6 +211,7 @@ class EmployeeTransferSerializer(serializers.ModelSerializer):
     requested_by_name = serializers.CharField(source='requested_by.get_full_name', read_only=True)
     reviewed_by_name  = serializers.CharField(source='reviewed_by.get_full_name', read_only=True)
     total_allowance   = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    project_name      = serializers.CharField(source='project.project_name', read_only=True)
 
     class Meta:
         model  = EmployeeTransfer
@@ -218,6 +219,7 @@ class EmployeeTransferSerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'employee_number',
             'transfer_type', 'destination_type',
             'from_location', 'to_location',
+            'project', 'project_name',
             'start_date', 'end_date', 'reason',
             'relocation_allowance', 'daily_allowance', 'daily_allowance_days', 'total_allowance',
             'status',
@@ -233,7 +235,7 @@ class EmployeeTransferCreateSerializer(serializers.ModelSerializer):
         model  = EmployeeTransfer
         fields = [
             'employee', 'transfer_type', 'destination_type',
-            'from_location', 'to_location',
+            'from_location', 'to_location', 'project',
             'start_date', 'end_date', 'reason',
             'relocation_allowance', 'daily_allowance', 'daily_allowance_days',
         ]

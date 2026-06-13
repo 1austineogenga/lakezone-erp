@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { getTransfers, createTransfer, submitTransfer, reviewTransfer } from '../../api/transfers'
 import { getEmployees } from '../../api/hr'
-import { PlusIcon, ArrowRightIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import api from '../../api/client'
+import { PlusIcon, ArrowRightIcon, CheckCircleIcon, XCircleIcon, BanknotesIcon } from '@heroicons/react/24/outline'
 
 const STATUS_COLORS = {
   draft:     'bg-gray-100 text-gray-600',
@@ -21,14 +22,14 @@ const DEST_LABELS = {
 
 const empty = {
   employee: '', transfer_type: 'temporary', destination_type: 'site',
-  from_location: '', to_location: '', start_date: '', end_date: '',
+  from_location: '', to_location: '', project: '', start_date: '', end_date: '',
   reason: '', relocation_allowance: '', daily_allowance: '', daily_allowance_days: '',
 }
 
 export default function TransfersPage() {
   const qc = useQueryClient()
   const [showForm, setShowForm]         = useState(false)
-  const [reviewModal, setReviewModal]   = useState(null) // { transfer, action }
+  const [reviewModal, setReviewModal]   = useState(null)
   const [reviewNotes, setReviewNotes]   = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [form, setForm]                 = useState(empty)
@@ -42,6 +43,12 @@ export default function TransfersPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ['employees-simple'],
     queryFn:  () => getEmployees({ is_active: 'true' }),
+    select:   r => r.data?.results ?? r.data,
+  })
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-active'],
+    queryFn:  () => api.get('/projects/'),
     select:   r => r.data?.results ?? r.data,
   })
 
@@ -69,32 +76,52 @@ export default function TransfersPage() {
     mutationFn: ({ id, data }) => reviewTransfer(id, data),
     onSuccess: (_, { data }) => {
       qc.invalidateQueries({ queryKey: ['transfers'] })
-      toast.success(`Transfer ${data.action}.`)
+      toast.success(
+        data.action === 'approved'
+          ? 'Transfer approved. An expense claim has been raised in Finance if allowances were included.'
+          : 'Transfer rejected.'
+      )
       setReviewModal(null)
       setReviewNotes('')
     },
     onError: () => toast.error('Failed to review transfer.'),
   })
 
-  const f = k => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) })
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  const f   = k => ({ value: form[k], onChange: e => set(k, e.target.value) })
 
   const isSite = form.destination_type === 'site'
+
+  const handleProjectSelect = e => {
+    const pid = e.target.value
+    set('project', pid)
+    if (pid) {
+      const proj = projects.find(p => p.id === pid)
+      if (proj) set('to_location', proj.project_location)
+    } else {
+      set('to_location', '')
+    }
+  }
 
   const handleSubmitForm = e => {
     e.preventDefault()
     const payload = { ...form }
     if (!isSite) {
       payload.relocation_allowance = 0
-      payload.daily_allowance = 0
+      payload.daily_allowance      = 0
       payload.daily_allowance_days = 0
+      payload.project              = null
     }
     if (form.transfer_type === 'permanent') payload.end_date = null
-    // Remove empty strings for optional numeric fields
     if (!payload.relocation_allowance) payload.relocation_allowance = 0
-    if (!payload.daily_allowance) payload.daily_allowance = 0
+    if (!payload.daily_allowance)      payload.daily_allowance      = 0
     if (!payload.daily_allowance_days) payload.daily_allowance_days = 0
+    if (!payload.project)              delete payload.project
     createMut.mutate(payload)
   }
+
+  const totalAllowance = (parseFloat(form.relocation_allowance || 0) +
+    parseFloat(form.daily_allowance || 0) * parseInt(form.daily_allowance_days || 0))
 
   return (
     <div className="space-y-4">
@@ -148,14 +175,38 @@ export default function TransfersPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">From Location *</label>
-                <input required {...f('from_location')} placeholder="e.g. Head Office"
+                <input required {...f('from_location')} placeholder="e.g. Magumu Site"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">To Location *</label>
-                <input required {...f('to_location')} placeholder="e.g. Mwanza Site"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
-              </div>
+
+              {/* Site: project dropdown that auto-fills to_location */}
+              {isSite ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Project Site *</label>
+                    <select required value={form.project} onChange={handleProjectSelect}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+                      <option value="">Select project…</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.project_name} — {p.project_location}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Site Location</label>
+                    <input {...f('to_location')} placeholder="Auto-filled from project"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-red" />
+                    <p className="text-xs text-gray-400 mt-0.5">Auto-filled; edit if needed</p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">To Location *</label>
+                  <input required {...f('to_location')} placeholder="e.g. Magumu Site"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Start Date *</label>
                 <input required type="date" {...f('start_date')}
@@ -179,9 +230,15 @@ export default function TransfersPage() {
             {/* Allowances — only for site moves */}
             {isSite && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-3">
-                  Site Allowances
-                </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <BanknotesIcon className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
+                    Site Allowances
+                  </p>
+                  <span className="text-xs text-blue-600 ml-auto">
+                    On approval, these will auto-create an Expense Claim in Finance
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Relocation Allowance (KES)</label>
@@ -200,12 +257,11 @@ export default function TransfersPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
                   </div>
                 </div>
-                {(form.daily_allowance && form.daily_allowance_days) ? (
-                  <p className="text-xs text-blue-700 mt-2 font-medium">
-                    Total daily allowance: KES {(parseFloat(form.daily_allowance || 0) * parseInt(form.daily_allowance_days || 0)).toLocaleString()}
-                    {form.relocation_allowance ? ` + KES ${parseFloat(form.relocation_allowance).toLocaleString()} relocation = KES ${(parseFloat(form.relocation_allowance || 0) + parseFloat(form.daily_allowance || 0) * parseInt(form.daily_allowance_days || 0)).toLocaleString()} total` : ''}
+                {totalAllowance > 0 && (
+                  <p className="text-sm text-blue-800 mt-3 font-semibold">
+                    Total Allowance: KES {totalAllowance.toLocaleString()}
                   </p>
-                ) : null}
+                )}
               </div>
             )}
 
@@ -252,7 +308,10 @@ export default function TransfersPage() {
                             {t.transfer_type}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-600">{DEST_LABELS[t.destination_type]}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">
+                          <p>{DEST_LABELS[t.destination_type]}</p>
+                          {t.project_name && <p className="text-gray-400">{t.project_name}</p>}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 text-xs text-gray-600">
                             <span>{t.from_location}</span>
@@ -264,11 +323,19 @@ export default function TransfersPage() {
                           <p>{t.start_date}</p>
                           {t.end_date && <p className="text-gray-400">→ {t.end_date}</p>}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-600">
-                          {parseFloat(t.total_allowance) > 0
-                            ? <span className="text-green-700 font-medium">KES {parseFloat(t.total_allowance).toLocaleString()}</span>
-                            : <span className="text-gray-400">—</span>
-                          }
+                        <td className="px-4 py-3 text-xs">
+                          {parseFloat(t.total_allowance) > 0 ? (
+                            <div>
+                              <span className="text-green-700 font-medium">KES {parseFloat(t.total_allowance).toLocaleString()}</span>
+                              {t.status === 'approved' && (
+                                <p className="text-gray-400 flex items-center gap-0.5 mt-0.5">
+                                  <BanknotesIcon className="h-3 w-3" /> Expense raised
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[t.status]}`}>
@@ -313,9 +380,15 @@ export default function TransfersPage() {
             <h3 className="font-semibold text-brand-slate mb-1 capitalize">
               {reviewModal.action} Transfer
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 mb-1">
               {reviewModal.transfer.employee_name} → {reviewModal.transfer.to_location}
             </p>
+            {reviewModal.action === 'approved' && parseFloat(reviewModal.transfer.total_allowance) > 0 && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-3 text-xs text-green-800">
+                <BanknotesIcon className="h-4 w-4 text-green-600 shrink-0" />
+                An Expense Claim of <strong className="mx-1">KES {parseFloat(reviewModal.transfer.total_allowance).toLocaleString()}</strong> will be auto-raised in Finance → Expenses.
+              </div>
+            )}
             <label className="block text-xs font-medium text-gray-700 mb-1">Review Notes</label>
             <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
               rows={3} placeholder="Optional notes…"
@@ -328,9 +401,9 @@ export default function TransfersPage() {
               <button
                 onClick={() => reviewMut.mutate({ id: reviewModal.transfer.id, data: { action: reviewModal.action, review_notes: reviewNotes } })}
                 disabled={reviewMut.isPending}
-                className={`px-4 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50 capitalize
+                className={`px-4 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50
                   ${reviewModal.action === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-red hover:bg-brand-red-dark'}`}>
-                {reviewMut.isPending ? 'Saving…' : `${reviewModal.action.charAt(0).toUpperCase() + reviewModal.action.slice(1)}`}
+                {reviewMut.isPending ? 'Saving…' : (reviewModal.action === 'approved' ? 'Approve & Raise Expense' : 'Reject')}
               </button>
             </div>
           </div>

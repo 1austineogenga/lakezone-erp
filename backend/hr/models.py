@@ -550,6 +550,9 @@ class EmployeeTransfer(models.Model):
     destination_type     = models.CharField(max_length=15, choices=DestinationType.choices)
     from_location        = models.CharField(max_length=200)
     to_location          = models.CharField(max_length=200)
+    project              = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                             null=True, blank=True, related_name='employee_transfers',
+                                             help_text='Link to project site (for site transfers)')
     start_date           = models.DateField()
     end_date             = models.DateField(null=True, blank=True,
                                             help_text='Leave blank for permanent transfers')
