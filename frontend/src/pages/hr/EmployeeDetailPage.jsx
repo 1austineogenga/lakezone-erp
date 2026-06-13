@@ -28,38 +28,38 @@ export default function EmployeeDetailPage() {
   const { data: emp, isLoading } = useQuery({
     queryKey: ['employee', id],
     queryFn: () => getEmployee(id),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: departments } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get('/auth/departments/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: positions } = useQuery({
     queryKey: ['positions'],
     queryFn: () => api.get('/hr/positions/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: branches } = useQuery({
     queryKey: ['branches'],
     queryFn: () => api.get('/auth/branches/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: docs } = useQuery({
     queryKey: ['employee-docs', id],
     queryFn: () => getEmployeeDocuments({ employee: id }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
     enabled: tab === 'documents',
   })
 
   const { data: leaveBalances } = useQuery({
     queryKey: ['leave-balances', id],
     queryFn: () => getLeaveBalances({ employee: id, year: new Date().getFullYear() }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
     enabled: tab === 'leave',
   })
 

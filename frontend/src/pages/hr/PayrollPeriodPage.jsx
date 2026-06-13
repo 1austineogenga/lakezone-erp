@@ -24,13 +24,13 @@ export default function PayrollPeriodPage() {
   const { data: period, isLoading: loadingPeriod } = useQuery({
     queryKey: ['payroll-period', id],
     queryFn: () => getPayrollPeriod(id),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: entries, isLoading: loadingEntries } = useQuery({
     queryKey: ['payroll-entries', id],
     queryFn: () => getPayrollEntries({ period: id }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const generateMut = useMutation({

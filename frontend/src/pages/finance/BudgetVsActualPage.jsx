@@ -22,13 +22,13 @@ export default function BudgetVsActualPage() {
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn: () => api.get('/projects/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: bva, isLoading } = useQuery({
     queryKey: ['budget-vs-actual', projectId],
     queryFn: () => getBudgetVsActual(projectId ? { project: projectId } : undefined),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

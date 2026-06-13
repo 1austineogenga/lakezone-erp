@@ -47,19 +47,19 @@ export default function TimesheetsPage() {
   const { data: timesheets, isLoading } = useQuery({
     queryKey: ['timesheets', statusFilter],
     queryFn: () => api.get('/finance/timesheets/', { params: statusFilter ? { status: statusFilter } : undefined }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: payrollSummary } = useQuery({
     queryKey: ['payroll-summary'],
     queryFn: () => api.get('/finance/payroll-summary/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn: () => api.get('/projects/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

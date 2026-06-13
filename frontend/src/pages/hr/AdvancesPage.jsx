@@ -24,13 +24,13 @@ export default function AdvancesPage() {
   const { data: advances, isLoading } = useQuery({
     queryKey: ['advances', statusFilter],
     queryFn: () => getSalaryAdvances(statusFilter ? { status: statusFilter } : undefined),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: employees } = useQuery({
     queryKey: ['employees-simple'],
     queryFn: () => api.get('/hr/employees/', { params: { is_active: true } }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

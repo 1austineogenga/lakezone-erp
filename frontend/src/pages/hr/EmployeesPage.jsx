@@ -23,13 +23,13 @@ export default function EmployeesPage() {
       ...(deptFilter && { department: deptFilter }),
       is_active: 'true',
     }),
-    select: r => r.data,
+    select: r => Array.isArray(r.data) ? r.data : (r.data.results ?? []),
   })
 
   const { data: departments } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get('/auth/departments/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const filtered = (employees || []).filter(e =>

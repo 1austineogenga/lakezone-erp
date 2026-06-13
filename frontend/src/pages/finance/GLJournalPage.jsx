@@ -41,26 +41,26 @@ export default function GLJournalPage() {
         ...(periodFilter && { period: periodFilter }),
       }
     }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: trialBalance } = useQuery({
     queryKey: ['trial-balance', periodFilter],
     queryFn: () => api.get('/finance/trial-balance/', { params: periodFilter ? { period: periodFilter } : undefined }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
     enabled: tab === 'trial-balance',
   })
 
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => api.get('/finance/accounts/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn: () => api.get('/projects/'),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

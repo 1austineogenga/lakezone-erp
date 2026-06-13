@@ -22,7 +22,7 @@ export default function BiometricDevicesPage() {
   const { data: devices, isLoading } = useQuery({
     queryKey: ['biometric-devices'],
     queryFn: getBiometricDevices,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

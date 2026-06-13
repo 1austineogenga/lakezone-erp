@@ -12,13 +12,13 @@ export default function TaxCompliancePage() {
   const { data: vatData } = useQuery({
     queryKey: ['vat-summary'],
     queryFn: getVATSummary,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: whtData } = useQuery({
     queryKey: ['wht-register'],
     queryFn: getWHTRegister,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   return (

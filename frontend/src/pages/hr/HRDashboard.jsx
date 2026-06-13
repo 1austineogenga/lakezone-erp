@@ -27,7 +27,7 @@ export default function HRDashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ['hr-dashboard'],
     queryFn: getHRDashboard,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   if (isLoading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>

@@ -32,7 +32,7 @@ export default function PayrollPage() {
   const { data: periods, isLoading } = useQuery({
     queryKey: ['payroll-periods'],
     queryFn: getPayrollPeriods,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

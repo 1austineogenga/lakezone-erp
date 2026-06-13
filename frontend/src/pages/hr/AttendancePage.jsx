@@ -25,7 +25,7 @@ export default function AttendancePage() {
   const { data: dailySheet, isLoading: loadingDaily } = useQuery({
     queryKey: ['daily-sheet', date],
     queryFn: () => getDailySheet({ date }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
     enabled: view === 'daily',
   })
 
@@ -164,7 +164,7 @@ function BiometricLog() {
   const { data: records, isLoading } = useQuery({
     queryKey: ['attendance-log', dateFilter],
     queryFn: () => getAttendance({ date: dateFilter, source: 'biometric' }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   return (

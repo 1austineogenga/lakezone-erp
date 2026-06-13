@@ -25,19 +25,19 @@ export default function LeavePage() {
   const { data: applications, isLoading } = useQuery({
     queryKey: ['leave-applications', statusFilter],
     queryFn: () => getLeaveApplications(statusFilter ? { status: statusFilter } : undefined),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: leaveTypes } = useQuery({
     queryKey: ['leave-types'],
     queryFn: getLeaveTypes,
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: employees } = useQuery({
     queryKey: ['employees-simple'],
     queryFn: () => api.get('/hr/employees/', { params: { is_active: true } }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({

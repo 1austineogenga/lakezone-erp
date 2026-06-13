@@ -25,13 +25,13 @@ export default function DisciplinaryPage() {
   const { data: records, isLoading } = useQuery({
     queryKey: ['disciplinary', typeFilter],
     queryFn: () => getDisciplinaryRecords(typeFilter ? { record_type: typeFilter } : undefined),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const { data: employees } = useQuery({
     queryKey: ['employees-simple'],
     queryFn: () => api.get('/hr/employees/', { params: { is_active: true } }),
-    select: r => r.data,
+    select: r => r.data?.results ?? r.data,
   })
 
   const createMut = useMutation({
