@@ -444,15 +444,26 @@ class FleetSyncService:
         vehicle_nos = ','.join(v.vehicle_no for v in vehicles)
 
         headers = {'auth-code': token}
-        base_payload = {
-            'company_names': config.company_name,
-            'vehicle_nos': vehicle_nos,
-            'from_date': date_from,   # e.g. "2026-03-01"
-            'to_date': date_to,
-            'format': 'json',
-        }
 
-        # Try known TrackNTrace history endpoint tokens
+        # Convert YYYY-MM-DD to DD-MM-YYYY (TrackNTrace uses DD-MM-YYYY)
+        def reformat(d):
+            try:
+                from datetime import datetime
+                return datetime.strptime(d, '%Y-%m-%d').strftime('%d-%m-%Y')
+            except Exception:
+                return d
+
+        date_from_fmt = reformat(date_from)
+        date_to_fmt   = reformat(date_to)
+
+        # Try multiple payload shapes — we don't know exact param names
+        payload_variants = [
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'from_date': date_from_fmt, 'to_date': date_to_fmt, 'format': 'json'},
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'fromdate': date_from_fmt, 'todate': date_to_fmt, 'format': 'json'},
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'start_date': date_from_fmt, 'end_date': date_to_fmt, 'format': 'json'},
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'from_date': date_from, 'to_date': date_to, 'format': 'json'},
+        ]
+
         endpoints_to_try = [
             f'getTokenBaseTripData&ProjectId={config.project_id}',
             f'getTripReport&ProjectId={config.project_id}',
@@ -462,30 +473,47 @@ class FleetSyncService:
 
         raw_response = None
         used_endpoint = None
+        debug_responses = []
+
         for ep in endpoints_to_try:
             url = f"{config.base_url}/webservice?token={ep}"
-            try:
-                resp = requests.post(url, json=base_payload, headers=headers, timeout=30)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    # Accept any response that has a non-empty root/data structure
-                    root = data.get('root', data)
-                    if root and root != data or (isinstance(data, list) and data):
-                        raw_response = data
-                        used_endpoint = ep
-                        break
-                    # Even a 200 with an empty root tells us the endpoint exists
-                    raw_response = data
-                    used_endpoint = ep
-                    break
-            except Exception:
-                continue
+            for payload in payload_variants:
+                try:
+                    resp = requests.post(url, json=payload, headers=headers, timeout=30)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        debug_responses.append({'endpoint': ep, 'payload_keys': list(payload.keys()), 'response': data})
+                        # If response has trip data (not just RESULT/MSG error), use it
+                        keys = set(data.keys()) if isinstance(data, dict) else set()
+                        if keys - {'RESULT', 'MSG', 'result', 'msg'}:
+                            raw_response = data
+                            used_endpoint = ep
+                            break
+                        # Store first 200 response as fallback even if it's RESULT/MSG
+                        if raw_response is None:
+                            raw_response = data
+                            used_endpoint = ep
+                except Exception as e:
+                    debug_responses.append({'endpoint': ep, 'error': str(e)})
+            if raw_response is not None and set(raw_response.keys() if isinstance(raw_response, dict) else []) - {'RESULT', 'MSG', 'result', 'msg'}:
+                break
 
         if raw_response is None:
             return {
-                'error': 'None of the history endpoints responded successfully. '
-                         'TrackNTrace may not expose trip history via API.',
+                'error': 'None of the history endpoints responded successfully.',
                 'tried': endpoints_to_try,
+                'debug': debug_responses,
+            }
+
+        # If only RESULT/MSG returned, it's an error — report it clearly
+        if isinstance(raw_response, dict) and set(raw_response.keys()) <= {'RESULT', 'MSG', 'result', 'msg'}:
+            return {
+                'endpoint_used': used_endpoint,
+                'error': f"API returned error: RESULT={raw_response.get('RESULT', raw_response.get('result'))}, MSG={raw_response.get('MSG', raw_response.get('msg'))}",
+                'raw_response': raw_response,
+                'debug': debug_responses[:3],
+                'trips_in_response': 0,
+                'trips_imported': 0,
             }
 
         # Parse trip records from response

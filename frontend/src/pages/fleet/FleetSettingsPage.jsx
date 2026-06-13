@@ -228,13 +228,13 @@ export default function FleetSettingsPage() {
           </button>
         </div>
         {fetchHistMut.data && (
-          <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
-            <p>Endpoint used: <span className="font-mono text-gray-600">{fetchHistMut.data.data.endpoint_used || '—'}</span></p>
+          <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5 font-mono">
+            <p>Endpoint: {fetchHistMut.data.data.endpoint_used || '—'}</p>
             <p>Trips in response: <strong>{fetchHistMut.data.data.trips_in_response ?? 0}</strong></p>
             <p>Trips imported: <strong>{fetchHistMut.data.data.trips_imported ?? 0}</strong></p>
-            {fetchHistMut.data.data.error && <p className="text-red-600">{fetchHistMut.data.data.error}</p>}
-            {fetchHistMut.data.data.raw_keys && (
-              <p className="text-gray-400">Response keys: {JSON.stringify(fetchHistMut.data.data.raw_keys)}</p>
+            {fetchHistMut.data.data.error && <p className="text-red-600 break-all">{fetchHistMut.data.data.error}</p>}
+            {fetchHistMut.data.data.raw_response && (
+              <p className="text-gray-500 break-all">Raw: {JSON.stringify(fetchHistMut.data.data.raw_response)}</p>
             )}
           </div>
         )}
