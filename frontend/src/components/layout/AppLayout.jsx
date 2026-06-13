@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import ErrorBoundary from '../ErrorBoundary'
 import logoIcon from '../../assets/logo-icon.png'
 
 export default function AppLayout() {
@@ -15,7 +16,9 @@ export default function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar onToggleSidebar={() => setCollapsed((c) => !c)} />
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
 
         {/* Footer */}
