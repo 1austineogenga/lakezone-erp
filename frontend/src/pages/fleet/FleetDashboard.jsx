@@ -54,12 +54,18 @@ export default function FleetDashboard() {
     onError: () => toast.error('Sync failed. Check API config in Fleet Settings.'),
   })
 
+  // Derive counts from live data so they're always in sync with the vehicle list
+  const totalVehicles = live.length || dash?.total_vehicles || 0
+  const onlineCount   = live.filter(v => v.last_seen_minutes_ago != null && v.last_seen_minutes_ago < 10).length
+  const movingCount   = live.filter(v => v.last_status === 'MOVING').length
+  const lowFuelCount  = live.filter(v => v.last_fuel != null && Number(v.last_fuel) < 10).length
+
   const stats = [
-    { label: 'Total Vehicles',    val: dash?.total_vehicles ?? 0,          icon: TruckIcon,               color: 'text-brand-slate' },
-    { label: 'Online Now',        val: dash?.online_count ?? 0,            icon: BoltIcon,                color: 'text-green-600' },
-    { label: 'Active Trips',      val: dash?.active_trips ?? 0,            icon: MapPinIcon,              color: 'text-blue-600' },
-    { label: 'Unread Alerts',     val: dash?.unacknowledged_alerts ?? 0,   icon: ExclamationTriangleIcon, color: 'text-red-600' },
-    { label: 'Low Fuel',          val: dash?.low_fuel_count ?? 0,          icon: BeakerIcon,              color: 'text-orange-600' },
+    { label: 'Total Vehicles', val: totalVehicles,                      icon: TruckIcon,               color: 'text-brand-slate' },
+    { label: 'Online (10 min)', val: onlineCount,                        icon: BoltIcon,                color: 'text-green-600' },
+    { label: 'Moving Now',      val: movingCount,                        icon: MapPinIcon,              color: 'text-blue-600' },
+    { label: 'Unread Alerts',   val: dash?.unacknowledged_alerts ?? 0,  icon: ExclamationTriangleIcon, color: 'text-red-600' },
+    { label: 'Low Fuel (<10%)', val: lowFuelCount,                       icon: BeakerIcon,              color: 'text-orange-600' },
   ]
 
   const statusGroups = live.reduce((acc, v) => {
