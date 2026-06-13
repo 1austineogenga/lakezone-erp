@@ -1,231 +1,394 @@
-import csv
-import io
-from decimal import Decimal, InvalidOperation
-
-from django.db.models import Sum, F
-from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
 from rest_framework.views import APIView
-import openpyxl
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser
+from django.shortcuts import get_object_or_404
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
 
-from core.permissions import IsProjectManager, IsManagement
-from .models import Project, Tender, BOQItem, ProjectDocument
-from .serializers import (
-    ProjectSerializer,
-    ProjectListSerializer,
-    TenderSerializer,
-    TenderListSerializer,
-    BOQItemSerializer,
-    ProjectDocumentSerializer,
-    BOQUploadSerializer,
+from .models import (
+    Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
+    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress
 )
+from .serializers import (
+    ProjectSerializer, ProjectDetailSerializer, BOQSerializer, BOQBillSerializer,
+    BOQItemSerializer, BudgetSerializer, BudgetRateSerializer, BudgetLineItemSerializer,
+    IPCSerializer, IPCItemSerializer, ProjectRiskSerializer, ProjectVehicleSerializer,
+    ProjectPersonnelSerializer, WeeklyProgressSerializer
+)
+from .services import BOQImportService
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):
-    queryset = Project.objects.select_related("project_manager").prefetch_related("tenders")
-    filterset_fields = ["status", "project_manager"]
-    search_fields = ["project_name", "contract_number", "client_name"]
-    ordering_fields = ["created_at", "start_date", "contract_sum"]
-
-    def get_serializer_class(self):
-        if self.request.method == "POST":
-            return ProjectSerializer
-        return ProjectListSerializer
-
-    def get_permissions(self):
-        if self.request.method == "POST":
-            return [IsProjectManager()]
-        return super().get_permissions()
-
-
-class ProjectDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Project.objects.select_related("project_manager", "created_by").prefetch_related(
-        "tenders__boq_items"
-    )
+    permission_classes = [IsAuthenticated]
+    queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
-    def get_permissions(self):
-        if self.request.method in ["PUT", "PATCH"]:
-            return [IsProjectManager()]
-        return super().get_permissions()
+
+class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Project.objects.all()
+    serializer_class = ProjectDetailSerializer
 
 
-class ProjectCostingView(APIView):
-    """Real-time cost analysis and variance report for a project."""
+class BOQListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BOQSerializer
 
-    def get(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        tenders = project.tenders.prefetch_related("boq_items")
+    def get_queryset(self):
+        return BOQ.objects.filter(project_id=self.kwargs['project_pk'])
 
-        boq_totals = BOQItem.objects.filter(tender__project=project).aggregate(
-            total_budget=Sum("total_cost"),
-            total_actual=Sum("actual_cost"),
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class BOQDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BOQSerializer
+
+    def get_queryset(self):
+        return BOQ.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class BOQImportView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, project_pk):
+        project = get_object_or_404(Project, pk=project_pk)
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        title = request.data.get('title', file.name)
+        result = BOQImportService.import_from_excel(file, project.id, title)
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+class BudgetListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BudgetSerializer
+
+    def get_queryset(self):
+        return Budget.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class BudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BudgetSerializer
+
+    def get_queryset(self):
+        return Budget.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def get_object(self):
+        return get_object_or_404(Budget, pk=self.kwargs['budget_pk'], project_id=self.kwargs['project_pk'])
+
+
+class BudgetLineItemListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BudgetLineItemSerializer
+
+    def get_queryset(self):
+        return BudgetLineItem.objects.filter(
+            budget_id=self.kwargs['budget_pk'],
+            budget__project_id=self.kwargs['project_pk'],
         )
-        budget = boq_totals["total_budget"] or Decimal("0")
-        actual = boq_totals["total_actual"] or Decimal("0")
-        variance = budget - actual
-        margin_pct = float((variance / budget) * 100) if budget else 0
 
-        boq_breakdown = []
-        for tender in tenders:
-            for item in tender.boq_items.all():
-                boq_breakdown.append({
-                    "item_code": item.item_code,
-                    "description": item.description[:80],
-                    "budget": item.total_cost,
-                    "actual": item.actual_cost,
-                    "variance": item.budget_variance,
-                    "progress_pct": item.progress_percent,
-                    "cpi": item.cost_performance_index,
-                })
+    def perform_create(self, serializer):
+        budget = get_object_or_404(Budget, pk=self.kwargs['budget_pk'], project_id=self.kwargs['project_pk'])
+        serializer.save(budget=budget)
+
+
+class BudgetLineItemDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BudgetLineItemSerializer
+
+    def get_queryset(self):
+        return BudgetLineItem.objects.filter(
+            budget_id=self.kwargs['budget_pk'],
+            budget__project_id=self.kwargs['project_pk'],
+        )
+
+
+class BudgetSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_pk, budget_pk):
+        budget = get_object_or_404(Budget, pk=budget_pk, project_id=project_pk)
+        qs = BudgetLineItem.objects.filter(budget=budget)
+
+        by_category = list(
+            qs.values('category').annotate(
+                base_total=Sum('base_cost'),
+                high_total=Sum('high_case_cost'),
+                low_total=Sum('low_case_cost'),
+                count=Count('id')
+            ).order_by('category')
+        )
+
+        # by_week aggregation across categories
+        week_qs = qs.filter(week_no__isnull=False)
+        by_week_raw = list(
+            week_qs.values('week_no', 'category').annotate(
+                base_total=Sum('base_cost'),
+                high_total=Sum('high_case_cost'),
+            ).order_by('week_no', 'category')
+        )
+        weeks = {}
+        for row in by_week_raw:
+            wn = row['week_no']
+            if wn not in weeks:
+                weeks[wn] = {'week_no': wn, 'materials': 0, 'fuel': 0, 'labour': 0, 'casuals': 0, 'base_total': 0, 'high_total': 0}
+            cat = row['category']
+            weeks[wn]['base_total'] = float(weeks[wn]['base_total']) + float(row['base_total'] or 0)
+            weeks[wn]['high_total'] = float(weeks[wn]['high_total']) + float(row['high_total'] or 0)
+            if cat in ('materials', 'fuel', 'labour', 'casuals'):
+                weeks[wn][cat] = float(weeks[wn].get(cat, 0)) + float(row['base_total'] or 0)
+        by_week = sorted(weeks.values(), key=lambda x: x['week_no'])
+
+        by_month = list(
+            qs.filter(month_no__isnull=False).values('month_no').annotate(
+                base_total=Sum('base_cost'),
+                high_total=Sum('high_case_cost'),
+            ).order_by('month_no')
+        )
+
+        totals_agg = qs.aggregate(
+            base=Sum('base_cost'),
+            low=Sum('low_case_cost'),
+            high=Sum('high_case_cost'),
+            variance_reserve=Sum('variance_reserve'),
+        )
 
         return Response({
-            "project_id": str(project.id),
-            "project_name": project.project_name,
-            "contract_sum": project.contract_sum,
-            "total_boq_budget": budget,
-            "total_actual_cost": actual,
-            "variance": variance,
-            "margin_percent": round(margin_pct, 2),
-            "boq_breakdown": boq_breakdown,
+            'by_category': by_category,
+            'by_week': by_week,
+            'by_month': by_month,
+            'totals': {
+                'base': float(totals_agg['base'] or 0),
+                'low': float(totals_agg['low'] or 0),
+                'high': float(totals_agg['high'] or 0),
+                'variance_reserve': float(totals_agg['variance_reserve'] or 0),
+            }
         })
 
 
-class ProjectProgressView(APIView):
-    """Physical and financial progress per project."""
+class IPCListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = IPCSerializer
 
-    def get(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        items = BOQItem.objects.filter(tender__project=project)
-        total_items = items.count()
-        if total_items == 0:
-            return Response({"detail": "No BOQ items found for this project."})
+    def get_queryset(self):
+        return IPC.objects.filter(project_id=self.kwargs['project_pk'])
 
-        avg_physical = items.aggregate(avg=Sum("progress_percent"))["avg"] or 0
-        avg_physical = float(avg_physical) / total_items
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
 
-        boq_budget = items.aggregate(total=Sum("total_cost"))["total"] or Decimal("0")
-        boq_actual = items.aggregate(total=Sum("actual_cost"))["total"] or Decimal("0")
-        financial_progress = float(boq_actual / boq_budget * 100) if boq_budget else 0
+
+class IPCDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = IPCSerializer
+
+    def get_queryset(self):
+        return IPC.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def get_object(self):
+        return get_object_or_404(IPC, pk=self.kwargs['ipc_pk'], project_id=self.kwargs['project_pk'])
+
+
+class IPCItemListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = IPCItemSerializer
+
+    def get_queryset(self):
+        return IPCItem.objects.filter(
+            ipc_id=self.kwargs['ipc_pk'],
+            ipc__project_id=self.kwargs['project_pk'],
+        )
+
+    def perform_create(self, serializer):
+        ipc = get_object_or_404(IPC, pk=self.kwargs['ipc_pk'], project_id=self.kwargs['project_pk'])
+        serializer.save(ipc=ipc)
+
+
+class IPCItemDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = IPCItemSerializer
+
+    def get_queryset(self):
+        return IPCItem.objects.filter(
+            ipc_id=self.kwargs['ipc_pk'],
+            ipc__project_id=self.kwargs['project_pk'],
+        )
+
+
+class ProjectRiskListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectRiskSerializer
+
+    def get_queryset(self):
+        return ProjectRisk.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class ProjectRiskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectRiskSerializer
+
+    def get_queryset(self):
+        return ProjectRisk.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class ProjectVehicleListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectVehicleSerializer
+
+    def get_queryset(self):
+        return ProjectVehicle.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class ProjectVehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectVehicleSerializer
+
+    def get_queryset(self):
+        return ProjectVehicle.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class ProjectPersonnelListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectPersonnelSerializer
+
+    def get_queryset(self):
+        return ProjectPersonnel.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class ProjectPersonnelDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectPersonnelSerializer
+
+    def get_queryset(self):
+        return ProjectPersonnel.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class WeeklyProgressListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WeeklyProgressSerializer
+
+    def get_queryset(self):
+        return WeeklyProgress.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class WeeklyProgressDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WeeklyProgressSerializer
+
+    def get_queryset(self):
+        return WeeklyProgress.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class ProjectDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_pk):
+        project = get_object_or_404(Project, pk=project_pk)
+
+        # Budget summary
+        budget_agg = BudgetLineItem.objects.filter(budget__project=project).aggregate(
+            base_total=Sum('base_cost'),
+            high_total=Sum('high_case_cost'),
+            materials=Sum('base_cost', filter=Q(category='materials')),
+            fuel=Sum('base_cost', filter=Q(category='fuel')),
+            labour=Sum('base_cost', filter=Q(category='labour')),
+            casuals=Sum('base_cost', filter=Q(category='casuals')),
+        )
+
+        # IPC summary
+        ipc_agg = IPC.objects.filter(project=project).aggregate(
+            total_claimed=Sum('amount_claimed'),
+            total_certified=Sum('amount_certified'),
+            total_paid=Sum('amount_paid'),
+            ipc_count=Count('id'),
+            pending_count=Count('id', filter=Q(status__in=['submitted', 'draft'])),
+        )
+
+        # Risk summary
+        risk_agg = ProjectRisk.objects.filter(project=project).aggregate(
+            open_count=Count('id', filter=Q(status='open')),
+            high_count=Count('id', filter=Q(impact_level='high')),
+            critical_count=Count('id', filter=Q(impact_level='critical')),
+        )
+
+        vehicle_count = ProjectVehicle.objects.filter(project=project).count()
+        active_vehicle_count = ProjectVehicle.objects.filter(project=project, is_active=True).count()
+        personnel_count = ProjectPersonnel.objects.filter(project=project).count()
+
+        latest_progress = WeeklyProgress.objects.filter(project=project).order_by('-week_no').first()
+        latest_progress_data = None
+        if latest_progress:
+            latest_progress_data = {
+                'week_no': latest_progress.week_no,
+                'total_actual': float(latest_progress.total_actual),
+                'progress_notes': latest_progress.progress_notes,
+            }
+
+        weeks_elapsed = WeeklyProgress.objects.filter(project=project).count()
 
         return Response({
-            "project_id": str(project.id),
-            "physical_progress_percent": round(avg_physical, 2),
-            "financial_progress_percent": round(financial_progress, 2),
-            "boq_item_count": total_items,
+            'project': {
+                'id': str(project.id),
+                'code': project.code,
+                'name': project.name,
+                'contract_value': float(project.contract_value),
+                'status': project.status,
+                'start_date': project.start_date,
+                'end_date': project.end_date,
+            },
+            'budget_summary': {
+                'base_total': float(budget_agg['base_total'] or 0),
+                'high_total': float(budget_agg['high_total'] or 0),
+                'materials': float(budget_agg['materials'] or 0),
+                'fuel': float(budget_agg['fuel'] or 0),
+                'labour': float(budget_agg['labour'] or 0),
+                'casuals': float(budget_agg['casuals'] or 0),
+            },
+            'ipc_summary': {
+                'total_claimed': float(ipc_agg['total_claimed'] or 0),
+                'total_certified': float(ipc_agg['total_certified'] or 0),
+                'total_paid': float(ipc_agg['total_paid'] or 0),
+                'ipc_count': ipc_agg['ipc_count'],
+                'pending_count': ipc_agg['pending_count'],
+            },
+            'risk_summary': {
+                'open_count': risk_agg['open_count'],
+                'high_count': risk_agg['high_count'],
+                'critical_count': risk_agg['critical_count'],
+            },
+            'fleet_summary': {
+                'vehicle_count': vehicle_count,
+                'active_count': active_vehicle_count,
+            },
+            'personnel_count': personnel_count,
+            'latest_progress': latest_progress_data,
+            'weeks_elapsed': weeks_elapsed,
         })
-
-
-class ProjectDocumentView(generics.ListCreateAPIView):
-    serializer_class = ProjectDocumentSerializer
-    parser_classes = [MultiPartParser, FormParser]
-
-    def get_queryset(self):
-        return ProjectDocument.objects.filter(project_id=self.kwargs["pk"])
-
-    def perform_create(self, serializer):
-        project = get_object_or_404(Project, pk=self.kwargs["pk"])
-        serializer.save(project=project, uploaded_by=self.request.user)
-
-
-class TenderListCreateView(generics.ListCreateAPIView):
-    filterset_fields = ["tender_status", "project"]
-    search_fields = ["tender_number", "tender_description"]
-
-    def get_queryset(self):
-        return Tender.objects.filter(project_id=self.kwargs["project_pk"]).prefetch_related(
-            "boq_items"
-        )
-
-    def get_serializer_class(self):
-        if self.request.method == "POST":
-            return TenderSerializer
-        return TenderListSerializer
-
-    def get_permissions(self):
-        if self.request.method == "POST":
-            return [IsProjectManager()]
-        return super().get_permissions()
-
-    def perform_create(self, serializer):
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        serializer.save(project=project, created_by=self.request.user)
-
-
-class BOQListView(APIView):
-    """Retrieve full BOQ for a project (all tenders combined)."""
-
-    def get(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        items = BOQItem.objects.filter(tender__project=project).select_related("tender")
-        serializer = BOQItemSerializer(items, many=True)
-        return Response(serializer.data)
-
-
-class BOQUploadView(APIView):
-    """Upload BOQ from Excel (.xlsx) or CSV file."""
-
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes_by_method = {"POST": [IsProjectManager]}
-
-    def post(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        serializer = BOQUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        uploaded_file = serializer.validated_data["file"]
-        file_format = serializer.validated_data["file_format"]
-
-        tender_id = request.data.get("tender_id")
-        tender = get_object_or_404(Tender, pk=tender_id, project=project)
-
-        try:
-            if file_format == "xlsx":
-                items = self._parse_xlsx(uploaded_file, tender)
-            else:
-                items = self._parse_csv(uploaded_file, tender)
-        except Exception as e:
-            return Response({"detail": f"Parse error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-        BOQItem.objects.bulk_create(items)
-        return Response(
-            {"detail": f"{len(items)} BOQ items imported successfully."},
-            status=status.HTTP_201_CREATED,
-        )
-
-    def _parse_xlsx(self, file, tender):
-        wb = openpyxl.load_workbook(file, read_only=True, data_only=True)
-        ws = wb.active
-        items = []
-        for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
-            if not row[0]:
-                continue
-            items.append(BOQItem(
-                tender=tender,
-                item_code=str(row[0]),
-                description=str(row[1] or ""),
-                unit=str(row[2] or ""),
-                quantity=Decimal(str(row[3] or 0)),
-                unit_rate=Decimal(str(row[4] or 0)),
-            ))
-        return items
-
-    def _parse_csv(self, file, tender):
-        text = io.TextIOWrapper(file, encoding="utf-8")
-        reader = csv.DictReader(text)
-        items = []
-        for row in reader:
-            try:
-                items.append(BOQItem(
-                    tender=tender,
-                    item_code=row.get("item_code", ""),
-                    description=row.get("description", ""),
-                    unit=row.get("unit", ""),
-                    quantity=Decimal(row.get("quantity", "0")),
-                    unit_rate=Decimal(row.get("unit_rate", "0")),
-                ))
-            except (InvalidOperation, KeyError):
-                continue
-        return items

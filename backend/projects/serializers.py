@@ -1,113 +1,125 @@
 from rest_framework import serializers
-from .models import Project, Tender, BOQItem, ProjectDocument
+from .models import (
+    Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
+    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress
+)
 
 
 class BOQItemSerializer(serializers.ModelSerializer):
-    budget_variance = serializers.DecimalField(
-        max_digits=18, decimal_places=2, read_only=True
-    )
-    cost_performance_index = serializers.FloatField(read_only=True)
-
     class Meta:
         model = BOQItem
-        fields = [
-            "id", "tender", "item_code", "description", "unit",
-            "quantity", "unit_rate", "total_cost", "actual_cost",
-            "progress_percent", "boq_version", "parent_boq_item",
-            "budget_variance", "cost_performance_index",
-            "created_at", "updated_at",
-        ]
-        read_only_fields = ["id", "total_cost", "created_at", "updated_at"]
+        fields = '__all__'
 
 
-class TenderSerializer(serializers.ModelSerializer):
-    boq_items = BOQItemSerializer(many=True, read_only=True)
-    boq_item_count = serializers.IntegerField(source="boq_items.count", read_only=True)
-    tender_status_display = serializers.CharField(source="get_tender_status_display", read_only=True)
+class BOQBillSerializer(serializers.ModelSerializer):
+    items = BOQItemSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Tender
-        fields = [
-            "id", "project", "tender_number", "tender_description",
-            "tender_value", "tender_status", "tender_status_display",
-            "submission_date", "award_date", "boq_items", "boq_item_count",
-            "created_by", "created_at", "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        model = BOQBill
+        fields = '__all__'
 
 
-class TenderListSerializer(serializers.ModelSerializer):
-    tender_status_display = serializers.CharField(source="get_tender_status_display", read_only=True)
-    boq_item_count = serializers.IntegerField(source="boq_items.count", read_only=True)
+class BOQSerializer(serializers.ModelSerializer):
+    bills = BOQBillSerializer(many=True, read_only=True)
+    grand_total = serializers.SerializerMethodField()
 
     class Meta:
-        model = Tender
-        fields = [
-            "id", "tender_number", "tender_description", "tender_value",
-            "tender_status", "tender_status_display", "submission_date",
-            "award_date", "boq_item_count", "created_at",
-        ]
+        model = BOQ
+        fields = '__all__'
+
+    def get_grand_total(self, obj):
+        sub_total = sum(bill.sub_total for bill in obj.bills.all())
+        multiplier = (1 + obj.contingency_pct / 100) * (1 + obj.vop_pct / 100)
+        return round(float(sub_total) * float(multiplier), 2)
+
+
+class BudgetRateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BudgetRate
+        fields = '__all__'
+
+
+class BudgetLineItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BudgetLineItem
+        fields = '__all__'
+
+
+class BudgetSerializer(serializers.ModelSerializer):
+    rates = BudgetRateSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Budget
+        fields = '__all__'
+
+
+class IPCItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IPCItem
+        fields = '__all__'
+
+
+class IPCSerializer(serializers.ModelSerializer):
+    items = IPCItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = IPC
+        fields = '__all__'
+
+
+class ProjectRiskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectRisk
+        fields = '__all__'
+
+
+class ProjectVehicleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectVehicle
+        fields = '__all__'
+
+
+class ProjectPersonnelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectPersonnel
+        fields = '__all__'
+
+
+class WeeklyProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeeklyProgress
+        fields = '__all__'
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    project_manager_name = serializers.CharField(
-        source="project_manager.get_full_name", read_only=True
-    )
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
-    tenders = TenderListSerializer(many=True, read_only=True)
-    total_boq_budget = serializers.DecimalField(
-        max_digits=18, decimal_places=2, read_only=True
-    )
-    total_actual_cost = serializers.DecimalField(
-        max_digits=18, decimal_places=2, read_only=True
-    )
+    class Meta:
+        model = Project
+        fields = [
+            'id', 'code', 'name', 'client', 'contract_number', 'contract_value',
+            'location', 'start_date', 'end_date', 'status', 'description', 'created_at',
+        ]
+
+
+class ProjectDetailSerializer(serializers.ModelSerializer):
+    boqs_count = serializers.SerializerMethodField()
+    budgets_count = serializers.SerializerMethodField()
+    ipcs_count = serializers.SerializerMethodField()
+    risks_count = serializers.SerializerMethodField()
+    assigned_vehicles_count = serializers.SerializerMethodField()
+    personnel_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = [
-            "id", "project_name", "client_name", "contract_number",
-            "project_manager", "project_manager_name",
-            "start_date", "end_date", "contract_sum",
-            "project_location", "status", "status_display", "description",
-            "tenders", "total_boq_budget", "total_actual_cost",
-            "created_by", "created_at", "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-
-    def create(self, validated_data):
-        validated_data["created_by"] = self.context["request"].user
-        return super().create(validated_data)
-
-
-class ProjectListSerializer(serializers.ModelSerializer):
-    project_manager_name = serializers.CharField(
-        source="project_manager.get_full_name", read_only=True
-    )
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
-    tender_count = serializers.IntegerField(source="tenders.count", read_only=True)
-
-    class Meta:
-        model = Project
-        fields = [
-            "id", "project_name", "contract_number", "project_manager_name",
-            "start_date", "end_date", "contract_sum", "status", "status_display",
-            "project_location", "tender_count", "created_at",
+            'id', 'code', 'name', 'client', 'contract_number', 'contract_value',
+            'location', 'start_date', 'end_date', 'status', 'description', 'created_at',
+            'updated_at', 'boqs_count', 'budgets_count', 'ipcs_count', 'risks_count',
+            'assigned_vehicles_count', 'personnel_count',
         ]
 
-
-class ProjectDocumentSerializer(serializers.ModelSerializer):
-    uploaded_by_name = serializers.CharField(source="uploaded_by.get_full_name", read_only=True)
-
-    class Meta:
-        model = ProjectDocument
-        fields = ["id", "project", "title", "file", "uploaded_by", "uploaded_by_name", "uploaded_at"]
-        read_only_fields = ["id", "uploaded_at"]
-
-    def create(self, validated_data):
-        validated_data["uploaded_by"] = self.context["request"].user
-        return super().create(validated_data)
-
-
-class BOQUploadSerializer(serializers.Serializer):
-    file = serializers.FileField()
-    file_format = serializers.ChoiceField(choices=["xlsx", "csv"])
+    def get_boqs_count(self, obj): return obj.boqs.count()
+    def get_budgets_count(self, obj): return obj.budgets.count()
+    def get_ipcs_count(self, obj): return obj.ipcs.count()
+    def get_risks_count(self, obj): return obj.risks.count()
+    def get_assigned_vehicles_count(self, obj): return obj.assigned_vehicles.count()
+    def get_personnel_count(self, obj): return obj.personnel.count()
