@@ -13,7 +13,7 @@ const STATUS_COLORS = {
 }
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
-const EMPTY = { employee: '', amount: '', reason: '', requested_date: '', deduction_period: '' }
+const EMPTY = { employee: '', amount: '', reason: '' }
 
 export default function AdvancesPage() {
   const qc = useQueryClient()
@@ -75,16 +75,14 @@ export default function AdvancesPage() {
               <label className="block text-xs text-gray-500 mb-1">Employee *</label>
               <select required {...f('employee')} className={cls}>
                 <option value="">Select employee…</option>
-                {employees?.map(e => <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>)}
+                {employees?.map(e => (
+                  <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Amount (KES) *</label>
-              <input required type="number" {...f('amount')} className={cls} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Requested Date *</label>
-              <input required type="date" {...f('requested_date')} className={cls} />
+              <input required type="number" min="1" {...f('amount')} className={cls} />
             </div>
             <div className="md:col-span-3">
               <label className="block text-xs text-gray-500 mb-1">Reason *</label>
@@ -95,7 +93,7 @@ export default function AdvancesPage() {
           <div className="flex gap-2 mt-3">
             <button type="submit" disabled={createMut.isPending}
               className="px-4 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg disabled:opacity-60">
-              Submit
+              Submit Request
             </button>
             <button type="button" onClick={() => setShowForm(false)}
               className="px-4 py-1.5 border border-gray-300 text-xs rounded-lg">Cancel</button>
@@ -115,7 +113,7 @@ export default function AdvancesPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      {['Employee', 'Amount', 'Reason', 'Requested', 'Status', 'Actions'].map(h => (
+                      {['Employee', 'Amount', 'Reason', 'Date', 'Status', 'Actions'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
                       ))}
                     </tr>
@@ -129,7 +127,7 @@ export default function AdvancesPage() {
                         </td>
                         <td className="px-4 py-3 font-medium text-sm">{fmt(adv.amount)}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs max-w-xs truncate">{adv.reason}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{adv.requested_date}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{adv.request_date}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[adv.status]}`}>
                             {adv.status}
