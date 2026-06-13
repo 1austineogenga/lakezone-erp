@@ -92,15 +92,11 @@ class FleetSyncService:
         payload = {'username': config.username, 'password': config.password}
         response = requests.post(url, json=payload, timeout=30)
         response.raise_for_status()
-        data = response.json()
-        token = data.get('auth-code') or data.get('token') or data.get('access_token', '')
-        if not token:
-            # Some APIs return token at root level
-            token = str(data) if data else ''
-            for key in ['auth_code', 'authCode', 'Auth-Code', 'AUTH-CODE']:
-                if key in data:
-                    token = data[key]
-                    break
+        resp = response.json()
+        # TrackNTrace returns {"result":1,"data":{"token":"..."}}
+        data = resp.get('data', resp)
+        token = (data.get('token') or data.get('auth-code') or data.get('access_token')
+                 or data.get('auth_code') or data.get('authCode') or '')
 
         config.cached_token = token
         config.token_fetched_at = now
