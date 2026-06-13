@@ -324,3 +324,70 @@ class FleetConfigDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = FleetAPIConfigSerializer
     queryset = FleetAPIConfig.objects.all()
+
+
+class FleetDebugView(APIView):
+    """Raw API debug — returns token + raw vehicle data from Trakzee."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        import requests as req
+        config = FleetAPIConfig.objects.filter(is_active=True).first()
+        if not config:
+            return Response({'error': 'No active fleet config found.'}, status=400)
+
+        result = {
+            'config': {
+                'base_url': config.base_url,
+                'username': config.username,
+                'company_name': config.company_name,
+                'project_id': config.project_id,
+                'api_type': config.api_type,
+            },
+            'step1_token': None,
+            'step1_raw': None,
+            'step1_error': None,
+            'step2_raw': None,
+            'step2_error': None,
+        }
+
+        # Step 1: get token
+        try:
+            url1 = f"{config.base_url}/webservice?token=generateAccessToken"
+            r1 = req.post(url1, json={'username': config.username, 'password': config.password}, timeout=15)
+            result['step1_status'] = r1.status_code
+            try:
+                result['step1_raw'] = r1.json()
+            except Exception:
+                result['step1_raw'] = r1.text[:500]
+
+            data1 = r1.json() if r1.status_code == 200 else {}
+            token = (data1.get('auth-code') or data1.get('token') or data1.get('access_token')
+                     or data1.get('auth_code') or data1.get('authCode') or '')
+            if not token and isinstance(data1, dict):
+                token = next((v for v in data1.values() if isinstance(v, str) and len(v) > 10), '')
+            result['step1_token'] = token[:40] + '…' if len(token) > 40 else token
+        except Exception as e:
+            result['step1_error'] = str(e)
+            return Response(result)
+
+        # Step 2: fetch vehicle data
+        try:
+            url2 = f"{config.base_url}/webservice?token=getTokenBaseLiveData&ProjectId={config.project_id}"
+            headers = {'auth-code': token}
+            payload = {
+                'company_names': config.company_name,
+                'vehicle_nos': '',
+                'imei_nos': '',
+                'format': 'json',
+            }
+            r2 = req.post(url2, json=payload, headers=headers, timeout=15)
+            result['step2_status'] = r2.status_code
+            try:
+                result['step2_raw'] = r2.json()
+            except Exception:
+                result['step2_raw'] = r2.text[:1000]
+        except Exception as e:
+            result['step2_error'] = str(e)
+
+        return Response(result)

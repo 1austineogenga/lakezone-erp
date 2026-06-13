@@ -19,3 +19,9 @@ urlpatterns = [
     path('config/', views.FleetConfigView.as_view(), name='fleet-config-list'),
     path('config/<int:pk>/', views.FleetConfigDetailView.as_view(), name='fleet-config-detail'),
 ]
+
+
+# temporary debug route
+urlpatterns += [
+    path('debug/', views.FleetDebugView.as_view(), name='fleet-debug'),
+]
