@@ -9,6 +9,8 @@ import {
   CalculatorIcon, ScaleIcon, ShieldCheckIcon, DocumentCheckIcon,
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
+  TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import logoIcon from '../../assets/logo-icon.png'
@@ -106,6 +108,44 @@ const MODULES = [
         links: [
           { to: '/hr/payroll',  label: 'Payroll Periods', icon: BanknotesIcon },
           { to: '/hr/advances', label: 'Salary Advances', icon: CurrencyDollarIcon },
+        ],
+      },
+    ],
+  },
+  {
+    key:   'fleet',
+    label: 'Fleet',
+    icon:  TruckIcon,
+    root:  '/fleet',
+    sections: [
+      {
+        heading: null,
+        links: [{ to: '/fleet', label: 'Dashboard', icon: ChartBarIcon, end: true }],
+      },
+      {
+        heading: 'Vehicles',
+        links: [
+          { to: '/fleet/vehicles',    label: 'Vehicles',    icon: TruckIcon },
+          { to: '/fleet/maintenance', label: 'Maintenance', icon: WrenchScrewdriverIcon },
+        ],
+      },
+      {
+        heading: 'Monitoring',
+        links: [
+          { to: '/fleet/alerts', label: 'Alerts', icon: ExclamationTriangleIcon },
+        ],
+      },
+      {
+        heading: 'Reports',
+        links: [
+          { to: '/fleet/fuel',  label: 'Fuel Report',  icon: BeakerIcon },
+          { to: '/fleet/trips', label: 'Trip Report',  icon: ArrowTrendingUpIcon },
+        ],
+      },
+      {
+        heading: 'Config',
+        links: [
+          { to: '/fleet/settings', label: 'API Settings', icon: Cog6ToothIcon },
         ],
       },
     ],
