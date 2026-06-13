@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { getFleetConfig, saveFleetConfig, forceSync } from '../../api/fleet'
+import api from '../../api/client'
 
 const EMPTY = {
   name: 'Primary Fleet Config',
@@ -40,7 +41,13 @@ export default function FleetSettingsPage() {
   }, [existingConfig])
 
   const saveMut = useMutation({
-    mutationFn: data => saveFleetConfig(data),
+    mutationFn: data => {
+      if (existingConfig?.id) {
+        // Update existing config via PATCH
+        return api.patch(`/fleet/config/${existingConfig.id}/`, data)
+      }
+      return saveFleetConfig(data)
+    },
     onSuccess: () => {
       toast.success('Fleet API configuration saved.')
       qc.invalidateQueries({ queryKey: ['fleet-config'] })
@@ -148,7 +155,7 @@ export default function FleetSettingsPage() {
         </label>
 
         <div className="pt-2">
-          <button onClick={handleSave} disabled={saveMut.isPending || !form.base_url}
+          <button onClick={handleSave} disabled={saveMut.isPending || (!form.base_url && !existingConfig?.base_url)}
             className="px-5 py-2 bg-brand-red text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
             {saveMut.isPending ? 'Saving…' : 'Save Configuration'}
           </button>

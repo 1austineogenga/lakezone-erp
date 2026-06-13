@@ -30,23 +30,37 @@ class FleetSyncService:
     def sync_config(self, config):
         from .models import Vehicle
         vehicles = Vehicle.objects.filter(api_config=config, is_active=True)
-        if not vehicles.exists():
-            return 0
 
         synced_count = 0
         if config.api_type == 'token_based':
             vehicle_list = list(vehicles)
             try:
+                # Pass empty lists to fetch ALL vehicles from the API when none registered yet
                 raw_data_list = self._fetch_token_based(config, vehicle_list)
                 for raw in raw_data_list:
-                    vehicle_no = raw.get('Vehicle_No', '')
+                    vehicle_no = raw.get('Vehicle_No', '').strip()
+                    if not vehicle_no:
+                        continue
+                    # Auto-create vehicle record if not yet in DB
                     try:
                         vehicle = next(v for v in vehicle_list if v.vehicle_no == vehicle_no)
+                    except StopIteration:
+                        vehicle, created = Vehicle.objects.get_or_create(
+                            vehicle_no=vehicle_no,
+                            defaults={
+                                'vehicle_name': raw.get('Vehicle_Name', vehicle_no),
+                                'imei': raw.get('IMEI', ''),
+                                'vehicle_type': raw.get('Vehicletype', ''),
+                                'api_config': config,
+                                'is_active': True,
+                            }
+                        )
+                        if created:
+                            vehicle_list.append(vehicle)
+                    try:
                         data = self._parse_vehicle_data(raw)
                         self._process_vehicle(vehicle, data)
                         synced_count += 1
-                    except StopIteration:
-                        logger.warning(f"Vehicle not found for vehicle_no={vehicle_no}")
                     except Exception as e:
                         logger.error(f"Error processing vehicle {vehicle_no}: {e}")
             except Exception as e:
@@ -95,8 +109,9 @@ class FleetSyncService:
 
     def _fetch_token_based(self, config, vehicles):
         token = self._get_token(config)
-        vehicle_nos = ','.join(v.vehicle_no for v in vehicles)
-        imei_nos = ','.join(v.imei for v in vehicles if v.imei)
+        # Empty strings → API returns all vehicles under the company
+        vehicle_nos = ','.join(v.vehicle_no for v in vehicles) if vehicles else ''
+        imei_nos = ','.join(v.imei for v in vehicles if v.imei) if vehicles else ''
 
         url = f"{config.base_url}/webservice?token=getTokenBaseLiveData&ProjectId={config.project_id}"
         headers = {'auth-code': token}
