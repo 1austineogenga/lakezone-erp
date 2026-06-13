@@ -212,7 +212,7 @@ function LeaveTypesTab() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', code: '', days_entitled: 21, is_paid: true, applicable_to: 'all', carry_forward: false, max_carry_forward: 0 })
 
-  const { data: leaveTypes } = useQuery({ queryKey: ['leave-types'], queryFn: getLeaveTypes, select: r => r.data })
+  const { data: leaveTypes } = useQuery({ queryKey: ['leave-types'], queryFn: getLeaveTypes, select: r => r.data?.results ?? r.data })
 
   const createMut = useMutation({
     mutationFn: (d) => api.post('/hr/leave-types/', d),

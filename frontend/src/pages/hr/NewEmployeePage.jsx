@@ -38,9 +38,9 @@ export default function NewEmployeePage() {
   const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
   const f = (k) => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) })
 
-  const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: () => api.get('/auth/departments/'), select: r => r.data })
-  const { data: positions }   = useQuery({ queryKey: ['positions', form.department], queryFn: () => api.get('/hr/positions/', { params: form.department ? { department: form.department } : undefined }), select: r => r.data })
-  const { data: branches }    = useQuery({ queryKey: ['branches'], queryFn: () => api.get('/auth/branches/'), select: r => r.data })
+  const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: () => api.get('/auth/departments/'), select: r => r.data?.results ?? r.data })
+  const { data: positions }   = useQuery({ queryKey: ['positions', form.department], queryFn: () => api.get('/hr/positions/', { params: form.department ? { department: form.department } : undefined }), select: r => r.data?.results ?? r.data })
+  const { data: branches }    = useQuery({ queryKey: ['branches'], queryFn: () => api.get('/auth/branches/'), select: r => r.data?.results ?? r.data })
 
   const createMut = useMutation({
     mutationFn: createEmployee,
