@@ -509,32 +509,101 @@ class PayrollPayView(APIView):
         if period.status != 'approved':
             return Response({'detail': 'Must be approved before paying.'}, status=400)
 
-        entries   = PayrollEntry.objects.filter(period=period)
-        total_net = sum(e.net_pay for e in entries)
+        entries = list(PayrollEntry.objects.select_related(
+            'employee', 'employee__department', 'project'
+        ).filter(period=period))
 
         try:
-            from finance.models import JournalEntry, JournalLine
+            from finance.models import JournalEntry, JournalLine, Account
+
+            def _account(code, name, atype='expense'):
+                acc, _ = Account.objects.get_or_create(
+                    code=code,
+                    defaults={'name': name, 'account_type': atype, 'is_active': True},
+                )
+                return acc
+
+            bank_acc      = _account('1100', 'Bank Account',            'asset')
+            paye_acc      = _account('2100', 'PAYE Payable',            'liability')
+            nssf_acc      = _account('2110', 'NSSF Payable',            'liability')
+            nhif_acc      = _account('2120', 'NHIF / SHIF Payable',     'liability')
+            site_sal_acc  = _account('5100', 'Salaries & Wages — Site', 'expense')
+            hq_sal_acc    = _account('5200', 'Salaries & Wages — Overhead', 'expense')
+
             with transaction.atomic():
                 period.status = 'paid'
                 period.save(update_fields=['status'])
+
                 je = JournalEntry.objects.create(
-                    reference=f'PAY-{period.month:02d}-{period.year}',
-                    date=date.today(),
-                    description=f'Payroll payment — {period.get_month_display()} {period.year}',
+                    entry_type=JournalEntry.EntryType.PAYROLL,
+                    entry_date=date.today(),
+                    description=f'Payroll — {period.get_month_display()} {period.year}',
                     created_by=request.user,
-                    status='posted',
+                    posted_by=request.user,
+                    status=JournalEntry.Status.POSTED,
                 )
+
+                # Debit lines: group by cost centre (project or overhead)
+                from collections import defaultdict
+                project_totals  = defaultdict(lambda: {'gross': 0, 'project': None, 'name': ''})
+                overhead_gross  = 0
+                total_paye = total_nssf_emp = total_nhif_emp = 0
+                total_nssf_er  = total_nhif_er = total_net = 0
+
+                for e in entries:
+                    total_paye      += float(e.paye)
+                    total_nssf_emp  += float(e.nssf_employee)
+                    total_nhif_emp  += float(e.nhif_employee)
+                    total_nssf_er   += float(e.nssf_employer)
+                    total_nhif_er   += float(e.nhif_employer)
+                    total_net       += float(e.net_pay)
+
+                    if e.project_id:
+                        project_totals[str(e.project_id)]['gross']   += float(e.gross_pay) + float(e.nssf_employer) + float(e.nhif_employer)
+                        project_totals[str(e.project_id)]['project']  = e.project
+                        project_totals[str(e.project_id)]['name']     = e.project.project_name
+                    else:
+                        dept = e.employee.department.name if e.employee.department_id else 'Overhead'
+                        overhead_gross += float(e.gross_pay) + float(e.nssf_employer) + float(e.nhif_employer)
+
+                # Create debit lines per project
+                for key, data in project_totals.items():
+                    JournalLine.objects.create(
+                        journal=je, account=site_sal_acc,
+                        description=f'Payroll — {data["name"]}',
+                        debit=round(data['gross'], 2), credit=0,
+                        project=data['project'], cost_code=Account.CostCode.LABOUR,
+                    )
+
+                # Create debit line for HQ/overhead
+                if overhead_gross > 0:
+                    JournalLine.objects.create(
+                        journal=je, account=hq_sal_acc,
+                        description='Payroll — Head Office / Overhead',
+                        debit=round(overhead_gross, 2), credit=0,
+                    )
+
+                # Credit lines: statutory deductions payable + net pay via bank
+                total_employer_cost = total_nssf_er + total_nhif_er
+                if total_paye > 0:
+                    JournalLine.objects.create(journal=je, account=paye_acc,
+                        description='PAYE payable', debit=0, credit=round(total_paye, 2))
+                nssf_total = total_nssf_emp + total_nssf_er
+                if nssf_total > 0:
+                    JournalLine.objects.create(journal=je, account=nssf_acc,
+                        description='NSSF payable (employee + employer)', debit=0, credit=round(nssf_total, 2))
+                nhif_total = total_nhif_emp + total_nhif_er
+                if nhif_total > 0:
+                    JournalLine.objects.create(journal=je, account=nhif_acc,
+                        description='NHIF/SHIF payable (employee + employer)', debit=0, credit=round(nhif_total, 2))
                 JournalLine.objects.create(
-                    entry=je, account_name='Salaries & Wages Expense',
-                    account_code='5100', debit=total_net, credit=0,
+                    journal=je, account=bank_acc,
+                    description='Net pay disbursement',
+                    debit=0, credit=round(total_net, 2),
                 )
-                JournalLine.objects.create(
-                    entry=je, account_name='Bank Account',
-                    account_code='1100', debit=0, credit=total_net,
-                )
-        except Exception:
-            period.status = 'paid'
-            period.save(update_fields=['status'])
+        except Exception as exc:
+            # Ensure period is marked paid even if GL fails
+            PayrollPeriod.objects.filter(pk=pk).update(status='paid')
 
         return Response(PayrollPeriodSerializer(period).data)
 

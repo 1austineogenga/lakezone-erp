@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { getPayrollPeriod, getPayrollEntries, generatePayroll, approvePayroll } from '../../api/hr'
-import { ArrowLeftIcon, BoltIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { getPayrollPeriod, getPayrollEntries, updatePayrollEntry, generatePayroll, approvePayroll } from '../../api/hr'
+import { ArrowLeftIcon, BoltIcon, CheckCircleIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
@@ -20,6 +20,7 @@ export default function PayrollPeriodPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const [editingProject, setEditingProject] = useState(null) // entry id being edited
 
   const { data: period, isLoading: loadingPeriod } = useQuery({
     queryKey: ['payroll-period', id],
@@ -33,12 +34,18 @@ export default function PayrollPeriodPage() {
     select: r => r.data?.results ?? r.data,
   })
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-active'],
+    queryFn: () => api.get('/projects/'),
+    select: r => r.data?.results ?? r.data,
+  })
+
   const generateMut = useMutation({
     mutationFn: generatePayroll,
     onSuccess: d => {
       toast.success(`Generated ${d.data.created} entries.`)
-      qc.invalidateQueries(['payroll-period', id])
-      qc.invalidateQueries(['payroll-entries', id])
+      qc.invalidateQueries({ queryKey: ['payroll-period', id] })
+      qc.invalidateQueries({ queryKey: ['payroll-entries', id] })
     },
   })
 
@@ -46,16 +53,26 @@ export default function PayrollPeriodPage() {
     mutationFn: approvePayroll,
     onSuccess: () => {
       toast.success('Payroll approved.')
-      qc.invalidateQueries(['payroll-period', id])
+      qc.invalidateQueries({ queryKey: ['payroll-period', id] })
     },
   })
 
   const payMut = useMutation({
     mutationFn: () => api.post(`/hr/payroll/periods/${id}/pay/`),
     onSuccess: () => {
-      toast.success('Payroll marked as paid.')
-      qc.invalidateQueries(['payroll-period', id])
+      toast.success('Payroll paid. GL journal entry created in Finance.')
+      qc.invalidateQueries({ queryKey: ['payroll-period', id] })
     },
+    onError: () => toast.error('Failed to mark as paid.'),
+  })
+
+  const projectMut = useMutation({
+    mutationFn: ({ entryId, projectId }) => updatePayrollEntry(entryId, { project: projectId || null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll-entries', id] })
+      setEditingProject(null)
+    },
+    onError: () => toast.error('Failed to update project.'),
   })
 
   if (loadingPeriod) return <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
@@ -66,6 +83,8 @@ export default function PayrollPeriodPage() {
   const totalNSSF  = entries?.reduce((s, e) => s + Number(e.nssf_employee || 0), 0) || 0
   const totalNHIF  = entries?.reduce((s, e) => s + Number(e.nhif_employee || 0), 0) || 0
   const totalNet   = entries?.reduce((s, e) => s + Number(e.net_pay || 0), 0) || 0
+
+  const canEdit = period.status === 'draft' || period.status === 'processing'
 
   return (
     <div className="space-y-5">
@@ -88,31 +107,36 @@ export default function PayrollPeriodPage() {
                 </button>
               )}
               {period.status === 'processing' && (
-                <button onClick={() => approveMut.mutate(id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700">
+                <button onClick={() => approveMut.mutate(id)} disabled={approveMut.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-60">
                   <CheckCircleIcon className="h-3.5 w-3.5" /> Approve
                 </button>
               )}
               {period.status === 'approved' && (
-                <button onClick={() => payMut.mutate()}
-                  className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700">
-                  Mark as Paid
+                <button onClick={() => payMut.mutate()} disabled={payMut.isPending}
+                  className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-60">
+                  {payMut.isPending ? 'Processing…' : 'Mark as Paid & Post to GL'}
                 </button>
               )}
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-1">Payment Date: {period.payment_date || '—'}</p>
+          {period.status === 'approved' && (
+            <p className="text-xs text-blue-600 mt-1">
+              Paying will post a Journal Entry to Finance GL — site employees charged to project, HQ staff to Overhead.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Gross Pay',    val: totalGross, color: 'text-brand-slate' },
-          { label: 'PAYE',         val: totalPAYE,  color: 'text-red-600' },
-          { label: 'NSSF',         val: totalNSSF,  color: 'text-orange-600' },
-          { label: 'NHIF / SHIF',  val: totalNHIF,  color: 'text-yellow-700' },
-          { label: 'Net Pay',      val: totalNet,   color: 'text-green-600' },
+          { label: 'Gross Pay',   val: totalGross, color: 'text-brand-slate' },
+          { label: 'PAYE',        val: totalPAYE,  color: 'text-red-600' },
+          { label: 'NSSF',        val: totalNSSF,  color: 'text-orange-600' },
+          { label: 'NHIF / SHIF', val: totalNHIF,  color: 'text-yellow-700' },
+          { label: 'Net Pay',     val: totalNet,   color: 'text-green-600' },
         ].map(s => (
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className={`text-lg font-bold ${s.color}`}>{fmt(s.val)}</p>
@@ -120,6 +144,17 @@ export default function PayrollPeriodPage() {
           </div>
         ))}
       </div>
+
+      {/* Cost allocation note */}
+      {canEdit && entries?.length > 0 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
+          <BuildingOfficeIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+          <span>
+            Assign a <strong>Project</strong> to each site employee so their salary is charged to the correct project cost in Finance.
+            HQ staff (IT, Finance, Admin, etc.) should be left with <em>no project</em> — they will be posted as Overhead expense.
+          </span>
+        </div>
+      )}
 
       {/* Payroll entries table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -135,7 +170,7 @@ export default function PayrollPeriodPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      {['Employee', 'Type', 'Gross Pay', 'PAYE', 'NSSF', 'NHIF', 'Other Deductions', 'Net Pay'].map(h => (
+                      {['Employee', 'Dept', 'Cost Charged To', 'Type', 'Gross Pay', 'PAYE', 'NSSF', 'NHIF', 'Net Pay'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
                       ))}
                     </tr>
@@ -147,6 +182,29 @@ export default function PayrollPeriodPage() {
                           <p className="font-medium text-brand-slate text-xs">{e.employee_number}</p>
                           <p className="text-xs text-gray-500">{e.full_name}</p>
                         </td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{e.department_name || '—'}</td>
+                        <td className="px-4 py-3 text-xs min-w-[160px]">
+                          {editingProject === e.id ? (
+                            <select autoFocus
+                              defaultValue={e.project || ''}
+                              onBlur={ev => projectMut.mutate({ entryId: e.id, projectId: ev.target.value })}
+                              onChange={ev => projectMut.mutate({ entryId: e.id, projectId: ev.target.value })}
+                              className="w-full px-2 py-1 border border-brand-red rounded text-xs focus:outline-none">
+                              <option value="">HQ / Overhead</option>
+                              {projects.map(p => (
+                                <option key={p.id} value={p.id}>{p.project_name}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <button onClick={() => canEdit && setEditingProject(e.id)}
+                              className={`flex items-center gap-1 ${canEdit ? 'hover:text-brand-red cursor-pointer' : 'cursor-default'}`}>
+                              {e.project_name
+                                ? <span className="text-blue-700 font-medium">{e.project_name}</span>
+                                : <span className="text-gray-400 italic">HQ / Overhead</span>}
+                              {canEdit && <span className="text-gray-300 text-[10px]">✎</span>}
+                            </button>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium
                             ${e.employment_type === 'staff' ? 'bg-indigo-100 text-indigo-700' : 'bg-purple-100 text-purple-700'}`}>
@@ -157,19 +215,17 @@ export default function PayrollPeriodPage() {
                         <td className="px-4 py-3 text-xs text-red-600">{fmt(e.paye)}</td>
                         <td className="px-4 py-3 text-xs text-orange-600">{fmt(e.nssf_employee)}</td>
                         <td className="px-4 py-3 text-xs text-yellow-700">{fmt(e.nhif_employee)}</td>
-                        <td className="px-4 py-3 text-xs text-gray-600">{fmt(e.other_deductions)}</td>
                         <td className="px-4 py-3 font-bold text-xs text-green-600">{fmt(e.net_pay)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                     <tr>
-                      <td colSpan={2} className="px-4 py-3 text-xs font-bold text-gray-700">TOTALS</td>
+                      <td colSpan={4} className="px-4 py-3 text-xs font-bold text-gray-700">TOTALS</td>
                       <td className="px-4 py-3 text-xs font-bold">{fmt(totalGross)}</td>
                       <td className="px-4 py-3 text-xs font-bold text-red-600">{fmt(totalPAYE)}</td>
                       <td className="px-4 py-3 text-xs font-bold text-orange-600">{fmt(totalNSSF)}</td>
                       <td className="px-4 py-3 text-xs font-bold text-yellow-700">{fmt(totalNHIF)}</td>
-                      <td className="px-4 py-3 text-xs font-bold text-gray-600">—</td>
                       <td className="px-4 py-3 text-xs font-bold text-green-600">{fmt(totalNet)}</td>
                     </tr>
                   </tfoot>

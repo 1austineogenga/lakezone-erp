@@ -162,6 +162,8 @@ class PayrollEntrySerializer(serializers.ModelSerializer):
     employee_number = serializers.CharField(source='employee.employee_number', read_only=True)
     full_name       = serializers.SerializerMethodField()
     employment_type = serializers.CharField(source='employee.employment_type', read_only=True)
+    department_name = serializers.CharField(source='employee.department.name', read_only=True)
+    project_name    = serializers.CharField(source='project.project_name', read_only=True)
 
     class Meta:
         model  = PayrollEntry

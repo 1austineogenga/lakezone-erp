@@ -387,6 +387,9 @@ class PayrollEntry(models.Model):
                                           related_name='entries')
     employee          = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                           related_name='payroll_entries')
+    project           = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
+                                          null=True, blank=True, related_name='payroll_entries',
+                                          help_text='Project this salary is charged to. Leave blank for HQ/overhead staff.')
     working_days      = models.DecimalField(max_digits=5, decimal_places=1, default=26)
     days_worked       = models.DecimalField(max_digits=5, decimal_places=1, default=0)
     days_on_leave     = models.DecimalField(max_digits=5, decimal_places=1, default=0)
