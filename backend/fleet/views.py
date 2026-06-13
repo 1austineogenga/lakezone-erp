@@ -326,6 +326,24 @@ class FleetConfigDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = FleetAPIConfig.objects.all()
 
 
+class FetchHistoryView(APIView):
+    """Fetch trip history from TrackNTrace API for a date range."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        date_from = request.data.get('date_from')
+        date_to = request.data.get('date_to')
+        if not date_from or not date_to:
+            return Response({'detail': 'date_from and date_to are required (YYYY-MM-DD).'}, status=400)
+        try:
+            service = FleetSyncService()
+            result = service.fetch_history(date_from, date_to)
+            return Response(result)
+        except Exception as e:
+            logger.exception("fetch_history failed")
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class BackfillView(APIView):
     """Re-process all existing VehicleLiveData snapshots to generate trips and fuel events."""
     permission_classes = [IsAuthenticated]

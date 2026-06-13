@@ -19,6 +19,7 @@ urlpatterns = [
     path('config/', views.FleetConfigView.as_view(), name='fleet-config-list'),
     path('config/<int:pk>/', views.FleetConfigDetailView.as_view(), name='fleet-config-detail'),
     path('backfill/', views.BackfillView.as_view(), name='fleet-backfill'),
+    path('fetch-history/', views.FetchHistoryView.as_view(), name='fleet-fetch-history'),
 ]
 
 

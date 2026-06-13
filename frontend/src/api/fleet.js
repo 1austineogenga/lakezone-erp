@@ -27,3 +27,4 @@ export const getUtilizationReport  = (params) => api.get('/fleet/reports/utiliza
 export const getFleetConfig        = ()       => api.get('/fleet/config/')
 export const saveFleetConfig       = (data)   => api.post('/fleet/config/', data)
 export const backfillHistory       = ()       => api.post('/fleet/backfill/')
+export const fetchHistory          = (data)   => api.post('/fleet/fetch-history/', data)

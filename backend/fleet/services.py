@@ -432,6 +432,140 @@ class FleetSyncService:
             'last_speed', 'last_fuel', 'last_odometer', 'last_seen', 'updated_at',
         ])
 
+    def fetch_history(self, date_from, date_to):
+        """Fetch trip history from the TrackNTrace API for the given date range."""
+        from .models import FleetAPIConfig, Vehicle, TripRecord
+        config = FleetAPIConfig.objects.filter(is_active=True).first()
+        if not config:
+            return {'error': 'No active fleet config'}
+
+        token = self._get_token(config)
+        vehicles = list(Vehicle.objects.filter(is_active=True, api_config=config))
+        vehicle_nos = ','.join(v.vehicle_no for v in vehicles)
+
+        headers = {'auth-code': token}
+        base_payload = {
+            'company_names': config.company_name,
+            'vehicle_nos': vehicle_nos,
+            'from_date': date_from,   # e.g. "2026-03-01"
+            'to_date': date_to,
+            'format': 'json',
+        }
+
+        # Try known TrackNTrace history endpoint tokens
+        endpoints_to_try = [
+            f'getTokenBaseTripData&ProjectId={config.project_id}',
+            f'getTripReport&ProjectId={config.project_id}',
+            f'getTokenBaseHistoryData&ProjectId={config.project_id}',
+            f'getHistoryData&ProjectId={config.project_id}',
+        ]
+
+        raw_response = None
+        used_endpoint = None
+        for ep in endpoints_to_try:
+            url = f"{config.base_url}/webservice?token={ep}"
+            try:
+                resp = requests.post(url, json=base_payload, headers=headers, timeout=30)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # Accept any response that has a non-empty root/data structure
+                    root = data.get('root', data)
+                    if root and root != data or (isinstance(data, list) and data):
+                        raw_response = data
+                        used_endpoint = ep
+                        break
+                    # Even a 200 with an empty root tells us the endpoint exists
+                    raw_response = data
+                    used_endpoint = ep
+                    break
+            except Exception:
+                continue
+
+        if raw_response is None:
+            return {
+                'error': 'None of the history endpoints responded successfully. '
+                         'TrackNTrace may not expose trip history via API.',
+                'tried': endpoints_to_try,
+            }
+
+        # Parse trip records from response
+        trips_imported = 0
+        trip_list = (
+            raw_response.get('root', {}).get('TripData', [])
+            or raw_response.get('root', {}).get('VehicleData', [])
+            or raw_response.get('TripData', [])
+            or (raw_response if isinstance(raw_response, list) else [])
+        )
+
+        vehicle_map = {v.vehicle_no: v for v in vehicles}
+
+        for t in trip_list:
+            vehicle_no = (t.get('Vehicle_No') or t.get('vehicle_no') or '').strip()
+            vehicle = vehicle_map.get(vehicle_no)
+            if not vehicle:
+                continue
+
+            def _dt(key):
+                val = t.get(key)
+                if not val:
+                    return None
+                for fmt in ('%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M:%S'):
+                    try:
+                        from datetime import datetime
+                        dt = datetime.strptime(str(val).strip(), fmt)
+                        return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                    except ValueError:
+                        continue
+                return None
+
+            started_at = _dt('Start_Time') or _dt('start_time') or _dt('StartTime')
+            ended_at = _dt('End_Time') or _dt('end_time') or _dt('EndTime')
+            if not started_at:
+                continue
+
+            distance_raw = t.get('Distance') or t.get('distance') or t.get('Distance_km') or 0
+            try:
+                distance_km = float(str(distance_raw).replace(',', ''))
+                # If value looks like metres, convert
+                if distance_km > 5000:
+                    distance_km = round(distance_km / 1000, 2)
+            except (ValueError, TypeError):
+                distance_km = 0
+
+            duration_raw = t.get('Duration') or t.get('duration') or t.get('Duration_Minutes') or 0
+            try:
+                duration_minutes = int(float(str(duration_raw).replace(',', '')))
+            except (ValueError, TypeError):
+                duration_minutes = 0
+
+            max_speed_raw = t.get('Max_Speed') or t.get('max_speed') or t.get('MaxSpeed') or 0
+            try:
+                max_speed = float(str(max_speed_raw).replace(',', ''))
+            except (ValueError, TypeError):
+                max_speed = 0
+
+            TripRecord.objects.get_or_create(
+                vehicle=vehicle,
+                started_at=started_at,
+                defaults={
+                    'ended_at': ended_at,
+                    'start_location': t.get('Start_Location') or t.get('start_location') or '',
+                    'end_location': t.get('End_Location') or t.get('end_location') or '',
+                    'distance_km': distance_km,
+                    'duration_minutes': duration_minutes,
+                    'max_speed': max_speed,
+                    'driver_name': t.get('Driver_Name') or t.get('driver_name') or '',
+                }
+            )
+            trips_imported += 1
+
+        return {
+            'endpoint_used': used_endpoint,
+            'raw_keys': list(raw_response.keys()) if isinstance(raw_response, dict) else 'list',
+            'trips_in_response': len(trip_list),
+            'trips_imported': trips_imported,
+        }
+
     def backfill_from_snapshots(self):
         """Process existing VehicleLiveData history to generate missing trips and fuel events."""
         from .models import Vehicle, VehicleLiveData, TripRecord, FuelEvent

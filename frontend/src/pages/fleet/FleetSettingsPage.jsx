@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory } from '../../api/fleet'
+import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory } from '../../api/fleet'
 import api from '../../api/client'
 
 const EMPTY = {
@@ -18,6 +18,11 @@ const EMPTY = {
 export default function FleetSettingsPage() {
   const qc = useQueryClient()
   const [form, setForm] = useState(EMPTY)
+
+  const threeMonthsAgo = new Date()
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  const [histFrom, setHistFrom] = useState(threeMonthsAgo.toISOString().split('T')[0])
+  const [histTo,   setHistTo]   = useState(new Date().toISOString().split('T')[0])
 
   const { data: existingConfig } = useQuery({
     queryKey: ['fleet-config'],
@@ -81,6 +86,21 @@ export default function FleetSettingsPage() {
       qc.invalidateQueries({ queryKey: ['fuel-report'] })
     },
     onError: e => toast.error(e.response?.data?.detail || 'Backfill failed.'),
+  })
+
+  const fetchHistMut = useMutation({
+    mutationFn: () => fetchHistory({ date_from: histFrom, date_to: histTo }),
+    onSuccess: d => {
+      const r = d.data
+      if (r.error) {
+        toast.error(r.error)
+        return
+      }
+      toast.success(`History import done — ${r.trips_imported} trips imported (${r.trips_in_response} in response).`)
+      qc.invalidateQueries({ queryKey: ['trips-detail'] })
+      qc.invalidateQueries({ queryKey: ['utilization-report'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'History fetch failed.'),
   })
 
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -185,6 +205,39 @@ export default function FleetSettingsPage() {
             {saveMut.isPending ? 'Saving…' : 'Save Configuration'}
           </button>
         </div>
+      </div>
+
+      {/* Historical trip import */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-brand-slate text-sm mb-1">Import Trip History</h3>
+          <p className="text-xs text-gray-400">Fetch up to 3 months of trip records directly from the TrackNTrace API.</p>
+        </div>
+        <div className="flex flex-wrap gap-4 items-end">
+          {[['From', histFrom, setHistFrom], ['To', histTo, setHistTo]].map(([label, val, set]) => (
+            <div key={label}>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+              <input type="date" value={val} onChange={e => set(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+            </div>
+          ))}
+          <button onClick={() => fetchHistMut.mutate()} disabled={fetchHistMut.isPending}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${fetchHistMut.isPending ? 'animate-spin' : ''}`} />
+            {fetchHistMut.isPending ? 'Fetching…' : 'Fetch History'}
+          </button>
+        </div>
+        {fetchHistMut.data && (
+          <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
+            <p>Endpoint used: <span className="font-mono text-gray-600">{fetchHistMut.data.data.endpoint_used || '—'}</span></p>
+            <p>Trips in response: <strong>{fetchHistMut.data.data.trips_in_response ?? 0}</strong></p>
+            <p>Trips imported: <strong>{fetchHistMut.data.data.trips_imported ?? 0}</strong></p>
+            {fetchHistMut.data.data.error && <p className="text-red-600">{fetchHistMut.data.data.error}</p>}
+            {fetchHistMut.data.data.raw_keys && (
+              <p className="text-gray-400">Response keys: {JSON.stringify(fetchHistMut.data.data.raw_keys)}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {existingConfig && (
