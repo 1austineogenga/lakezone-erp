@@ -21,7 +21,7 @@ export default function EmployeesPage() {
     queryFn: () => getEmployees({
       ...(typeFilter && { employment_type: typeFilter }),
       ...(deptFilter && { department: deptFilter }),
-      is_active: true,
+      is_active: 'true',
     }),
     select: r => r.data,
   })
