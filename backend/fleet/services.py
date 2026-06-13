@@ -148,7 +148,10 @@ class FleetSyncService:
         def parse_bool(val):
             if val is None:
                 return False
-            return str(val).strip().upper() == 'ON'
+            if isinstance(val, bool):
+                return val
+            s = str(val).strip().upper()
+            return s in ('ON', 'TRUE', '1', 'YES')
 
         def parse_float(val):
             v = clean(val)
@@ -199,6 +202,14 @@ class FleetSyncService:
         ]
         driver_name = ' '.join(p.strip() for p in driver_parts if p.strip())
 
+        vehicle_status = clean(raw.get('Status')) or ''
+        ign_raw = raw.get('IGN')
+        # Fall back to status-based ignition when IGN field is absent or unhelpful
+        if ign_raw is None or str(ign_raw).strip() in ('', '--', '-', 'N/A'):
+            ignition_on = vehicle_status.upper() in ('MOVING', 'IDLE', 'ON')
+        else:
+            ignition_on = parse_bool(ign_raw)
+
         return {
             'vehicle_no': clean(raw.get('Vehicle_No')) or '',
             'vehicle_name': clean(raw.get('Vehicle_Name')) or '',
@@ -208,10 +219,10 @@ class FleetSyncService:
             'longitude': parse_float(raw.get('Longitude')),
             'location_name': clean(raw.get('Location')) or '',
             'angle': parse_int(raw.get('Angle')) or 0,
-            'status': clean(raw.get('Status')) or '',
+            'status': vehicle_status,
             'speed': parse_float(raw.get('Speed')) or 0.0,
             'gps_on': parse_bool(raw.get('GPS')),
-            'ignition_on': parse_bool(raw.get('IGN')),
+            'ignition_on': ignition_on,
             'power_on': parse_bool(raw.get('Power')),
             'immobilize_state': clean(raw.get('Immobilize_State')) or '',
             'fuel_level': parse_fuel(raw.get('Fuel')),
@@ -442,8 +453,10 @@ class FleetSyncService:
             open_trip = None
             prev = snapshots[0]
             for snap in snapshots[1:]:
+                # Use status-based ignition since old snapshots may have IGN parsed as False
+                snap_ign = snap.ignition_on or (snap.status.upper() in ('MOVING', 'IDLE', 'ON') if snap.status else False)
                 new_data = {
-                    'ignition_on': snap.ignition_on,
+                    'ignition_on': snap_ign,
                     'fuel_level': float(snap.fuel_level) if snap.fuel_level is not None else None,
                     'location_name': snap.location_name or '',
                     'latitude': float(snap.latitude) if snap.latitude is not None else None,
@@ -453,8 +466,9 @@ class FleetSyncService:
                     'driver_name': snap.driver_name or '',
                     'device_datetime': snap.device_datetime or snap.fetched_at,
                 }
+                prev_ign = prev.ignition_on or (prev.status.upper() in ('MOVING', 'IDLE', 'ON') if prev.status else False)
                 prev_data = {
-                    'ignition_on': prev.ignition_on,
+                    'ignition_on': prev_ign,
                     'fuel_level': float(prev.fuel_level) if prev.fuel_level is not None else None,
                 }
 
