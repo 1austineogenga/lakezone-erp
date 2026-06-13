@@ -329,7 +329,7 @@ class JournalEntryCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = JournalEntry
-        fields = ['entry_type', 'entry_date', 'description', 'project', 'notes', 'lines']
+        fields = ['entry_type', 'entry_date', 'description', 'project', 'lines']
 
     def validate_lines(self, lines):
         if len(lines) < 2:
