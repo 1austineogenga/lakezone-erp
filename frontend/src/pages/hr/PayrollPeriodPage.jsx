@@ -135,7 +135,7 @@ export default function PayrollPeriodPage() {
           { label: 'Gross Pay',   val: totalGross, color: 'text-brand-slate' },
           { label: 'PAYE',        val: totalPAYE,  color: 'text-red-600' },
           { label: 'NSSF',        val: totalNSSF,  color: 'text-orange-600' },
-          { label: 'NHIF / SHIF', val: totalNHIF,  color: 'text-yellow-700' },
+          { label: 'SHA/SHIF', val: totalNHIF,  color: 'text-yellow-700' },
           { label: 'Net Pay',     val: totalNet,   color: 'text-green-600' },
         ].map(s => (
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
@@ -170,7 +170,7 @@ export default function PayrollPeriodPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      {['Employee', 'Dept', 'Cost Charged To', 'Type', 'Gross Pay', 'PAYE', 'NSSF', 'NHIF', 'Net Pay'].map(h => (
+                      {['Employee', 'Dept', 'Cost Charged To', 'Type', 'Gross Pay', 'PAYE', 'NSSF', 'SHA/SHIF', 'Net Pay'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
                       ))}
                     </tr>

@@ -220,7 +220,7 @@ export default function EmployeeDetailPage() {
             <Row label="National ID"     value={emp.national_id || '—'} />
             <Row label="KRA PIN"         value={emp.kra_pin || '—'} />
             <Row label="NSSF No."        value={emp.nssf_number || '—'} />
-            <Row label="NHIF / SHIF No." value={emp.nhif_number || '—'} />
+            <Row label="SHA/SHIF No." value={emp.nhif_number || '—'} />
           </InfoCard>
           <InfoCard title="Contact">
             <Row label="Phone"             value={emp.phone} />
@@ -282,7 +282,7 @@ export default function EmployeeDetailPage() {
               <Field label="National ID"><input {...ef('national_id')} className={cls} /></Field>
               <Field label="KRA PIN"><input {...ef('kra_pin')} className={cls} /></Field>
               <Field label="NSSF Number"><input {...ef('nssf_number')} className={cls} /></Field>
-              <Field label="NHIF / SHIF Number"><input {...ef('nhif_number')} className={cls} /></Field>
+              <Field label="SHA/SHIF Number"><input {...ef('nhif_number')} className={cls} /></Field>
             </div>
           </div>
 

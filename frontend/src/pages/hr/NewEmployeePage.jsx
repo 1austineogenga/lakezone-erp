@@ -155,7 +155,7 @@ export default function NewEmployeePage() {
         <Field label="NSSF Number">
           <input {...f('nssf_number')} className={cls} />
         </Field>
-        <Field label="NHIF / SHIF Number">
+        <Field label="SHA/SHIF Number">
           <input {...f('nhif_number')} className={cls} />
         </Field>
       </Section>

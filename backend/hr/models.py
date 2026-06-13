@@ -145,7 +145,7 @@ class EmployeeDocument(models.Model):
         ID_COPY   = 'id_copy',   'ID Copy'
         CERTIFICATE = 'certificate', 'Certificate'
         NSSF_CARD = 'nssf_card', 'NSSF Card'
-        NHIF_CARD = 'nhif_card', 'NHIF / SHIF Card'
+        NHIF_CARD = 'nhif_card', 'SHA/SHIF Card'
         KRA_CERT  = 'kra_cert',  'KRA Certificate'
         MEDICAL   = 'medical',   'Medical Certificate'
         OTHER     = 'other',     'Other'

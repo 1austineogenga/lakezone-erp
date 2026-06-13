@@ -526,7 +526,7 @@ class PayrollPayView(APIView):
             bank_acc      = _account('1100', 'Bank Account',            'asset')
             paye_acc      = _account('2100', 'PAYE Payable',            'liability')
             nssf_acc      = _account('2110', 'NSSF Payable',            'liability')
-            nhif_acc      = _account('2120', 'NHIF / SHIF Payable',     'liability')
+            nhif_acc      = _account('2120', 'SHA/SHIF Payable',     'liability')
             site_sal_acc  = _account('5100', 'Salaries & Wages — Site', 'expense')
             hq_sal_acc    = _account('5200', 'Salaries & Wages — Overhead', 'expense')
 
@@ -595,7 +595,7 @@ class PayrollPayView(APIView):
                 nhif_total = total_nhif_emp + total_nhif_er
                 if nhif_total > 0:
                     JournalLine.objects.create(journal=je, account=nhif_acc,
-                        description='NHIF/SHIF payable (employee + employer)', debit=0, credit=round(nhif_total, 2))
+                        description='SHA/SHIF payable (employee + employer)', debit=0, credit=round(nhif_total, 2))
                 JournalLine.objects.create(
                     journal=je, account=bank_acc,
                     description='Net pay disbursement',
