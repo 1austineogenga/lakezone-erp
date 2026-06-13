@@ -1,0 +1,88 @@
+from rest_framework import serializers
+from django.utils import timezone
+from .models import (
+    FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
+    TripRecord, FleetAlert, MaintenanceRecord,
+)
+
+
+class FleetAPIConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FleetAPIConfig
+        fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
+
+
+class VehicleLiveDataSerializer(serializers.ModelSerializer):
+    odometer_km = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleLiveData
+        fields = '__all__'
+
+    def get_odometer_km(self, obj):
+        return round(obj.odometer / 1000, 2) if obj.odometer else 0
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    odometer_km = serializers.SerializerMethodField()
+    last_seen_minutes_ago = serializers.SerializerMethodField()
+    latest_live_data = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vehicle
+        fields = '__all__'
+
+    def get_odometer_km(self, obj):
+        return round(obj.last_odometer / 1000, 2) if obj.last_odometer else 0
+
+    def get_last_seen_minutes_ago(self, obj):
+        if obj.last_seen:
+            diff = timezone.now() - obj.last_seen
+            return int(diff.total_seconds() / 60)
+        return None
+
+    def get_latest_live_data(self, obj):
+        latest = obj.live_data.order_by('-fetched_at').first()
+        if latest:
+            return VehicleLiveDataSerializer(latest).data
+        return None
+
+
+class FuelEventSerializer(serializers.ModelSerializer):
+    vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+
+    class Meta:
+        model = FuelEvent
+        fields = '__all__'
+
+
+class TripRecordSerializer(serializers.ModelSerializer):
+    vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+
+    class Meta:
+        model = TripRecord
+        fields = '__all__'
+
+
+class FleetAlertSerializer(serializers.ModelSerializer):
+    vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+    acknowledged_by_username = serializers.CharField(source='acknowledged_by.username', read_only=True)
+
+    class Meta:
+        model = FleetAlert
+        fields = '__all__'
+
+
+class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = MaintenanceRecord
+        fields = '__all__'
+        read_only_fields = ['created_by']
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)

@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "requisitions",
     "finance",
     "hr",
+    "fleet",
 ]
 
 MIDDLEWARE = [
