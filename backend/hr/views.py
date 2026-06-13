@@ -612,13 +612,20 @@ class HRDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        today_date   = date.today()
+        today_date  = date.today()
+        in_30_days  = today_date + timedelta(days=30)
+
         total        = Employee.objects.filter(is_active=True).count()
         staff_count  = Employee.objects.filter(is_active=True, employment_type='staff').count()
         casual_count = Employee.objects.filter(is_active=True, employment_type='casual').count()
+        expiring     = Employee.objects.filter(
+            is_active=True,
+            contract_end_date__gte=today_date,
+            contract_end_date__lte=in_30_days,
+        ).count()
 
         today_records = AttendanceRecord.objects.filter(date=today_date)
-        present  = today_records.filter(status='present').count()
+        present  = today_records.filter(status__in=['present', 'late']).count()
         absent   = today_records.filter(status='absent').count()
         late     = today_records.filter(status='late').count()
         on_leave = today_records.filter(status='on_leave').count()
@@ -626,27 +633,34 @@ class HRDashboardView(APIView):
         pending_leaves   = LeaveApplication.objects.filter(status='submitted').count()
         pending_advances = SalaryAdvance.objects.filter(status='pending').count()
 
-        recent = Employee.objects.filter(is_active=True).order_by('-date_hired')[:5]
+        recent = (
+            Employee.objects
+            .filter(is_active=True)
+            .select_related('department')
+            .order_by('-date_hired')[:5]
+        )
         recent_list = [
             {
-                'id': str(e.id),
+                'id':              str(e.id),
                 'employee_number': e.employee_number,
-                'full_name': e.full_name,
+                'full_name':       e.full_name,
                 'employment_type': e.employment_type,
-                'date_hired': str(e.date_hired),
+                'department_name': e.department.name if e.department else None,
+                'date_hired':      str(e.date_hired),
             }
             for e in recent
         ]
 
         return Response({
-            'workforce': {'total': total, 'staff': staff_count, 'casual': casual_count},
-            'today_attendance': {
-                'present': present, 'absent': absent,
-                'late': late, 'on_leave': on_leave,
-            },
-            'alerts': {
-                'pending_leaves': pending_leaves,
-                'pending_advances': pending_advances,
-            },
-            'recent_employees': recent_list,
+            'total_employees':            total,
+            'total_staff':                staff_count,
+            'total_casuals':              casual_count,
+            'expiring_contracts_30_days': expiring,
+            'present_today':              present,
+            'absent_today':               absent,
+            'late_today':                 late,
+            'on_leave_today':             on_leave,
+            'pending_leave_applications': pending_leaves,
+            'pending_advances':           pending_advances,
+            'recent_employees':           recent_list,
         })

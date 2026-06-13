@@ -181,7 +181,7 @@ class SalaryAdvanceSerializer(serializers.ModelSerializer):
     class Meta:
         model  = SalaryAdvance
         fields = '__all__'
-        read_only_fields = ['reference', 'approved_by', 'approved_at']
+        read_only_fields = ['reference', 'approved_by', 'approved_at', 'request_date']
 
     def get_employee_name(self, obj):
         return obj.employee.full_name
