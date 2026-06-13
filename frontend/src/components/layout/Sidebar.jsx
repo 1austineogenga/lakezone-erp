@@ -7,8 +7,7 @@ import {
   ChevronDownIcon, ChartBarIcon, CreditCardIcon,
   ReceiptPercentIcon, ArrowTrendingUpIcon, LockClosedIcon,
   CalculatorIcon, ScaleIcon, ShieldCheckIcon, DocumentCheckIcon,
-  ClipboardDocumentListIcon as TimesheetIcon, BookOpenIcon,
-  ClockIcon, CalendarDaysIcon, FingerPrintIcon,
+  BookOpenIcon, ClockIcon, CalendarDaysIcon, FingerPrintIcon,
   ShieldExclamationIcon, CurrencyDollarIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
@@ -69,7 +68,7 @@ const MODULE_GROUPS = [
       {
         label: 'Accounting',
         items: [
-          { to: '/finance/timesheets', label: 'Payroll / Time', icon: TimesheetIcon },
+          { to: '/finance/timesheets', label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
           { to: '/finance/gl',         label: 'GL Journal',     icon: BookOpenIcon },
         ],
       },
