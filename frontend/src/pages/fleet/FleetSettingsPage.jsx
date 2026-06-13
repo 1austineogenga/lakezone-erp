@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-import { getFleetConfig, saveFleetConfig, forceSync } from '../../api/fleet'
+import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory } from '../../api/fleet'
 import api from '../../api/client'
 
 const EMPTY = {
@@ -70,6 +70,19 @@ export default function FleetSettingsPage() {
     onError: e => toast.error(e.response?.data?.detail || 'Sync failed. Check credentials.'),
   })
 
+  const backfillMut = useMutation({
+    mutationFn: backfillHistory,
+    onSuccess: d => {
+      const { trips_created, fuel_events_created, vehicles_processed } = d.data
+      toast.success(`Backfill done — ${trips_created} trips, ${fuel_events_created} fuel events from ${vehicles_processed} vehicles.`)
+      qc.invalidateQueries({ queryKey: ['trips-detail'] })
+      qc.invalidateQueries({ queryKey: ['fuel-events-detail'] })
+      qc.invalidateQueries({ queryKey: ['utilization-report'] })
+      qc.invalidateQueries({ queryKey: ['fuel-report'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Backfill failed.'),
+  })
+
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = () => {
@@ -87,11 +100,19 @@ export default function FleetSettingsPage() {
           <h2 className="font-bold text-brand-slate text-lg">Fleet Settings</h2>
           <p className="text-xs text-gray-400 mt-0.5">Tracking API credentials and sync configuration</p>
         </div>
-        <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 disabled:opacity-60">
-          <ArrowPathIcon className={`h-3.5 w-3.5 ${syncMut.isPending ? 'animate-spin' : ''}`} />
-          {syncMut.isPending ? 'Syncing…' : 'Test Sync'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${syncMut.isPending ? 'animate-spin' : ''}`} />
+            {syncMut.isPending ? 'Syncing…' : 'Test Sync'}
+          </button>
+          <button onClick={() => backfillMut.mutate()} disabled={backfillMut.isPending}
+            title="Re-process all historical snapshots to generate trip and fuel event records"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${backfillMut.isPending ? 'animate-spin' : ''}`} />
+            {backfillMut.isPending ? 'Backfilling…' : 'Backfill History'}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">

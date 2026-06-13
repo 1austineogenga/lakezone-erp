@@ -421,6 +421,113 @@ class FleetSyncService:
             'last_speed', 'last_fuel', 'last_odometer', 'last_seen', 'updated_at',
         ])
 
+    def backfill_from_snapshots(self):
+        """Process existing VehicleLiveData history to generate missing trips and fuel events."""
+        from .models import Vehicle, VehicleLiveData, TripRecord, FuelEvent
+        vehicles = Vehicle.objects.filter(is_active=True)
+        trips_created = 0
+        fuel_events_created = 0
+
+        for vehicle in vehicles:
+            snapshots = list(
+                VehicleLiveData.objects.filter(vehicle=vehicle).order_by('fetched_at')
+            )
+            if len(snapshots) < 2:
+                continue
+
+            # Clear existing auto-detected trips and fuel events so backfill is idempotent
+            TripRecord.objects.filter(vehicle=vehicle).delete()
+            FuelEvent.objects.filter(vehicle=vehicle).delete()
+
+            open_trip = None
+            prev = snapshots[0]
+            for snap in snapshots[1:]:
+                new_data = {
+                    'ignition_on': snap.ignition_on,
+                    'fuel_level': float(snap.fuel_level) if snap.fuel_level is not None else None,
+                    'location_name': snap.location_name or '',
+                    'latitude': float(snap.latitude) if snap.latitude is not None else None,
+                    'longitude': float(snap.longitude) if snap.longitude is not None else None,
+                    'odometer': snap.odometer or 0,
+                    'speed': float(snap.speed) if snap.speed is not None else 0,
+                    'driver_name': snap.driver_name or '',
+                    'device_datetime': snap.device_datetime or snap.fetched_at,
+                }
+                prev_data = {
+                    'ignition_on': prev.ignition_on,
+                    'fuel_level': float(prev.fuel_level) if prev.fuel_level is not None else None,
+                }
+
+                # Fuel detection
+                pf = prev_data['fuel_level']
+                nf = new_data['fuel_level']
+                if pf is not None and nf is not None:
+                    change = nf - pf
+                    if change >= self.FUEL_FILL_THRESHOLD:
+                        FuelEvent.objects.create(
+                            vehicle=vehicle,
+                            event_type=FuelEvent.EventType.FILL,
+                            occurred_at=new_data['device_datetime'],
+                            location_name=new_data['location_name'],
+                            latitude=new_data['latitude'],
+                            longitude=new_data['longitude'],
+                            fuel_before=pf,
+                            fuel_after=nf,
+                            fuel_change=change,
+                        )
+                        fuel_events_created += 1
+                    elif change <= -self.FUEL_DRAIN_THRESHOLD and not new_data['ignition_on']:
+                        etype = FuelEvent.EventType.THEFT if abs(change) >= self.THEFT_THRESHOLD else FuelEvent.EventType.DRAIN
+                        FuelEvent.objects.create(
+                            vehicle=vehicle,
+                            event_type=etype,
+                            occurred_at=new_data['device_datetime'],
+                            location_name=new_data['location_name'],
+                            latitude=new_data['latitude'],
+                            longitude=new_data['longitude'],
+                            fuel_before=pf,
+                            fuel_after=nf,
+                            fuel_change=change,
+                        )
+                        fuel_events_created += 1
+
+                # Trip detection
+                pi = prev_data['ignition_on']
+                ni = new_data['ignition_on']
+                now = new_data['device_datetime']
+                if not pi and ni:
+                    open_trip = TripRecord.objects.create(
+                        vehicle=vehicle,
+                        started_at=now,
+                        start_location=new_data['location_name'],
+                        start_latitude=new_data['latitude'],
+                        start_longitude=new_data['longitude'],
+                        start_odometer=new_data['odometer'],
+                        driver_name=new_data['driver_name'],
+                    )
+                    trips_created += 1
+                elif pi and not ni and open_trip:
+                    end_odo = new_data['odometer']
+                    dist_km = round(max(0, end_odo - open_trip.start_odometer) / 1000, 2)
+                    dur_min = int((now - open_trip.started_at).total_seconds() / 60) if now > open_trip.started_at else 0
+                    open_trip.ended_at = now
+                    open_trip.end_location = new_data['location_name']
+                    open_trip.end_latitude = new_data['latitude']
+                    open_trip.end_longitude = new_data['longitude']
+                    open_trip.end_odometer = end_odo
+                    open_trip.distance_km = dist_km
+                    open_trip.duration_minutes = dur_min
+                    open_trip.save()
+                    open_trip = None
+
+                prev = snap
+
+        return {
+            'trips_created': trips_created,
+            'fuel_events_created': fuel_events_created,
+            'vehicles_processed': vehicles.count(),
+        }
+
     def _cleanup_old_live_data(self):
         from .models import VehicleLiveData
         cutoff = timezone.now() - timedelta(days=30)

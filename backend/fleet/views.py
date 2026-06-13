@@ -326,6 +326,20 @@ class FleetConfigDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = FleetAPIConfig.objects.all()
 
 
+class BackfillView(APIView):
+    """Re-process all existing VehicleLiveData snapshots to generate trips and fuel events."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            service = FleetSyncService()
+            result = service.backfill_from_snapshots()
+            return Response(result)
+        except Exception as e:
+            logger.exception("Backfill failed")
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class FleetDebugView(APIView):
     """Raw API debug — returns token + raw vehicle data from Trakzee."""
     permission_classes = [IsAuthenticated]
