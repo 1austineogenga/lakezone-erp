@@ -66,4 +66,10 @@ urlpatterns = [
     # Disciplinary
     path('disciplinary/',                        views.DisciplinaryListCreateView.as_view()),
     path('disciplinary/<uuid:pk>/',              views.DisciplinaryDetailView.as_view()),
+
+    # Transfers
+    path('transfers/',                           views.EmployeeTransferListCreateView.as_view()),
+    path('transfers/<uuid:pk>/',                 views.EmployeeTransferDetailView.as_view()),
+    path('transfers/<uuid:pk>/submit/',          views.TransferSubmitView.as_view()),
+    path('transfers/<uuid:pk>/review/',          views.TransferReviewView.as_view()),
 ]

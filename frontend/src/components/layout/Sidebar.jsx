@@ -8,7 +8,7 @@ import {
   ReceiptPercentIcon, ArrowTrendingUpIcon, LockClosedIcon,
   CalculatorIcon, ScaleIcon, ShieldCheckIcon, DocumentCheckIcon,
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
-  ShieldExclamationIcon, CurrencyDollarIcon,
+  ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import logoIcon from '../../assets/logo-icon.png'
@@ -84,6 +84,7 @@ const MODULES = [
         heading: 'Workforce',
         links: [
           { to: '/hr/employees',    label: 'Employees',    icon: UsersIcon },
+          { to: '/hr/transfers',    label: 'Transfers',    icon: ArrowsRightLeftIcon },
           { to: '/hr/disciplinary', label: 'Disciplinary', icon: ShieldExclamationIcon },
         ],
       },

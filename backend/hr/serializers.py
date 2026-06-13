@@ -4,6 +4,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
+    EmployeeTransfer,
 )
 
 
@@ -202,3 +203,49 @@ class DisciplinaryRecordSerializer(serializers.ModelSerializer):
 
     def get_employee_name(self, obj):
         return obj.employee.full_name
+
+
+class EmployeeTransferSerializer(serializers.ModelSerializer):
+    employee_name    = serializers.CharField(source='employee.full_name', read_only=True)
+    employee_number  = serializers.CharField(source='employee.employee_number', read_only=True)
+    requested_by_name = serializers.CharField(source='requested_by.get_full_name', read_only=True)
+    reviewed_by_name  = serializers.CharField(source='reviewed_by.get_full_name', read_only=True)
+    total_allowance   = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
+    class Meta:
+        model  = EmployeeTransfer
+        fields = [
+            'id', 'employee', 'employee_name', 'employee_number',
+            'transfer_type', 'destination_type',
+            'from_location', 'to_location',
+            'start_date', 'end_date', 'reason',
+            'relocation_allowance', 'daily_allowance', 'daily_allowance_days', 'total_allowance',
+            'status',
+            'requested_by', 'requested_by_name',
+            'reviewed_by', 'reviewed_by_name', 'reviewed_at', 'review_notes',
+            'created_at',
+        ]
+        read_only_fields = ['requested_by', 'reviewed_by', 'reviewed_at', 'total_allowance']
+
+
+class EmployeeTransferCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = EmployeeTransfer
+        fields = [
+            'employee', 'transfer_type', 'destination_type',
+            'from_location', 'to_location',
+            'start_date', 'end_date', 'reason',
+            'relocation_allowance', 'daily_allowance', 'daily_allowance_days',
+        ]
+
+    def create(self, validated_data):
+        return EmployeeTransfer.objects.create(
+            **validated_data,
+            requested_by=self.context['request'].user,
+            status=EmployeeTransfer.Status.DRAFT,
+        )
+
+
+class TransferReviewSerializer(serializers.Serializer):
+    action       = serializers.ChoiceField(choices=['approved', 'rejected'])
+    review_notes = serializers.CharField(required=False, allow_blank=True)

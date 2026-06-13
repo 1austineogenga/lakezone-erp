@@ -10,6 +10,7 @@ import PayrollPage from './PayrollPage'
 import PayrollPeriodPage from './PayrollPeriodPage'
 import AdvancesPage from './AdvancesPage'
 import DisciplinaryPage from './DisciplinaryPage'
+import TransfersPage from './TransfersPage'
 
 export default function HRPage() {
   return (
@@ -25,6 +26,7 @@ export default function HRPage() {
       <Route path="payroll/:id"    element={<PayrollPeriodPage />} />
       <Route path="advances"       element={<AdvancesPage />} />
       <Route path="disciplinary"   element={<DisciplinaryPage />} />
+      <Route path="transfers"      element={<TransfersPage />} />
     </Routes>
   )
 }

@@ -11,6 +11,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
+    EmployeeTransfer,
 )
 from .serializers import (
     JobGradeSerializer, PositionSerializer,
@@ -22,6 +23,7 @@ from .serializers import (
     PayrollPeriodSerializer, PayrollEntrySerializer,
     SalaryAdvanceSerializer, AdvanceReviewSerializer,
     DisciplinaryRecordSerializer,
+    EmployeeTransferSerializer, EmployeeTransferCreateSerializer, TransferReviewSerializer,
 )
 
 
@@ -664,3 +666,65 @@ class HRDashboardView(APIView):
             'pending_advances':           pending_advances,
             'recent_employees':           recent_list,
         })
+
+
+# ── Employee Transfers ─────────────────────────────────────────────────────────
+
+class EmployeeTransferListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = EmployeeTransfer.objects.select_related('employee', 'requested_by', 'reviewed_by')
+        employee = self.request.query_params.get('employee')
+        status   = self.request.query_params.get('status')
+        if employee:
+            qs = qs.filter(employee=employee)
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_serializer_class(self):
+        return EmployeeTransferCreateSerializer if self.request.method == 'POST' else EmployeeTransferSerializer
+
+
+class EmployeeTransferDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset           = EmployeeTransfer.objects.select_related('employee', 'requested_by', 'reviewed_by')
+    serializer_class   = EmployeeTransferSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TransferSubmitView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        transfer = get_object_or_404(EmployeeTransfer, pk=pk)
+        if transfer.status != EmployeeTransfer.Status.DRAFT:
+            return Response({'detail': 'Only draft transfers can be submitted.'}, status=400)
+        transfer.status = EmployeeTransfer.Status.SUBMITTED
+        transfer.save()
+        return Response(EmployeeTransferSerializer(transfer).data)
+
+
+class TransferReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        transfer = get_object_or_404(EmployeeTransfer, pk=pk)
+        if transfer.status != EmployeeTransfer.Status.SUBMITTED:
+            return Response({'detail': 'Only submitted transfers can be reviewed.'}, status=400)
+        serializer = TransferReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        from django.utils import timezone
+        transfer.status       = serializer.validated_data['action']
+        transfer.reviewed_by  = request.user
+        transfer.reviewed_at  = timezone.now()
+        transfer.review_notes = serializer.validated_data.get('review_notes', '')
+        transfer.save()
+
+        # If approved and it's a permanent transfer, update employee's location/branch
+        if transfer.status == EmployeeTransfer.Status.APPROVED and transfer.transfer_type == EmployeeTransfer.TransferType.PERMANENT:
+            emp = transfer.employee
+            emp.notes = f'{emp.notes}\nTransferred to {transfer.to_location} on {transfer.start_date}.'.strip()
+            emp.save()
+
+        return Response(EmployeeTransferSerializer(transfer).data)

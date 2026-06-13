@@ -522,3 +522,63 @@ class DisciplinaryRecord(models.Model):
 
     def __str__(self):
         return f'{self.employee} — {self.record_type} ({self.incident_date})'
+
+
+# ── Employee Transfers ─────────────────────────────────────────────────────────
+
+class EmployeeTransfer(models.Model):
+    class TransferType(models.TextChoices):
+        PERMANENT  = 'permanent',  'Permanent Transfer'
+        TEMPORARY  = 'temporary',  'Temporary Transfer'
+
+    class DestinationType(models.TextChoices):
+        SITE        = 'site',        'Site / Field'
+        HEAD_OFFICE = 'head_office', 'Head Office'
+        BRANCH      = 'branch',      'Branch Office'
+
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        SUBMITTED = 'submitted', 'Submitted'
+        APPROVED  = 'approved',  'Approved'
+        REJECTED  = 'rejected',  'Rejected'
+        CANCELLED = 'cancelled', 'Cancelled'
+
+    id                   = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee             = models.ForeignKey(Employee, on_delete=models.CASCADE,
+                                             related_name='transfers')
+    transfer_type        = models.CharField(max_length=15, choices=TransferType.choices)
+    destination_type     = models.CharField(max_length=15, choices=DestinationType.choices)
+    from_location        = models.CharField(max_length=200)
+    to_location          = models.CharField(max_length=200)
+    start_date           = models.DateField()
+    end_date             = models.DateField(null=True, blank=True,
+                                            help_text='Leave blank for permanent transfers')
+    reason               = models.TextField()
+
+    # Allowances (applicable when moving to site/field)
+    relocation_allowance = models.DecimalField(max_digits=12, decimal_places=2,
+                                               default=0, help_text='One-off relocation payment')
+    daily_allowance      = models.DecimalField(max_digits=10, decimal_places=2,
+                                               default=0, help_text='Daily allowance rate')
+    daily_allowance_days = models.PositiveIntegerField(default=0,
+                                                        help_text='Number of days for daily allowance')
+
+    status               = models.CharField(max_length=15, choices=Status.choices,
+                                            default=Status.DRAFT)
+    requested_by         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                             related_name='transfers_requested')
+    reviewed_by          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                             null=True, blank=True, related_name='transfers_reviewed')
+    reviewed_at          = models.DateTimeField(null=True, blank=True)
+    review_notes         = models.TextField(blank=True)
+    created_at           = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.employee} → {self.to_location} ({self.transfer_type})'
+
+    @property
+    def total_allowance(self):
+        return self.relocation_allowance + (self.daily_allowance * self.daily_allowance_days)

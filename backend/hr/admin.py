@@ -4,6 +4,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
+    EmployeeTransfer,
 )
 
 
@@ -85,3 +86,11 @@ class DisciplinaryAdmin(admin.ModelAdmin):
     list_display  = ['employee', 'record_type', 'incident_date', 'action_taken']
     list_filter   = ['record_type']
     search_fields = ['employee__first_name', 'employee__last_name']
+
+
+@admin.register(EmployeeTransfer)
+class EmployeeTransferAdmin(admin.ModelAdmin):
+    list_display  = ['employee', 'transfer_type', 'destination_type', 'from_location', 'to_location', 'start_date', 'status']
+    list_filter   = ['status', 'transfer_type', 'destination_type']
+    search_fields = ['employee__first_name', 'employee__last_name', 'from_location', 'to_location']
+    readonly_fields = ['requested_by', 'reviewed_by', 'reviewed_at', 'created_at']
