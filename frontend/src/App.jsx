@@ -7,7 +7,7 @@ import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import ProjectsPage from './pages/projects/ProjectsPage'
-import ProjectDetailPage from './pages/projects/ProjectDetailPage'
+import ProjectPage from './pages/projects/ProjectPage'
 import ProcurementPage from './pages/procurement/ProcurementPage'
 import NewPRPage from './pages/procurement/NewPRPage'
 import InventoryPage from './pages/inventory/InventoryPage'
@@ -32,7 +32,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/"                   element={<DashboardPage />} />
             <Route path="/projects"           element={<ProjectsPage />} />
-            <Route path="/projects/:id"       element={<ProjectDetailPage />} />
+            <Route path="/projects/:projectId/*" element={<ProjectPage />} />
             <Route path="/procurement"        element={<ProcurementPage />} />
             <Route path="/procurement/new-pr" element={<NewPRPage />} />
             <Route path="/inventory"          element={<InventoryPage />} />
