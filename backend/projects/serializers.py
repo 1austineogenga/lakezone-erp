@@ -21,14 +21,21 @@ class BOQBillSerializer(serializers.ModelSerializer):
 
 class BOQSerializer(serializers.ModelSerializer):
     bills = BOQBillSerializer(many=True, read_only=True)
+    sub_total = serializers.SerializerMethodField()
     grand_total = serializers.SerializerMethodField()
 
     class Meta:
         model = BOQ
         fields = '__all__'
 
+    def _bill_subtotal(self, obj):
+        return sum(bill.sub_total for bill in obj.bills.all())
+
+    def get_sub_total(self, obj):
+        return round(float(self._bill_subtotal(obj)), 2)
+
     def get_grand_total(self, obj):
-        sub_total = sum(bill.sub_total for bill in obj.bills.all())
+        sub_total = self._bill_subtotal(obj)
         multiplier = (1 + obj.contingency_pct / 100) * (1 + obj.vop_pct / 100)
         return round(float(sub_total) * float(multiplier), 2)
 
