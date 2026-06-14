@@ -289,7 +289,7 @@ export default function GLJournalPage() {
 
       {/* Journal list */}
       {tab === 'journal' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">General Ledger — Journal Entries</h3>
           </div>
@@ -351,7 +351,7 @@ export default function GLJournalPage() {
 
       {/* Trial balance */}
       {tab === 'trial-balance' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-brand-slate text-sm">Trial Balance</h3>

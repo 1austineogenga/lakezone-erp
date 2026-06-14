@@ -235,7 +235,7 @@ export default function StockItemDetailPage() {
       </div>
 
       {/* Movement history */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-brand-slate text-sm">Movement History</h2>
           <button

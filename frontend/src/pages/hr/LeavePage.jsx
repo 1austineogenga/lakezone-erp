@@ -143,7 +143,7 @@ export default function LeavePage() {
 
       {/* Applications table */}
       {tab === 'applications' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Leave Applications</h3>
           </div>
@@ -258,7 +258,7 @@ function LeaveTypesTab() {
           </div>
         </form>
       )}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {!leaveTypes || leaveTypes.length === 0
           ? <p className="text-sm text-gray-400 p-8 text-center">No leave types configured.</p>
           : <table className="min-w-full text-sm">

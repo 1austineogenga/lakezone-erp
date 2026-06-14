@@ -220,7 +220,7 @@ export default function BudgetPage() {
               </ResponsiveContainer>
             </div>
           )}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="px-5 py-3.5 border-b border-gray-100">
               <h3 className="font-semibold text-brand-slate text-sm">Category Breakdown</h3>
             </div>
@@ -270,7 +270,7 @@ export default function BudgetPage() {
               </ResponsiveContainer>
             </div>
           )}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="px-5 py-3.5 border-b border-gray-100">
               <h3 className="font-semibold text-brand-slate text-sm">Weekly Breakdown</h3>
             </div>
@@ -319,7 +319,7 @@ export default function BudgetPage() {
               <PlusIcon className="h-3.5 w-3.5" /> Add Item
             </button>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>

@@ -280,7 +280,7 @@ export default function TransfersPage() {
       )}
 
       {/* Transfers table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading
           ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
           : transfers.length === 0

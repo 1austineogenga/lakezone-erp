@@ -268,7 +268,7 @@ export default function TimesheetsPage() {
 
       {/* Timesheet list */}
       {view === 'list' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Timesheets</h3>
           </div>
@@ -326,7 +326,7 @@ export default function TimesheetsPage() {
 
       {/* Payroll summary by project */}
       {view === 'summary' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Payroll Cost Allocation by Project &amp; Cost Code</h3>
             <p className="text-xs text-gray-400 mt-0.5">From approved timesheets only</p>

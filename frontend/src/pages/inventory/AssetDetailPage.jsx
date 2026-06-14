@@ -144,7 +144,7 @@ export default function AssetDetailPage() {
       </div>
 
       {/* Maintenance Log */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-brand-slate text-sm">Maintenance History ({logs.length})</h3>
           <button onClick={() => setShowLogModal(true)}

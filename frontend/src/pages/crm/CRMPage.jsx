@@ -318,7 +318,7 @@ export default function CRMPage() {
 
       {/* Clients table */}
       {tab === 'clients' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Clients ({filteredClients.length})</h3>
           </div>
@@ -366,7 +366,7 @@ export default function CRMPage() {
 
       {/* Opportunities table */}
       {tab === 'opportunities' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Tender Pipeline ({filteredOpps.length})</h3>
           </div>

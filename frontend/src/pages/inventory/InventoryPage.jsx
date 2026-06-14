@@ -141,7 +141,7 @@ function StockItemsTab({ items, onAddItem }) {
           <PlusIcon className="h-4 w-4" /> Add Item
         </button>
       </div>
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {!filtered.length ? (
           <div className="p-10 text-center text-gray-400 text-sm">No stock items found.</div>
         ) : (
@@ -189,7 +189,7 @@ function StockItemsTab({ items, onAddItem }) {
 /* ── Stock Movements Tab ── */
 function StockMovementsTab({ transactions }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
       {!transactions.length ? (
         <div className="p-10 text-center text-gray-400 text-sm">No stock movements recorded.</div>
       ) : (

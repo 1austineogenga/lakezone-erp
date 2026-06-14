@@ -156,7 +156,7 @@ export default function VehicleDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="flex border-b border-gray-100">
           {[['fuel', 'Fuel Events'], ['trips', 'Trip History'], ['alerts', 'Alerts']].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}

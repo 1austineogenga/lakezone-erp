@@ -103,7 +103,7 @@ export default function IPCPage() {
       </div>
 
       {/* IPC Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {ipcs.length === 0 ? (
           <p className="text-sm text-gray-400 p-8 text-center">No IPCs yet. Create the first one.</p>
         ) : (

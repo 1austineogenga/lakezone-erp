@@ -72,7 +72,7 @@ export default function FleetAssignmentPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h3 className="font-semibold text-brand-slate text-sm">Assigned Vehicles ({assignments.length})</h3>
         </div>

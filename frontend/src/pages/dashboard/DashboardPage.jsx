@@ -90,6 +90,7 @@ export default function DashboardPage() {
   const lowStock        = levelList.filter(l => l.is_below_reorder).length
   const onlineVehicles  = vehicles.filter(v => v.is_online).length
   const totalContractValue = activeProjects.reduce((s, p) => s + Number(p.contract_value || 0), 0)
+  const openRisks       = projectList.reduce((s, p) => s + (p.open_risks || 0), 0)
 
   const statusChartData = [
     { name: 'Active',    count: projectList.filter(p => p.status === 'active').length },
@@ -120,11 +121,11 @@ export default function DashboardPage() {
         <StatCard label="Fleet Online"       value={`${onlineVehicles} / ${vehicles.length}`}              icon={TruckIcon}                                   sub="Live GPS vehicles"    color="blue"  onClick={() => navigate('/fleet')} />
         <StatCard label="Pending PRs"        value={pendingPRs}             icon={ClipboardDocumentListIcon} sub="Awaiting approval"                            color="slate" onClick={() => navigate('/procurement')} />
         <StatCard label="Low Stock Alerts"   value={lowStock}               icon={CubeIcon}                 sub="Below reorder level"                          color="amber" onClick={() => navigate('/inventory')} />
-        <StatCard label="Open Risks"         value={0}                      icon={ExclamationTriangleIcon}  sub="Across all projects"                          color="red"   onClick={() => navigate('/projects')} />
+        <StatCard label="Open Risks"         value={openRisks}              icon={ExclamationTriangleIcon}  sub="Across all projects"                          color="red"   onClick={() => navigate('/projects')} />
       </div>
 
       {/* Live Map */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-brand-slate text-sm">Live Operations Map</h3>
@@ -140,7 +141,7 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
-        <div style={{ height: 420 }}>
+        <div style={{ height: 300 }} className="sm:!h-[420px]">
           <MapContainer center={mapCenter} zoom={11} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
@@ -204,13 +205,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Active Projects Table */}
-        <div className="xl:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="xl:col-span-2 bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Active Projects</h3>
           </div>
           {activeProjects.length === 0 ? (
             <p className="text-sm text-gray-400 p-8 text-center">No active projects</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
@@ -236,12 +238,13 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
 
       {/* Recent PRs */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-brand-slate text-sm">Recent Purchase Requisitions</h3>
           <span className="text-xs text-gray-400">{prList.length} total</span>

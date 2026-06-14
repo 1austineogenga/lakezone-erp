@@ -106,7 +106,7 @@ export default function FleetDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Live Vehicle Grid */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-semibold text-brand-slate text-sm">Live Vehicle Status</h3>
             <span className="text-xs text-gray-400">{live.length} vehicles</span>
@@ -143,7 +143,7 @@ export default function FleetDashboard() {
         </div>
 
         {/* Alerts Panel */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-semibold text-brand-slate text-sm">Active Alerts</h3>
             <button onClick={() => navigate('/fleet/alerts')} className="text-xs text-brand-red hover:underline">View all</button>

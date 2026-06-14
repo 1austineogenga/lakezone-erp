@@ -72,7 +72,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading
           ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
           : filtered.length === 0

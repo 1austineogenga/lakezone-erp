@@ -85,7 +85,7 @@ export default function AttendancePage() {
             </div>
           )}
 
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-brand-slate text-sm">
                 Attendance Sheet — {date}
@@ -174,7 +174,7 @@ function BiometricLog() {
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
         <span className="text-xs text-gray-500">Showing biometric-sourced records only</span>
       </div>
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h3 className="font-semibold text-brand-slate text-sm">Biometric Attendance Log — {dateFilter}</h3>
         </div>

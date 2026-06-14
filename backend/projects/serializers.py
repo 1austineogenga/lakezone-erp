@@ -99,12 +99,18 @@ class WeeklyProgressSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    open_risks = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
         fields = [
             'id', 'code', 'name', 'client', 'contract_number', 'contract_value',
             'location', 'latitude', 'longitude', 'start_date', 'end_date', 'status', 'description', 'created_at',
+            'open_risks',
         ]
+
+    def get_open_risks(self, obj):
+        return obj.risks.filter(status__in=['open', 'escalated']).count()
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):

@@ -88,7 +88,7 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map(p => (
-            <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+            <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-x-auto hover:shadow-md transition-shadow">
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] || STATUS_COLORS.planning}`}>

@@ -126,7 +126,7 @@ export default function WeeklyProgressPage() {
       )}
 
       {/* Progress Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {progressList.length === 0 ? (
           <p className="text-sm text-gray-400 p-8 text-center">No progress entries yet. Log the first week.</p>
         ) : (

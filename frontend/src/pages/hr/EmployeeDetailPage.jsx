@@ -493,7 +493,7 @@ export default function EmployeeDetailPage() {
               </div>
             </form>
           )}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             {!docs || docs.length === 0
               ? <p className="text-sm text-gray-400 p-6 text-center">No documents uploaded.</p>
               : <table className="min-w-full text-sm">
@@ -533,7 +533,7 @@ export default function EmployeeDetailPage() {
       {/* ── Leave tab ── */}
       {tab === 'leave' && (
         <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="px-5 py-3 border-b border-gray-100">
               <h3 className="font-semibold text-brand-slate text-sm">Leave Balances — {new Date().getFullYear()}</h3>
             </div>

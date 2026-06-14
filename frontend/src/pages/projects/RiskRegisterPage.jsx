@@ -98,7 +98,7 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Risk Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {risks.length === 0 ? (
           <p className="text-sm text-gray-400 p-8 text-center">No risks identified yet. Add the first one.</p>
         ) : (

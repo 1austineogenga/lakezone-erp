@@ -106,7 +106,7 @@ export default function FuelReportPage() {
       {/* Events Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Fills */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Fill Events ({fills.length})</h3>
           </div>
@@ -139,7 +139,7 @@ export default function FuelReportPage() {
         </div>
 
         {/* Drains / Theft */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Drain / Theft Events ({drains.length})</h3>
           </div>

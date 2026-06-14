@@ -95,7 +95,7 @@ function VATSection({ data }) {
       )}
 
       {/* Monthly table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h3 className="font-semibold text-brand-slate text-sm">Monthly VAT Return Summary</h3>
         </div>
@@ -156,7 +156,7 @@ function WHTSection({ data }) {
 
       {/* By supplier */}
       {by_supplier.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">WHT by Supplier (KRA Certificate Summary)</h3>
           </div>
@@ -182,7 +182,7 @@ function WHTSection({ data }) {
       )}
 
       {/* Detail entries */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h3 className="font-semibold text-brand-slate text-sm">WHT Transaction Register</h3>
         </div>
