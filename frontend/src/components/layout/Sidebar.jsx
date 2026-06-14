@@ -18,12 +18,12 @@ import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 
 const TOP_LINKS = [
-  { to: '/',             icon: HomeIcon,                  label: 'Dashboard', end: true },
+  { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true },
   { to: '/projects',     icon: FolderIcon,                label: 'Projects' },
   { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement' },
+  { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions' },
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM' },
-  { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions' },
 ]
 
 const MODULES = [
@@ -182,7 +182,10 @@ export default function Sidebar({ collapsed }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
 
-        {/* Top-level flat links */}
+        {/* Core Operations */}
+        {!collapsed && (
+          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Operations</p>
+        )}
         {TOP_LINKS.map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
             className={({ isActive }) =>
@@ -196,6 +199,9 @@ export default function Sidebar({ collapsed }) {
         <div className="my-2 border-t border-slate-600" />
 
         {/* Module sections */}
+        {!collapsed && (
+          <p className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Management</p>
+        )}
         {MODULES.map(mod => {
           const isActive = location.pathname.startsWith(mod.root)
           const isOpen   = open[mod.key]
