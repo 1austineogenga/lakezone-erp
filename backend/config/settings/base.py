@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "finance",
     "hr",
     "fleet",
+    "notifications",
 ]
 
 MIDDLEWARE = [
