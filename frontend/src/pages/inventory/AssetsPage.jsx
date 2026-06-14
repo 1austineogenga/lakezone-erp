@@ -134,9 +134,11 @@ function AssetModal({ open, onClose, initial, onSave, saving }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-              <input value={form.location} onChange={e => set('location', e.target.value)}
-                placeholder="e.g. Head Office - Room 2A"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              <select value={form.location} onChange={e => set('location', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">Select location…</option>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
