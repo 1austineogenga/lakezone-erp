@@ -7,8 +7,6 @@ import logoIcon from '../../assets/logo-icon.png'
 
 export default function AppLayout() {
   const location = useLocation()
-  // On desktop: sidebar collapses to icon strip. On mobile: sidebar is off-canvas overlay.
-  const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   // Close mobile sidebar on route change
@@ -19,7 +17,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
 
-      {/* Mobile overlay backdrop */}
+      {/* Mobile backdrop */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
@@ -27,24 +25,19 @@ export default function AppLayout() {
         />
       )}
 
-      {/* Sidebar — off-canvas on mobile, always visible on desktop */}
+      {/* Sidebar — off-canvas on mobile, always visible on lg+ */}
       <div className={`
         fixed inset-y-0 left-0 z-40 lg:static lg:z-auto
         transform transition-transform duration-200
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
-        <Sidebar collapsed={collapsed} />
+        <Sidebar />
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <TopBar
-          onToggleSidebar={() => {
-            // On mobile toggle the overlay; on desktop toggle collapse
-            if (window.innerWidth < 1024) setMobileOpen(o => !o)
-            else setCollapsed(c => !c)
-          }}
-        />
+        <TopBar onToggleSidebar={() => setMobileOpen(o => !o)} />
+
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <ErrorBoundary>
             <Outlet />
@@ -54,7 +47,7 @@ export default function AppLayout() {
         {/* Footer */}
         <footer className="shrink-0 border-t border-gray-200">
           <div className="flex items-center h-9">
-            <div className="bg-brand-slate-dark h-full flex items-center px-4 gap-2">
+            <div className="bg-[#1a2332] h-full flex items-center px-4">
               <img src={logoIcon} alt="LZ" className="h-4 w-4 object-contain opacity-90" />
             </div>
             <div className="bg-brand-red h-full w-1" />

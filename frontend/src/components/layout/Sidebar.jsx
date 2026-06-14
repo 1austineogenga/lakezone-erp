@@ -10,15 +10,13 @@ import {
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
-  Cog6ToothIcon, Squares2X2Icon, ClipboardIcon, PlusCircleIcon, KeyIcon,
+  Cog6ToothIcon, KeyIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
-import logoIcon from '../../assets/logo-icon.png'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import usePermissions from '../../hooks/usePermissions'
 
-// module key matches permissions.js module names
 const TOP_LINKS = [
   { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true,  module: 'dashboard' },
   { to: '/projects',     icon: FolderIcon,                label: 'Projects',                 module: 'projects' },
@@ -32,15 +30,9 @@ const TOP_LINKS = [
 
 const MODULES = [
   {
-    key:  'finance',
-    label: 'Finance',
-    icon:  BanknotesIcon,
-    root:  '/finance',
+    key: 'finance', label: 'Finance', icon: BanknotesIcon, root: '/finance',
     sections: [
-      {
-        heading: null,
-        links: [{ to: '/finance', label: 'Dashboard', icon: ChartBarIcon, end: true }],
-      },
+      { heading: null, links: [{ to: '/finance', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
       {
         heading: 'Transactions',
         links: [
@@ -77,15 +69,9 @@ const MODULES = [
     ],
   },
   {
-    key:   'hr',
-    label: 'HR',
-    icon:  UsersIcon,
-    root:  '/hr',
+    key: 'hr', label: 'HR', icon: UsersIcon, root: '/hr',
     sections: [
-      {
-        heading: null,
-        links: [{ to: '/hr', label: 'Dashboard', icon: ChartBarIcon, end: true }],
-      },
+      { heading: null, links: [{ to: '/hr', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
       {
         heading: 'Workforce',
         links: [
@@ -95,16 +81,11 @@ const MODULES = [
         ],
       },
       {
-        heading: 'Time & Attendance',
+        heading: 'Time & Leave',
         links: [
-          { to: '/hr/attendance', label: 'Attendance',        icon: ClockIcon },
-          { to: '/hr/biometric',  label: 'Biometric Devices', icon: ClipboardDocumentListIcon },
-        ],
-      },
-      {
-        heading: 'Leave',
-        links: [
-          { to: '/hr/leave', label: 'Leave Management', icon: CalendarDaysIcon },
+          { to: '/hr/attendance', label: 'Attendance',  icon: ClockIcon },
+          { to: '/hr/biometric',  label: 'Biometric',   icon: ClipboardDocumentListIcon },
+          { to: '/hr/leave',      label: 'Leave',       icon: CalendarDaysIcon },
         ],
       },
       {
@@ -117,15 +98,9 @@ const MODULES = [
     ],
   },
   {
-    key:   'fleet',
-    label: 'Fleet',
-    icon:  TruckIcon,
-    root:  '/fleet',
+    key: 'fleet', label: 'Fleet', icon: TruckIcon, root: '/fleet',
     sections: [
-      {
-        heading: null,
-        links: [{ to: '/fleet', label: 'Dashboard', icon: ChartBarIcon, end: true }],
-      },
+      { heading: null, links: [{ to: '/fleet', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
       {
         heading: 'Vehicles',
         links: [
@@ -136,27 +111,20 @@ const MODULES = [
       {
         heading: 'Monitoring',
         links: [
-          { to: '/fleet/alerts', label: 'Alerts', icon: ExclamationTriangleIcon },
-        ],
-      },
-      {
-        heading: 'Reports',
-        links: [
-          { to: '/fleet/fuel',  label: 'Fuel Report',  icon: BeakerIcon },
-          { to: '/fleet/trips', label: 'Trip Report',  icon: ArrowTrendingUpIcon },
+          { to: '/fleet/alerts', label: 'Alerts',      icon: ExclamationTriangleIcon },
+          { to: '/fleet/fuel',   label: 'Fuel Report', icon: BeakerIcon },
+          { to: '/fleet/trips',  label: 'Trip Report', icon: ArrowTrendingUpIcon },
         ],
       },
       {
         heading: 'Config',
-        links: [
-          { to: '/fleet/settings', label: 'API Settings', icon: Cog6ToothIcon },
-        ],
+        links: [{ to: '/fleet/settings', label: 'API Settings', icon: Cog6ToothIcon }],
       },
     ],
   },
 ]
 
-export default function Sidebar({ collapsed }) {
+export default function Sidebar() {
   const { logout, refreshToken } = useAuthStore()
   const location = useLocation()
   const { can } = usePermissions()
@@ -173,97 +141,96 @@ export default function Sidebar({ collapsed }) {
   }
 
   return (
-    <aside className={`flex flex-col bg-brand-slate-dark text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <aside className="flex flex-col w-60 bg-[#1a2332] text-white h-full shrink-0">
 
       {/* Logo */}
-      <div className="flex items-center justify-center border-b border-brand-slate px-3 py-3 shrink-0">
-        <div className="bg-white rounded-xl flex items-center justify-center px-3 py-2 w-full">
-          {collapsed
-            ? <img src={logoIcon} alt="LZ" className="h-8 w-8 object-contain" />
-            : <img src={logoFull} alt="Lake Zone Enterprises" className="h-10 w-auto object-contain" />}
+      <div className="px-4 py-4 border-b border-white/10 shrink-0">
+        <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center">
+          <img src={logoFull} alt="Lake Zone Enterprises" className="h-9 w-auto object-contain" />
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
 
-        {/* Core Operations */}
-        {!collapsed && (
-          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Operations</p>
-        )}
+        {/* Operations */}
+        <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          Operations
+        </p>
+
         {TOP_LINKS.filter(({ module }) => can(module)).map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-               ${isActive ? 'bg-brand-red text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
-            <Icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>{label}</span>}
+              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+               ${isActive
+                 ? 'bg-brand-red text-white'
+                 : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>{label}</span>
           </NavLink>
         ))}
 
-        <div className="my-2 border-t border-slate-600" />
+        {/* Management modules */}
+        {MODULES.filter(mod => can(mod.key)).length > 0 && (
+          <>
+            <div className="pt-4 pb-2">
+              <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Management
+              </p>
+            </div>
 
-        {/* Module sections */}
-        {!collapsed && (
-          <p className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Management</p>
-        )}
-        {MODULES.filter(mod => can(mod.key)).map(mod => {
-          const isActive = location.pathname.startsWith(mod.root)
-          const isOpen   = open[mod.key]
-          const Icon     = mod.icon
+            {MODULES.filter(mod => can(mod.key)).map(mod => {
+              const isActive = location.pathname.startsWith(mod.root)
+              const isOpen   = open[mod.key]
+              const Icon     = mod.icon
 
-          return (
-            <div key={mod.key}>
-              {/* Module toggle button */}
-              <button onClick={() => toggle(mod.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${isActive ? 'bg-brand-red text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
-                <Icon className="h-5 w-5 shrink-0" />
-                {!collapsed && (
-                  <>
+              return (
+                <div key={mod.key}>
+                  <button onClick={() => toggle(mod.key)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      ${isActive ? 'bg-brand-red text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                    <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 text-left">{mod.label}</span>
-                    <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                  </>
-                )}
-              </button>
+                    <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-              {/* Expanded sub-links */}
-              {isOpen && !collapsed && (
-                <div className="mt-1 mb-2 pl-2 border-l-2 border-slate-600 ml-4 space-y-0.5">
-                  {mod.sections.map((section, si) => (
-                    <div key={si}>
-                      {section.heading && (
-                        <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                          {section.heading}
-                        </p>
-                      )}
-                      {section.links.map(({ to, label: lbl, icon: LIcon, end }) => (
-                        <NavLink key={to} to={to} end={!!end}
-                          className={({ isActive }) =>
-                            `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
-                             ${isActive ? 'bg-brand-red text-white font-medium' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
-                          <LIcon className="h-3.5 w-3.5 shrink-0" />
-                          {lbl}
-                        </NavLink>
+                  {isOpen && (
+                    <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                      {mod.sections.map((section, si) => (
+                        <div key={si}>
+                          {section.heading && (
+                            <p className="px-2 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-widest text-slate-600">
+                              {section.heading}
+                            </p>
+                          )}
+                          {section.links.map(({ to, label: lbl, icon: LIcon, end }) => (
+                            <NavLink key={to} to={to} end={!!end}
+                              className={({ isActive }) =>
+                                `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                                 ${isActive ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                              <LIcon className="h-3.5 w-3.5 shrink-0" />
+                              {lbl}
+                            </NavLink>
+                          ))}
+                        </div>
                       ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-          )
-        })}
+              )
+            })}
+          </>
+        )}
       </nav>
 
       {/* Logout */}
-      <div className="px-2 pb-4 shrink-0">
+      <div className="px-3 py-3 border-t border-white/10 shrink-0">
         <button onClick={handleLogout}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
-          <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          className="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/8 hover:text-white transition-colors">
+          <ArrowRightOnRectangleIcon className="h-4 w-4 shrink-0" />
+          <span>Logout</span>
         </button>
       </div>
-
     </aside>
   )
 }

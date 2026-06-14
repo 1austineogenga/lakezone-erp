@@ -68,12 +68,14 @@ export default function TopBar({ onToggleSidebar }) {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+      {/* Hamburger — mobile only */}
       <button
         onClick={onToggleSidebar}
-        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 lg:hidden"
       >
         <Bars3Icon className="h-5 w-5" />
       </button>
+      <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">
         {/* Notification bell */}
