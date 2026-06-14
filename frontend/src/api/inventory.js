@@ -8,3 +8,13 @@ export const getStockLevels    = (p)     => api.get('/inventory/levels/', { para
 export const getTransactions   = (p)     => api.get('/inventory/transactions/', { params: p })
 export const createTransaction = (d)     => api.post('/inventory/transactions/', d)
 export const getStores         = ()      => api.get('/inventory/stores/')
+
+// Fixed Assets Register
+export const getAssets           = (p)          => api.get('/inventory/assets/', { params: p })
+export const getAsset            = (id)         => api.get(`/inventory/assets/${id}/`)
+export const createAsset         = (d)          => api.post('/inventory/assets/', d)
+export const updateAsset         = (id, d)      => api.patch(`/inventory/assets/${id}/`, d)
+export const deleteAsset         = (id)         => api.delete(`/inventory/assets/${id}/`)
+export const getAssetMaintenance = (assetId)    => api.get(`/inventory/assets/${assetId}/maintenance/`)
+export const addAssetMaintenance = (assetId, d) => api.post(`/inventory/assets/${assetId}/maintenance/`, d)
+export const getAssetDashboard   = ()           => api.get('/inventory/assets/dashboard/')

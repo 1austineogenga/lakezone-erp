@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Store, StockItem, StockLevel, StockTransaction
+from .models import Store, StockItem, StockLevel, StockTransaction, Asset, AssetMaintenanceLog
 
 
 class StoreSerializer(serializers.ModelSerializer):
@@ -80,3 +80,35 @@ class StockTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["processed_by"] = self.context["request"].user
         return super().create(validated_data)
+
+
+class AssetMaintenanceLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssetMaintenanceLog
+        fields = [
+            'id', 'asset', 'date', 'description', 'cost',
+            'performed_by', 'next_service_date', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'asset']
+
+
+class AssetSerializer(serializers.ModelSerializer):
+    maintenance_count = serializers.SerializerMethodField()
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    condition_display = serializers.CharField(source='get_condition_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Asset
+        fields = [
+            'id', 'asset_code', 'name', 'category', 'category_display',
+            'department', 'serial_number', 'make_model',
+            'purchase_date', 'purchase_value', 'current_value',
+            'condition', 'condition_display', 'status', 'status_display',
+            'location', 'assigned_to', 'notes',
+            'maintenance_count', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'asset_code', 'created_at', 'updated_at']
+
+    def get_maintenance_count(self, obj):
+        return obj.maintenance_logs.count()

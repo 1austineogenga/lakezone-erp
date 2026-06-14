@@ -9,4 +9,9 @@ urlpatterns = [
     path("levels/", views.StockLevelListView.as_view(), name="stocklevel-list"),
     path("transactions/", views.StockTransactionListCreateView.as_view(), name="stocktransaction-list"),
     path("transactions/<uuid:pk>/", views.StockTransactionDetailView.as_view(), name="stocktransaction-detail"),
+    # Fixed Assets Register
+    path("assets/dashboard/", views.AssetDashboardView.as_view(), name="asset-dashboard"),
+    path("assets/", views.AssetListCreateView.as_view(), name="asset-list"),
+    path("assets/<uuid:pk>/", views.AssetDetailView.as_view(), name="asset-detail"),
+    path("assets/<uuid:asset_pk>/maintenance/", views.AssetMaintenanceListCreateView.as_view(), name="asset-maintenance-list"),
 ]

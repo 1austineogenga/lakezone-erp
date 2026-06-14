@@ -144,3 +144,82 @@ class StockTransaction(models.Model):
         total_cost = self.quantity * self.unit_cost
         self.boq_item.actual_cost = models.F("actual_cost") + total_cost
         self.boq_item.save(update_fields=["actual_cost"])
+
+
+# ---------------------------------------------------------------------------
+# Fixed Assets Register
+# ---------------------------------------------------------------------------
+
+class Asset(models.Model):
+    CATEGORY_CHOICES = [
+        ('it_equipment', 'IT Equipment'),
+        ('furniture', 'Furniture & Fittings'),
+        ('machinery', 'Machinery & Plant'),
+        ('vehicles', 'Vehicles & Transport'),
+        ('office_equipment', 'Office Equipment'),
+        ('tools', 'Tools & Equipment'),
+        ('communication', 'Communication Equipment'),
+        ('safety', 'Safety Equipment'),
+        ('other', 'Other'),
+    ]
+    CONDITION_CHOICES = [
+        ('new', 'New'),
+        ('good', 'Good'),
+        ('fair', 'Fair'),
+        ('poor', 'Poor'),
+        ('condemned', 'Condemned'),
+    ]
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('under_repair', 'Under Repair'),
+        ('disposed', 'Disposed'),
+        ('lost', 'Lost'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    asset_code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
+    department = models.CharField(max_length=100)
+    serial_number = models.CharField(max_length=100, blank=True)
+    make_model = models.CharField(max_length=200, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    purchase_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    current_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='good')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    location = models.CharField(max_length=200, blank=True)
+    assigned_to = models.CharField(max_length=200, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['department', 'category', 'asset_code']
+
+    def save(self, *args, **kwargs):
+        if not self.asset_code:
+            prefix = self.category[:2].upper() if self.category else 'AS'
+            count = Asset.objects.filter(category=self.category).count() + 1
+            self.asset_code = f"LZ-{prefix.upper()}-{count:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.asset_code} - {self.name}"
+
+
+class AssetMaintenanceLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='maintenance_logs')
+    date = models.DateField()
+    description = models.TextField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    performed_by = models.CharField(max_length=200, blank=True)
+    next_service_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.asset.asset_code} - {self.date}"
