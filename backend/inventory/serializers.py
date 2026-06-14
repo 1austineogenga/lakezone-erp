@@ -11,18 +11,30 @@ class StoreSerializer(serializers.ModelSerializer):
 
 class StockItemSerializer(serializers.ModelSerializer):
     current_stock = serializers.SerializerMethodField()
+    weighted_avg_cost = serializers.SerializerMethodField()
 
     class Meta:
         model = StockItem
         fields = [
             "id", "item_code", "name", "category", "unit",
             "reorder_level", "valuation_method", "description",
-            "is_active", "current_stock", "created_at",
+            "is_active", "current_stock", "weighted_avg_cost", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 
     def get_current_stock(self, obj):
         return obj.current_stock()
+
+    def get_weighted_avg_cost(self, obj):
+        """Return the aggregate weighted average cost across all stores."""
+        levels = obj.stock_levels.all()
+        total_qty = sum(float(sl.quantity_on_hand) for sl in levels)
+        if total_qty <= 0:
+            return 0
+        total_value = sum(
+            float(sl.quantity_on_hand) * float(sl.weighted_avg_cost) for sl in levels
+        )
+        return round(total_value / total_qty, 2)
 
 
 class StockLevelSerializer(serializers.ModelSerializer):

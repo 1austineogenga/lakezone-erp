@@ -26,8 +26,8 @@ export default function RequisitionsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const { data, isLoading } = useQuery({
     queryKey: ['requisitions', statusFilter],
-    queryFn:  () => getRequisitions(statusFilter ? { status: statusFilter } : {}),
-    select:   r => r.data,
+    queryFn:  () => getRequisitions(statusFilter ? { status: statusFilter, page_size: 200 } : { page_size: 200 }),
+    select:   r => r.data?.results ?? r.data ?? [],
   })
 
   return (
