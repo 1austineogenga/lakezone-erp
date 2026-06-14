@@ -10,7 +10,7 @@ import {
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
-  Cog6ToothIcon,
+  Cog6ToothIcon, Squares2X2Icon, ClipboardIcon, PlusCircleIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import logoIcon from '../../assets/logo-icon.png'
@@ -19,7 +19,6 @@ import { logout as apiLogout } from '../../api/auth'
 
 const TOP_LINKS = [
   { to: '/',             icon: HomeIcon,                  label: 'Dashboard', end: true },
-  { to: '/projects',     icon: FolderIcon,                label: 'Projects' },
   { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement' },
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM' },
@@ -27,6 +26,29 @@ const TOP_LINKS = [
 ]
 
 const MODULES = [
+  {
+    key:   'projects',
+    label: 'Projects',
+    icon:  FolderIcon,
+    root:  '/projects',
+    sections: [
+      {
+        heading: null,
+        links: [
+          { to: '/projects', label: 'All Projects', icon: FolderIcon, end: true },
+        ],
+      },
+      {
+        heading: 'Modules',
+        links: [
+          { to: '/projects', label: 'BOQ & Budget',    icon: CalculatorIcon, end: true },
+          { to: '/projects', label: 'IPC Tracking',    icon: DocumentCheckIcon, end: true },
+          { to: '/projects', label: 'Risk Register',   icon: ExclamationTriangleIcon, end: true },
+          { to: '/projects', label: 'Fleet & Team',    icon: TruckIcon, end: true },
+        ],
+      },
+    ],
+  },
   {
     key:  'finance',
     label: 'Finance',
