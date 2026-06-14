@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('finance', '0005_payroll_gl_journal'),
-        ('projects', '0001_initial'),
+        ('projects', '0002_projectvehicle'),
     ]
 
     operations = [
