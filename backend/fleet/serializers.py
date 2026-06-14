@@ -27,6 +27,7 @@ class VehicleLiveDataSerializer(serializers.ModelSerializer):
 class VehicleSerializer(serializers.ModelSerializer):
     odometer_km = serializers.SerializerMethodField()
     last_seen_minutes_ago = serializers.SerializerMethodField()
+    is_online = serializers.SerializerMethodField()
     latest_live_data = serializers.SerializerMethodField()
 
     class Meta:
@@ -41,6 +42,12 @@ class VehicleSerializer(serializers.ModelSerializer):
             diff = timezone.now() - obj.last_seen
             return int(diff.total_seconds() / 60)
         return None
+
+    def get_is_online(self, obj):
+        if not obj.last_seen:
+            return False
+        from datetime import timedelta
+        return (timezone.now() - obj.last_seen).total_seconds() < 600  # 10 min
 
     def get_latest_live_data(self, obj):
         latest = obj.live_data.order_by('-fetched_at').first()
