@@ -31,6 +31,7 @@ boq_urls = [
 ]
 
 project_urls = [
+    path('', views.ProjectDetailView.as_view()),
     path('dashboard/', views.ProjectDashboardView.as_view()),
     path('boqs/', include(boq_urls)),
     path('budgets/', include(budget_urls)),

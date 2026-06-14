@@ -30,6 +30,8 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Project.objects.all()
     serializer_class = ProjectDetailSerializer
+    lookup_field = 'pk'
+    lookup_url_kwarg = 'project_pk'
 
 
 class BOQListCreateView(generics.ListCreateAPIView):
@@ -337,6 +339,7 @@ class ProjectDashboardView(APIView):
             open_count=Count('id', filter=Q(status='open')),
             high_count=Count('id', filter=Q(impact_level='high')),
             critical_count=Count('id', filter=Q(impact_level='critical')),
+            mitigated_count=Count('id', filter=Q(status='mitigated')),
         )
 
         vehicle_count = ProjectVehicle.objects.filter(project=project).count()
@@ -383,6 +386,7 @@ class ProjectDashboardView(APIView):
                 'open_count': risk_agg['open_count'],
                 'high_count': risk_agg['high_count'],
                 'critical_count': risk_agg['critical_count'],
+                'mitigated_count': risk_agg['mitigated_count'],
             },
             'fleet_summary': {
                 'vehicle_count': vehicle_count,

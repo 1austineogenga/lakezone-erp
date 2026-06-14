@@ -2,9 +2,9 @@ import api from './client'
 
 // Projects CRUD
 export const getProjects         = (params) => api.get('/projects/', { params })
-export const getProject          = (id)     => api.get(`/projects/${id}/detail/`)
+export const getProject          = (id)     => api.get(`/projects/${id}/`)
 export const createProject       = (data)   => api.post('/projects/', data)
-export const updateProject       = (id, d)  => api.patch(`/projects/${id}/detail/`, d)
+export const updateProject       = (id, d)  => api.patch(`/projects/${id}/`, d)
 export const getProjectDashboard = (id)     => api.get(`/projects/${id}/dashboard/`)
 
 // BOQ
@@ -35,7 +35,8 @@ export const assignVehicle      = (projectId, data) => api.post(`/projects/${pro
 
 // Personnel
 export const getPersonnel = (projectId)       => api.get(`/projects/${projectId}/personnel/`)
-export const addPersonnel = (projectId, data) => api.post(`/projects/${projectId}/personnel/`, data)
+export const addPersonnel    = (projectId, data)       => api.post(`/projects/${projectId}/personnel/`, data)
+export const updatePersonnel = (projectId, id, data)   => api.patch(`/projects/${projectId}/personnel/${id}/`, data)
 
 // Progress
 export const getProgress    = (projectId)                   => api.get(`/projects/${projectId}/progress/`)

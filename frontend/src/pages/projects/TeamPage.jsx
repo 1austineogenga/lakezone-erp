@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { UsersIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { getPersonnel, addPersonnel } from '../../api/projects'
+import { UsersIcon, PlusIcon, XMarkIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
+import { getPersonnel, addPersonnel, updatePersonnel } from '../../api/projects'
+import api from '../../api/client'
 
 const ROLES = [
   { value: 'site_engineer',    label: 'Site Engineer' },
@@ -35,12 +36,33 @@ export default function TeamPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
   const [modal, setModal] = useState(false)
+  const [reassignModal, setReassignModal] = useState(null) // personnel record
   const [form, setForm] = useState(EMPTY)
+  const [employeeSearch, setEmployeeSearch] = useState('')
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [reassignTarget, setReassignTarget] = useState('')
+  const [reassignEndDate, setReassignEndDate] = useState(new Date().toISOString().split('T')[0])
 
   const { data: personnel = [] } = useQuery({
     queryKey: ['project-personnel', projectId],
     queryFn: () => getPersonnel(projectId),
     select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  // HR employees for the picker
+  const { data: employees = [] } = useQuery({
+    queryKey: ['hr-employees-simple', employeeSearch],
+    queryFn: () => api.get('/hr/employees/', { params: { simple: true, q: employeeSearch || undefined, is_active: true } }),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: modal,
+  })
+
+  // All projects for reassignment target
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects-list'],
+    queryFn: () => api.get('/projects/'),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!reassignModal,
   })
 
   const addMut = useMutation({
@@ -50,11 +72,47 @@ export default function TeamPage() {
       qc.invalidateQueries({ queryKey: ['project-personnel', projectId] })
       setModal(false)
       setForm(EMPTY)
+      setSelectedEmployee(null)
+      setEmployeeSearch('')
     },
     onError: e => toast.error(e.response?.data?.detail || 'Failed to add team member.'),
   })
 
+  // Reassign = end current assignment + create new on target project
+  const reassignMut = useMutation({
+    mutationFn: async ({ record, targetProjectId, endDate }) => {
+      // End current assignment
+      await updatePersonnel(projectId, record.id, { end_date: endDate })
+      if (targetProjectId !== 'head_office') {
+        // Add to new project
+        await addPersonnel(targetProjectId, {
+          employee_name: record.employee_name,
+          role: record.role,
+          start_date: endDate,
+          monthly_rate: record.monthly_rate,
+          include_in_budget: record.include_in_budget,
+          notes: `Reassigned from project ${record.project_code || projectId}`,
+        })
+      }
+    },
+    onSuccess: () => {
+      toast.success('Team member reassigned successfully.')
+      qc.invalidateQueries({ queryKey: ['project-personnel'] })
+      qc.invalidateQueries({ queryKey: ['project-personnel', projectId] })
+      setReassignModal(null)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Reassignment failed.'),
+  })
+
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleAdd = () => {
+    const name = selectedEmployee
+      ? selectedEmployee.full_name
+      : form.employee_name
+    if (!name) { toast.error('Select or enter an employee name.'); return }
+    addMut.mutate({ ...form, employee_name: name })
+  }
 
   const activeCount = personnel.filter(p => !p.end_date).length
   const totalMonthly = personnel.filter(p => p.include_in_budget).reduce((s, p) => s + Number(p.monthly_rate || 0), 0)
@@ -102,7 +160,7 @@ export default function TeamPage() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {['Name', 'Role', 'Start Date', 'End Date', 'Monthly Rate', 'In Budget', 'Notes'].map(h => (
+                  {['Name', 'Role', 'Start Date', 'End Date', 'Monthly Rate', 'In Budget', 'Notes', ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -117,7 +175,7 @@ export default function TeamPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">{p.start_date || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{p.end_date || 'Ongoing'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{p.end_date || <span className="text-green-600 font-medium">Ongoing</span>}</td>
                     <td className="px-4 py-3 text-xs font-medium">KES {Number(p.monthly_rate || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.include_in_budget ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -125,6 +183,14 @@ export default function TeamPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{p.notes || '—'}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {!p.end_date && (
+                        <button onClick={() => { setReassignModal(p); setReassignTarget(''); }}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
+                          <ArrowsRightLeftIcon className="h-3 w-3" /> Reassign
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -133,7 +199,7 @@ export default function TeamPage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add Member Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setModal(false)}>
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -142,14 +208,42 @@ export default function TeamPage() {
               <button onClick={() => setModal(false)}><XMarkIcon className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3">
+              {/* Employee search from HR */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-                <input value={form.employee_name} onChange={e => field('employee_name', e.target.value)}
-                  placeholder="e.g. John Kamau"
+                <label className="block text-xs font-medium text-gray-600 mb-1">Search Employee (HR)</label>
+                <input value={employeeSearch} onChange={e => { setEmployeeSearch(e.target.value); setSelectedEmployee(null) }}
+                  placeholder="Type name or employee number..."
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                {employees.length > 0 && !selectedEmployee && (
+                  <div className="mt-1 border border-gray-200 rounded-lg max-h-36 overflow-y-auto bg-white shadow-sm">
+                    {employees.map(e => (
+                      <button key={e.id} onClick={() => { setSelectedEmployee(e); setEmployeeSearch(e.full_name) }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                        <span className="font-medium">{e.full_name}</span>
+                        <span className="text-gray-400 ml-2">{e.employee_number} · {e.employment_type} · {e.department_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedEmployee && (
+                  <div className="mt-1 flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+                    <span className="font-medium">{selectedEmployee.full_name}</span>
+                    <span className="text-gray-400">{selectedEmployee.employee_number}</span>
+                    <button onClick={() => { setSelectedEmployee(null); setEmployeeSearch('') }} className="ml-auto text-gray-400 hover:text-red-500">×</button>
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 mt-0.5">Or enter manually below if not in HR system</p>
               </div>
+              {!selectedEmployee && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Manual Name</label>
+                  <input value={form.employee_name} onChange={e => field('employee_name', e.target.value)}
+                    placeholder="e.g. John Kamau"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                </div>
+              )}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Role on Project</label>
                 <select value={form.role} onChange={e => field('role', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
                   {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -187,9 +281,52 @@ export default function TeamPage() {
             <div className="flex gap-2 mt-5">
               <button onClick={() => setModal(false)}
                 className="flex-1 px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-              <button onClick={() => addMut.mutate(form)} disabled={!form.employee_name || addMut.isPending}
+              <button onClick={handleAdd} disabled={(!selectedEmployee && !form.employee_name) || addMut.isPending}
                 className="flex-1 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
                 {addMut.isPending ? 'Adding…' : 'Add Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign Modal */}
+      {reassignModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setReassignModal(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-brand-slate">Reassign — {reassignModal.employee_name}</h3>
+              <button onClick={() => setReassignModal(null)}><XMarkIcon className="h-5 w-5 text-gray-400" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Effective Date (last day on this project)</label>
+                <input type="date" value={reassignEndDate} onChange={e => setReassignEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reassign To</label>
+                <select value={reassignTarget} onChange={e => setReassignTarget(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                  <option value="">Select destination...</option>
+                  <option value="head_office">🏢 Head Office (no project)</option>
+                  {allProjects.filter(p => p.id !== projectId).map(p => (
+                    <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[10px] text-gray-400">
+                This will end their assignment on this project and add them to the selected destination.
+              </p>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setReassignModal(null)}
+                className="flex-1 px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+              <button
+                onClick={() => reassignMut.mutate({ record: reassignModal, targetProjectId: reassignTarget, endDate: reassignEndDate })}
+                disabled={!reassignTarget || !reassignEndDate || reassignMut.isPending}
+                className="flex-1 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                {reassignMut.isPending ? 'Reassigning…' : 'Confirm Reassignment'}
               </button>
             </div>
           </div>
