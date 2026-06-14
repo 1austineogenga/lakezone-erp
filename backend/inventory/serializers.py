@@ -45,13 +45,16 @@ class StockLevelSerializer(serializers.ModelSerializer):
 class StockTransactionSerializer(serializers.ModelSerializer):
     processed_by_name = serializers.CharField(source="processed_by.get_full_name", read_only=True)
     transaction_type_display = serializers.CharField(source="get_transaction_type_display", read_only=True)
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_code = serializers.CharField(source="item.item_code", read_only=True)
+    store_name = serializers.CharField(source="store.name", read_only=True)
     line_total = serializers.SerializerMethodField()
 
     class Meta:
         model = StockTransaction
         fields = [
             "id", "transaction_type", "transaction_type_display",
-            "item", "store", "destination_store",
+            "item", "item_name", "item_code", "store", "store_name", "destination_store",
             "quantity", "unit_cost", "line_total",
             "project", "boq_item", "po",
             "reference_number", "processed_by", "processed_by_name",

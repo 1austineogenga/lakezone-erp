@@ -29,7 +29,7 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'id', 'reference_number', 'title', 'req_type', 'status', 'priority',
             'requested_by', 'requested_by_name', 'department', 'department_name',
             'project', 'project_name', 'description', 'date_required', 'total_amount',
-            'created_at', 'updated_at', 'fulfilled_at', 'fulfillment_notes',
+            'created_at', 'updated_at', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
             'items', 'approvals',
         ]
         read_only_fields = ['reference_number', 'requested_by', 'total_amount', 'status']
