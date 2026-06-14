@@ -10,6 +10,8 @@ import ProjectsPage from './pages/projects/ProjectsPage'
 import ProjectPage from './pages/projects/ProjectPage'
 import ProcurementPage from './pages/procurement/ProcurementPage'
 import NewPRPage from './pages/procurement/NewPRPage'
+import PRDetailPage from './pages/procurement/PRDetailPage'
+import PODetailPage from './pages/procurement/PODetailPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import CRMPage from './pages/crm/CRMPage'
 import RequisitionsPage from './pages/requisitions/RequisitionsPage'
@@ -33,8 +35,10 @@ export default function App() {
             <Route path="/"                   element={<DashboardPage />} />
             <Route path="/projects"           element={<ProjectsPage />} />
             <Route path="/projects/:projectId/*" element={<ProjectPage />} />
-            <Route path="/procurement"        element={<ProcurementPage />} />
-            <Route path="/procurement/new-pr" element={<NewPRPage />} />
+            <Route path="/procurement"          element={<ProcurementPage />} />
+            <Route path="/procurement/new-pr"  element={<NewPRPage />} />
+            <Route path="/procurement/pr/:id"  element={<PRDetailPage />} />
+            <Route path="/procurement/po/:id"  element={<PODetailPage />} />
             <Route path="/inventory"          element={<InventoryPage />} />
             <Route path="/crm"                element={<CRMPage />} />
             <Route path="/requisitions"       element={<RequisitionsPage />} />
