@@ -8,8 +8,8 @@ const fmtDt = s => new Date(s).toLocaleString([], { dateStyle: 'short', timeStyl
 
 export default function FuelReportPage() {
   const today = new Date()
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-  const [dateFrom, setDateFrom]   = useState(firstDay)
+  const ninetyDaysAgo = new Date(today); ninetyDaysAgo.setDate(today.getDate() - 90)
+  const [dateFrom, setDateFrom]   = useState(ninetyDaysAgo.toISOString().split('T')[0])
   const [dateTo, setDateTo]       = useState(today.toISOString().split('T')[0])
   const [vehicleId, setVehicleId] = useState('')
 
