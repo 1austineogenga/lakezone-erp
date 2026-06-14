@@ -5,7 +5,7 @@ from .serializers import ClientSerializer, TenderOpportunitySerializer
 
 
 class ClientListCreateView(generics.ListCreateAPIView):
-    queryset = Client.objects.filter(is_active=True)
+    queryset = Client.objects.all()
     serializer_class = ClientSerializer
     permission_classes = [IsSalesOfficer]
     search_fields = ["company_name", "contact_person", "email"]
@@ -23,6 +23,9 @@ class TenderOpportunityListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsSalesOfficer]
     filterset_fields = ["stage", "client", "assigned_to"]
     search_fields = ["opportunity_name", "tender_number"]
+
+    def perform_create(self, serializer):
+        serializer.save(assigned_to=self.request.user)
 
 
 class TenderOpportunityDetailView(generics.RetrieveUpdateAPIView):
