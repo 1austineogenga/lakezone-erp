@@ -2,8 +2,9 @@ import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { DocumentArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { DocumentArrowUpIcon, ChevronDownIcon, ChevronRightIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { getProjectBOQs, importBOQ } from '../../api/projects'
+import { printBOQ } from '../../utils/print'
 
 function fmt(val) {
   return `KES ${Number(val || 0).toLocaleString()}`
@@ -55,7 +56,7 @@ function BillRow({ bill }) {
   )
 }
 
-export default function BOQPage() {
+export default function BOQPage({ projectName }) {
   const { projectId } = useParams()
   const qc = useQueryClient()
   const fileRef = useRef()
@@ -183,12 +184,18 @@ export default function BOQPage() {
           <h2 className="font-bold text-brand-slate text-lg">Bill of Quantities</h2>
           <p className="text-xs text-gray-400 mt-0.5">{activeBoq.title || 'BOQ'} · {activeBoq.bills?.length || 0} bills</p>
         </div>
-        <button
-          onClick={() => setShowUpload(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-        >
-          <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import New BOQ
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => printBOQ(activeBoq, projectName)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+            <PrinterIcon className="h-3.5 w-3.5" /> Print BOQ
+          </button>
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+          >
+            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import New BOQ
+          </button>
+        </div>
       </div>
 
       {/* Grand Total Card */}

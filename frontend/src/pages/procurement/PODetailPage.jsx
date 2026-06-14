@@ -8,7 +8,9 @@ import {
   CheckCircleIcon,
   TruckIcon,
   DocumentTextIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline'
+import { printPO } from '../../utils/print'
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -200,6 +202,10 @@ export default function PODetailPage() {
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[po.status] ?? 'bg-gray-100 text-gray-600'}`}>
               {po.status_display ?? po.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </span>
+            <button onClick={() => printPO(po)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+              <PrinterIcon className="h-3.5 w-3.5" /> Print
+            </button>
             {po.status === 'draft' && (
               <button
                 onClick={() => approveMutation.mutate()}

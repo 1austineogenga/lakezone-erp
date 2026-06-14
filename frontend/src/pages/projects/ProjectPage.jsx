@@ -62,7 +62,7 @@ export default function ProjectPage() {
   const renderTab = () => {
     switch (activeTab) {
       case 'dashboard': return <ProjectDashboard dashData={dashData} />
-      case 'boq':       return <BOQPage />
+      case 'boq':       return <BOQPage projectName={project.name} />
       case 'budget':    return <BudgetPage />
       case 'ipcs':      return <IPCPage />
       case 'progress':  return <WeeklyProgressPage />

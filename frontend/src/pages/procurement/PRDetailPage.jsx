@@ -10,7 +10,9 @@ import {
   DocumentTextIcon,
   ShoppingCartIcon,
   XMarkIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline'
+import { printPR } from '../../utils/print'
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -214,6 +216,10 @@ export default function PRDetailPage() {
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[pr.status] ?? 'bg-gray-100 text-gray-600'}`}>
               {pr.status_display ?? pr.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </span>
+            <button onClick={() => printPR(pr)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+              <PrinterIcon className="h-3.5 w-3.5" /> Print
+            </button>
             {canConvert && (
               <button
                 onClick={() => setShowConvertModal(true)}
