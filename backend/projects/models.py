@@ -18,6 +18,8 @@ class Project(models.Model):
     contract_number = models.CharField(max_length=100, blank=True)
     contract_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     location = models.CharField(max_length=200, blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     description = models.TextField(blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)

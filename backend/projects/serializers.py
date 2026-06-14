@@ -103,7 +103,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'code', 'name', 'client', 'contract_number', 'contract_value',
-            'location', 'start_date', 'end_date', 'status', 'description', 'created_at',
+            'location', 'latitude', 'longitude', 'start_date', 'end_date', 'status', 'description', 'created_at',
         ]
 
 

@@ -24,6 +24,8 @@ class Command(BaseCommand):
                 contract_number='KeRRA/RMLF/015/2024-2025',
                 contract_value=Decimal('48500000.00'),
                 location='Magumu – Njambini, Nyandarua County',
+                latitude=Decimal('-0.7127'),
+                longitude=Decimal('36.7263'),
                 description=(
                     'Improvement of Magumu–Njambini road covering approximately 12 km. '
                     'Works include grading, gravelling, drainage structures, culvert installation '
@@ -74,6 +76,8 @@ class Command(BaseCommand):
                 contract_number='KeRRA/RMLF/016/2024-2025',
                 contract_value=Decimal('62750000.00'),
                 location='Njambini – Sasumua Dam, Nyandarua County',
+                latitude=Decimal('-0.7512'),
+                longitude=Decimal('36.6834'),
                 description=(
                     'Improvement of Njambini–Sasumua Dam road covering approximately 16 km. '
                     'Works include grading, gravelling, drainage, culverts and structures. '
