@@ -14,6 +14,8 @@ import PRDetailPage from './pages/procurement/PRDetailPage'
 import PODetailPage from './pages/procurement/PODetailPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import StockItemDetailPage from './pages/inventory/StockItemDetailPage'
+import AssetsPage from './pages/inventory/AssetsPage'
+import AssetDetailPage from './pages/inventory/AssetDetailPage'
 import CRMPage from './pages/crm/CRMPage'
 import RequisitionsPage from './pages/requisitions/RequisitionsPage'
 import NewRequisitionPage from './pages/requisitions/NewRequisitionPage'
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/procurement/po/:id"  element={<PODetailPage />} />
             <Route path="/inventory"          element={<InventoryPage />} />
             <Route path="/inventory/:id"      element={<StockItemDetailPage />} />
+            <Route path="/assets"             element={<AssetsPage />} />
+            <Route path="/assets/:id"         element={<AssetDetailPage />} />
             <Route path="/crm"                element={<CRMPage />} />
             <Route path="/requisitions"       element={<RequisitionsPage />} />
             <Route path="/requisitions/new"   element={<NewRequisitionPage />} />

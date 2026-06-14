@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
-  CubeIcon, UserGroupIcon, ArrowRightOnRectangleIcon,
+  CubeIcon, UserGroupIcon, ArrowRightOnRectangleIcon, BuildingOfficeIcon,
   DocumentTextIcon, BanknotesIcon, UsersIcon,
   ChevronDownIcon, ChartBarIcon, CreditCardIcon,
   ReceiptPercentIcon, ArrowTrendingUpIcon, LockClosedIcon,
@@ -23,6 +23,7 @@ const TOP_LINKS = [
   { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement' },
   { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions' },
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory' },
+  { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM' },
 ]
 
