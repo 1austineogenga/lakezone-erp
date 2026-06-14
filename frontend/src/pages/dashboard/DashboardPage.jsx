@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -43,7 +44,7 @@ const STATUS_COLORS = {
 
 const PIE_COLORS = ['#BF2026', '#6b7280', '#d97706', '#2563eb']
 
-function StatCard({ label, value, sub, icon: Icon, color }) {
+function StatCard({ label, value, sub, icon: Icon, color, onClick }) {
   const colors = {
     red:   { bg: 'bg-red-50',   border: 'border-l-red-500',   text: 'text-red-700',   icon: 'bg-red-100 text-red-600' },
     slate: { bg: 'bg-slate-50', border: 'border-l-slate-500', text: 'text-slate-700', icon: 'bg-slate-100 text-slate-600' },
@@ -54,7 +55,10 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
   }
   const c = colors[color] || colors.slate
   return (
-    <div className={`${c.bg} border border-gray-200 border-l-4 ${c.border} rounded-xl p-4 flex items-start gap-3`}>
+    <div
+      onClick={onClick}
+      className={`${c.bg} border border-gray-200 border-l-4 ${c.border} rounded-xl p-4 flex items-start gap-3 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+    >
       <div className={`${c.icon} p-2 rounded-lg shrink-0`}>
         <Icon className="h-5 w-5" />
       </div>
@@ -69,6 +73,7 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
 
   const { data: projectsRes } = useQuery({ queryKey: ['projects'], queryFn: () => getProjects({ page_size: 100 }) })
   const { data: prsRes }      = useQuery({ queryKey: ['prs'],      queryFn: () => getPRs({ page_size: 100 }) })
@@ -110,12 +115,12 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-        <StatCard label="Active Projects"    value={activeProjects.length}  icon={FolderIcon}                sub={`${projectList.length} total`}                color="red" />
-        <StatCard label="Contract Value"     value={`KES ${(totalContractValue / 1e6).toFixed(1)}M`}        icon={BanknotesIcon}                               sub="Active projects"      color="teal" />
-        <StatCard label="Fleet Online"       value={`${onlineVehicles} / ${vehicles.length}`}              icon={TruckIcon}                                   sub="Live GPS vehicles"    color="blue" />
-        <StatCard label="Pending PRs"        value={pendingPRs}             icon={ClipboardDocumentListIcon} sub="Awaiting approval"                            color="slate" />
-        <StatCard label="Low Stock Alerts"   value={lowStock}               icon={CubeIcon}                 sub="Below reorder level"                          color="amber" />
-        <StatCard label="Open Risks"         value={0}                      icon={ExclamationTriangleIcon}  sub="Across all projects"                          color="red" />
+        <StatCard label="Active Projects"    value={activeProjects.length}  icon={FolderIcon}                sub={`${projectList.length} total`}                color="red"   onClick={() => navigate('/projects?status=active')} />
+        <StatCard label="Contract Value"     value={`KES ${(totalContractValue / 1e6).toFixed(1)}M`}        icon={BanknotesIcon}                               sub="Active projects"      color="teal"  onClick={() => navigate('/projects')} />
+        <StatCard label="Fleet Online"       value={`${onlineVehicles} / ${vehicles.length}`}              icon={TruckIcon}                                   sub="Live GPS vehicles"    color="blue"  onClick={() => navigate('/fleet')} />
+        <StatCard label="Pending PRs"        value={pendingPRs}             icon={ClipboardDocumentListIcon} sub="Awaiting approval"                            color="slate" onClick={() => navigate('/procurement')} />
+        <StatCard label="Low Stock Alerts"   value={lowStock}               icon={CubeIcon}                 sub="Below reorder level"                          color="amber" onClick={() => navigate('/inventory')} />
+        <StatCard label="Open Risks"         value={0}                      icon={ExclamationTriangleIcon}  sub="Across all projects"                          color="red"   onClick={() => navigate('/projects')} />
       </div>
 
       {/* Live Map */}
