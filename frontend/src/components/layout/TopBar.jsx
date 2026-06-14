@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bars3Icon, BellIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import useAuthStore from '../../store/authStore'
+import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
 
 const TYPE_COLORS = {
@@ -24,12 +25,29 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'
+
 export default function TopBar({ onToggleSidebar }) {
-  const { user } = useAuthStore()
+  const { user, logout, refreshToken } = useAuthStore()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const dropRef = useRef(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef(null)
+
+  const handleLogout = async () => {
+    try { await apiLogout(refreshToken) } catch {}
+    logout()
+  }
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
@@ -49,14 +67,14 @@ export default function TopBar({ onToggleSidebar }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
-  // Close on outside click
+  // Close notification dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  }, [open])
 
   const handleNotifClick = (n) => {
     if (!n.is_read) readMut.mutate(n.id)
@@ -135,17 +153,48 @@ export default function TopBar({ onToggleSidebar }) {
           )}
         </div>
 
-        {/* User info */}
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-semibold">
-            {user?.first_name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? 'U'}
-          </div>
-          <div className="hidden sm:block text-sm">
-            <p className="font-medium text-gray-800">
-              {user ? `${user.first_name} ${user.last_name}` : 'User'}
-            </p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role?.replace(/_/g, ' ')}</p>
-          </div>
+        {/* User avatar + dropdown */}
+        <div className="relative" ref={userMenuRef}>
+          <button
+            onClick={() => setUserMenuOpen(o => !o)}
+            className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
+          >
+            {user?.profile_photo ? (
+              <img
+                src={user.profile_photo.startsWith('http') ? user.profile_photo : `${API_BASE}${user.profile_photo}`}
+                alt="Avatar"
+                className="h-8 w-8 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                {user?.first_name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? 'U'}
+              </div>
+            )}
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-gray-800 leading-tight">
+                {user ? `${user.first_name} ${user.last_name}` : 'User'}
+              </p>
+              <p className="text-xs text-gray-500 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
+            </div>
+          </button>
+
+          {userMenuOpen && (
+            <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+              <button
+                onClick={() => { navigate('/profile'); setUserMenuOpen(false) }}
+                className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <UserCircleIcon className="h-4 w-4 text-gray-400" /> My Profile
+              </button>
+              <div className="border-t border-gray-100" />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4" /> Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
