@@ -389,7 +389,7 @@ class RetentionRelease(models.Model):
 class ProjectBudget(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project     = models.ForeignKey('projects.Project', on_delete=models.CASCADE,
-                                    related_name='budgets')
+                                    related_name='finance_budgets')
     cost_code   = models.CharField(max_length=20, choices=Account.CostCode.choices)
     description = models.CharField(max_length=255, blank=True)
     budgeted_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
