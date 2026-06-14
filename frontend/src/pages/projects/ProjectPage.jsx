@@ -12,7 +12,7 @@ import {
   UsersIcon,
   ArrowLeftIcon,
 } from '@heroicons/react/24/outline'
-import { getProject } from '../../api/projects'
+import { getProjectDashboard } from '../../api/projects'
 import ProjectDashboard from './ProjectDashboard'
 import BOQPage from './BOQPage'
 import BudgetPage from './BudgetPage'
@@ -49,15 +49,19 @@ export default function ProjectPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  const { data: project, isLoading } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => getProject(projectId),
+  // Use dashboard endpoint as single source of project info — it always returns project data
+  const { data: dashData, isLoading } = useQuery({
+    queryKey: ['project-dashboard', projectId],
+    queryFn: () => getProjectDashboard(projectId),
     select: r => r.data,
+    enabled: !!projectId,
   })
+
+  const project = dashData?.project || {}
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'dashboard': return <ProjectDashboard />
+      case 'dashboard': return <ProjectDashboard dashData={dashData} />
       case 'boq':       return <BOQPage />
       case 'budget':    return <BudgetPage />
       case 'ipcs':      return <IPCPage />
@@ -65,7 +69,7 @@ export default function ProjectPage() {
       case 'risks':     return <RiskRegisterPage />
       case 'fleet':     return <FleetAssignmentPage />
       case 'team':      return <TeamPage />
-      default:          return <ProjectDashboard />
+      default:          return <ProjectDashboard dashData={dashData} />
     }
   }
 
@@ -89,10 +93,10 @@ export default function ProjectPage() {
             <>
               <div className="flex items-center gap-2 mb-1">
                 <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
-                  {project?.code || project?.project_code || '—'}
+                  {project?.code || '—'}
                 </span>
                 <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
-                  {STATUS_LABELS[project?.status] || project?.status}
+                  {STATUS_LABELS[project?.status] || project?.status || 'Planning'}
                 </span>
               </div>
               <p className="text-xs font-semibold text-brand-slate leading-snug">
@@ -122,8 +126,25 @@ export default function ProjectPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto p-6">
-        {renderTab()}
+      <div className="flex-1 overflow-auto">
+        {/* Project name banner */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 sticky top-0 z-10">
+          <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
+            {project?.code || '—'}
+          </span>
+          <h1 className="text-sm font-semibold text-brand-slate truncate">
+            {project?.name || 'Loading project…'}
+          </h1>
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
+            {STATUS_LABELS[project?.status] || ''}
+          </span>
+          <span className="ml-auto text-xs text-gray-400 shrink-0">
+            Contract: <span className="font-medium text-brand-slate">KES {Number(project?.contract_value || 0).toLocaleString()}</span>
+          </span>
+        </div>
+        <div className="p-6">
+          {renderTab()}
+        </div>
       </div>
     </div>
   )

@@ -13,15 +13,17 @@ const IPC_STATUS_COLORS = {
   disputed:   'bg-red-100 text-red-700',
 }
 
-export default function ProjectDashboard() {
+export default function ProjectDashboard({ dashData: prefetched }) {
   const { projectId } = useParams()
 
-  const { data, isLoading } = useQuery({
+  const { data: fetched, isLoading } = useQuery({
     queryKey: ['project-dashboard', projectId],
     queryFn: () => getProjectDashboard(projectId),
     select: r => r.data,
-    enabled: !!projectId,
+    enabled: !!projectId && !prefetched,
   })
+
+  const data = prefetched || fetched
 
   if (isLoading) {
     return (
