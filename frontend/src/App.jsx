@@ -23,6 +23,7 @@ import RequisitionDetailPage from './pages/requisitions/RequisitionDetailPage'
 import FinancePage from './pages/finance/FinancePage'
 import HRPage from './pages/hr/HRPage'
 import FleetPage from './pages/fleet/FleetPage'
+import UsersPage from './pages/users/UsersPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="/finance/*"          element={<FinancePage />} />
             <Route path="/hr/*"               element={<HRPage />} />
             <Route path="/fleet/*"            element={<FleetPage />} />
+            <Route path="/users"              element={<UsersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

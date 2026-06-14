@@ -2,29 +2,7 @@ from rest_framework.permissions import BasePermission
 from .models import UserRole
 
 
-class HasRole(BasePermission):
-    """
-    Usage:  permission_classes = [HasRole('project_manager', 'system_admin')]
-    Factory that returns a permission class checking for any of the given roles.
-    """
-
-    def __init__(self, *roles):
-        self.roles = roles
-
-    def __call__(self):
-        return self
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in self.roles
-        )
-
-
 def role_permission(*roles):
-    """Shorthand to build a HasRole permission class inline."""
-
     class _RolePermission(BasePermission):
         allowed_roles = roles
 
@@ -38,23 +16,37 @@ def role_permission(*roles):
     return _RolePermission
 
 
-# Pre-built role permission classes for common checks
-IsSystemAdmin = role_permission(UserRole.SYSTEM_ADMIN)
-IsManagingDirector = role_permission(UserRole.MANAGING_DIRECTOR, UserRole.SYSTEM_ADMIN)
-IsFinanceManager = role_permission(UserRole.FINANCE_MANAGER, UserRole.SYSTEM_ADMIN)
-IsHRManager = role_permission(UserRole.HR_MANAGER, UserRole.SYSTEM_ADMIN)
-IsProjectManager = role_permission(
-    UserRole.PROJECT_MANAGER, UserRole.SYSTEM_ADMIN, UserRole.MANAGING_DIRECTOR
-)
-IsProcurementOfficer = role_permission(UserRole.PROCUREMENT_OFFICER, UserRole.SYSTEM_ADMIN)
-IsStorekeeper = role_permission(UserRole.STOREKEEPER, UserRole.SYSTEM_ADMIN)
-IsFleetManager = role_permission(UserRole.FLEET_MANAGER, UserRole.SYSTEM_ADMIN)
-IsSalesOfficer = role_permission(UserRole.SALES_OFFICER, UserRole.SYSTEM_ADMIN)
-
-# Management tier — can approve across modules
-IsManagement = role_permission(
+# ── Tier groupings ────────────────────────────────────────────────────────────
+EXEC = (
     UserRole.SYSTEM_ADMIN,
     UserRole.MANAGING_DIRECTOR,
-    UserRole.FINANCE_MANAGER,
-    UserRole.HR_MANAGER,
+    UserRole.GENERAL_MANAGER,
 )
+
+MANAGEMENT = EXEC + (
+    UserRole.FINANCE_OFFICER, UserRole.HR_MANAGER,
+    UserRole.PROCUREMENT_OFFICER, UserRole.FACILITY_MANAGER,
+    UserRole.ADMIN_OFFICER,
+    UserRole.FINANCE_MANAGER,  # legacy
+)
+
+SITE_STAFF = (
+    UserRole.SITE_MANAGER, UserRole.SITE_ENGINEER,
+    UserRole.SITE_FOREMAN, UserRole.SITE_SURVEYOR,
+)
+
+FINANCE_ROLES      = EXEC + (UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER)
+PROCUREMENT_ROLES  = EXEC + (UserRole.PROCUREMENT_OFFICER,)
+HR_ROLES           = EXEC + (UserRole.HR_MANAGER,)
+
+# ── Pre-built permission classes ──────────────────────────────────────────────
+IsSystemAdmin        = role_permission(UserRole.SYSTEM_ADMIN)
+IsManagingDirector   = role_permission(*EXEC)
+IsManagement         = role_permission(*MANAGEMENT)
+IsFinanceManager     = role_permission(*FINANCE_ROLES)
+IsHRManager          = role_permission(*HR_ROLES)
+IsProcurementOfficer = role_permission(*PROCUREMENT_ROLES)
+IsSiteStaff          = role_permission(*EXEC, *SITE_STAFF)
+IsStorekeeper        = role_permission(UserRole.STOREKEEPER, UserRole.SYSTEM_ADMIN)
+IsFleetManager       = role_permission(UserRole.FLEET_MANAGER, UserRole.SYSTEM_ADMIN)
+IsSalesOfficer       = role_permission(UserRole.SALES_OFFICER, UserRole.SYSTEM_ADMIN)

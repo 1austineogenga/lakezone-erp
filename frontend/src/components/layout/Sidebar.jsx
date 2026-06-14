@@ -10,21 +10,24 @@ import {
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
-  Cog6ToothIcon, Squares2X2Icon, ClipboardIcon, PlusCircleIcon,
+  Cog6ToothIcon, Squares2X2Icon, ClipboardIcon, PlusCircleIcon, KeyIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import logoIcon from '../../assets/logo-icon.png'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
+import usePermissions from '../../hooks/usePermissions'
 
+// module key matches permissions.js module names
 const TOP_LINKS = [
-  { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true },
-  { to: '/projects',     icon: FolderIcon,                label: 'Projects' },
-  { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement' },
-  { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions' },
-  { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory' },
-  { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets' },
-  { to: '/crm',          icon: UserGroupIcon,             label: 'CRM' },
+  { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true,  module: 'dashboard' },
+  { to: '/projects',     icon: FolderIcon,                label: 'Projects',                 module: 'projects' },
+  { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement',              module: 'procurement' },
+  { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions',             module: 'requisitions' },
+  { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
+  { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
+  { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
+  { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
 
 const MODULES = [
@@ -156,6 +159,7 @@ const MODULES = [
 export default function Sidebar({ collapsed }) {
   const { logout, refreshToken } = useAuthStore()
   const location = useLocation()
+  const { can } = usePermissions()
 
   const initialOpen = {}
   MODULES.forEach(m => { initialOpen[m.key] = location.pathname.startsWith(m.root) })
@@ -187,7 +191,7 @@ export default function Sidebar({ collapsed }) {
         {!collapsed && (
           <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Operations</p>
         )}
-        {TOP_LINKS.map(({ to, icon: Icon, label, end }) => (
+        {TOP_LINKS.filter(({ module }) => can(module)).map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -203,7 +207,7 @@ export default function Sidebar({ collapsed }) {
         {!collapsed && (
           <p className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Management</p>
         )}
-        {MODULES.map(mod => {
+        {MODULES.filter(mod => can(mod.key)).map(mod => {
           const isActive = location.pathname.startsWith(mod.root)
           const isOpen   = open[mod.key]
           const Icon     = mod.icon

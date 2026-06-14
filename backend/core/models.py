@@ -33,18 +33,38 @@ class Department(models.Model):
 
 
 class UserRole(models.TextChoices):
-    SYSTEM_ADMIN = "system_admin", "System Administrator"
-    MANAGING_DIRECTOR = "managing_director", "Managing Director"
-    FINANCE_MANAGER = "finance_manager", "Finance Manager"
-    HR_MANAGER = "hr_manager", "HR Manager"
-    PROJECT_MANAGER = "project_manager", "Project Manager"
+    # Admin/Executive
+    SYSTEM_ADMIN        = "system_admin",        "System Administrator"
+    MANAGING_DIRECTOR   = "managing_director",   "Managing Director"
+    GENERAL_MANAGER     = "general_manager",     "General Manager"
+    # Management
+    FINANCE_OFFICER     = "finance_officer",     "Finance Officer"
+    HR_MANAGER          = "hr_manager",          "HR Manager"
     PROCUREMENT_OFFICER = "procurement_officer", "Procurement Officer"
-    STOREKEEPER = "storekeeper", "Storekeeper"
-    FLEET_MANAGER = "fleet_manager", "Fleet Manager"
-    SITE_ENGINEER = "site_engineer", "Site Engineer"
-    EQUIPMENT_OPERATOR = "equipment_operator", "Equipment Operator"
-    DRIVER = "driver", "Driver"
-    SALES_OFFICER = "sales_officer", "Sales Officer"
+    FACILITY_MANAGER    = "facility_manager",    "Facility Manager"
+    ADMIN_OFFICER       = "admin_officer",       "Admin Officer"
+    # Site / Technical
+    SITE_MANAGER        = "site_manager",        "Site Manager"
+    SITE_ENGINEER       = "site_engineer",       "Site Engineer"
+    SITE_FOREMAN        = "site_foreman",        "Site Foreman"
+    SITE_SURVEYOR       = "site_surveyor",       "Site Surveyor"
+    # Skilled Trades
+    MECHANIC            = "mechanic",            "Mechanic"
+    WELDER              = "welder",              "Welder"
+    # Field / Operations
+    EQUIPMENT_OPERATOR  = "equipment_operator",  "Machine Operator"
+    DRIVER              = "driver",              "Driver"
+    HEAD_OF_SECURITY    = "head_of_security",    "Head of Security"
+    SURVEILLANCE_OFFICER= "surveillance_officer","Surveillance Officer"
+    # Support Staff
+    CHEF                = "chef",                "Chef"
+    CLEANER             = "cleaner",             "Cleaner"
+    # Legacy (keep for backwards compat)
+    FINANCE_MANAGER     = "finance_manager",     "Finance Manager"
+    PROJECT_MANAGER     = "project_manager",     "Project Manager"
+    STOREKEEPER         = "storekeeper",         "Storekeeper"
+    FLEET_MANAGER       = "fleet_manager",       "Fleet Manager"
+    SALES_OFFICER       = "sales_officer",       "Sales Officer"
 
 
 class UserManager(BaseUserManager):
