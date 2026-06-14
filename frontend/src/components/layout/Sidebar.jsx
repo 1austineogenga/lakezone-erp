@@ -10,7 +10,7 @@ import {
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
-  Cog6ToothIcon, KeyIcon,
+  Cog6ToothIcon, KeyIcon, BriefcaseIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -19,6 +19,7 @@ import usePermissions from '../../hooks/usePermissions'
 
 const TOP_LINKS = [
   { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true,  module: 'dashboard' },
+  { to: '/workspace',    icon: BriefcaseIcon,             label: 'My Workspace', end: true,  module: null },
   { to: '/projects',     icon: FolderIcon,                label: 'Projects',                 module: 'projects' },
   { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement',              module: 'procurement' },
   { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions',             module: 'requisitions' },
@@ -158,7 +159,7 @@ export default function Sidebar() {
           Operations
         </p>
 
-        {TOP_LINKS.filter(({ module }) => can(module)).map(({ to, icon: Icon, label, end }) => (
+        {TOP_LINKS.filter(({ module }) => module === null || can(module)).map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
