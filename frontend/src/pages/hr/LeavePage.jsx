@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { getLeaveApplications, createLeaveApplication, submitLeave, reviewLeave, getLeaveTypes } from '../../api/hr'
 import api from '../../api/client'
-import { PlusIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, CheckCircleIcon, XCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { printLeaveApplication } from '../../utils/print'
 
 const STATUS_COLORS = {
   draft:     'bg-gray-100 text-gray-600',
@@ -173,7 +174,7 @@ export default function LeavePage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               {app.status === 'draft' && (
                                 <button onClick={() => submitMut.mutate(app.id)}
                                   className="text-xs text-blue-600 hover:text-blue-800 font-medium">Submit</button>
@@ -190,6 +191,10 @@ export default function LeavePage() {
                                   </button>
                                 </>
                               )}
+                              <button onClick={() => printLeaveApplication(app, { name: app.employee_name })}
+                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 font-medium">
+                                <PrinterIcon className="h-3.5 w-3.5" /> Print
+                              </button>
                             </div>
                           </td>
                         </tr>

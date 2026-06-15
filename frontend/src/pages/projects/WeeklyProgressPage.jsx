@@ -5,7 +5,8 @@ import { toast } from 'react-toastify'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { printForemanWeekly, printSurveyorWeekly } from '../../utils/print'
 import { getProgress, createProgress, getProjectBudgets, getBudgetItems } from '../../api/projects'
 
 const fmt = v => `KES ${Number(v || 0).toLocaleString()}`
@@ -134,7 +135,7 @@ export default function WeeklyProgressPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {['Week #', 'Period', 'Materials', 'Fuel', 'Labour', 'Casuals', 'Total Actual', 'Budget', 'Variance'].map(h => (
+                  {['Week #', 'Period', 'Materials', 'Fuel', 'Labour', 'Casuals', 'Total Actual', 'Budget', 'Variance', 'Print'].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -156,6 +157,20 @@ export default function WeeklyProgressPage() {
                       <td className="px-3 py-3 text-gray-500">{fmt(budget)}</td>
                       <td className={`px-3 py-3 font-medium ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {variance >= 0 ? '+' : ''}{fmt(variance)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex gap-1.5">
+                          <button onClick={() => printForemanWeekly(p)}
+                            title="Print Foreman Weekly Report"
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-red font-medium whitespace-nowrap">
+                            <PrinterIcon className="h-3.5 w-3.5" /> Foreman
+                          </button>
+                          <button onClick={() => printSurveyorWeekly(p)}
+                            title="Print Surveyor Weekly Report"
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-red font-medium whitespace-nowrap">
+                            <PrinterIcon className="h-3.5 w-3.5" /> Surveyor
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

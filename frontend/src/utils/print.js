@@ -242,3 +242,459 @@ export function printBOQ(boq, projectName) {
     </div>`,
   })
 }
+
+// ── Leave Application Form ────────────────────────────────────────────────────
+export function printLeaveApplication(leave, user) {
+  const leaveTypes = {
+    annual:        'Annual Leave',
+    sick:          'Sick Leave',
+    maternity:     'Maternity Leave',
+    paternity:     'Paternity Leave',
+    compassionate: 'Compassionate',
+    study:         'Study Leave',
+    unpaid:        'Unpaid Leave',
+    emergency:     'Emergency Leave',
+  }
+  const typeName = leave.leave_type_name || leaveTypes[leave.leave_type] || leave.leave_type || ''
+
+  const checkboxes = [
+    'Annual Leave','Maternity Leave','Compassionate Leave','Study Leave',
+    'Sick Leave','Paternity Leave','Other','Unpaid Leave',
+  ].map(t => `
+    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:16px;margin-bottom:6px;">
+      <span style="display:inline-block;width:14px;height:14px;border:1px solid #334155;text-align:center;line-height:13px;font-size:11px;">
+        ${t === typeName || t.replace(' Leave','') === typeName ? '✓' : ''}
+      </span> ${t}
+    </span>`).join('')
+
+  printDoc({
+    title: 'Leave Application Form',
+    html: `
+    <div style="border:2px solid #1e293b;padding:0;">
+      <div style="background:#1e293b;color:#fff;padding:8px 16px;font-size:13px;font-weight:700;text-align:center;letter-spacing:1px;">
+        LEAVE APPLICATION FORM &nbsp;—&nbsp; TO BE FILLED BY APPLICANT (A)
+      </div>
+
+      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        <div><label style="font-size:10px;color:#64748b;">Name:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${user?.full_name || user?.first_name + ' ' + (user?.last_name || '') || '_______________'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">Designation:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;">${user?.role_display || '_______________'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">Department:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;">${user?.department || '_______________'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">Date:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;">${new Date().toLocaleDateString('en-KE')}</div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-size:10px;font-weight:700;color:#1e293b;margin-bottom:8px;">Leave Applied For (Please Mark ✓):</div>
+        <div style="flex-wrap:wrap;">${checkboxes}</div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+        <div><label style="font-size:10px;color:#64748b;">From (Date):</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${leave.start_date || '___________'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">To (Date):</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${leave.end_date || '___________'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">No. of Days:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${leave.days_requested || '___'}</div>
+        </div>
+        <div><label style="font-size:10px;color:#64748b;">Time From:</label>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;">___________</div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;">
+        <label style="font-size:10px;color:#64748b;">For Show &amp; Half Day Leaves — Short Day Leave / Half Day Leave:</label>
+        <div style="display:flex;gap:24px;margin-top:6px;">
+          <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border:1px solid #334155;display:inline-block;"></span> Short Day Leave</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border:1px solid #334155;display:inline-block;"></span> Half Day Leave</span>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;">
+        <label style="font-size:10px;color:#64748b;">Remarks (if any):</label>
+        <div style="border:1px solid #cbd5e1;min-height:48px;padding:6px;margin-top:4px;">${leave.reason || ''}</div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;">LEAVE COVERAGE (B)</div>
+        <p style="font-size:10px;margin-bottom:8px;">The following key duties will be performed by the covering staff during the leave period:</p>
+        ${[1,2,3,4,5].map(n => `<div style="display:flex;gap:8px;margin-bottom:6px;"><span>${n}.</span><div style="flex:1;border-bottom:1px solid #cbd5e1;">&nbsp;</div></div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">
+          <div><label style="font-size:10px;color:#64748b;">Employee Signature:</label><div style="border-bottom:1px solid #334155;height:32px;"></div></div>
+          <div><label style="font-size:10px;color:#64748b;">Date:</label><div style="border-bottom:1px solid #334155;height:32px;"></div></div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;">ACKNOWLEDGMENT &amp; ACCEPTANCE (C)</div>
+        <p style="font-size:10px;margin-bottom:8px;">I, the above-listed duties during the period of leave. I understand my responsibilities and commit to fulfilling them to the best of my abilities.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div><label style="font-size:10px;color:#64748b;">Signature:</label><div style="border-bottom:1px solid #334155;height:32px;"></div></div>
+          <div><label style="font-size:10px;color:#64748b;">ID No:</label><div style="border-bottom:1px solid #334155;height:32px;"></div></div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;background:#f8fafc;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:10px;background:#1e293b;color:#fff;padding:6px 10px;">OFFICE USE ONLY (D)</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#e2e8f0;">
+            <th style="padding:6px 8px;text-align:left;font-size:10px;border:1px solid #cbd5e1;">#</th>
+            <th style="padding:6px 8px;text-align:left;font-size:10px;border:1px solid #cbd5e1;">Item</th>
+            <th style="padding:6px 8px;text-align:left;font-size:10px;border:1px solid #cbd5e1;">Days/Details</th>
+            <th style="padding:6px 8px;text-align:left;font-size:10px;border:1px solid #cbd5e1;">Date</th>
+          </tr></thead>
+          <tbody>
+            ${['Leave Balance Brought Forward (Previous Year)','Current Year\'s Leave Entitlement','Leave Applied for (This Application)','Leave Already Taken to Date','Leave Days Outstanding (After this Leave)','Supporting Documents Attached (If Applicable, Yes/NO)'].map((item,i) => `
+            <tr>
+              <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10px;">${i+1}</td>
+              <td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:10px;">${item}</td>
+              <td style="padding:6px 8px;border:1px solid #cbd5e1;">&nbsp;</td>
+              <td style="padding:6px 8px;border:1px solid #cbd5e1;">&nbsp;</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:16px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px;">HOD/Supervisor, Name/Signature</div>
+            <div style="border-bottom:1px solid #334155;height:40px;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;margin-bottom:4px;">HR Department, Name/Signature</div>
+            <div style="border-bottom:1px solid #334155;height:40px;"></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div style="font-size:10px;font-weight:700;margin-bottom:4px;">Approvals:</div>
+          <div style="border-bottom:1px solid #334155;height:32px;"></div>
+        </div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Surveyor Daily Report ─────────────────────────────────────────────────────
+export function printSurveyorDaily(report) {
+  const rows = (report.activities || []).map(a => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${a.location || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${a.activity || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${a.output || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${a.remarks || ''}</td>
+  </tr>`).join('') || Array(8).fill(`<tr>${['','','',''].map(() => '<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')
+
+  const cpRows = (report.control_points || []).map(c => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${c.point_id || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${c.easting || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${c.northing || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${c.level || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${c.status || ''}</td>
+  </tr>`).join('') || Array(4).fill(`<tr>${['','','','',''].map(() => '<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')
+
+  printDoc({
+    title: 'Surveyor Daily Report',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Project name:', report.project_name],['Contract No./Location:', report.contract_no],['Location/Section:', report.location]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;font-weight:600;">${v||'_________________'}</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Date:',report.date],['Day:',report.day],['Weather:',report.weather],['Surveyor:',report.surveyor]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+        ${[['Assistant:',report.assistant],['Total Station:',report.total_station],['Battery/Calibration:',report.battery],['Staff/Prism:',report.staff_prism]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">A. Team attendance and equipment</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          ${[['Vehicle/Access:',''],['RTK/GPS:','']].map(([l,v])=>`<div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v}</div></div>`).join('')}
+        </div>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">B. Survey activities completed</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">No.</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Location/Chainage</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Activity</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Output/Reference</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Remarks</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">C. Control points / levels checked</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Point ID','Easting','Northing','Level','Status / Observation'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${cpRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:6px;background:#e2e8f0;padding:4px 8px;">D. Issues, instructions and next plan</div>
+        ${['Issues encountered','Instructions received / issued','Planned activities for next day'].map(label=>`
+        <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
+        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-top:3px;">${report[label.toLowerCase().replace(/ /g,'_')] || ''}</div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+        <div><div style="font-size:10px;font-weight:700;">Prepared by (Surveyor)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;">Checked by (Site Agent/Engineer)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Surveyor Weekly Report ────────────────────────────────────────────────────
+export function printSurveyorWeekly(report) {
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+  const actRows = days.map(day => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;font-weight:600;">${day}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.activities?.[day]?.location || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.activities?.[day]?.output || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.activities?.[day]?.remarks || ''}</td>
+  </tr>`).join('')
+
+  const benchRows = (report.benchmarks || []).map(b => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.item || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.status_this_week || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.action_required || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.remarks || ''}</td>
+  </tr>`).join('') || Array(4).fill(`<tr>${Array(4).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')
+
+  printDoc({
+    title: 'Surveyor Weekly Report',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Project name:',report.project_name],['Contract No./Location:',report.contract_no],['Week No.:',report.week_no]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;font-weight:600;">${v||''}</div></div>`).join('')}
+        ${[['Period:',report.period],['From:',report.from_date],['To:',report.to_date]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">A. Weekly summary of survey activities</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Day','Location/Chainage','Output','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${actRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">B. Benchmark / control summary and support to teams</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Item','Status this week','Action required','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${benchRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">C. Equipment status, constraints and next week plan</div>
+        ${['Equipment condition / calibration','Challenges / constraints','Planned activities for next week'].map(label=>`
+        <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
+        <div style="border:1px solid #cbd5e1;min-height:40px;padding:4px;margin-top:3px;"></div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+        <div><div style="font-size:10px;font-weight:700;">Prepared by (Surveyor)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;">Reviewed by (Site Agent/Engineer)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Foreman Weekly Report ─────────────────────────────────────────────────────
+export function printForemanWeekly(report) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+  const categories = ['Skilled labour','Semi-skilled','Unskilled','Operators','Supervisors']
+
+  const labourRows = categories.map(cat => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;font-weight:600;">${cat}</td>
+    ${days.map(d => `<td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${report.labour?.[cat]?.[d] || ''}</td>`).join('')}
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;font-weight:700;">${report.labour?.[cat]?.total || ''}</td>
+  </tr>`).join('')
+
+  const worksRows = (report.works || []).map(w => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.no || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.location || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.description || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.unit || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${w.weekly_target || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${w.weekly_achieved || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.remarks || ''}</td>
+  </tr>`).join('') || Array(6).fill(`<tr>${Array(7).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')
+
+  printDoc({
+    title: 'Foreman Weekly Report',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Project name:',report.project_name],['Contract No./Location:',report.contract_no],['Week No.:',report.week_no],['Period:',report.period],['From:',report.from_date],['To:',report.to_date]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">A. Weekly labour summary</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Category</th>
+            ${days.map(d=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:center;">${d}</th>`).join('')}
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:center;">Total</th>
+          </tr></thead>
+          <tbody>${labourRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">B. Works executed during the week</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['No.','Location/Section','Description','Unit','Weekly Target','Weekly Achieved','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${worksRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">C. Materials, issues and next week plan</div>
+        ${['Materials received/used','Major issues / constraints','Safety / quality / environment summary','Planned activities for next week'].map(label=>`
+        <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
+        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-top:3px;"></div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+        <div><div style="font-size:10px;font-weight:700;">Prepared by (Foreman)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;">Reviewed by (Site Agent/Engineer)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Machine Weekly Report ─────────────────────────────────────────────────────
+export function printMachineWeekly(report) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat']
+  const hoursRows = ['Hours Idle','Hours Worked','Hrs Breakdown','Hrs Standby'].map(cat => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;font-weight:600;">${cat}</td>
+    ${days.map(d=>`<td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${report.hours?.[cat]?.[d] || ''}</td>`).join('')}
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;font-weight:700;">${report.hours?.[cat]?.total || ''}</td>
+  </tr>`).join('')
+
+  const worksRows = (report.works || []).map(w => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.no||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.location||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.description||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.unit||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${w.weekly_target||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${w.weekly_achieved||''}</td>
+  </tr>`).join('') || Array(5).fill(`<tr>${Array(6).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')
+
+  const maintItems = ['Engine oil change','Filter replacement','Greasing/lubrication','Tyre/track inspection','Hydraulic check','General servicing']
+  const maintRows = maintItems.map(item => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${report.maintenance?.[item]?.scheduled || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${report.maintenance?.[item]?.completed || ''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.maintenance?.[item]?.remarks || ''}</td>
+  </tr>`).join('')
+
+  printDoc({
+    title: 'Machine Weekly Report',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Project name:',report.project_name],['Contract No./Location:',report.contract_no],['Week No.:',report.week_no],
+           ['Period:',report.period],['From:',report.from_date],['To:',report.to_date],
+           ['Machine type:',report.machine_type],['Machine name:',report.machine_name],['Machine ID/Reg. No.:',report.machine_id],
+           ['Primary Operator:',report.operator]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">A. Machine / Equipment Identification</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          ${[['Category:',report.category],['Hours Idle:',report.total_idle],['Hours Worked:',report.total_worked]].map(([l,v])=>`
+          <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+        </div>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">B. Weekly Hours Summary</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">Category</th>
+            ${days.map(d=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:center;">${d}</th>`).join('')}
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:center;">Total</th>
+          </tr></thead>
+          <tbody>${hoursRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">C. Weekly Fuels &amp; Fluids Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+          ${[['Opening Meter (Mgo):',report.opening_meter],['Closing Meter (Sat):',report.closing_meter],['Total Fuel Added (Ltrs):',report.total_fuel],['Total Grease Added:',report.total_grease]].map(([l,v])=>`
+          <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+        </div>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">D. Works Executed During the Week</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['No.','Location/Section','Description','Unit','Weekly Target','Weekly Achieved'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${worksRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">E. Weekly Maintenance Summary</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Maintenance Item','Scheduled?','Completed?','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${maintRows}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">F. Breakdowns / Downtime</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Day','Breakdown Desc.','Hrs Lost','Action Taken'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${Array(3).fill(`<tr>${Array(4).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">G. Materials, Issues and Next Week Plan</div>
+        ${['Materials/consumables received or used','Major issues / constraints','Safety / quality / environment','Planned activities for next week'].map(label=>`
+        <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
+        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-top:3px;"></div></div>`).join('')}
+      </div>
+
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+        <div><div style="font-size:10px;font-weight:700;">Prepared by (Operator/Driver)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;">Reviewed by (Site Agent/Engineer)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+      </div>
+    </div>`,
+  })
+}
