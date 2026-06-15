@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
-from .models import BOQ, BOQBill, BOQItem, Budget, BudgetLineItem, Project
+from .models import BOQ, BOQBill, BOQItem, Budget, BudgetLineItem, IPC, Project, ProjectPersonnel, ProjectRisk
 
 
 SKIP_KEYWORDS = [
@@ -311,6 +311,22 @@ class BudgetWorkbookImportService:
                 'items_created': items_created,
             })
 
+        # ── Risks from Variance_Register ──────────────────────────────────────
+        if 'Variance_Register' in wb.sheetnames:
+            # Build lookup: code → project object
+            project_map = {r['project_code']: Project.objects.get(pk=r['project_id']) for r in results}
+            BudgetWorkbookImportService._parse_variance_register(
+                wb['Variance_Register'], project_map
+            )
+
+        # ── Personnel from HR_Inputs_{PREFIX} ─────────────────────────────────
+        for r in results:
+            prefix = r['project_code']
+            hr_sheet = f'HR_Inputs_{prefix}'
+            if hr_sheet in wb.sheetnames:
+                project = Project.objects.get(pk=r['project_id'])
+                BudgetWorkbookImportService._parse_hr_inputs(wb[hr_sheet], project)
+
         return {'projects': results}
 
     # ── Sheet parsers ────────────────────────────────────────────────────────
@@ -470,6 +486,145 @@ class BudgetWorkbookImportService:
             )
             count += 1
         return count
+
+    @staticmethod
+    def _parse_variance_register(ws, project_map):
+        """
+        Variance_Register sheet:
+        col0=Project(MN/NS/Combined), col1=Risk, col2=ExpectedImpact,
+        col3=BudgetTreatment, col4=RealisticRange, col5=Owner,
+        col6=Status(Open/Pending), col7=Notes
+        """
+        _STATUS_MAP = {'open': 'open', 'pending': 'open', 'closed': 'closed', 'mitigated': 'mitigated', 'escalated': 'escalated'}
+        _IMPACT_KEYWORDS = {
+            'critical': ['critical', 'catastrophic'],
+            'high': ['high', 'major', 'severe', 'significant'],
+            'low': ['low', 'minor', 'negligible'],
+        }
+
+        def _guess_impact(risk_desc, impact_text):
+            combined = (str(risk_desc) + ' ' + str(impact_text)).lower()
+            for level in ('critical', 'high', 'low'):
+                for kw in _IMPACT_KEYWORDS[level]:
+                    if kw in combined:
+                        return level
+            return 'medium'
+
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            if not row or not row[0]:
+                continue
+            project_tag = str(row[0]).strip()
+            if not project_tag or project_tag.lower() in ('project', 'combined*'):
+                continue
+
+            risk_desc = str(row[1]).strip() if row[1] else ''
+            if not risk_desc:
+                continue
+
+            expected_impact = str(row[2]).strip() if len(row) > 2 and row[2] else ''
+            budget_treatment = str(row[3]).strip() if len(row) > 3 and row[3] else ''
+            realistic_range = str(row[4]).strip() if len(row) > 4 and row[4] else ''
+            owner = str(row[5]).strip() if len(row) > 5 and row[5] else ''
+            raw_status = str(row[6]).strip().lower() if len(row) > 6 and row[6] else 'open'
+            notes = str(row[7]).strip() if len(row) > 7 and row[7] else ''
+
+            status = _STATUS_MAP.get(raw_status, 'open')
+            impact_level = _guess_impact(risk_desc, expected_impact)
+
+            targets = []
+            if project_tag.upper() == 'COMBINED':
+                targets = list(project_map.values())
+            elif project_tag.upper() in project_map:
+                targets = [project_map[project_tag.upper()]]
+
+            for project in targets:
+                ProjectRisk.objects.update_or_create(
+                    project=project,
+                    risk_description=risk_desc,
+                    defaults=dict(
+                        expected_impact=expected_impact,
+                        budget_treatment=budget_treatment,
+                        realistic_range=realistic_range,
+                        owner=owner,
+                        impact_level=impact_level,
+                        status=status,
+                        notes=notes,
+                    ),
+                )
+
+    _ROLE_MAP = {
+        'site engineer': 'site_engineer',
+        'site agent': 'site_engineer',
+        'general foreman': 'general_foreman',
+        'surveyor': 'surveyor',
+        'foreman': 'foreman',
+        'hse': 'hse_lead',
+        'traffic': 'hse_lead',
+        'clerk': 'clerk',
+        'storekeeper': 'clerk',
+        'timekeeper': 'clerk',
+        'operator': 'operator',
+        'driver': 'operator',
+        'casual': 'casual',
+    }
+
+    @classmethod
+    def _map_role(cls, role_text):
+        lower = str(role_text).lower()
+        for key, val in cls._ROLE_MAP.items():
+            if key in lower:
+                return val
+        return 'other'
+
+    @staticmethod
+    def _parse_hr_inputs(ws, project):
+        """
+        HR_Inputs_{PREFIX}:
+        col0=Project, col1=Category(Key personnel/Support/Allowance/Casual),
+        col2=Role/LabourItem, col3=Headcount/Qty, col4=Months/DaysBasis,
+        col5=RateKES, col6=Variance%, col7=BaseCostKES, col8=HighCaseKES,
+        col9=Include?(Yes/No)
+        """
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            if not row or not row[2]:
+                continue
+            role_text = str(row[2]).strip()
+            if not role_text or role_text.lower() in ('role / labour item', 'role', ''):
+                continue
+            headcount = _safe_decimal(row[3]) if len(row) > 3 else Decimal('1')
+            if headcount == 0:
+                headcount = Decimal('1')
+            rate = _safe_decimal(row[5]) if len(row) > 5 else Decimal('0')
+            include_raw = str(row[9]).strip().lower() if len(row) > 9 and row[9] else 'yes'
+            include_in_budget = include_raw not in ('no', 'n', 'false', '0')
+            base_cost = _safe_decimal(row[7]) if len(row) > 7 else Decimal('0')
+            notes_parts = []
+            cat = str(row[1]).strip() if row[1] else ''
+            if cat:
+                notes_parts.append(f'Category: {cat}')
+            months = row[4]
+            if months:
+                notes_parts.append(f'Basis: {months}')
+            variance = row[6]
+            if variance:
+                notes_parts.append(f'Variance: {variance}%')
+            if base_cost:
+                notes_parts.append(f'Base cost: KES {base_cost:,}')
+
+            role = BudgetWorkbookImportService._map_role(role_text)
+
+            ProjectPersonnel.objects.update_or_create(
+                project=project,
+                employee_name=role_text[:200],
+                defaults=dict(
+                    role=role,
+                    monthly_rate=rate,
+                    include_in_budget=include_in_budget,
+                    notes='; '.join(notes_parts)[:500],
+                    start_date=project.start_date,
+                    end_date=project.end_date,
+                ),
+            )
 
     @staticmethod
     def _month_no(cell):
