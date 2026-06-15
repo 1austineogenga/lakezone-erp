@@ -71,6 +71,7 @@ class BOQItem(models.Model):
     quantity = models.DecimalField(max_digits=15, decimal_places=3, default=0)
     rate = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    actual_cost = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
 
     class Meta:

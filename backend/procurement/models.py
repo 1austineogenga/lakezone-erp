@@ -1,5 +1,5 @@
 import uuid
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from projects.models import Project, BOQItem
 
@@ -80,11 +80,12 @@ class PurchaseRequisition(models.Model):
     def save(self, *args, **kwargs):
         if not self.pr_number:
             from django.utils import timezone
-            year = timezone.now().year
-            count = PurchaseRequisition.objects.filter(
-                created_at__year=year
-            ).count() + 1
-            self.pr_number = f"PR-{year}-{count:04d}"
+            with transaction.atomic():
+                year = timezone.now().year
+                count = PurchaseRequisition.objects.select_for_update().filter(
+                    created_at__year=year
+                ).count() + 1
+                self.pr_number = f"PR-{year}-{count:04d}"
         super().save(*args, **kwargs)
 
     @property
@@ -153,9 +154,12 @@ class PurchaseOrder(models.Model):
     def save(self, *args, **kwargs):
         if not self.po_number:
             from django.utils import timezone
-            year = timezone.now().year
-            count = PurchaseOrder.objects.filter(created_at__year=year).count() + 1
-            self.po_number = f"PO-{year}-{count:04d}"
+            with transaction.atomic():
+                year = timezone.now().year
+                count = PurchaseOrder.objects.select_for_update().filter(
+                    created_at__year=year
+                ).count() + 1
+                self.po_number = f"PO-{year}-{count:04d}"
         super().save(*args, **kwargs)
 
     @property

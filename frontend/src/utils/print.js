@@ -277,7 +277,7 @@ export function printLeaveApplication(leave, user) {
 
       <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
         <div><label style="font-size:10px;color:#64748b;">Name:</label>
-          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${user?.full_name || user?.first_name + ' ' + (user?.last_name || '') || '_______________'}</div>
+          <div style="border-bottom:1px solid #334155;padding:4px 0;font-weight:600;">${user?.full_name || ((user?.first_name || '') + ' ' + (user?.last_name || '')).trim() || '_______________'}</div>
         </div>
         <div><label style="font-size:10px;color:#64748b;">Designation:</label>
           <div style="border-bottom:1px solid #334155;padding:4px 0;">${user?.role_display || '_______________'}</div>

@@ -33,7 +33,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'retention_amount', 'total_amount', 'amount_paid', 'balance_due',
             'notes', 'lines', 'created_at',
         ]
-        read_only_fields = ['invoice_number', 'vat_amount', 'retention_amount',
+        read_only_fields = ['invoice_number', 'subtotal', 'vat_amount', 'retention_amount',
                             'total_amount', 'amount_paid', 'balance_due']
 
 
@@ -78,7 +78,7 @@ class BillSerializer(serializers.ModelSerializer):
             'subtotal', 'vat_amount', 'withholding_tax', 'total_amount',
             'amount_paid', 'balance_due', 'notes', 'lines', 'created_at',
         ]
-        read_only_fields = ['bill_number', 'subtotal', 'total_amount',
+        read_only_fields = ['bill_number', 'subtotal', 'vat_amount', 'total_amount',
                             'amount_paid', 'balance_due']
 
 

@@ -415,6 +415,7 @@ class PayrollEntry(models.Model):
         unique_together = ['period', 'employee']
         ordering = ['employee__last_name']
 
+    # Kenya PAYE tax bands (Finance Act 2023) — monthly gross in KES
     @staticmethod
     def compute_paye(gross):
         gross = float(gross)

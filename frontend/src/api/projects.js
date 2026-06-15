@@ -43,3 +43,9 @@ export const updatePersonnel = (projectId, id, data)   => api.patch(`/projects/$
 export const getProgress    = (projectId)                   => api.get(`/projects/${projectId}/progress/`)
 export const createProgress = (projectId, data)             => api.post(`/projects/${projectId}/progress/`, data)
 export const updateProgress = (projectId, progressId, data) => api.patch(`/projects/${projectId}/progress/${progressId}/`, data)
+
+// Costing
+export const getCosting = (projectId) => api.get(`/projects/${projectId}/costing/`)
+
+// Alias — ProjectDetailPage imports getProjectBOQ (singular)
+export const getProjectBOQ = getProjectBOQs

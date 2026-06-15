@@ -43,6 +43,11 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
         fields = ['title', 'req_type', 'priority', 'department', 'project',
                   'description', 'date_required', 'items']
 
+    def validate_items(self, items):
+        if not items:
+            raise serializers.ValidationError('A requisition must have at least one item.')
+        return items
+
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         req = StaffRequisition.objects.create(
