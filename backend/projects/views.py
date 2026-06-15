@@ -18,6 +18,142 @@ from .serializers import (
     ProjectPersonnelSerializer, WeeklyProgressSerializer
 )
 from .services import BOQImportService
+import openpyxl
+from decimal import Decimal, InvalidOperation
+import datetime
+
+
+def _safe_decimal(v):
+    try:
+        return Decimal(str(v)) if v not in (None, '') else Decimal('0')
+    except (InvalidOperation, ValueError):
+        return Decimal('0')
+
+
+def _safe_date(v):
+    if not v:
+        return None
+    if isinstance(v, (datetime.date, datetime.datetime)):
+        return v.date() if isinstance(v, datetime.datetime) else v
+    try:
+        return datetime.datetime.strptime(str(v).strip(), '%Y-%m-%d').date()
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(str(v).strip(), '%d/%m/%Y').date()
+        except ValueError:
+            return None
+
+
+class ProjectImportView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            wb = openpyxl.load_workbook(file, data_only=True)
+            ws = wb.active
+        except Exception as e:
+            return Response({'error': f'Could not read file: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find header row — look for a row containing "code" or "project"
+        header_row = None
+        headers = {}
+        for row in ws.iter_rows(max_row=10, values_only=True):
+            row_lower = [str(c).strip().lower() if c else '' for c in row]
+            if any(k in row_lower for k in ('code', 'project code', 'name', 'project name')):
+                header_row = row_lower
+                break
+
+        if header_row is None:
+            return Response({'error': 'Could not find header row. Expected columns: Code, Name, Client, Contract Number, Contract Value, Location, Start Date, End Date, Status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Map column names to indices
+        col_map = {
+            'code':             ['code', 'project code', 'proj code'],
+            'name':             ['name', 'project name', 'project'],
+            'client':           ['client', 'client name', 'employer'],
+            'contract_number':  ['contract number', 'contract no', 'contract no.', 'contract#'],
+            'contract_value':   ['contract value', 'value', 'contract amount', 'amount'],
+            'location':         ['location', 'site', 'site location'],
+            'start_date':       ['start date', 'start', 'commencement date'],
+            'end_date':         ['end date', 'end', 'completion date', 'expected completion'],
+            'status':           ['status'],
+            'description':      ['description', 'notes', 'remarks'],
+        }
+        idx = {}
+        for field, aliases in col_map.items():
+            for i, h in enumerate(header_row):
+                if h in aliases:
+                    idx[field] = i
+                    break
+
+        if 'code' not in idx or 'name' not in idx:
+            return Response({'error': f'Missing required columns. Found: {header_row}. Need at least "Code" and "Name".'}, status=status.HTTP_400_BAD_REQUEST)
+
+        STATUS_MAP = {
+            'planning': 'planning', 'plan': 'planning',
+            'active': 'active', 'ongoing': 'active', 'in progress': 'active',
+            'on hold': 'on_hold', 'hold': 'on_hold', 'on_hold': 'on_hold',
+            'completed': 'completed', 'complete': 'completed', 'done': 'completed',
+            'suspended': 'suspended', 'stopped': 'suspended',
+        }
+
+        created, updated, skipped = [], [], []
+        data_started = False
+
+        for row in ws.iter_rows(values_only=True):
+            # Skip until past header
+            row_vals = [str(c).strip().lower() if c else '' for c in row]
+            if not data_started:
+                if any(k in row_vals for k in ('code', 'project code', 'name')):
+                    data_started = True
+                continue
+
+            def g(field, default=''):
+                i = idx.get(field)
+                if i is None or i >= len(row):
+                    return default
+                v = row[i]
+                return str(v).strip() if v is not None else default
+
+            code = g('code')
+            name = g('name')
+            if not code or not name:
+                continue
+
+            raw_status = g('status', 'planning').lower()
+            proj_status = STATUS_MAP.get(raw_status, 'planning')
+
+            defaults = {
+                'name':            name,
+                'client':          g('client'),
+                'contract_number': g('contract_number'),
+                'contract_value':  _safe_decimal(g('contract_value', '0')),
+                'location':        g('location'),
+                'start_date':      _safe_date(g('start_date')),
+                'end_date':        _safe_date(g('end_date')),
+                'status':          proj_status,
+                'description':     g('description'),
+            }
+
+            try:
+                obj, was_created = Project.objects.update_or_create(code=code, defaults=defaults)
+                (created if was_created else updated).append(code)
+            except Exception as e:
+                skipped.append({'code': code, 'reason': str(e)})
+
+        return Response({
+            'created': len(created),
+            'updated': len(updated),
+            'skipped': len(skipped),
+            'skipped_detail': skipped,
+            'created_codes': created,
+            'updated_codes': updated,
+        }, status=status.HTTP_201_CREATED)
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):

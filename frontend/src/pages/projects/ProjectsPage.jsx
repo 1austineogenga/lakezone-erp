@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
-import { getProjects, createProject } from '../../api/projects'
+import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline'
+import { getProjects, createProject, importProjects } from '../../api/projects'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -18,31 +18,46 @@ const STATUS_LABELS = {
 }
 
 const EMPTY_FORM = {
-  code: '', name: '', client_name: '', contract_number: '', contract_value: '',
+  code: '', name: '', client: '', contract_number: '', contract_value: '',
   location: '', start_date: '', end_date: '', description: '', status: 'planning',
 }
 
 export default function ProjectsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [showModal, setShowModal]     = useState(false)
+  const [showImport, setShowImport]   = useState(false)
+  const [form, setForm]               = useState(EMPTY_FORM)
+  const [importFile, setImportFile]   = useState(null)
+  const fileRef = useRef()
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => getProjects({ page_size: 100 }),
+    queryFn: () => getProjects({ page_size: 200 }),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
   const createMut = useMutation({
     mutationFn: createProject,
     onSuccess: () => {
-      toast.success('Project created successfully.')
+      toast.success('Project created.')
       qc.invalidateQueries({ queryKey: ['projects'] })
       setShowModal(false)
       setForm(EMPTY_FORM)
     },
     onError: e => toast.error(e.response?.data?.detail || 'Failed to create project.'),
+  })
+
+  const importMut = useMutation({
+    mutationFn: (fd) => importProjects(fd),
+    onSuccess: (res) => {
+      const { created, updated, skipped } = res.data
+      toast.success(`Import complete — ${created} created, ${updated} updated${skipped ? `, ${skipped} skipped` : ''}`)
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      setShowImport(false)
+      setImportFile(null)
+    },
+    onError: e => toast.error(e.response?.data?.error || 'Import failed.'),
   })
 
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -54,6 +69,14 @@ export default function ProjectsPage() {
     createMut.mutate(payload)
   }
 
+  const handleImport = (e) => {
+    e.preventDefault()
+    if (!importFile) return toast.error('Please select an Excel file.')
+    const fd = new FormData()
+    fd.append('file', importFile)
+    importMut.mutate(fd)
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -62,12 +85,20 @@ export default function ProjectsPage() {
           <h2 className="font-bold text-brand-slate text-lg">Projects</h2>
           <p className="text-xs text-gray-400 mt-0.5">{projects.length} total projects</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-        >
-          <PlusIcon className="h-3.5 w-3.5" /> New Project
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
+          >
+            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> New Project
+          </button>
+        </div>
       </div>
 
       {/* Projects Grid */}
@@ -77,13 +108,17 @@ export default function ProjectsPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
           <BuildingOffice2Icon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-500">No projects yet</p>
-          <p className="text-xs text-gray-400 mt-1">Create your first project to get started.</p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="mt-4 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-          >
-            Create Project
-          </button>
+          <p className="text-xs text-gray-400 mt-1">Create manually or import from Excel.</p>
+          <div className="flex justify-center gap-2 mt-4">
+            <button onClick={() => setShowImport(true)}
+              className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 flex items-center gap-1.5">
+              <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
+            </button>
+            <button onClick={() => setShowModal(true)}
+              className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+              Create Project
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -95,25 +130,19 @@ export default function ProjectsPage() {
                     {STATUS_LABELS[p.status] || p.status}
                   </span>
                   <span className="bg-brand-slate text-white text-xs font-bold px-2.5 py-1 rounded-lg tracking-wide">
-                    {p.code || p.project_code || '—'}
+                    {p.code || '—'}
                   </span>
                 </div>
-                <h3 className="font-semibold text-brand-slate text-sm leading-snug mb-1">
-                  {p.name || p.project_name}
-                </h3>
-                <p className="text-xs text-gray-400 mb-3">{p.client_name || p.client || '—'}</p>
+                <h3 className="font-semibold text-brand-slate text-sm leading-snug mb-1">{p.name}</h3>
+                <p className="text-xs text-gray-400 mb-3">{p.client || '—'}</p>
                 <div className="border-t border-gray-100 pt-3 space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Contract Value</span>
-                    <span className="font-semibold text-brand-slate">
-                      KES {(p.contract_value || 0).toLocaleString()}
-                    </span>
+                    <span className="font-semibold text-brand-slate">KES {Number(p.contract_value || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Period</span>
-                    <span className="text-gray-600">
-                      {p.start_date || '—'} → {p.end_date || '—'}
-                    </span>
+                    <span className="text-gray-600">{p.start_date || '—'} → {p.end_date || '—'}</span>
                   </div>
                   {p.location && (
                     <div className="flex justify-between text-xs">
@@ -136,6 +165,61 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {/* Import Excel Modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-brand-slate">Import Projects from Excel</h3>
+              <button onClick={() => { setShowImport(false); setImportFile(null) }}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="p-6">
+              {/* Template guide */}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
+                <p className="font-semibold mb-1">Excel column headers required:</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Code</span> — unique project code (required)</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Name</span> — project name (required)</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Client</span> — client / employer name</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Contract Number</span> — contract reference</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Contract Value</span> — amount in KES</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Location</span> — site location</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Start Date</span> — YYYY-MM-DD or DD/MM/YYYY</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">End Date</span> — YYYY-MM-DD or DD/MM/YYYY</p>
+                <p><span className="font-mono bg-blue-100 px-1 rounded">Status</span> — planning / active / on hold / completed</p>
+              </div>
+
+              <form onSubmit={handleImport} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Excel File (.xlsx) *</label>
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-brand-red transition-colors"
+                  >
+                    {importFile
+                      ? <p className="text-sm font-medium text-brand-slate">{importFile.name}</p>
+                      : <><DocumentArrowUpIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                         <p className="text-sm text-gray-400">Click to select file</p></>}
+                    <input ref={fileRef} type="file" accept=".xlsx" className="hidden"
+                      onChange={e => setImportFile(e.target.files[0] || null)} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={importMut.isPending || !importFile}
+                    className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                    {importMut.isPending ? 'Importing…' : 'Import Projects'}
+                  </button>
+                  <button type="button" onClick={() => { setShowImport(false); setImportFile(null) }}
+                    className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New Project Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -148,33 +232,26 @@ export default function ProjectsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Project Code *', key: 'code', placeholder: 'e.g. LZ-2024-001' },
-                  { label: 'Project Name *', key: 'name', placeholder: 'Project name' },
-                  { label: 'Client Name', key: 'client_name', placeholder: 'Client / employer' },
-                  { label: 'Contract No.', key: 'contract_number', placeholder: 'Contract reference' },
+                  { label: 'Project Code *', key: 'code',             placeholder: 'e.g. LZ-2026-001' },
+                  { label: 'Project Name *', key: 'name',             placeholder: 'Project name' },
+                  { label: 'Client Name',    key: 'client',           placeholder: 'Client / employer' },
+                  { label: 'Contract No.',   key: 'contract_number',  placeholder: 'Contract reference' },
                   { label: 'Contract Value (KES)', key: 'contract_value', placeholder: '0', type: 'number' },
-                  { label: 'Location', key: 'location', placeholder: 'Site location' },
-                  { label: 'Start Date', key: 'start_date', type: 'date' },
-                  { label: 'End Date', key: 'end_date', type: 'date' },
+                  { label: 'Location',       key: 'location',         placeholder: 'Site location' },
+                  { label: 'Start Date',     key: 'start_date',       type: 'date' },
+                  { label: 'End Date',       key: 'end_date',         type: 'date' },
                 ].map(({ label, key, placeholder, type }) => (
                   <div key={key}>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-                    <input
-                      type={type || 'text'}
-                      value={form[key]}
-                      onChange={e => field(key, e.target.value)}
-                      placeholder={placeholder}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red"
-                    />
+                    <input type={type || 'text'} value={form[key]}
+                      onChange={e => field(key, e.target.value)} placeholder={placeholder}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
                   </div>
                 ))}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={e => field('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red"
-                  >
+                  <select value={form.status} onChange={e => field('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
                     {Object.entries(STATUS_LABELS).map(([val, label]) => (
                       <option key={val} value={val}>{label}</option>
                     ))}
@@ -183,27 +260,17 @@ export default function ProjectsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={e => field('description', e.target.value)}
+                <textarea rows={3} value={form.description} onChange={e => field('description', e.target.value)}
                   placeholder="Brief project description…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red"
-                />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={createMut.isPending || !form.code || !form.name}
-                  className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60"
-                >
+                <button type="submit" disabled={createMut.isPending || !form.code || !form.name}
+                  className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
                   {createMut.isPending ? 'Creating…' : 'Create Project'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                  className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
-                >
+                <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
+                  className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
                   Cancel
                 </button>
               </div>
