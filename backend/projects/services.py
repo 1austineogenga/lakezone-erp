@@ -174,11 +174,43 @@ class BOQImportService:
         }
 
 
+import datetime
+
 # ── Known project defaults per workbook prefix ─────────────────────────────────
 
 _PROJECT_DEFAULTS = {
-    'MN': {'name': 'Magumu - Njambini Road',       'client': 'KeNHA'},
-    'NS': {'name': 'Njambini - Sasumua Dam Road',   'client': 'KeNHA'},
+    'MN': {
+        'name':            'Magumu - Njambini Road Rehabilitation',
+        'client':          'Kenya National Highways Authority (KeNHA)',
+        'contract_number': 'KeNHA/MN/2025',
+        'contract_value':  Decimal('0'),        # unknown — fill manually
+        'location':        'Magumu - Njambini, Nyandarua County',
+        'status':          'active',
+        'start_date':      datetime.date(2026, 2, 1),
+        'end_date':        datetime.date(2026, 9, 30),
+        'description':     (
+            'Rehabilitation of Magumu - Njambini Road. '
+            '2-month execution budget covers drainage (RC pipes, culverts), '
+            'footpath paving, stone pitching and shoulder reconstruction.'
+        ),
+    },
+    'NS': {
+        'name':            'Njambini - Sasumua Dam Road Rehabilitation',
+        'client':          'Kenya National Highways Authority (KeNHA)',
+        'contract_number': 'KeNHA/NS/2025',
+        # BOQ Sub-Total (2): A+B+C = KES 532,833,705.60 (excl. VAT)
+        'contract_value':  Decimal('532833705.60'),
+        'location':        'Njambini - Sasumua Dam Road, Nyandarua County',
+        'status':          'active',
+        'start_date':      datetime.date(2026, 2, 1),
+        'end_date':        datetime.date(2027, 1, 31),
+        'description':     (
+            'Rehabilitation of Njambini - Sasumua Dam Road (4.71 km). '
+            'Works include earthworks, cement-improved subbase/base, AC Type II asphalt, '
+            'drainage culverts (Ø600/Ø900mm), concrete headwalls and road furniture. '
+            'Contract value KES 532.8M excl. VAT (BOQ approved).'
+        ),
+    },
 }
 
 _NS_CATEGORY_MAP = {
@@ -233,18 +265,14 @@ class BudgetWorkbookImportService:
 
             project, created = Project.objects.update_or_create(
                 code=prefix,
-                defaults={
-                    'name': defaults['name'],
-                    'client': defaults.get('client', ''),
-                    'status': 'active',
-                },
+                defaults={k: v for k, v in defaults.items()},
             )
 
             budget = Budget.objects.create(
                 project=project,
-                title=f'{prefix} 2-Month Execution Budget',
+                title=f'{defaults.get("name", prefix)} — 2-Month Execution Budget (Apr–May 2026)',
                 period_weeks=budget_weeks,
-                status='draft',
+                status='approved',
             )
 
             items_created = 0
