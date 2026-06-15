@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
-from .models import BOQ, BOQBill, BOQItem, Project
+from .models import BOQ, BOQBill, BOQItem, Budget, BudgetLineItem, Project
 
 
 SKIP_KEYWORDS = [
@@ -172,3 +172,280 @@ class BOQImportService:
             'items_created': items_created,
             'total_amount': float(total_amount),
         }
+
+
+# ── Known project defaults per workbook prefix ─────────────────────────────────
+
+_PROJECT_DEFAULTS = {
+    'MN': {'name': 'Magumu - Njambini Road',       'client': 'KeNHA'},
+    'NS': {'name': 'Njambini - Sasumua Dam Road',   'client': 'KeNHA'},
+}
+
+_NS_CATEGORY_MAP = {
+    'earthworks / fill':           'materials',
+    'pavement':                    'materials',
+    'surfacing':                   'materials',
+    'drainage':                    'materials',
+    'operations':                  'other',
+    'plant/vehicle pool':          'fuel',
+    'small plant':                 'fuel',
+    'plant support':               'other',
+    'key personnel':               'labour',
+    'casual labour':               'casuals',
+    'operators/drivers support':   'labour',
+}
+
+
+class BudgetWorkbookImportService:
+    """
+    Parses a Combined Budget workbook (MN + NS format) and creates/updates
+    Projects, Budgets, and BudgetLineItems.
+    """
+
+    @staticmethod
+    def import_from_excel(file):
+        wb = openpyxl.load_workbook(file, data_only=True)
+
+        # Read global inputs
+        budget_weeks = 8
+        if 'Global_Inputs' in wb.sheetnames:
+            ws_gi = wb['Global_Inputs']
+            for row in ws_gi.iter_rows(min_row=4, values_only=True):
+                if row[0] and 'budget period' in str(row[0]).lower():
+                    try:
+                        budget_weeks = int(row[1])
+                    except (TypeError, ValueError):
+                        pass
+
+        # Detect project prefixes from sheet names (e.g. MN_Materials → MN)
+        prefixes = set()
+        for sheet_name in wb.sheetnames:
+            for suffix in ('_Materials', '_Fuel', '_FuelPlant', '_Casuals', '_HR_Labour'):
+                if sheet_name.endswith(suffix):
+                    prefix = sheet_name[: len(sheet_name) - len(suffix)]
+                    if prefix:
+                        prefixes.add(prefix)
+
+        results = []
+
+        for prefix in sorted(prefixes):
+            defaults = _PROJECT_DEFAULTS.get(prefix, {'name': f'{prefix} Project', 'client': ''})
+
+            project, created = Project.objects.update_or_create(
+                code=prefix,
+                defaults={
+                    'name': defaults['name'],
+                    'client': defaults.get('client', ''),
+                    'status': 'active',
+                },
+            )
+
+            budget = Budget.objects.create(
+                project=project,
+                title=f'{prefix} 2-Month Execution Budget',
+                period_weeks=budget_weeks,
+                status='draft',
+            )
+
+            items_created = 0
+
+            # Materials (MN weekly or NS flat)
+            mat = f'{prefix}_Materials'
+            if mat in wb.sheetnames:
+                items_created += BudgetWorkbookImportService._parse_mn_materials(wb[mat], budget)
+
+            # Fuel (MN weekly)
+            fuel = f'{prefix}_Fuel'
+            if fuel in wb.sheetnames:
+                items_created += BudgetWorkbookImportService._parse_mn_fuel(wb[fuel], budget)
+
+            # FuelPlant (NS flat)
+            fuelplant = f'{prefix}_FuelPlant'
+            if fuelplant in wb.sheetnames:
+                items_created += BudgetWorkbookImportService._parse_ns_flat(wb[fuelplant], budget)
+
+            # Casuals (MN weekly)
+            casuals = f'{prefix}_Casuals'
+            if casuals in wb.sheetnames:
+                items_created += BudgetWorkbookImportService._parse_mn_casuals(wb[casuals], budget)
+
+            # HR/Labour (NS flat)
+            hr = f'{prefix}_HR_Labour'
+            if hr in wb.sheetnames:
+                items_created += BudgetWorkbookImportService._parse_ns_flat(wb[hr], budget)
+
+            results.append({
+                'project_id':   str(project.id),
+                'project_code': prefix,
+                'project_name': project.name,
+                'created':      created,
+                'budget_id':    str(budget.id),
+                'items_created': items_created,
+            })
+
+        return {'projects': results}
+
+    # ── Sheet parsers ────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _parse_mn_materials(ws, budget):
+        """
+        MN_Materials: col0=Week, col1=Month, col2=WorkFocus, col3=Material,
+        col4=Qty, col5=Unit, col6=BaseRate, col7=Waste%, col8=LowVar%,
+        col9=HighVar%, col10=BaseCost, col11=LowCase, col12=HighCase,
+        col13=VarianceReserve, col14=Remarks
+        """
+        count = 0
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            week_no = row[0]
+            if not isinstance(week_no, (int, float)):
+                continue
+            description = str(row[3]).strip() if row[3] else ''
+            if not description:
+                continue
+            BudgetLineItem.objects.create(
+                budget=budget,
+                week_no=int(week_no),
+                month_no=BudgetWorkbookImportService._month_no(row[1]),
+                work_focus=(str(row[2]) if row[2] else '')[:200],
+                category='materials',
+                description=description[:500],
+                quantity=_safe_decimal(row[4]),
+                unit=(str(row[5]) if row[5] else '')[:50],
+                base_rate=_safe_decimal(row[6]),
+                waste_allowance_pct=_safe_decimal(row[7]),
+                low_variance_pct=_safe_decimal(row[8]),
+                high_variance_pct=_safe_decimal(row[9]),
+                base_cost=_safe_decimal(row[10]),
+                low_case_cost=_safe_decimal(row[11]),
+                high_case_cost=_safe_decimal(row[12]),
+                variance_reserve=_safe_decimal(row[13]),
+                remarks=(str(row[14]) if row[14] else '')[:500],
+            )
+            count += 1
+        return count
+
+    @staticmethod
+    def _parse_mn_fuel(ws, budget):
+        """
+        MN_Fuel: col0=Week, col1=Month, col2=WorkFocus, col3=Allocation,
+        col4=FuelType, col5=Qty, col6=Unit, col7=BaseRate, col8=Allowance%,
+        col9=LowVar%, col10=HighVar%, col11=BaseCost, col12=LowCase,
+        col13=HighCase, col14=VarianceReserve, col15=Remarks
+        """
+        count = 0
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            week_no = row[0]
+            if not isinstance(week_no, (int, float)):
+                continue
+            fuel_type = str(row[4]).strip() if row[4] else ''
+            allocation = str(row[3]).strip() if row[3] else ''
+            description = f'{allocation} — {fuel_type}' if allocation else fuel_type
+            if not description.strip():
+                continue
+            BudgetLineItem.objects.create(
+                budget=budget,
+                week_no=int(week_no),
+                month_no=BudgetWorkbookImportService._month_no(row[1]),
+                work_focus=(str(row[2]) if row[2] else '')[:200],
+                category='fuel',
+                description=description[:500],
+                quantity=_safe_decimal(row[5]),
+                unit=(str(row[6]) if row[6] else '')[:50],
+                base_rate=_safe_decimal(row[7]),
+                waste_allowance_pct=_safe_decimal(row[8]),
+                low_variance_pct=_safe_decimal(row[9]),
+                high_variance_pct=_safe_decimal(row[10]),
+                base_cost=_safe_decimal(row[11]),
+                low_case_cost=_safe_decimal(row[12]),
+                high_case_cost=_safe_decimal(row[13]),
+                variance_reserve=_safe_decimal(row[14]),
+                remarks=(str(row[15]) if len(row) > 15 and row[15] else '')[:500],
+            )
+            count += 1
+        return count
+
+    @staticmethod
+    def _parse_mn_casuals(ws, budget):
+        """
+        MN_Casuals: col0=Week, col1=Month, col2=WorkFocus,
+        col11=CasualHeadcount, col12=Days/Week, col13=DailyRate,
+        col14=LowVar%, col15=HighVar%, col16=BaseCost,
+        col17=LowCase, col18=HighCase, col19=Remarks
+        """
+        count = 0
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            week_no = row[0]
+            if not isinstance(week_no, (int, float)):
+                continue
+            headcount = _safe_decimal(row[11])
+            days_week = _safe_decimal(row[12])
+            if headcount == 0:
+                continue
+            BudgetLineItem.objects.create(
+                budget=budget,
+                week_no=int(week_no),
+                month_no=BudgetWorkbookImportService._month_no(row[1]),
+                work_focus=(str(row[2]) if row[2] else '')[:200],
+                category='casuals',
+                description='Casual Labour',
+                quantity=headcount * days_week,
+                unit='person-days',
+                base_rate=_safe_decimal(row[13]),
+                low_variance_pct=_safe_decimal(row[14]),
+                high_variance_pct=_safe_decimal(row[15]),
+                base_cost=_safe_decimal(row[16]),
+                low_case_cost=_safe_decimal(row[17]),
+                high_case_cost=_safe_decimal(row[18]),
+                remarks=(str(row[19]) if len(row) > 19 and row[19] else '')[:500],
+            )
+            count += 1
+        return count
+
+    @staticmethod
+    def _parse_ns_flat(ws, budget):
+        """
+        NS flat sheets (NS_Materials, NS_FuelPlant, NS_HR_Labour):
+        col0=Category, col1=Item, col2=Qty, col3=Unit, col4=BaseRate,
+        col5=Variance%, col6=Notes, col7=BaseCost, col8=LowCase, col9=HighCase
+        """
+        count = 0
+        current_category = 'other'
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            if not any(c for c in (row[:10] if len(row) >= 10 else row)):
+                continue
+            cat_cell = str(row[0]).strip() if row[0] else ''
+            if cat_cell.upper() in ('TOTAL', 'SUB-TOTAL', 'SUBTOTAL', ''):
+                if cat_cell:
+                    continue  # skip total rows
+            if cat_cell:
+                current_category = _NS_CATEGORY_MAP.get(cat_cell.lower(), 'other')
+            description = str(row[1]).strip() if row[1] else ''
+            if not description:
+                continue
+            base_cost = _safe_decimal(row[7] if len(row) > 7 else None)
+            qty = _safe_decimal(row[2] if len(row) > 2 else None)
+            if base_cost == 0 and qty == 0:
+                continue
+            BudgetLineItem.objects.create(
+                budget=budget,
+                category=current_category,
+                description=description[:500],
+                quantity=qty,
+                unit=(str(row[3]) if row[3] else '')[:50],
+                base_rate=_safe_decimal(row[4] if len(row) > 4 else None),
+                high_variance_pct=_safe_decimal(row[5] if len(row) > 5 else None),
+                base_cost=base_cost,
+                low_case_cost=_safe_decimal(row[8] if len(row) > 8 else None),
+                high_case_cost=_safe_decimal(row[9] if len(row) > 9 else None),
+                remarks=(str(row[6]) if row[6] else '')[:500],
+            )
+            count += 1
+        return count
+
+    @staticmethod
+    def _month_no(cell):
+        if not cell:
+            return None
+        m = re.search(r'\d+', str(cell))
+        return int(m.group()) if m else None

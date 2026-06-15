@@ -3,6 +3,7 @@ import api from './client'
 // Projects CRUD
 export const getProjects         = (params) => api.get('/projects/', { params })
 export const importProjects      = (fd)     => api.post('/projects/import/', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+export const importBudgetWorkbook = (fd)    => api.post('/projects/import-budget/', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
 export const getProject          = (id)     => api.get(`/projects/${id}/`)
 export const createProject       = (data)   => api.post('/projects/', data)
 export const updateProject       = (id, d)  => api.patch(`/projects/${id}/`, d)

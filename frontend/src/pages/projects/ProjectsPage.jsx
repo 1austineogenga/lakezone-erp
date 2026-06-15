@@ -2,8 +2,8 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline'
-import { getProjects, createProject, importProjects } from '../../api/projects'
+import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon, DocumentArrowUpIcon, TableCellsIcon } from '@heroicons/react/24/outline'
+import { getProjects, createProject, importProjects, importBudgetWorkbook } from '../../api/projects'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -25,11 +25,14 @@ const EMPTY_FORM = {
 export default function ProjectsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [showModal, setShowModal]     = useState(false)
-  const [showImport, setShowImport]   = useState(false)
-  const [form, setForm]               = useState(EMPTY_FORM)
-  const [importFile, setImportFile]   = useState(null)
-  const fileRef = useRef()
+  const [showModal, setShowModal]         = useState(false)
+  const [showImport, setShowImport]       = useState(false)
+  const [showBudgetImport, setShowBudget] = useState(false)
+  const [form, setForm]                   = useState(EMPTY_FORM)
+  const [importFile, setImportFile]       = useState(null)
+  const [budgetFile, setBudgetFile]       = useState(null)
+  const fileRef   = useRef()
+  const budgetRef = useRef()
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -60,6 +63,21 @@ export default function ProjectsPage() {
     onError: e => toast.error(e.response?.data?.error || 'Import failed.'),
   })
 
+  const budgetImportMut = useMutation({
+    mutationFn: (fd) => importBudgetWorkbook(fd),
+    onSuccess: (res) => {
+      const projects = res.data?.projects ?? []
+      const summary = projects.map(p =>
+        `${p.project_code} (${p.items_created} budget lines)`
+      ).join(', ')
+      toast.success(`Budget imported — ${summary}`)
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      setShowBudget(false)
+      setBudgetFile(null)
+    },
+    onError: e => toast.error(e.response?.data?.error || 'Budget import failed.'),
+  })
+
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = (e) => {
@@ -77,6 +95,14 @@ export default function ProjectsPage() {
     importMut.mutate(fd)
   }
 
+  const handleBudgetImport = (e) => {
+    e.preventDefault()
+    if (!budgetFile) return toast.error('Please select the budget workbook.')
+    const fd = new FormData()
+    fd.append('file', budgetFile)
+    budgetImportMut.mutate(fd)
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -87,10 +113,16 @@ export default function ProjectsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowBudget(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50"
+          >
+            <TableCellsIcon className="h-3.5 w-3.5" /> Import Budget Workbook
+          </button>
+          <button
             onClick={() => setShowImport(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
           >
-            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
+            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Projects Excel
           </button>
           <button
             onClick={() => setShowModal(true)}
@@ -275,6 +307,58 @@ export default function ProjectsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Budget Workbook Modal */}
+      {showBudgetImport && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-brand-slate">Import Budget Workbook</h3>
+              <button onClick={() => { setShowBudget(false); setBudgetFile(null) }}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="p-6">
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
+                <p className="font-semibold mb-1">Combined MN + NS Budget Workbook format</p>
+                <p>The system will automatically detect projects from sheet prefixes (e.g. <span className="font-mono bg-blue-100 px-1 rounded">MN_Materials</span>, <span className="font-mono bg-blue-100 px-1 rounded">NS_FuelPlant</span>).</p>
+                <p className="mt-2">For each project found, it will:</p>
+                <ul className="list-disc list-inside space-y-0.5 mt-1">
+                  <li>Create or update the Project record</li>
+                  <li>Create a Budget with all weekly line items</li>
+                  <li>Import Materials, Fuel, and Casual Labour breakdowns</li>
+                </ul>
+                <p className="mt-2 text-blue-600 font-medium">After import, go to the project to upload its BOQ separately.</p>
+              </div>
+              <form onSubmit={handleBudgetImport} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Budget Workbook (.xlsx) *</label>
+                  <div
+                    onClick={() => budgetRef.current?.click()}
+                    className="w-full border-2 border-dashed border-blue-200 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                  >
+                    {budgetFile
+                      ? <p className="text-sm font-medium text-brand-slate">{budgetFile.name}</p>
+                      : <><TableCellsIcon className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                         <p className="text-sm text-gray-400">Click to select workbook</p></>}
+                    <input ref={budgetRef} type="file" accept=".xlsx" className="hidden"
+                      onChange={e => setBudgetFile(e.target.files[0] || null)} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={budgetImportMut.isPending || !budgetFile}
+                    className="px-5 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                    {budgetImportMut.isPending ? 'Importing…' : 'Import Budget Workbook'}
+                  </button>
+                  <button type="button" onClick={() => { setShowBudget(false); setBudgetFile(null) }}
+                    className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

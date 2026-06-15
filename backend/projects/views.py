@@ -17,7 +17,7 @@ from .serializers import (
     IPCSerializer, IPCItemSerializer, ProjectRiskSerializer, ProjectVehicleSerializer,
     ProjectPersonnelSerializer, WeeklyProgressSerializer
 )
-from .services import BOQImportService
+from .services import BOQImportService, BudgetWorkbookImportService
 import openpyxl
 from decimal import Decimal, InvalidOperation
 import datetime
@@ -154,6 +154,21 @@ class ProjectImportView(APIView):
             'created_codes': created,
             'updated_codes': updated,
         }, status=status.HTTP_201_CREATED)
+
+
+class BudgetWorkbookImportView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            result = BudgetWorkbookImportService.import_from_excel(file)
+        except Exception as e:
+            return Response({'error': f'Import failed: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result, status=status.HTTP_201_CREATED)
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):
