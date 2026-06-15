@@ -74,51 +74,49 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="flex gap-0 h-full min-h-screen -m-6">
-      {/* Left sidebar nav */}
-      <div className="w-52 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        <div className="px-4 py-4 border-b border-gray-100">
+    <div className="flex flex-col h-full min-h-screen -m-6">
+      {/* Top header bar */}
+      <div className="bg-white border-b border-gray-200 px-6 pt-4 sticky top-0 z-10">
+        <div className="flex items-center gap-3 mb-3">
           <button
             onClick={() => navigate('/projects')}
-            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-slate mb-3"
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-slate"
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" /> All Projects
           </button>
+          <span className="text-gray-200">|</span>
           {isLoading ? (
-            <div className="space-y-1">
-              <div className="h-4 bg-gray-100 rounded animate-pulse w-3/4" />
-              <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2" />
-            </div>
+            <div className="h-4 bg-gray-100 rounded animate-pulse w-48" />
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
-                  {project?.code || '—'}
-                </span>
-                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
-                  {STATUS_LABELS[project?.status] || project?.status || 'Planning'}
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-brand-slate leading-snug">
-                {project?.name || project?.project_name}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                KES {(project?.contract_value || 0).toLocaleString()}
-              </p>
+              <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
+                {project?.code || '—'}
+              </span>
+              <h1 className="text-sm font-semibold text-brand-slate truncate">
+                {project?.name || 'Loading project…'}
+              </h1>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
+                {STATUS_LABELS[project?.status] || ''}
+              </span>
+              <span className="ml-auto text-xs text-gray-400 shrink-0">
+                Contract: <span className="font-medium text-brand-slate">KES {Number(project?.contract_value || 0).toLocaleString()}</span>
+              </span>
             </>
           )}
         </div>
-        <nav className="flex-1 py-2">
+
+        {/* Horizontal tabs */}
+        <nav className="flex gap-0 overflow-x-auto">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-colors text-left
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors
                 ${activeTab === id
-                  ? 'bg-red-50 text-brand-red border-r-2 border-brand-red'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-brand-slate'}`}
+                  ? 'border-brand-red text-brand-red'
+                  : 'border-transparent text-gray-500 hover:text-brand-slate hover:border-gray-300'}`}
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
+              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
               {label}
             </button>
           ))}
@@ -126,25 +124,8 @@ export default function ProjectPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        {/* Project name banner */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 sticky top-0 z-10">
-          <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
-            {project?.code || '—'}
-          </span>
-          <h1 className="text-sm font-semibold text-brand-slate truncate">
-            {project?.name || 'Loading project…'}
-          </h1>
-          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
-            {STATUS_LABELS[project?.status] || ''}
-          </span>
-          <span className="ml-auto text-xs text-gray-400 shrink-0">
-            Contract: <span className="font-medium text-brand-slate">KES {Number(project?.contract_value || 0).toLocaleString()}</span>
-          </span>
-        </div>
-        <div className="p-6">
-          {renderTab()}
-        </div>
+      <div className="flex-1 overflow-auto p-6">
+        {renderTab()}
       </div>
     </div>
   )
