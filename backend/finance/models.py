@@ -301,6 +301,8 @@ class ExpenseClaim(models.Model):
                                      related_name='expense_claims')
     project     = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
                                     null=True, blank=True, related_name='expense_claims')
+    requisition = models.ForeignKey('requisitions.StaffRequisition', on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name='expense_claims')
     status      = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
     total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     notes       = models.TextField(blank=True)

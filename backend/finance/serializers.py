@@ -124,14 +124,16 @@ class ExpenseClaimItemSerializer(serializers.ModelSerializer):
 
 
 class ExpenseClaimSerializer(serializers.ModelSerializer):
-    items              = ExpenseClaimItemSerializer(many=True, read_only=True)
-    submitted_by_name  = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
-    project_name       = serializers.CharField(source='project.name', read_only=True)
+    items                   = ExpenseClaimItemSerializer(many=True, read_only=True)
+    submitted_by_name       = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
+    project_name            = serializers.CharField(source='project.name', read_only=True)
+    requisition_reference   = serializers.CharField(source='requisition.reference_number', read_only=True)
 
     class Meta:
         model  = ExpenseClaim
         fields = ['id', 'reference', 'title', 'status', 'submitted_by', 'submitted_by_name',
                   'project', 'project_name', 'total_amount', 'notes',
+                  'requisition', 'requisition_reference',
                   'reviewed_by', 'reviewed_at', 'review_notes', 'items', 'created_at']
         read_only_fields = ['reference', 'submitted_by', 'total_amount',
                             'reviewed_by', 'reviewed_at']
