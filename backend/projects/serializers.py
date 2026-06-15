@@ -26,7 +26,10 @@ class BOQSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BOQ
-        fields = '__all__'
+        fields = [
+            'id', 'project', 'title', 'contingency_pct', 'vop_pct',
+            'notes', 'uploaded_at', 'bills', 'sub_total', 'grand_total',
+        ]
 
     def _bill_subtotal(self, obj):
         return sum(bill.sub_total for bill in obj.bills.all())
