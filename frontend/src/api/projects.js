@@ -10,8 +10,6 @@ export const getProjectDashboard = (id)     => api.get(`/projects/${id}/dashboar
 
 // BOQ
 export const getProjectBOQs = (projectId)           => api.get(`/projects/${projectId}/boqs/`)
-export const getProjectBOQ  = (projectId)           => api.get(`/projects/${projectId}/boqs/`)
-export const getCosting     = (projectId)           => api.get(`/projects/${projectId}/dashboard/`)
 export const importBOQ      = (projectId, formData) => api.post(`/projects/${projectId}/boqs/import/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 export const getBOQ         = (projectId, boqId)    => api.get(`/projects/${projectId}/boqs/${boqId}/`)
 
