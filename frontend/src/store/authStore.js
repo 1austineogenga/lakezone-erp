@@ -17,6 +17,7 @@ const useAuthStore = create(
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         set({ user: null, accessToken: null, refreshToken: null })
+        window.location.href = '/login'
       },
     }),
     { name: 'lz-auth', partialize: (s) => ({ user: s.user }) }
