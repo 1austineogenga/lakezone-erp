@@ -20,7 +20,7 @@ export default function NewInvoicePage() {
   const { data: clients } = useQuery({
     queryKey: ['clients-list'],
     queryFn:  () => api.get('/crm/clients/'),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
