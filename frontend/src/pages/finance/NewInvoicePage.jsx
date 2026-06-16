@@ -25,7 +25,7 @@ export default function NewInvoicePage() {
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn:  () => api.get('/projects/'),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
 
   const { mutate, isPending } = useMutation({
