@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
-import { getProjectDashboard } from '../../api/projects'
+import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { toast } from 'react-toastify'
+import { getProjectDashboard, updateProject } from '../../api/projects'
 
 const IPC_STATUS_COLORS = {
   draft:      'bg-gray-100 text-gray-600',
@@ -13,8 +16,103 @@ const IPC_STATUS_COLORS = {
   disputed:   'bg-red-100 text-red-700',
 }
 
+function EditProjectModal({ project, onClose }) {
+  const qc = useQueryClient()
+  const [form, setForm] = useState({
+    name:            project.name || '',
+    client:          project.client || '',
+    contract_number: project.contract_number || '',
+    contract_value:  project.contract_value || '',
+    location:        project.location || '',
+    status:          project.status || 'active',
+    start_date:      project.start_date || '',
+    end_date:        project.end_date || '',
+    description:     project.description || '',
+  })
+
+  const mut = useMutation({
+    mutationFn: (data) => updateProject(project.id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project-dashboard', project.id] })
+      toast.success('Project updated')
+      onClose()
+    },
+    onError: () => toast.error('Failed to update project'),
+  })
+
+  const field = (label, key, type = 'text') => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      {type === 'textarea' ? (
+        <textarea
+          rows={3}
+          value={form[key]}
+          onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30"
+        />
+      ) : type === 'select' ? (
+        <select
+          value={form[key]}
+          onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30"
+        >
+          {[['planning','Planning'],['active','Active'],['on_hold','On Hold'],['completed','Completed'],['suspended','Suspended']].map(([v,l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          value={form[key]}
+          onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30"
+        />
+      )}
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-brand-slate">Edit Project Details</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+          {field('Project Name', 'name')}
+          <div className="grid grid-cols-2 gap-4">
+            {field('Client', 'client')}
+            {field('Contract Number', 'contract_number')}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {field('Contract Value (KES)', 'contract_value', 'number')}
+            {field('Status', 'status', 'select')}
+          </div>
+          {field('Location', 'location')}
+          <div className="grid grid-cols-2 gap-4">
+            {field('Start Date', 'start_date', 'date')}
+            {field('End Date', 'end_date', 'date')}
+          </div>
+          {field('Description', 'description', 'textarea')}
+        </div>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+          <button
+            onClick={() => mut.mutate(form)}
+            disabled={mut.isPending}
+            className="px-5 py-2 text-sm bg-brand-red text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >
+            {mut.isPending ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ProjectDashboard({ dashData: prefetched }) {
   const { projectId } = useParams()
+  const [editing, setEditing] = useState(false)
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['project-dashboard', projectId],
@@ -98,10 +196,19 @@ export default function ProjectDashboard({ dashData: prefetched }) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h2 className="font-bold text-brand-slate text-lg">Project Dashboard</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Overview of project financials and progress</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-brand-slate text-lg">Project Dashboard</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Overview of project financials and progress</p>
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-500 hover:text-brand-slate hover:border-gray-300"
+        >
+          <PencilSquareIcon className="h-3.5 w-3.5" /> Edit Details
+        </button>
       </div>
+      {editing && <EditProjectModal project={project} onClose={() => setEditing(false)} />}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
