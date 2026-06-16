@@ -42,7 +42,7 @@ export default function LoginPage() {
           </div>
           <h2 className="text-white text-2xl font-bold mb-3">Enterprise Resource Planning</h2>
           <p className="text-brand-gray text-sm leading-relaxed max-w-xs">
-            Integrated management system for projects, procurement, inventory and client relations.
+            Managing projects, procurement, fleet, HR, finance and inventory — all in one place.
           </p>
         </div>
 
