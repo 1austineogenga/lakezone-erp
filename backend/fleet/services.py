@@ -189,8 +189,19 @@ class FleetSyncService:
             if isinstance(val, list):
                 if not val:
                     return None
+                entry = val[0]
+                if isinstance(entry, dict):
+                    raw_val = entry.get('value')
+                    port = str(entry.get('port_name', '')).lower()
+                    # "Fuel level in Liter" → value is already in litres
+                    # Other sensors (BLE Fuel Level, FUEL TANK) → raw ADC/sensor units
+                    # Store raw value; fuel event detection works on deltas regardless of unit
+                    try:
+                        return float(raw_val) if raw_val is not None else None
+                    except (ValueError, TypeError):
+                        return None
                 try:
-                    return float(val[0])
+                    return float(entry)
                 except (ValueError, TypeError):
                     return None
             return parse_float(val)
@@ -225,11 +236,7 @@ class FleetSyncService:
             'ignition_on': ignition_on,
             'power_on': parse_bool(raw.get('Power')),
             'immobilize_state': clean(raw.get('Immobilize_State')) or '',
-            'fuel_level': parse_fuel(
-                raw.get('Fuel') or raw.get('FuelLevel') or raw.get('fuel_level')
-                or raw.get('Fuel_Level') or raw.get('fuel') or raw.get('FUEL')
-                or raw.get('FuelPercentage') or raw.get('Fuel_Percentage')
-            ),
+            'fuel_level': parse_fuel(raw.get('Fuel')),
             'battery_percentage': parse_int(raw.get('battery_percentage')),
             'external_volt': parse_float(raw.get('ExternalVolt')),
             'temperature': parse_float(raw.get('Temperature')),
