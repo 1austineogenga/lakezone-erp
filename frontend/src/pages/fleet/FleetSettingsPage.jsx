@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon, BugAntIcon } from '@heroicons/react/24/outline'
 import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory, fetchFuelEvents } from '../../api/fleet'
 import api from '../../api/client'
+import useAuthStore from '../../store/authStore'
 
 const EMPTY = {
   api_type:     'token_based',
@@ -16,6 +17,17 @@ const EMPTY = {
 }
 
 export default function FleetSettingsPage() {
+  const { user } = useAuthStore()
+  if (user?.role !== 'system_admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
+        <Cog6ToothIcon className="h-10 w-10 text-gray-300" />
+        <p className="text-sm font-medium text-gray-500">Access Restricted</p>
+        <p className="text-xs text-gray-400">Fleet API settings are only accessible to System Administrators.</p>
+      </div>
+    )
+  }
+
   const qc = useQueryClient()
   const [form, setForm] = useState(EMPTY)
 
