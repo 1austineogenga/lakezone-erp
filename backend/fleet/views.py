@@ -416,9 +416,26 @@ class FleetDebugView(APIView):
             r2 = req.post(url2, json=payload, headers=headers, timeout=15)
             result['step2_status'] = r2.status_code
             try:
-                result['step2_raw'] = r2.json()
+                raw = r2.json()
+                result['step2_raw'] = raw
+                # Extract vehicle list for easy inspection
+                vehicles_data = []
+                if isinstance(raw, dict):
+                    root = raw.get('root', raw)
+                    vehicles_data = root.get('VehicleData', root.get('Data', root.get('data', []))) if isinstance(root, dict) else []
+                elif isinstance(raw, list):
+                    vehicles_data = raw
+                if isinstance(vehicles_data, dict):
+                    vehicles_data = [vehicles_data]
+                result['vehicle_count'] = len(vehicles_data) if isinstance(vehicles_data, list) else 0
+                result['vehicle_nos'] = [
+                    str(v.get('Vehicle_No', v.get('vehicle_no', v.get('VehicleNo', '?'))))
+                    for v in (vehicles_data if isinstance(vehicles_data, list) else [])
+                ]
             except Exception:
                 result['step2_raw'] = r2.text[:1000]
+                result['vehicle_count'] = 0
+                result['vehicle_nos'] = []
         except Exception as e:
             result['step2_error'] = str(e)
 
