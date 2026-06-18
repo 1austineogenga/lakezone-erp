@@ -383,24 +383,41 @@ class FleetDebugView(APIView):
             'step2_error': None,
         }
 
-        # Step 1: get token
-        try:
-            url1 = f"{config.base_url}/webservice?token=generateAccessToken"
-            r1 = req.post(url1, json={'username': config.username, 'password': config.password}, timeout=15)
-            result['step1_status'] = r1.status_code
-            try:
-                result['step1_raw'] = r1.json()
-            except Exception:
-                result['step1_raw'] = r1.text[:500]
-
-            data1 = r1.json() if r1.status_code == 200 else {}
-            token = (data1.get('auth-code') or data1.get('token') or data1.get('access_token')
-                     or data1.get('auth_code') or data1.get('authCode') or '')
-            if not token and isinstance(data1, dict):
-                token = next((v for v in data1.values() if isinstance(v, str) and len(v) > 10), '')
+        # Step 1: get token — use cached if available (same logic as sync service)
+        from django.utils import timezone as tz
+        from datetime import timedelta
+        token = ''
+        now = tz.now()
+        if (config.cached_token and config.token_fetched_at and
+                (now - config.token_fetched_at) < timedelta(minutes=50)):
+            token = config.cached_token
             result['step1_token'] = token[:40] + '…' if len(token) > 40 else token
-        except Exception as e:
-            result['step1_error'] = str(e)
+            result['step1_source'] = 'cached'
+            result['token_age_minutes'] = round((now - config.token_fetched_at).total_seconds() / 60, 1)
+        else:
+            try:
+                url1 = f"{config.base_url}/webservice?token=generateAccessToken"
+                r1 = req.post(url1, json={'username': config.username, 'password': config.password}, timeout=15)
+                result['step1_status'] = r1.status_code
+                try:
+                    result['step1_raw'] = r1.json()
+                    data1 = r1.json()
+                except Exception:
+                    result['step1_raw'] = r1.text[:500]
+                    data1 = {}
+                inner = data1.get('data', data1)
+                token = (inner.get('token') or inner.get('auth-code') or inner.get('access_token')
+                         or inner.get('auth_code') or inner.get('authCode') or '')
+                if not token and isinstance(data1, dict):
+                    token = next((v for v in data1.values() if isinstance(v, str) and len(v) > 10), '')
+                result['step1_token'] = token[:40] + '…' if len(token) > 40 else token
+                result['step1_source'] = 'fresh'
+            except Exception as e:
+                result['step1_error'] = str(e)
+                return Response(result)
+
+        if not token:
+            result['step1_error'] = 'Could not obtain token — check credentials or wait for cached token to refresh'
             return Response(result)
 
         # Step 2: fetch vehicle data
