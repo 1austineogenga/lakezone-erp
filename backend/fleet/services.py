@@ -184,27 +184,35 @@ class FleetSyncService:
             return None
 
         def parse_fuel(val):
+            """Returns (normalized_value, unit) where unit is 'L' or '%'."""
             if val is None:
-                return None
+                return None, '%'
             if isinstance(val, list):
                 if not val:
-                    return None
+                    return None, '%'
                 entry = val[0]
                 if isinstance(entry, dict):
                     raw_val = entry.get('value')
                     port = str(entry.get('port_name', '')).lower()
-                    # "Fuel level in Liter" → value is already in litres
-                    # Other sensors (BLE Fuel Level, FUEL TANK) → raw ADC/sensor units
-                    # Store raw value; fuel event detection works on deltas regardless of unit
                     try:
-                        return float(raw_val) if raw_val is not None else None
+                        fval = float(raw_val) if raw_val is not None else None
                     except (ValueError, TypeError):
-                        return None
+                        return None, '%'
+                    if fval is None:
+                        return None, '%'
+                    if 'liter' in port or 'litre' in port or 'ltr' in port:
+                        # Actual litres sensor
+                        return round(fval, 1), 'L'
+                    else:
+                        # BLE / FUEL TANK ADC sensor (0-4095) → normalize to 0–100%
+                        pct = round(min(fval / 4095.0 * 100, 100.0), 1)
+                        return pct, '%'
                 try:
-                    return float(entry)
+                    return float(entry), '%'
                 except (ValueError, TypeError):
-                    return None
-            return parse_float(val)
+                    return None, '%'
+            fval = parse_float(val)
+            return fval, '%'
 
         driver_parts = [
             raw.get('Driver_First_Name', '') or '',
@@ -236,7 +244,7 @@ class FleetSyncService:
             'ignition_on': ignition_on,
             'power_on': parse_bool(raw.get('Power')),
             'immobilize_state': clean(raw.get('Immobilize_State')) or '',
-            'fuel_level': parse_fuel(raw.get('Fuel')),
+            **dict(zip(('fuel_level', 'fuel_sensor_unit'), parse_fuel(raw.get('Fuel')))),
             'battery_percentage': parse_int(raw.get('battery_percentage')),
             'external_volt': parse_float(raw.get('ExternalVolt')),
             'temperature': parse_float(raw.get('Temperature')),
@@ -465,11 +473,13 @@ class FleetSyncService:
         vehicle.last_longitude = lon
         vehicle.last_speed = data.get('speed', 0) or 0
         vehicle.last_fuel = data.get('fuel_level')
+        if data.get('fuel_sensor_unit'):
+            vehicle.fuel_sensor_unit = data['fuel_sensor_unit']
         vehicle.last_odometer = data.get('odometer', 0) or 0
         vehicle.last_seen = data.get('device_datetime') or timezone.now()
         vehicle.save(update_fields=[
             'last_status', 'last_location', 'last_latitude', 'last_longitude',
-            'last_speed', 'last_fuel', 'last_odometer', 'last_seen', 'updated_at',
+            'last_speed', 'last_fuel', 'fuel_sensor_unit', 'last_odometer', 'last_seen', 'updated_at',
         ])
 
     def fetch_history(self, date_from, date_to):
