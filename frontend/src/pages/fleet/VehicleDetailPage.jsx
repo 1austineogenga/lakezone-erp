@@ -5,9 +5,9 @@ import { toast } from 'react-toastify'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   ArrowLeftIcon, ArrowPathIcon, MapPinIcon, BoltIcon,
-  BeakerIcon, ExclamationTriangleIcon, PrinterIcon,
+  BeakerIcon, ExclamationTriangleIcon, PrinterIcon, PencilSquareIcon,
 } from '@heroicons/react/24/outline'
-import { getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts, acknowledgeAlert } from '../../api/fleet'
+import { getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts, acknowledgeAlert, updateVehicle } from '../../api/fleet'
 import { printMachineWeekly } from '../../utils/print'
 
 const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
@@ -75,12 +75,46 @@ export default function VehicleDetailPage() {
     .filter(d => d.fuel_level != null)
     .map(d => ({
       time: new Date(d.fetched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      fuel: Number(d.fuel_level).toFixed(1),
+      fuel: (toDisplay(d.fuel_level) ?? 0).toFixed(1),
       speed: Number(d.speed || 0).toFixed(1),
     }))
 
+  const [editingCapacity, setEditingCapacity] = useState(false)
+  const [capacityInput, setCapacityInput] = useState('')
+
+  const capacityMut = useMutation({
+    mutationFn: (litres) => updateVehicle(id, { fuel_capacity: litres }),
+    onSuccess: () => {
+      toast.success('Tank capacity saved.')
+      qc.invalidateQueries({ queryKey: ['fleet-vehicle', id] })
+      setEditingCapacity(false)
+    },
+    onError: () => toast.error('Failed to save capacity.'),
+  })
+
   const odomKm = vehicle.last_odometer ? (vehicle.last_odometer / 1000).toFixed(0) : null
-  const fuelUnit = vehicle.fuel_sensor_unit || '%'
+
+  // Fuel display helpers
+  // For liter sensors the value is already in litres.
+  // For ADC sensors (fuel_sensor_unit='%') convert using fuel_capacity when set.
+  const capacity = parseFloat(vehicle.fuel_capacity || 0)
+  const sensorIsLitres = vehicle.fuel_sensor_unit === 'L'
+  const canShowLitres = sensorIsLitres || capacity > 0
+  const fuelUnit = canShowLitres ? 'L' : '%'
+
+  // Convert a stored value to the display unit
+  const toDisplay = (val) => {
+    if (val == null) return null
+    const n = parseFloat(val)
+    if (sensorIsLitres) return n           // already litres
+    if (capacity > 0) return n / 100 * capacity  // % → litres
+    return n                               // show as %
+  }
+
+  const fuelDisplay = (val) => {
+    const d = toDisplay(val)
+    return d != null ? d.toFixed(1) : '—'
+  }
 
   return (
     <div className="space-y-5">
@@ -120,7 +154,7 @@ export default function VehicleDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Speed',      val: vehicle.last_speed != null ? `${fmt(vehicle.last_speed)} km/h` : '—', icon: BoltIcon,     color: 'text-blue-600' },
-          { label: 'Fuel Level', val: vehicle.last_fuel  != null ? `${fmt(vehicle.last_fuel)}${fuelUnit}` : '—', icon: BeakerIcon,   color: 'text-green-600' },
+          { label: `Fuel Level${canShowLitres ? '' : ' (%)'}`, val: vehicle.last_fuel != null ? `${fuelDisplay(vehicle.last_fuel)} ${fuelUnit}` : '—', icon: BeakerIcon, color: 'text-green-600' },
           { label: 'Odometer',   val: odomKm != null ? `${odomKm} km` : '—',                              icon: MapPinIcon,   color: 'text-brand-slate' },
           {
             label: 'Last Seen',
@@ -140,6 +174,44 @@ export default function VehicleDetailPage() {
         ))}
       </div>
 
+      {/* Tank capacity setter — shown when capacity not yet configured */}
+      {!sensorIsLitres && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 flex-wrap">
+          <BeakerIcon className="h-4 w-4 text-gray-400 shrink-0" />
+          <p className="text-xs text-gray-500 flex-1">
+            <span className="font-medium text-brand-slate">Tank capacity:</span>{' '}
+            {capacity > 0 ? `${capacity} L` : 'Not set — fuel shown as %.'}
+            {' '}Set it to display fuel in litres.
+          </p>
+          {editingCapacity ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min="1" max="2000" placeholder="e.g. 300"
+                value={capacityInput}
+                onChange={e => setCapacityInput(e.target.value)}
+                className="w-24 border border-gray-300 rounded px-2 py-1 text-xs"
+                autoFocus
+              />
+              <span className="text-xs text-gray-400">L</span>
+              <button
+                onClick={() => capacityMut.mutate(Number(capacityInput))}
+                disabled={!capacityInput || capacityMut.isPending}
+                className="px-3 py-1 bg-brand-red text-white text-xs rounded-lg disabled:opacity-50">
+                Save
+              </button>
+              <button onClick={() => setEditingCapacity(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setCapacityInput(capacity > 0 ? String(capacity) : ''); setEditingCapacity(true) }}
+              className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+              <PencilSquareIcon className="h-3.5 w-3.5" />
+              {capacity > 0 ? 'Edit' : 'Set capacity'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Fuel trend chart */}
       {fuelChartData.length > 1 && (
         <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -154,8 +226,8 @@ export default function VehicleDetailPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis domain={fuelUnit === 'L' ? [0, 'auto'] : [0, 100]} tick={{ fontSize: 10 }} unit={fuelUnit} />
-              <Tooltip formatter={(v, n) => [`${v}${fuelUnit}`, n === 'fuel' ? `Fuel (${fuelUnit})` : 'Speed km/h']} />
+              <YAxis domain={canShowLitres ? [0, 'auto'] : [0, 100]} tick={{ fontSize: 10 }} unit={fuelUnit} />
+              <Tooltip formatter={(v, n) => [`${v} ${fuelUnit}`, n === 'fuel' ? `Fuel (${fuelUnit})` : 'Speed km/h']} />
               <Area type="monotone" dataKey="fuel" stroke="#22c55e" fill="url(#fuelGrad)" strokeWidth={2} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
@@ -196,10 +268,10 @@ export default function VehicleDetailPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(e.occurred_at)}</td>
-                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_before)}{fuelUnit}</td>
-                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_after)}{fuelUnit}</td>
+                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_before)} {fuelUnit}</td>
+                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_after)} {fuelUnit}</td>
                         <td className={`px-4 py-3 text-xs font-medium ${e.event_type === 'fill' ? 'text-green-600' : 'text-red-600'}`}>
-                          {e.event_type === 'fill' ? '+' : ''}{fmt(e.fuel_change)}{fuelUnit}
+                          {e.event_type === 'fill' ? '+' : ''}{fuelDisplay(Math.abs(e.fuel_change))} {fuelUnit}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400 max-w-[160px] truncate">{e.location_name || '—'}</td>
                       </tr>
