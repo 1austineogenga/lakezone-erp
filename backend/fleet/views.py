@@ -45,6 +45,25 @@ class FleetDashboardView(APIView):
             started_at__gte=today_start
         ).aggregate(total=Sum('distance_km'))['total'] or 0
 
+        # Idle hours today: sum duration_minutes for trips that are still open (no ended_at)
+        # and approximate from VehicleLiveData status counts as a fallback.
+        # More accurately: count VehicleLiveData snapshots with IDLE status today * sync_interval.
+        from .models import VehicleLiveData
+        idle_snapshots_today = VehicleLiveData.objects.filter(
+            fetched_at__gte=today_start,
+            status__iexact='IDLE',
+        ).count()
+        # Each snapshot represents ~90s of real time
+        idle_hours_today = round((idle_snapshots_today * 90) / 3600, 2)
+
+        # Fuel fills and drains today
+        fuel_agg_today = FuelEvent.objects.filter(occurred_at__gte=today_start).aggregate(
+            filled=Sum('fuel_change', filter=Q(event_type=FuelEvent.EventType.FILL)),
+            drained=Sum('fuel_change', filter=Q(event_type__in=[FuelEvent.EventType.DRAIN, FuelEvent.EventType.THEFT])),
+        )
+        fuel_filled_today = float(fuel_agg_today['filled'] or 0)
+        fuel_drained_today = abs(float(fuel_agg_today['drained'] or 0))
+
         recent_alerts = FleetAlert.objects.select_related('vehicle').order_by('-occurred_at')[:5]
         recent_alerts_data = FleetAlertSerializer(recent_alerts, many=True).data
 
@@ -68,6 +87,9 @@ class FleetDashboardView(APIView):
             'unacknowledged_alerts': unacknowledged_alerts,
             'low_fuel_count': low_fuel_count,
             'total_distance_today_km': float(total_distance_today),
+            'idle_hours_today': idle_hours_today,
+            'fuel_filled_today': fuel_filled_today,
+            'fuel_drained_today': fuel_drained_today,
             'recent_alerts': recent_alerts_data,
             'vehicles_by_project': [
                 {'project_name': item['project__name'], 'count': item['count']}

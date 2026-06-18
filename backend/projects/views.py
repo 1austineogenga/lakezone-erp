@@ -551,3 +551,68 @@ class ProjectDashboardView(APIView):
             'latest_progress': latest_progress_data,
             'weeks_elapsed': weeks_elapsed,
         })
+
+
+class ProjectCostingView(APIView):
+    """Budget cost summary grouped by category for a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_pk):
+        project = get_object_or_404(Project, pk=project_pk)
+
+        qs = BudgetLineItem.objects.filter(budget__project=project)
+
+        by_category = list(
+            qs.values('category').annotate(
+                base_total=Sum('base_cost'),
+                high_total=Sum('high_case_cost'),
+                low_total=Sum('low_case_cost'),
+                variance_reserve=Sum('variance_reserve'),
+                count=Count('id'),
+            ).order_by('category')
+        )
+
+        totals_agg = qs.aggregate(
+            base=Sum('base_cost'),
+            low=Sum('low_case_cost'),
+            high=Sum('high_case_cost'),
+            variance_reserve=Sum('variance_reserve'),
+        )
+
+        # Actual spend from weekly progress
+        progress_agg = WeeklyProgress.objects.filter(project=project).aggregate(
+            materials_actual=Sum('materials_actual'),
+            fuel_actual=Sum('fuel_actual'),
+            labour_actual=Sum('labour_actual'),
+            casuals_actual=Sum('casuals_actual'),
+            total_actual=Sum('total_actual'),
+        )
+
+        return Response({
+            'project_id': str(project.id),
+            'project_code': project.code,
+            'by_category': [
+                {
+                    'category': row['category'],
+                    'count': row['count'],
+                    'base_total': float(row['base_total'] or 0),
+                    'high_total': float(row['high_total'] or 0),
+                    'low_total': float(row['low_total'] or 0),
+                    'variance_reserve': float(row['variance_reserve'] or 0),
+                }
+                for row in by_category
+            ],
+            'totals': {
+                'base': float(totals_agg['base'] or 0),
+                'low': float(totals_agg['low'] or 0),
+                'high': float(totals_agg['high'] or 0),
+                'variance_reserve': float(totals_agg['variance_reserve'] or 0),
+            },
+            'actual_spend': {
+                'materials': float(progress_agg['materials_actual'] or 0),
+                'fuel': float(progress_agg['fuel_actual'] or 0),
+                'labour': float(progress_agg['labour_actual'] or 0),
+                'casuals': float(progress_agg['casuals_actual'] or 0),
+                'total': float(progress_agg['total_actual'] or 0),
+            },
+        })

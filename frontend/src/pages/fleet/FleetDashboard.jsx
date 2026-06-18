@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   TruckIcon, BoltIcon, ExclamationTriangleIcon, BeakerIcon,
-  ArrowPathIcon, MapPinIcon, CheckCircleIcon,
+  ArrowPathIcon, MapPinIcon, CheckCircleIcon, ClockIcon, FireIcon,
 } from '@heroicons/react/24/outline'
 import { getFleetDashboard, getFleetLive, forceSync } from '../../api/fleet'
 
@@ -60,12 +60,19 @@ export default function FleetDashboard() {
   const movingCount   = live.filter(v => v.last_status === 'MOVING').length
   const lowFuelCount  = live.filter(v => v.last_fuel != null && Number(v.last_fuel) < 10).length
 
+  const idleHoursToday  = dash?.idle_hours_today ?? 0
+  const fuelFilledToday = dash?.fuel_filled_today ?? 0
+  const fuelDrainedToday = dash?.fuel_drained_today ?? 0
+
   const stats = [
-    { label: 'Total Vehicles', val: totalVehicles,                      icon: TruckIcon,               color: 'text-brand-slate', bg: 'bg-slate-50',  border: 'border-l-4 border-l-slate-400' },
-    { label: 'Online (10 min)', val: onlineCount,                        icon: BoltIcon,                color: 'text-green-600',   bg: 'bg-green-50',  border: 'border-l-4 border-l-green-500' },
-    { label: 'Moving Now',      val: movingCount,                        icon: MapPinIcon,              color: 'text-blue-600',    bg: 'bg-blue-50',   border: 'border-l-4 border-l-blue-500' },
-    { label: 'Unread Alerts',   val: dash?.unacknowledged_alerts ?? 0,  icon: ExclamationTriangleIcon, color: 'text-red-600',     bg: 'bg-red-50',    border: 'border-l-4 border-l-red-500' },
-    { label: 'Low Fuel (<10%)', val: lowFuelCount,                       icon: BeakerIcon,              color: 'text-orange-600',  bg: 'bg-orange-50', border: 'border-l-4 border-l-orange-500' },
+    { label: 'Total Vehicles',   val: totalVehicles,                       icon: TruckIcon,               color: 'text-brand-slate', bg: 'bg-slate-50',   border: 'border-l-4 border-l-slate-400' },
+    { label: 'Online (10 min)',   val: onlineCount,                         icon: BoltIcon,                color: 'text-green-600',   bg: 'bg-green-50',   border: 'border-l-4 border-l-green-500' },
+    { label: 'Moving Now',        val: movingCount,                         icon: MapPinIcon,              color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-l-4 border-l-blue-500' },
+    { label: 'Unread Alerts',     val: dash?.unacknowledged_alerts ?? 0,   icon: ExclamationTriangleIcon, color: 'text-red-600',     bg: 'bg-red-50',     border: 'border-l-4 border-l-red-500' },
+    { label: 'Low Fuel (<10%)',   val: lowFuelCount,                        icon: BeakerIcon,              color: 'text-orange-600',  bg: 'bg-orange-50',  border: 'border-l-4 border-l-orange-500' },
+    { label: 'Idle Hours Today',  val: `${Number(idleHoursToday).toFixed(1)}h`,  icon: ClockIcon,         color: 'text-yellow-600',  bg: 'bg-yellow-50',  border: 'border-l-4 border-l-yellow-400' },
+    { label: 'Fuel Filled Today', val: `${Number(fuelFilledToday).toFixed(0)}L`,  icon: FireIcon,         color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-l-4 border-l-emerald-500' },
+    { label: 'Fuel Drained Today',val: `${Number(fuelDrainedToday).toFixed(0)}L`, icon: BeakerIcon,       color: 'text-purple-600',  bg: 'bg-purple-50',  border: 'border-l-4 border-l-purple-500' },
   ]
 
   const statusGroups = live.reduce((acc, v) => {
@@ -94,7 +101,7 @@ export default function FleetDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         {stats.map(s => (
           <div key={s.label} className={`${s.bg} border border-gray-200 ${s.border} rounded-xl p-4`}>
             <s.icon className={`h-5 w-5 ${s.color} mb-2`} />

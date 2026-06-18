@@ -346,8 +346,37 @@ class FleetSyncService:
                 open_trip.save()
 
     def _check_alerts(self, vehicle, data):
-        from .models import FleetAlert
+        from .models import FleetAlert, VehicleLiveData
         now = data.get('device_datetime') or timezone.now()
+
+        # Long idle — only fire if vehicle has been IDLE for >30 minutes
+        if data.get('status', '').upper() == 'IDLE':
+            idle_threshold_minutes = 30
+            idle_start_cutoff = now - timedelta(minutes=idle_threshold_minutes)
+            # Find the most recent snapshot that was NOT idle (marks when idle period began)
+            first_non_idle = (
+                VehicleLiveData.objects.filter(vehicle=vehicle, fetched_at__lte=now)
+                .exclude(status__iexact='IDLE')
+                .order_by('-fetched_at')
+                .first()
+            )
+            if first_non_idle is not None:
+                idle_since = first_non_idle.fetched_at
+            else:
+                # All known history is idle — use oldest snapshot as idle_since
+                oldest = VehicleLiveData.objects.filter(vehicle=vehicle).order_by('fetched_at').first()
+                idle_since = oldest.fetched_at if oldest else now
+
+            if idle_since <= idle_start_cutoff:
+                idle_minutes = int((now - idle_since).total_seconds() / 60)
+                self._create_alert_if_not_recent(
+                    vehicle=vehicle,
+                    alert_type=FleetAlert.AlertType.IDLE_LONG,
+                    severity=FleetAlert.Severity.LOW,
+                    message=f"{vehicle.vehicle_no} has been idle for {idle_minutes} minutes",
+                    data=data,
+                    occurred_at=now,
+                )
 
         # SOS
         if data.get('sos'):

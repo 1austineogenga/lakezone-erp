@@ -44,6 +44,7 @@ project_urls = [
     path('personnel/<uuid:pk>/', views.ProjectPersonnelDetailView.as_view()),
     path('progress/', views.WeeklyProgressListCreateView.as_view()),
     path('progress/<uuid:pk>/', views.WeeklyProgressDetailView.as_view()),
+    path('costing/', views.ProjectCostingView.as_view()),
 ]
 
 urlpatterns = [
