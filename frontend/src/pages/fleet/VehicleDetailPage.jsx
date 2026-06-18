@@ -80,6 +80,7 @@ export default function VehicleDetailPage() {
     }))
 
   const odomKm = vehicle.last_odometer ? (vehicle.last_odometer / 1000).toFixed(0) : null
+  const fuelUnit = vehicle.fuel_sensor_unit || '%'
 
   return (
     <div className="space-y-5">
@@ -119,7 +120,7 @@ export default function VehicleDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Speed',      val: vehicle.last_speed != null ? `${fmt(vehicle.last_speed)} km/h` : '—', icon: BoltIcon,     color: 'text-blue-600' },
-          { label: 'Fuel Level', val: vehicle.last_fuel  != null ? `${fmt(vehicle.last_fuel)}%`      : '—', icon: BeakerIcon,   color: 'text-green-600' },
+          { label: 'Fuel Level', val: vehicle.last_fuel  != null ? `${fmt(vehicle.last_fuel)}${fuelUnit}` : '—', icon: BeakerIcon,   color: 'text-green-600' },
           { label: 'Odometer',   val: odomKm != null ? `${odomKm} km` : '—',                              icon: MapPinIcon,   color: 'text-brand-slate' },
           {
             label: 'Last Seen',
@@ -153,8 +154,8 @@ export default function VehicleDetailPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
-              <Tooltip formatter={(v, n) => [v, n === 'fuel' ? 'Fuel %' : 'Speed km/h']} />
+              <YAxis domain={fuelUnit === 'L' ? [0, 'auto'] : [0, 100]} tick={{ fontSize: 10 }} unit={fuelUnit} />
+              <Tooltip formatter={(v, n) => [`${v}${fuelUnit}`, n === 'fuel' ? `Fuel (${fuelUnit})` : 'Speed km/h']} />
               <Area type="monotone" dataKey="fuel" stroke="#22c55e" fill="url(#fuelGrad)" strokeWidth={2} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
@@ -195,10 +196,10 @@ export default function VehicleDetailPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(e.occurred_at)}</td>
-                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_before)}%</td>
-                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_after)}%</td>
+                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_before)}{fuelUnit}</td>
+                        <td className="px-4 py-3 text-xs">{fmt(e.fuel_after)}{fuelUnit}</td>
                         <td className={`px-4 py-3 text-xs font-medium ${e.event_type === 'fill' ? 'text-green-600' : 'text-red-600'}`}>
-                          {e.event_type === 'fill' ? '+' : ''}{fmt(e.fuel_change)}%
+                          {e.event_type === 'fill' ? '+' : ''}{fmt(e.fuel_change)}{fuelUnit}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400 max-w-[160px] truncate">{e.location_name || '—'}</td>
                       </tr>

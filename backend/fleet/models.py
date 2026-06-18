@@ -58,6 +58,7 @@ class Vehicle(models.Model):
     last_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     last_speed = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     last_fuel = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    fuel_sensor_unit = models.CharField(max_length=10, default='%', blank=True)
     last_odometer = models.BigIntegerField(default=0)
     last_seen = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
