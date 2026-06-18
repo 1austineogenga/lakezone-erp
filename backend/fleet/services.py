@@ -225,7 +225,11 @@ class FleetSyncService:
             'ignition_on': ignition_on,
             'power_on': parse_bool(raw.get('Power')),
             'immobilize_state': clean(raw.get('Immobilize_State')) or '',
-            'fuel_level': parse_fuel(raw.get('Fuel')),
+            'fuel_level': parse_fuel(
+                raw.get('Fuel') or raw.get('FuelLevel') or raw.get('fuel_level')
+                or raw.get('Fuel_Level') or raw.get('fuel') or raw.get('FUEL')
+                or raw.get('FuelPercentage') or raw.get('Fuel_Percentage')
+            ),
             'battery_percentage': parse_int(raw.get('battery_percentage')),
             'external_volt': parse_float(raw.get('ExternalVolt')),
             'temperature': parse_float(raw.get('Temperature')),

@@ -471,6 +471,13 @@ class FleetDebugView(APIView):
                     str(v.get('Vehicle_No', v.get('vehicle_no', v.get('VehicleNo', '?'))))
                     for v in (vehicles_data if isinstance(vehicles_data, list) else [])
                 ]
+                # Show all field keys from first vehicle so we can see exact fuel field name
+                if vehicles_data and isinstance(vehicles_data, list) and len(vehicles_data) > 0:
+                    result['sample_vehicle_fields'] = list(vehicles_data[0].keys())
+                    result['sample_vehicle_fuel_fields'] = {
+                        k: v for k, v in vehicles_data[0].items()
+                        if 'fuel' in str(k).lower() or 'Fuel' in str(k)
+                    }
             except Exception:
                 result['step2_raw'] = r2.text[:1000]
                 result['vehicle_count'] = 0
