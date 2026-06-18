@@ -366,6 +366,24 @@ class FetchHistoryView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class FetchFuelEventsView(APIView):
+    """Fetch pre-processed fuel fill/drain events from Trakzee API (values in litres)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        date_from = request.data.get('date_from')
+        date_to = request.data.get('date_to')
+        if not date_from or not date_to:
+            return Response({'detail': 'date_from and date_to are required (YYYY-MM-DD).'}, status=400)
+        try:
+            service = FleetSyncService()
+            result = service.fetch_fuel_events_from_api(date_from, date_to)
+            return Response(result)
+        except Exception as e:
+            logger.exception("fetch_fuel_events failed")
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class BackfillView(APIView):
     """Re-process all existing VehicleLiveData snapshots to generate trips and fuel events."""
     permission_classes = [IsAuthenticated]

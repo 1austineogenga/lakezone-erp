@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon, BugAntIcon } from '@heroicons/react/24/outline'
-import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory } from '../../api/fleet'
+import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory, fetchFuelEvents } from '../../api/fleet'
 import api from '../../api/client'
 
 const EMPTY = {
@@ -93,6 +93,18 @@ export default function FleetSettingsPage() {
       qc.invalidateQueries({ queryKey: ['fuel-report'] })
     },
     onError: e => toast.error(e.response?.data?.detail || 'Backfill failed.'),
+  })
+
+  const fetchFuelEvtMut = useMutation({
+    mutationFn: () => fetchFuelEvents({ date_from: histFrom, date_to: histTo }),
+    onSuccess: d => {
+      const r = d.data
+      if (r.error) { toast.error(r.error); return }
+      toast.success(`Fuel events import done — ${r.events_imported} events imported.`)
+      qc.invalidateQueries({ queryKey: ['fleet-fuel-events-v'] })
+      qc.invalidateQueries({ queryKey: ['fleet-dashboard'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Fuel events fetch failed.'),
   })
 
   const fetchHistMut = useMutation({
@@ -291,6 +303,42 @@ export default function FleetSettingsPage() {
             {fetchHistMut.data.data.error && <p className="text-red-600 break-all">{fetchHistMut.data.data.error}</p>}
             {fetchHistMut.data.data.raw_response && (
               <p className="text-gray-500 break-all">Raw: {JSON.stringify(fetchHistMut.data.data.raw_response)}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Fuel events import from API */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-brand-slate text-sm mb-1">Import Fuel Events from API</h3>
+          <p className="text-xs text-gray-400">
+            Fetch pre-processed fuel fill/drain events directly from Trakzee — values in litres, same source as Fleet Express app.
+            Uses the same date range as the trip history above.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 items-end">
+          <button onClick={() => fetchFuelEvtMut.mutate()} disabled={fetchFuelEvtMut.isPending}
+            className="flex items-center gap-1.5 px-4 py-2 bg-green-700 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${fetchFuelEvtMut.isPending ? 'animate-spin' : ''}`} />
+            {fetchFuelEvtMut.isPending ? 'Fetching…' : 'Fetch Fuel Events'}
+          </button>
+        </div>
+        {fetchFuelEvtMut.data && (
+          <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5 font-mono">
+            <p>Endpoint: {fetchFuelEvtMut.data.data.endpoint_used || '—'}</p>
+            <p>Events in response: <strong>{fetchFuelEvtMut.data.data.events_in_response ?? 0}</strong></p>
+            <p>Events imported: <strong>{fetchFuelEvtMut.data.data.events_imported ?? 0}</strong></p>
+            {fetchFuelEvtMut.data.data.error && (
+              <p className="text-red-600 break-all">{fetchFuelEvtMut.data.data.error}</p>
+            )}
+            {fetchFuelEvtMut.data.data.debug_responses?.length > 0 && (
+              <details>
+                <summary className="cursor-pointer text-gray-500">Endpoint probe results</summary>
+                <pre className="mt-1 overflow-x-auto max-h-48 text-[10px]">
+                  {JSON.stringify(fetchFuelEvtMut.data.data.debug_responses, null, 2)}
+                </pre>
+              </details>
             )}
           </div>
         )}
