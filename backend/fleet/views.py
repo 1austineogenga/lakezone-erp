@@ -442,6 +442,27 @@ class FleetDebugView(APIView):
             result['step1_error'] = 'Could not obtain token — check credentials or wait for cached token to refresh'
             return Response(result)
 
+        # Step 2b: probe vehicle detail/calibration endpoints
+        calibration_endpoints = [
+            'getVehicleDetails', 'getVehicleInfo', 'getVehicleCalibration',
+            'getFuelCalibration', 'getVehicleConfiguration', 'getVehicleList',
+        ]
+        result['calibration_probe'] = {}
+        for ep in calibration_endpoints:
+            try:
+                url_ep = f"{config.base_url}/webservice?token={ep}"
+                r_ep = req.post(url_ep, json={
+                    'company_names': config.company_name,
+                    'vehicle_nos': '',
+                    'format': 'json',
+                }, headers={'auth-code': token}, timeout=8)
+                try:
+                    result['calibration_probe'][ep] = {'status': r_ep.status_code, 'body': r_ep.json()}
+                except Exception:
+                    result['calibration_probe'][ep] = {'status': r_ep.status_code, 'body': r_ep.text[:300]}
+            except Exception as e:
+                result['calibration_probe'][ep] = {'error': str(e)}
+
         # Step 2: fetch vehicle data
         try:
             url2 = f"{config.base_url}/webservice?token=getTokenBaseLiveData&ProjectId={config.project_id}"
