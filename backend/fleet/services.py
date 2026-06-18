@@ -644,6 +644,152 @@ class FleetSyncService:
             'trips_imported': trips_imported,
         }
 
+    def fetch_fuel_events_from_api(self, date_from, date_to):
+        """Fetch pre-processed fuel fill/drain events from Trakzee API (values in litres)."""
+        from .models import FleetAPIConfig, Vehicle, FuelEvent
+        config = FleetAPIConfig.objects.filter(is_active=True).first()
+        if not config:
+            return {'error': 'No active fleet config'}
+
+        token = self._get_token(config)
+        vehicles = list(Vehicle.objects.filter(is_active=True, api_config=config))
+        vehicle_nos = ','.join(v.vehicle_no for v in vehicles)
+        vehicle_map = {v.vehicle_no: v for v in vehicles}
+        headers = {'auth-code': token}
+
+        def reformat(d):
+            try:
+                from datetime import datetime as _dt
+                return _dt.strptime(d, '%Y-%m-%d').strftime('%d-%m-%Y')
+            except Exception:
+                return d
+
+        date_from_fmt = reformat(date_from)
+        date_to_fmt   = reformat(date_to)
+
+        fuel_endpoints = [
+            f'getFuelFillData&ProjectId={config.project_id}',
+            f'getFuelFillEvent&ProjectId={config.project_id}',
+            f'getFuelFillHistory&ProjectId={config.project_id}',
+            f'getTokenBaseFuelData&ProjectId={config.project_id}',
+            f'getFuelEventHistory&ProjectId={config.project_id}',
+            f'getTokenBaseFuelFillData&ProjectId={config.project_id}',
+            f'getFuelAlert&ProjectId={config.project_id}',
+            f'getAlertHistory&ProjectId={config.project_id}',
+        ]
+
+        payload_variants = [
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'from_date': date_from_fmt, 'to_date': date_to_fmt, 'format': 'json'},
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'fromdate': date_from_fmt, 'todate': date_to_fmt, 'format': 'json'},
+            {'company_names': config.company_name, 'vehicle_nos': vehicle_nos, 'start_date': date_from_fmt, 'end_date': date_to_fmt, 'format': 'json'},
+        ]
+
+        debug_responses = []
+        raw_response = None
+        used_endpoint = None
+
+        for ep in fuel_endpoints:
+            url = f"{config.base_url}/webservice?token={ep}"
+            for payload in payload_variants:
+                try:
+                    resp = requests.post(url, json=payload, headers=headers, timeout=30)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        debug_responses.append({'endpoint': ep, 'status': 200, 'response': data})
+                        keys = set(data.keys()) if isinstance(data, dict) else set()
+                        if keys - {'RESULT', 'MSG', 'result', 'msg'}:
+                            raw_response = data
+                            used_endpoint = ep
+                            break
+                except Exception as e:
+                    debug_responses.append({'endpoint': ep, 'error': str(e)})
+            if raw_response:
+                break
+
+        if raw_response is None:
+            return {
+                'error': 'No fuel event endpoint found. See debug_responses for details.',
+                'debug_responses': debug_responses,
+                'events_imported': 0,
+            }
+
+        # Extract list from various response shapes
+        event_list = (
+            raw_response.get('root', {}).get('FuelData', [])
+            or raw_response.get('root', {}).get('FuelFillData', [])
+            or raw_response.get('root', {}).get('AlertData', [])
+            or raw_response.get('FuelData', [])
+            or raw_response.get('FuelFillData', [])
+            or raw_response.get('AlertData', [])
+            or (raw_response if isinstance(raw_response, list) else [])
+        )
+
+        def _dt(val):
+            if not val:
+                return None
+            for fmt in ('%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M:%S'):
+                try:
+                    from datetime import datetime as _d
+                    dt = _d.strptime(str(val).strip(), fmt)
+                    return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                except ValueError:
+                    continue
+            return None
+
+        def _float(val):
+            try:
+                return float(str(val).replace(',', ''))
+            except (ValueError, TypeError):
+                return None
+
+        events_imported = 0
+        for e in event_list:
+            vehicle_no = (e.get('Vehicle_No') or e.get('vehicle_no') or '').strip()
+            vehicle = vehicle_map.get(vehicle_no)
+            if not vehicle:
+                continue
+
+            occurred_at = _dt(e.get('Datetime') or e.get('datetime') or e.get('Date_Time') or e.get('AlertTime'))
+            if not occurred_at:
+                continue
+
+            fuel_before = _float(e.get('Before_Fuel') or e.get('before_fuel') or e.get('FuelBefore') or e.get('Fuel_Before'))
+            fuel_after  = _float(e.get('After_Fuel')  or e.get('after_fuel')  or e.get('FuelAfter')  or e.get('Fuel_After'))
+            fuel_change = _float(e.get('Fuel_Change')  or e.get('fuel_change') or e.get('FuelChange'))
+
+            if fuel_before is None or fuel_after is None:
+                continue
+            if fuel_change is None:
+                fuel_change = fuel_after - fuel_before
+
+            event_type_raw = str(e.get('Event_Type') or e.get('event_type') or e.get('AlertType') or '').lower()
+            if 'fill' in event_type_raw or fuel_change > 0:
+                event_type = FuelEvent.EventType.FILL
+            elif 'theft' in event_type_raw:
+                event_type = FuelEvent.EventType.THEFT
+            else:
+                event_type = FuelEvent.EventType.DRAIN
+
+            FuelEvent.objects.get_or_create(
+                vehicle=vehicle,
+                occurred_at=occurred_at,
+                defaults={
+                    'event_type': event_type,
+                    'fuel_before': fuel_before,
+                    'fuel_after': fuel_after,
+                    'fuel_change': abs(fuel_change) if event_type == FuelEvent.EventType.FILL else -abs(fuel_change),
+                    'location_name': e.get('Location') or e.get('location') or '',
+                },
+            )
+            events_imported += 1
+
+        return {
+            'endpoint_used': used_endpoint,
+            'events_in_response': len(event_list),
+            'events_imported': events_imported,
+            'debug_responses': debug_responses[:5],
+        }
+
     def backfill_from_snapshots(self):
         """Process existing VehicleLiveData history to generate missing trips and fuel events."""
         from .models import Vehicle, VehicleLiveData, TripRecord, FuelEvent
