@@ -126,9 +126,10 @@ const MODULES = [
 ]
 
 export default function Sidebar() {
-  const { logout, refreshToken } = useAuthStore()
+  const { logout, refreshToken, user } = useAuthStore()
   const location = useLocation()
   const { can } = usePermissions()
+  const isAdmin = user?.role === 'system_admin'
 
   const initialOpen = {}
   MODULES.forEach(m => { initialOpen[m.key] = location.pathname.startsWith(m.root) })
@@ -197,7 +198,9 @@ export default function Sidebar() {
 
                   {isOpen && (
                     <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
-                      {mod.sections.map((section, si) => (
+                      {mod.sections.filter(section =>
+                        section.heading !== 'Config' || isAdmin
+                      ).map((section, si) => (
                         <div key={si}>
                           {section.heading && (
                             <p className="px-2 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-widest text-slate-600">
