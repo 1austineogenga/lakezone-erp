@@ -27,4 +27,5 @@ urlpatterns = [
 # temporary debug route
 urlpatterns += [
     path('debug/', views.FleetDebugView.as_view(), name='fleet-debug'),
+    path('vehicle-details/', views.FetchVehicleDetailsView.as_view(), name='fleet-vehicle-details'),
 ]
