@@ -398,6 +398,21 @@ class BackfillView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class FetchVehicleDetailsView(APIView):
+    """Probe getVehicleDetail endpoint for vehicle info (tank capacity, etc.)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        vehicle_no = request.query_params.get('vehicle_no', '')
+        try:
+            service = FleetSyncService()
+            result = service.fetch_vehicle_details(vehicle_no=vehicle_no or None)
+            return Response(result)
+        except Exception as e:
+            logger.exception("fetch_vehicle_details failed")
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class FleetDebugView(APIView):
     """Raw API debug — returns token + raw vehicle data from Trakzee."""
     permission_classes = [IsAuthenticated]
@@ -464,14 +479,22 @@ class FleetDebugView(APIView):
         calibration_endpoints = [
             'getVehicleDetails', 'getVehicleInfo', 'getVehicleCalibration',
             'getFuelCalibration', 'getVehicleConfiguration', 'getVehicleList',
+            # Newly discovered endpoints
+            'getVehicleCurrentLocation', 'getVehicleTrackLogs',
+            'getVehicleLiveInformation', 'getVehicleDetail',
         ]
+        # Pick a sample vehicle_no to pass in the payload
+        from .models import Vehicle as _Vehicle
+        _sample_vehicle = _Vehicle.objects.filter(is_active=True).first()
+        _sample_vno = _sample_vehicle.vehicle_no if _sample_vehicle else ''
+
         result['calibration_probe'] = {}
         for ep in calibration_endpoints:
             try:
-                url_ep = f"{config.base_url}/webservice?token={ep}"
+                url_ep = f"{config.base_url}/webservice?token={ep}&ProjectId={config.project_id}"
                 r_ep = req.post(url_ep, json={
                     'company_names': config.company_name,
-                    'vehicle_nos': '',
+                    'vehicle_nos': _sample_vno,
                     'format': 'json',
                 }, headers={'auth-code': token}, timeout=8)
                 try:

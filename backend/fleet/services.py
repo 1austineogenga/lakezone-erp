@@ -259,6 +259,19 @@ class FleetSyncService:
 
     def _process_vehicle(self, vehicle, data):
         from .models import VehicleLiveData
+
+        # Convert ADC-based % to litres for vehicles with known tank capacity
+        fuel_level = data.get('fuel_level')
+        fuel_unit = data.get('fuel_sensor_unit', '%')
+        if (
+            fuel_level is not None
+            and fuel_unit == '%'
+            and vehicle.fuel_capacity
+            and float(vehicle.fuel_capacity) > 0
+        ):
+            data['fuel_level'] = round(float(fuel_level) / 100 * float(vehicle.fuel_capacity), 1)
+            data['fuel_sensor_unit'] = 'L'
+
         prev_reading = vehicle.live_data.order_by('-fetched_at').first()
 
         with transaction.atomic():
@@ -676,6 +689,10 @@ class FleetSyncService:
             f'getTokenBaseFuelFillData&ProjectId={config.project_id}',
             f'getFuelAlert&ProjectId={config.project_id}',
             f'getAlertHistory&ProjectId={config.project_id}',
+            # Newly discovered endpoints
+            f'getVehicleTrackLogs&ProjectId={config.project_id}',
+            f'getVehicleCurrentLocation&ProjectId={config.project_id}',
+            f'getVehicleLiveInformation&ProjectId={config.project_id}',
         ]
 
         payload_variants = [
@@ -789,6 +806,44 @@ class FleetSyncService:
             'events_imported': events_imported,
             'debug_responses': debug_responses[:5],
         }
+
+    def fetch_vehicle_details(self, vehicle_no=None):
+        """
+        Probe the getVehicleDetail endpoint to retrieve vehicle info,
+        potentially including tank capacity. Results are returned as-is for debug purposes.
+        """
+        from .models import FleetAPIConfig, Vehicle
+        config = FleetAPIConfig.objects.filter(is_active=True).first()
+        if not config:
+            return {'error': 'No active fleet config'}
+
+        token = self._get_token(config)
+        headers = {'auth-code': token}
+
+        # Use first active vehicle if none specified
+        if not vehicle_no:
+            first_vehicle = Vehicle.objects.filter(is_active=True, api_config=config).first()
+            vehicle_no = first_vehicle.vehicle_no if first_vehicle else ''
+
+        payload = {
+            'company_names': config.company_name,
+            'vehicle_nos': vehicle_no,
+            'format': 'json',
+        }
+
+        debug = {}
+        for ep in ['getVehicleDetail', 'getVehicleDetails', 'getVehicleInfo']:
+            url = f"{config.base_url}/webservice?token={ep}&ProjectId={config.project_id}"
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=15)
+                try:
+                    debug[ep] = {'status': resp.status_code, 'body': resp.json()}
+                except Exception:
+                    debug[ep] = {'status': resp.status_code, 'body': resp.text[:500]}
+            except Exception as e:
+                debug[ep] = {'error': str(e)}
+
+        return {'vehicle_no_probed': vehicle_no, 'results': debug}
 
     def backfill_from_snapshots(self):
         """Process existing VehicleLiveData history to generate missing trips and fuel events."""
