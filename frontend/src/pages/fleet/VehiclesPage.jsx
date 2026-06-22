@@ -206,6 +206,13 @@ export default function VehiclesPage() {
           </div>
         )}
       </div>
+
+      {showImport && (
+        <FleetRegisterImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })}
+        />
+      )}
     </div>
 
     {showImport && (
