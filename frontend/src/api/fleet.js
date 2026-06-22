@@ -14,7 +14,10 @@ export const forceSync             = ()       => api.post('/fleet/sync/')
 export const getFuelEvents         = (params) => api.get('/fleet/fuel-events/', { params })
 export const getTrips              = (params) => api.get('/fleet/trips/', { params })
 
-export const getAlerts             = (params) => api.get('/fleet/alerts/', { params })
+export const getAlerts             = (params) => {
+  if (params instanceof URLSearchParams) return api.get(`/fleet/alerts/?${params}`)
+  return api.get('/fleet/alerts/', { params })
+}
 export const acknowledgeAlert      = (id)     => api.post(`/fleet/alerts/${id}/acknowledge/`)
 
 export const getMaintenance        = (params) => api.get('/fleet/maintenance/', { params })

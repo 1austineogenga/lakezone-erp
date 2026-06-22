@@ -4,6 +4,24 @@ import { toast } from 'react-toastify'
 import { ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { getAlerts, acknowledgeAlert, getVehicles } from '../../api/fleet'
 
+const ALLOWED_TYPES = [
+  'fuel_fill',
+  'fuel_drain',
+  'insurance_expiry',
+  'inspection_expiry',
+  'speed_governor_expiry',
+  'geofence',
+]
+
+const TYPE_LABEL = {
+  fuel_fill:            'Fuel Refill',
+  fuel_drain:           'Fuel Drain / Theft',
+  insurance_expiry:     'Insurance Expiry',
+  inspection_expiry:    'Inspection Expiry',
+  speed_governor_expiry:'Speed Governor Expiry',
+  geofence:             'Geofence',
+}
+
 const SEV_STYLE = {
   critical: 'bg-red-100 text-red-700 border-red-200',
   high:     'bg-orange-100 text-orange-700 border-orange-200',
@@ -16,6 +34,7 @@ export default function AlertsPage() {
   const qc = useQueryClient()
   const [vehicleId, setVehicleId] = useState('')
   const [showAck, setShowAck]     = useState(false)
+  const [typeFilter, setTypeFilter] = useState('')
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['fleet-vehicles'],
@@ -23,12 +42,17 @@ export default function AlertsPage() {
     select: r => r.data?.results ?? r.data ?? [],
   })
 
+  const activeTypes = typeFilter ? [typeFilter] : ALLOWED_TYPES
+
   const { data: alerts = [], isLoading } = useQuery({
-    queryKey: ['fleet-alerts-all', vehicleId, showAck],
-    queryFn: () => getAlerts({
-      ...(vehicleId && { vehicle: vehicleId }),
-      ...(!showAck && { acknowledged: false }),
-    }),
+    queryKey: ['fleet-alerts-all', vehicleId, showAck, typeFilter],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (vehicleId) params.append('vehicle', vehicleId)
+      if (!showAck) params.append('acknowledged', 'false')
+      activeTypes.forEach(t => params.append('alert_type', t))
+      return getAlerts(params)
+    },
     select: r => r.data?.results ?? r.data ?? [],
     refetchInterval: 60_000,
   })
@@ -73,7 +97,7 @@ export default function AlertsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-center">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle</label>
           <select value={vehicleId} onChange={e => setVehicleId(e.target.value)}
@@ -82,7 +106,17 @@ export default function AlertsPage() {
             {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicle_no}</option>)}
           </select>
         </div>
-        <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer mt-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Alert Type</label>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+            <option value="">All Types</option>
+            {ALLOWED_TYPES.map(t => (
+              <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+            ))}
+          </select>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer pb-2">
           <input type="checkbox" checked={showAck} onChange={e => setShowAck(e.target.checked)}
             className="rounded border-gray-300 accent-brand-red" />
           Show acknowledged
@@ -110,7 +144,7 @@ export default function AlertsPage() {
                       {a.severity?.toUpperCase()}
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
-                      {a.alert_type?.replace(/_/g, ' ')}
+                      {TYPE_LABEL[a.alert_type] || a.alert_type?.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600">{a.message}</p>

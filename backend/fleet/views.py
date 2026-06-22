@@ -265,6 +265,9 @@ class AlertListView(generics.ListAPIView):
         acknowledged = self.request.query_params.get('acknowledged')
         if acknowledged is not None:
             qs = qs.filter(acknowledged=acknowledged.lower() == 'true')
+        alert_types = self.request.query_params.getlist('alert_type')
+        if alert_types:
+            qs = qs.filter(alert_type__in=alert_types)
         return qs
 
 
