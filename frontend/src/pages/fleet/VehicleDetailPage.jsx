@@ -271,6 +271,112 @@ export default function VehicleDetailPage() {
               </div>
         )}
       </div>
+
+      {/* Compliance & Assignment */}
+      {(vehicle.compliance?.length > 0 || vehicle.current_assignment) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {vehicle.compliance?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <h3 className="text-xs font-bold text-brand-slate mb-3">Compliance Status</h3>
+              <div className="space-y-2">
+                {vehicle.compliance.map(c => {
+                  const statusCls = {
+                    valid: 'bg-green-100 text-green-700',
+                    expiring_soon: 'bg-amber-100 text-amber-700',
+                    expired: 'bg-red-100 text-red-700',
+                    not_in_system: 'bg-orange-100 text-orange-700',
+                    not_applicable: 'bg-gray-100 text-gray-400',
+                    unknown: 'bg-gray-100 text-gray-400',
+                  }[c.status] || 'bg-gray-100 text-gray-400'
+                  const statusLabel = {
+                    valid: 'Valid', expiring_soon: 'Expiring Soon', expired: 'EXPIRED',
+                    not_in_system: 'Not in System', not_applicable: 'N/A', unknown: '—',
+                  }[c.status] || c.status
+                  const typeLabel = {
+                    insurance: 'Insurance', inspection: 'Inspection Certificate',
+                    speed_governor: 'Speed Governor Cert',
+                  }[c.compliance_type] || c.compliance_type
+                  return (
+                    <div key={c.id} className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600">{typeLabel}</span>
+                      <div className="flex items-center gap-2">
+                        {c.expiry_date && (
+                          <span className="text-[10px] text-gray-400">{c.expiry_date}</span>
+                        )}
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusCls}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {vehicle.current_assignment && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <h3 className="text-xs font-bold text-brand-slate mb-3">Current Assignment</h3>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Driver / Operator</span>
+                  <span className="font-medium text-brand-slate">
+                    {vehicle.current_assignment.employee_name || vehicle.current_assignment.driver_name || '—'}
+                  </span>
+                </div>
+                {vehicle.current_assignment.site && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Site</span>
+                    <span className="font-medium text-brand-slate">{vehicle.current_assignment.site}</span>
+                  </div>
+                )}
+                {vehicle.current_assignment.employee && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">HR Record</span>
+                    <span className="text-green-600 font-medium">Matched ✓</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Register fields */}
+      {(vehicle.known_defects || vehicle.required_actions || vehicle.erp_status) && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <h3 className="text-xs font-bold text-brand-slate">Fleet Register Details</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            {[
+              ['ERP Status', vehicle.erp_status],
+              ['Priority', vehicle.priority_flag],
+              ['Current Site', vehicle.current_site],
+              ['Meter Reading', vehicle.meter_reading],
+              ['ERP Code', vehicle.erp_code],
+              ['Year Manufactured', vehicle.year_manufacture],
+              ['Year Acquired', vehicle.year_acquired],
+              ['Chassis No.', vehicle.chassis_number],
+            ].filter(([, v]) => v).map(([label, val]) => (
+              <div key={label}>
+                <div className="text-gray-400">{label}</div>
+                <div className="font-medium text-brand-slate">{val}</div>
+              </div>
+            ))}
+          </div>
+          {vehicle.known_defects && (
+            <div>
+              <div className="text-[10px] font-semibold text-red-600 uppercase mb-1">Known Defects</div>
+              <p className="text-xs text-gray-600">{vehicle.known_defects}</p>
+            </div>
+          )}
+          {vehicle.required_actions && (
+            <div>
+              <div className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Required Actions</div>
+              <p className="text-xs text-gray-600">{vehicle.required_actions}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

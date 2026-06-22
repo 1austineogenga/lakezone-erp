@@ -3,6 +3,7 @@ from django.utils import timezone
 from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
+    VehicleCompliance, VehicleAssignment,
 )
 
 
@@ -29,6 +30,8 @@ class VehicleSerializer(serializers.ModelSerializer):
     last_seen_minutes_ago = serializers.SerializerMethodField()
     is_online = serializers.SerializerMethodField()
     latest_live_data = serializers.SerializerMethodField()
+    compliance = serializers.SerializerMethodField()
+    current_assignment = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -55,6 +58,16 @@ class VehicleSerializer(serializers.ModelSerializer):
             return VehicleLiveDataSerializer(latest).data
         return None
 
+    def get_compliance(self, obj):
+        items = obj.compliance.all()
+        return VehicleComplianceSerializer(items, many=True).data
+
+    def get_current_assignment(self, obj):
+        assignment = obj.assignments.filter(is_current=True).first()
+        if assignment:
+            return VehicleAssignmentSerializer(assignment).data
+        return None
+
 
 class FuelEventSerializer(serializers.ModelSerializer):
     vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
@@ -79,6 +92,25 @@ class FleetAlertSerializer(serializers.ModelSerializer):
     class Meta:
         model = FleetAlert
         fields = '__all__'
+
+
+class VehicleComplianceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCompliance
+        fields = '__all__'
+
+
+class VehicleAssignmentSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleAssignment
+        fields = '__all__'
+
+    def get_employee_name(self, obj):
+        if obj.employee:
+            return f"{obj.employee.first_name} {obj.employee.last_name}"
+        return obj.driver_name
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):

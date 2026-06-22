@@ -29,3 +29,9 @@ export const saveFleetConfig       = (data)   => api.post('/fleet/config/', data
 export const backfillHistory       = ()       => api.post('/fleet/backfill/')
 export const fetchHistory          = (data)   => api.post('/fleet/fetch-history/', data)
 export const fetchFuelEvents       = (data)   => api.post('/fleet/fetch-fuel-events/', data)
+
+export const importFleetRegister = (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return api.post('/fleet/import-register/', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+}
