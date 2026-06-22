@@ -307,17 +307,40 @@ class FleetSyncService:
 
     def _detect_fuel_events(self, vehicle, prev_reading, new_data):
         from .models import FuelEvent, FleetAlert
-        prev_fuel = float(prev_reading.fuel_level) if prev_reading.fuel_level is not None else None
+        prev_fuel_raw = float(prev_reading.fuel_level) if prev_reading.fuel_level is not None else None
         new_fuel = new_data.get('fuel_level')
 
-        if prev_fuel is None or new_fuel is None:
+        if prev_fuel_raw is None or new_fuel is None:
             return
+
+        # Use the unit that new_data was converted to (authoritative for this sync cycle)
+        unit = new_data.get('fuel_sensor_unit') or '%'
+
+        # Normalize prev_fuel to match the current unit so comparisons are valid.
+        # If current unit is L (vehicle has fuel_capacity) and prev was stored as %
+        # (value ≤ 100 when new value indicates a large-tank litre reading), convert it.
+        prev_fuel = prev_fuel_raw
+        if unit == 'L' and vehicle.fuel_capacity:
+            capacity = float(vehicle.fuel_capacity)
+            # prev was in % if it's ≤ 100 AND new_fuel suggests a litre-scale reading
+            if prev_fuel_raw <= 100.0 and new_fuel > 100.0:
+                prev_fuel = round(prev_fuel_raw / 100.0 * capacity, 1)
+            # prev was raw ADC (0-4095) if somehow it slipped through un-normalized
+            elif prev_fuel_raw > 100.0 and prev_fuel_raw > capacity:
+                prev_fuel = round(prev_fuel_raw / 4095.0 * capacity, 1)
 
         fuel_change = new_fuel - prev_fuel
         occurred_at = new_data.get('device_datetime') or timezone.now()
-        unit = vehicle.fuel_sensor_unit or '%'
+        cooldown = timezone.now() - timedelta(minutes=30)
 
         if fuel_change >= self.FUEL_FILL_THRESHOLD:
+            # Deduplicate: one fill event per 30-minute window per vehicle
+            if FuelEvent.objects.filter(
+                vehicle=vehicle,
+                event_type=FuelEvent.EventType.FILL,
+                occurred_at__gte=cooldown,
+            ).exists():
+                return
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=FuelEvent.EventType.FILL,
@@ -333,13 +356,21 @@ class FleetSyncService:
                 vehicle=vehicle,
                 alert_type=FleetAlert.AlertType.FUEL_FILL,
                 severity=FleetAlert.Severity.LOW,
-                message=f"Fuel refill detected: +{fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                message=f"Fuel refill detected on {vehicle.vehicle_no}: +{fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
                 occurred_at=occurred_at,
             )
         elif fuel_change <= -self.FUEL_DRAIN_THRESHOLD and not new_data.get('ignition_on'):
-            event_type = FuelEvent.EventType.THEFT if abs(fuel_change) >= self.THEFT_THRESHOLD else FuelEvent.EventType.DRAIN
+            # Deduplicate: one drain/theft event per 30-minute window per vehicle
+            if FuelEvent.objects.filter(
+                vehicle=vehicle,
+                event_type__in=[FuelEvent.EventType.DRAIN, FuelEvent.EventType.THEFT],
+                occurred_at__gte=cooldown,
+            ).exists():
+                return
+            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
+            event_type = FuelEvent.EventType.THEFT if is_theft else FuelEvent.EventType.DRAIN
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=event_type,
@@ -351,12 +382,11 @@ class FleetSyncService:
                 fuel_after=new_fuel,
                 fuel_change=fuel_change,
             )
-            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
             FleetAlert.objects.create(
                 vehicle=vehicle,
                 alert_type=FleetAlert.AlertType.FUEL_DRAIN,
                 severity=FleetAlert.Severity.CRITICAL if is_theft else FleetAlert.Severity.HIGH,
-                message=f"{'Possible fuel theft' if is_theft else 'Fuel drain'} detected: {fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                message=f"{'Possible fuel theft' if is_theft else 'Fuel drain'} on {vehicle.vehicle_no}: {fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
                 occurred_at=occurred_at,
