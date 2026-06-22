@@ -51,6 +51,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     latest_live_data = serializers.SerializerMethodField()
     compliance = serializers.SerializerMethodField()
     current_assignment = serializers.SerializerMethodField()
+    project_name = serializers.CharField(source='project.project_name', read_only=True, allow_null=True, default=None)
 
     class Meta:
         model = Vehicle

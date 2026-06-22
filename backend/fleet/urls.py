@@ -5,6 +5,7 @@ urlpatterns = [
     path('dashboard/', views.FleetDashboardView.as_view(), name='fleet-dashboard'),
     path('vehicles/', views.VehicleListCreateView.as_view(), name='fleet-vehicle-list'),
     path('vehicles/<uuid:pk>/', views.VehicleDetailView.as_view(), name='fleet-vehicle-detail'),
+    path('vehicles/<uuid:pk>/compliance/', views.VehicleComplianceView.as_view(), name='fleet-vehicle-compliance'),
     path('live/', views.FleetLiveView.as_view(), name='fleet-live'),
     path('live/<uuid:vehicle_pk>/', views.VehicleLiveView.as_view(), name='fleet-vehicle-live'),
     path('sync/', views.ForceSyncView.as_view(), name='fleet-sync'),
