@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { TruckIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { TruckIcon, PlusIcon, MagnifyingGlassIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig } from '../../api/fleet'
 import api from '../../api/client'
+import FleetRegisterImportModal from './FleetRegisterImportModal'
 
 const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400', '': 'bg-gray-300' }
 const STATUS_LABEL = { MOVING: 'Moving', IDLE: 'Idling', STOP: 'Stopped', INACTIVE: 'Offline' }
@@ -19,6 +20,7 @@ export default function VehiclesPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [form, setForm] = useState(EMPTY)
 
   const { data: vehicles = [], isLoading } = useQuery({
@@ -74,10 +76,16 @@ export default function VehiclesPage() {
           <h2 className="font-bold text-brand-slate text-lg">Vehicles & Machines</h2>
           <p className="text-xs text-gray-400 mt-0.5">{vehicles.length} registered</p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Add Vehicle
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-brand-slate text-xs font-medium rounded-lg hover:border-brand-red hover:text-brand-red transition-colors">
+            <ArrowUpTrayIcon className="h-3.5 w-3.5" /> Import Register
+          </button>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Add Vehicle
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -199,5 +207,12 @@ export default function VehiclesPage() {
         )}
       </div>
     </div>
+
+    {showImport && (
+      <FleetRegisterImportModal
+        onClose={() => setShowImport(false)}
+        onSuccess={() => qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })}
+      />
+    )}
   )
 }

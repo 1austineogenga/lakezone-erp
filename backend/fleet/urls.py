@@ -21,6 +21,7 @@ urlpatterns = [
     path('backfill/', views.BackfillView.as_view(), name='fleet-backfill'),
     path('fetch-history/', views.FetchHistoryView.as_view(), name='fleet-fetch-history'),
     path('fetch-fuel-events/', views.FetchFuelEventsView.as_view(), name='fleet-fetch-fuel-events'),
+    path('import-register/', views.FleetRegisterImportView.as_view(), name='fleet-import-register'),
 ]
 
 

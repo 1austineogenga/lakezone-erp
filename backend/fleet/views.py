@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
+    VehicleCompliance, VehicleAssignment,
 )
 from .serializers import (
     FleetAPIConfigSerializer, VehicleSerializer, VehicleLiveDataSerializer,
@@ -548,3 +549,236 @@ class FleetDebugView(APIView):
             result['step2_error'] = str(e)
 
         return Response(result)
+
+
+class FleetRegisterImportView(APIView):
+    """Import Fleet Master Register from Excel (.xlsx)."""
+    permission_classes = [IsAuthenticated]
+
+    COMPLIANCE_MAP = {
+        'insurance':      ('insurance',      FleetAlert.AlertType.INSURANCE_EXPIRY),
+        'inspection':     ('inspection',     FleetAlert.AlertType.INSPECTION_EXPIRY),
+        'speed_governor': ('speed_governor', FleetAlert.AlertType.SPEED_GOV_EXPIRY),
+    }
+
+    def _parse_date(self, val):
+        """Return (date, status_str) from an openpyxl cell value."""
+        import datetime as dt_mod
+        if val is None:
+            return None, 'unknown'
+        if isinstance(val, (dt_mod.date, dt_mod.datetime)):
+            return val.date() if isinstance(val, dt_mod.datetime) else val, None
+        s = str(val).strip()
+        if s in ('', '–', '-', 'None'):
+            return None, 'unknown'
+        upper = s.upper()
+        if upper == 'EXPIRED':
+            return None, 'expired'
+        if 'NOT IN SYSTEM' in upper:
+            return None, 'not_in_system'
+        if upper in ('N/A', 'NA'):
+            return None, 'not_applicable'
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y'):
+            try:
+                return dt_mod.datetime.strptime(s[:10], fmt).date(), None
+            except Exception:
+                pass
+        return None, 'unknown'
+
+    def _compliance_status(self, expiry_date, override_status):
+        import datetime as dt_mod
+        if override_status:
+            return override_status
+        if expiry_date is None:
+            return 'unknown'
+        today = dt_mod.date.today()
+        if expiry_date < today:
+            return 'expired'
+        if (expiry_date - today).days <= 30:
+            return 'expiring_soon'
+        return 'valid'
+
+    def _clean(self, val):
+        if val is None:
+            return ''
+        s = str(val).strip()
+        return '' if s in ('–', '-', 'None', 'N/A') else s
+
+    def post(self, request):
+        import openpyxl
+        import datetime as dt_mod
+
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided.'}, status=400)
+
+        try:
+            wb = openpyxl.load_workbook(file, data_only=True)
+            ws = wb['Fleet Master Register']
+        except Exception as e:
+            return Response({'error': f'Could not read workbook: {e}'}, status=400)
+
+        today = dt_mod.date.today()
+        imported = updated = compliance_alerts = 0
+        errors = []
+
+        for row in ws.iter_rows(min_row=7, values_only=True):
+            # Skip section headers and empty rows
+            if not isinstance(row[0], int):
+                continue
+
+            (asset_no, asset_category, asset_sub_type, make, model,
+             plate, chassis, yr_mfg, yr_acq, site, driver_name,
+             op_status, meter, ins_exp, insp_exp, spd_exp,
+             defects, req_actions, erp_code, erp_status, priority, notes_txt) = row[:22]
+
+            # Determine vehicle_no
+            plate_clean = self._clean(plate)
+            if plate_clean and plate_clean.upper() not in ('N/A', ''):
+                vehicle_no = plate_clean
+            else:
+                code = self._clean(erp_code) or 'ASSET'
+                vehicle_no = f"{code}-{asset_no}"
+
+            vehicle_name = f"{self._clean(make)} {self._clean(model)}".strip()
+
+            # Map ERP status → operational fields
+            erp_s = self._clean(erp_status).upper()
+            is_active = erp_s in ('OPER', '')
+
+            defaults = dict(
+                vehicle_name=vehicle_name,
+                make=self._clean(make),
+                model_name=self._clean(model),
+                vehicle_type=self._clean(asset_sub_type),
+                asset_no=asset_no,
+                asset_category=self._clean(asset_category),
+                asset_sub_type=self._clean(asset_sub_type),
+                chassis_number=self._clean(chassis),
+                year_manufacture=int(yr_mfg) if yr_mfg else None,
+                year_acquired=int(yr_acq) if yr_acq else None,
+                current_site=self._clean(site),
+                erp_code=self._clean(erp_code),
+                erp_status=erp_s if erp_s in ('OPER', 'NON-OPER', 'IDLE', 'UNKNOWN') else '',
+                priority_flag=self._clean(priority).upper() if priority else '',
+                known_defects=self._clean(defects),
+                required_actions=self._clean(req_actions),
+                meter_reading=self._clean(meter),
+                notes=self._clean(notes_txt),
+                is_active=is_active,
+            )
+
+            try:
+                vehicle, created_flag = Vehicle.objects.update_or_create(
+                    vehicle_no=vehicle_no, defaults=defaults
+                )
+                if created_flag:
+                    imported += 1
+                else:
+                    updated += 1
+            except Exception as e:
+                errors.append(f"Row {asset_no}: {e}")
+                continue
+
+            # --- Compliance ---
+            compliance_data = {
+                'insurance':      ins_exp,
+                'inspection':     insp_exp,
+                'speed_governor': spd_exp,
+            }
+            for ctype, raw_val in compliance_data.items():
+                exp_date, override = self._parse_date(raw_val)
+                cstatus = self._compliance_status(exp_date, override)
+                VehicleCompliance.objects.update_or_create(
+                    vehicle=vehicle, compliance_type=ctype,
+                    defaults={'expiry_date': exp_date, 'status': cstatus}
+                )
+                # Create alert for expired / expiring soon / not_in_system
+                if cstatus in ('expired', 'expiring_soon', 'not_in_system'):
+                    alert_type_map = {
+                        'insurance':      FleetAlert.AlertType.INSURANCE_EXPIRY,
+                        'inspection':     FleetAlert.AlertType.INSPECTION_EXPIRY,
+                        'speed_governor': FleetAlert.AlertType.SPEED_GOV_EXPIRY,
+                    }
+                    atype = alert_type_map[ctype]
+                    severity = 'critical' if cstatus == 'expired' else 'high'
+                    if cstatus == 'not_in_system':
+                        severity = 'medium'
+                    label = {'insurance': 'Insurance', 'inspection': 'Inspection Certificate',
+                             'speed_governor': 'Speed Governor Certificate'}[ctype]
+                    if cstatus == 'expired':
+                        msg = f"{label} EXPIRED for {vehicle_no}"
+                    elif cstatus == 'expiring_soon':
+                        days = (exp_date - today).days
+                        msg = f"{label} expires in {days} days ({exp_date}) for {vehicle_no}"
+                    else:
+                        msg = f"{label} NOT IN SYSTEM for {vehicle_no}"
+
+                    # Avoid duplicate unacknowledged alerts
+                    exists = FleetAlert.objects.filter(
+                        vehicle=vehicle, alert_type=atype, acknowledged=False
+                    ).exists()
+                    if not exists:
+                        FleetAlert.objects.create(
+                            vehicle=vehicle, alert_type=atype,
+                            severity=severity, message=msg,
+                            occurred_at=timezone.now()
+                        )
+                        compliance_alerts += 1
+
+            # --- Driver Assignment ---
+            driver = self._clean(driver_name)
+            if driver and driver.lower() not in ('not assigned', 'n/a', ''):
+                # Try to match HR employee
+                employee = None
+                parts = driver.split()
+                if len(parts) >= 2:
+                    from hr.models import Employee
+                    try:
+                        employee = Employee.objects.filter(
+                            first_name__iexact=parts[0],
+                            last_name__iexact=parts[-1],
+                            is_active=True
+                        ).first()
+                    except Exception:
+                        pass
+                # Deactivate old assignments
+                VehicleAssignment.objects.filter(vehicle=vehicle, is_current=True).update(is_current=False)
+                VehicleAssignment.objects.update_or_create(
+                    vehicle=vehicle, driver_name=driver,
+                    defaults={
+                        'employee': employee,
+                        'site': self._clean(site),
+                        'is_current': True,
+                    }
+                )
+
+            # --- Sync to Assets module ---
+            try:
+                from inventory.models import Asset
+                cat = 'machinery' if 'plant' in self._clean(asset_category).lower() else 'vehicles'
+                Asset.objects.update_or_create(
+                    asset_code=f"FLT-{asset_no:03d}",
+                    defaults=dict(
+                        name=vehicle_name or vehicle_no,
+                        category=cat,
+                        department='Operations',
+                        serial_number=self._clean(chassis),
+                        make_model=f"{self._clean(make)} {self._clean(model)}".strip(),
+                        location=self._clean(site),
+                        assigned_to=self._clean(driver_name),
+                        condition='good' if erp_s == 'OPER' else ('poor' if erp_s == 'NON-OPER' else 'fair'),
+                        status='active' if is_active else 'under_repair',
+                        notes=self._clean(defects),
+                    )
+                )
+            except Exception:
+                pass  # Asset sync is best-effort
+
+        return Response({
+            'imported': imported,
+            'updated': updated,
+            'compliance_alerts': compliance_alerts,
+            'errors': errors,
+            'total': imported + updated,
+        })

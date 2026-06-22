@@ -37,6 +37,17 @@ class Vehicle(models.Model):
         ('electric', 'Electric'),
         ('hybrid', 'Hybrid'),
     ]
+    ERP_STATUS_CHOICES = [
+        ('OPER', 'Operational'),
+        ('NON-OPER', 'Non-Operational'),
+        ('IDLE', 'Idle'),
+        ('UNKNOWN', 'Unknown'),
+    ]
+    PRIORITY_CHOICES = [
+        ('HIGH', 'High'),
+        ('MEDIUM', 'Medium'),
+        ('LOW', 'Low'),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vehicle_no = models.CharField(max_length=50, unique=True)
     vehicle_name = models.CharField(max_length=200, blank=True)
@@ -61,6 +72,20 @@ class Vehicle(models.Model):
     fuel_sensor_unit = models.CharField(max_length=10, default='%', blank=True)
     last_odometer = models.BigIntegerField(default=0)
     last_seen = models.DateTimeField(null=True, blank=True)
+    # Fleet Master Register fields
+    asset_no = models.IntegerField(null=True, blank=True)
+    asset_category = models.CharField(max_length=100, blank=True)
+    asset_sub_type = models.CharField(max_length=100, blank=True)
+    chassis_number = models.CharField(max_length=100, blank=True)
+    year_manufacture = models.IntegerField(null=True, blank=True)
+    year_acquired = models.IntegerField(null=True, blank=True)
+    current_site = models.CharField(max_length=200, blank=True)
+    erp_code = models.CharField(max_length=50, blank=True)
+    erp_status = models.CharField(max_length=20, choices=ERP_STATUS_CHOICES, blank=True)
+    priority_flag = models.CharField(max_length=10, choices=PRIORITY_CHOICES, blank=True)
+    known_defects = models.TextField(blank=True)
+    required_actions = models.TextField(blank=True)
+    meter_reading = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -164,6 +189,10 @@ class FleetAlert(models.Model):
         IGNITION_OFF_MOVING = 'ignition_off_moving', 'Moving Without Ignition'
         IDLE_LONG = 'idle_long', 'Long Idle'
         DEVICE_OFFLINE = 'device_offline', 'Device Offline'
+        INSURANCE_EXPIRY = 'insurance_expiry', 'Insurance Expiring/Expired'
+        INSPECTION_EXPIRY = 'inspection_expiry', 'Inspection Cert Expiring/Expired'
+        SPEED_GOV_EXPIRY = 'speed_governor_expiry', 'Speed Governor Cert Expiring/Expired'
+        COMPLIANCE_ISSUE = 'compliance_issue', 'Compliance Issue'
 
     class Severity(models.TextChoices):
         LOW = 'low', 'Low'
@@ -219,3 +248,54 @@ class MaintenanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.vehicle.vehicle_no} {self.maintenance_type} on {self.date}"
+
+
+class VehicleCompliance(models.Model):
+    class ComplianceType(models.TextChoices):
+        INSURANCE = 'insurance', 'Insurance'
+        INSPECTION = 'inspection', 'Inspection Certificate'
+        SPEED_GOVERNOR = 'speed_governor', 'Speed Governor Certificate'
+
+    class ComplianceStatus(models.TextChoices):
+        VALID = 'valid', 'Valid'
+        EXPIRING_SOON = 'expiring_soon', 'Expiring Soon'
+        EXPIRED = 'expired', 'Expired'
+        NOT_IN_SYSTEM = 'not_in_system', 'Not in System'
+        NOT_APPLICABLE = 'not_applicable', 'N/A'
+        UNKNOWN = 'unknown', 'Unknown'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='compliance')
+    compliance_type = models.CharField(max_length=20, choices=ComplianceType.choices)
+    expiry_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=ComplianceStatus.choices, default='unknown')
+    notes = models.CharField(max_length=200, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('vehicle', 'compliance_type')]
+        ordering = ['compliance_type']
+
+    def __str__(self):
+        return f"{self.vehicle.vehicle_no} {self.compliance_type} – {self.status}"
+
+
+class VehicleAssignment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='assignments')
+    employee = models.ForeignKey(
+        'hr.Employee', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='vehicle_assignments'
+    )
+    driver_name = models.CharField(max_length=200, blank=True)
+    site = models.CharField(max_length=200, blank=True)
+    is_current = models.BooleanField(default=True)
+    assigned_date = models.DateField(auto_now_add=True)
+    notes = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-assigned_date']
+
+    def __str__(self):
+        return f"{self.vehicle.vehicle_no} → {self.driver_name}"

@@ -3,6 +3,7 @@ from django.utils import timezone
 from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
+    VehicleCompliance, VehicleAssignment,
 )
 
 
@@ -24,11 +25,32 @@ class VehicleLiveDataSerializer(serializers.ModelSerializer):
         return round(obj.odometer / 1000, 2) if obj.odometer else 0
 
 
+class VehicleComplianceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCompliance
+        fields = '__all__'
+
+
+class VehicleAssignmentSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleAssignment
+        fields = '__all__'
+
+    def get_employee_name(self, obj):
+        if obj.employee:
+            return f"{obj.employee.first_name} {obj.employee.last_name}"
+        return obj.driver_name
+
+
 class VehicleSerializer(serializers.ModelSerializer):
     odometer_km = serializers.SerializerMethodField()
     last_seen_minutes_ago = serializers.SerializerMethodField()
     is_online = serializers.SerializerMethodField()
     latest_live_data = serializers.SerializerMethodField()
+    compliance = serializers.SerializerMethodField()
+    current_assignment = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -53,6 +75,16 @@ class VehicleSerializer(serializers.ModelSerializer):
         latest = obj.live_data.order_by('-fetched_at').first()
         if latest:
             return VehicleLiveDataSerializer(latest).data
+        return None
+
+    def get_compliance(self, obj):
+        items = obj.compliance.all()
+        return VehicleComplianceSerializer(items, many=True).data
+
+    def get_current_assignment(self, obj):
+        assignment = obj.assignments.filter(is_current=True).first()
+        if assignment:
+            return VehicleAssignmentSerializer(assignment).data
         return None
 
 
