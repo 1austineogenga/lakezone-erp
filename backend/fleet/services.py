@@ -29,34 +29,65 @@ class FleetSyncService:
 
     def sync_config(self, config):
         from .models import Vehicle
-        vehicles = Vehicle.objects.filter(api_config=config, is_active=True)
+        # Start with vehicles already linked to this config
+        vehicle_list = list(Vehicle.objects.filter(api_config=config, is_active=True))
 
         synced_count = 0
         if config.api_type == 'token_based':
-            vehicle_list = list(vehicles)
             try:
-                # Pass empty lists to fetch ALL vehicles from the API when none registered yet
                 raw_data_list = self._fetch_token_based(config, vehicle_list)
                 for raw in raw_data_list:
                     vehicle_no = raw.get('Vehicle_No', '').strip()
                     if not vehicle_no:
                         continue
-                    # Auto-create vehicle record if not yet in DB
-                    try:
-                        vehicle = next(v for v in vehicle_list if v.vehicle_no == vehicle_no)
-                    except StopIteration:
-                        vehicle, created = Vehicle.objects.get_or_create(
+
+                    # 1. Try exact match in already-linked vehicles
+                    vehicle = next((v for v in vehicle_list if v.vehicle_no == vehicle_no), None)
+
+                    # 2. If not found, search ALL vehicles (case-insensitive, strip) —
+                    #    catches register-imported vehicles that share the same plate
+                    if vehicle is None:
+                        try:
+                            vehicle = Vehicle.objects.get(vehicle_no__iexact=vehicle_no)
+                        except Vehicle.DoesNotExist:
+                            vehicle = None
+                        except Vehicle.MultipleObjectsReturned:
+                            vehicle = Vehicle.objects.filter(
+                                vehicle_no__iexact=vehicle_no
+                            ).order_by('-updated_at').first()
+
+                    # 3. Create new vehicle if still not found
+                    if vehicle is None:
+                        vehicle = Vehicle.objects.create(
                             vehicle_no=vehicle_no,
-                            defaults={
-                                'vehicle_name': raw.get('Vehicle_Name', vehicle_no),
-                                'imei': raw.get('IMEI', ''),
-                                'vehicle_type': raw.get('Vehicletype', ''),
-                                'api_config': config,
-                                'is_active': True,
-                            }
+                            vehicle_name=raw.get('Vehicle_Name', '') or vehicle_no,
+                            imei=raw.get('IMEI', '') or '',
+                            vehicle_type=raw.get('Vehicletype', '') or '',
+                            api_config=config,
+                            is_active=True,
                         )
-                        if created:
-                            vehicle_list.append(vehicle)
+                    else:
+                        # Link to this config if not already, and fill in blanks from API
+                        update_fields = []
+                        if vehicle.api_config_id != config.id:
+                            vehicle.api_config = config
+                            update_fields.append('api_config')
+                        if not vehicle.imei and raw.get('IMEI'):
+                            vehicle.imei = raw.get('IMEI', '').strip()
+                            update_fields.append('imei')
+                        if not vehicle.vehicle_name and raw.get('Vehicle_Name'):
+                            vehicle.vehicle_name = raw.get('Vehicle_Name', '').strip()
+                            update_fields.append('vehicle_name')
+                        if not vehicle.vehicle_type and raw.get('Vehicletype'):
+                            vehicle.vehicle_type = raw.get('Vehicletype', '').strip()
+                            update_fields.append('vehicle_type')
+                        if update_fields:
+                            update_fields.append('updated_at')
+                            vehicle.save(update_fields=update_fields)
+
+                    if vehicle not in vehicle_list:
+                        vehicle_list.append(vehicle)
+
                     try:
                         data = self._parse_vehicle_data(raw)
                         self._process_vehicle(vehicle, data)
@@ -66,6 +97,7 @@ class FleetSyncService:
             except Exception as e:
                 logger.error(f"Token-based fetch failed: {e}")
         else:
+            vehicles = Vehicle.objects.filter(api_config=config, is_active=True)
             for vehicle in vehicles:
                 try:
                     raw = self._fetch_vehicle_wise(config, vehicle)
@@ -307,17 +339,40 @@ class FleetSyncService:
 
     def _detect_fuel_events(self, vehicle, prev_reading, new_data):
         from .models import FuelEvent, FleetAlert
-        prev_fuel = float(prev_reading.fuel_level) if prev_reading.fuel_level is not None else None
+        prev_fuel_raw = float(prev_reading.fuel_level) if prev_reading.fuel_level is not None else None
         new_fuel = new_data.get('fuel_level')
 
-        if prev_fuel is None or new_fuel is None:
+        if prev_fuel_raw is None or new_fuel is None:
             return
+
+        # Use the unit that new_data was converted to (authoritative for this sync cycle)
+        unit = new_data.get('fuel_sensor_unit') or '%'
+
+        # Normalize prev_fuel to match the current unit so comparisons are valid.
+        # If current unit is L (vehicle has fuel_capacity) and prev was stored as %
+        # (value ≤ 100 when new value indicates a large-tank litre reading), convert it.
+        prev_fuel = prev_fuel_raw
+        if unit == 'L' and vehicle.fuel_capacity:
+            capacity = float(vehicle.fuel_capacity)
+            # prev was in % if it's ≤ 100 AND new_fuel suggests a litre-scale reading
+            if prev_fuel_raw <= 100.0 and new_fuel > 100.0:
+                prev_fuel = round(prev_fuel_raw / 100.0 * capacity, 1)
+            # prev was raw ADC (0-4095) if somehow it slipped through un-normalized
+            elif prev_fuel_raw > 100.0 and prev_fuel_raw > capacity:
+                prev_fuel = round(prev_fuel_raw / 4095.0 * capacity, 1)
 
         fuel_change = new_fuel - prev_fuel
         occurred_at = new_data.get('device_datetime') or timezone.now()
-        unit = vehicle.fuel_sensor_unit or '%'
+        cooldown = timezone.now() - timedelta(minutes=30)
 
         if fuel_change >= self.FUEL_FILL_THRESHOLD:
+            # Deduplicate: one fill event per 30-minute window per vehicle
+            if FuelEvent.objects.filter(
+                vehicle=vehicle,
+                event_type=FuelEvent.EventType.FILL,
+                occurred_at__gte=cooldown,
+            ).exists():
+                return
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=FuelEvent.EventType.FILL,
@@ -333,13 +388,21 @@ class FleetSyncService:
                 vehicle=vehicle,
                 alert_type=FleetAlert.AlertType.FUEL_FILL,
                 severity=FleetAlert.Severity.LOW,
-                message=f"Fuel refill detected: +{fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                message=f"Fuel refill detected on {vehicle.vehicle_no}: +{fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
                 occurred_at=occurred_at,
             )
         elif fuel_change <= -self.FUEL_DRAIN_THRESHOLD and not new_data.get('ignition_on'):
-            event_type = FuelEvent.EventType.THEFT if abs(fuel_change) >= self.THEFT_THRESHOLD else FuelEvent.EventType.DRAIN
+            # Deduplicate: one drain/theft event per 30-minute window per vehicle
+            if FuelEvent.objects.filter(
+                vehicle=vehicle,
+                event_type__in=[FuelEvent.EventType.DRAIN, FuelEvent.EventType.THEFT],
+                occurred_at__gte=cooldown,
+            ).exists():
+                return
+            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
+            event_type = FuelEvent.EventType.THEFT if is_theft else FuelEvent.EventType.DRAIN
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=event_type,
@@ -351,12 +414,11 @@ class FleetSyncService:
                 fuel_after=new_fuel,
                 fuel_change=fuel_change,
             )
-            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
             FleetAlert.objects.create(
                 vehicle=vehicle,
                 alert_type=FleetAlert.AlertType.FUEL_DRAIN,
                 severity=FleetAlert.Severity.CRITICAL if is_theft else FleetAlert.Severity.HIGH,
-                message=f"{'Possible fuel theft' if is_theft else 'Fuel drain'} detected: {fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                message=f"{'Possible fuel theft' if is_theft else 'Fuel drain'} on {vehicle.vehicle_no}: {fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
                 occurred_at=occurred_at,
