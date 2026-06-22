@@ -5,10 +5,9 @@ import { toast } from 'react-toastify'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   ArrowLeftIcon, ArrowPathIcon, MapPinIcon, BoltIcon,
-  BeakerIcon, ExclamationTriangleIcon, PrinterIcon,
+  BeakerIcon, ExclamationTriangleIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import { getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts, acknowledgeAlert } from '../../api/fleet'
-import { printMachineWeekly } from '../../utils/print'
 
 const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
 const STATUS_LABEL = { MOVING: 'Moving', IDLE: 'Idling', STOP: 'Stopped', INACTIVE: 'Offline' }
@@ -97,9 +96,9 @@ export default function VehicleDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="font-bold text-brand-slate text-lg">{vehicle.vehicle_no}</h2>
             <button
-              onClick={() => printMachineWeekly({ vehicle_no: vehicle.vehicle_no, vehicle_name: vehicle.vehicle_name, make: vehicle.make, model: vehicle.model_name })}
+              onClick={() => navigate(`/fleet/vehicles/${id}/weekly-report`)}
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-              <PrinterIcon className="h-3.5 w-3.5" /> Machine Weekly Report
+              <DocumentTextIcon className="h-3.5 w-3.5" /> Machine Weekly Report
             </button>
             {vehicle.last_status && (
               <>

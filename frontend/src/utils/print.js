@@ -680,15 +680,20 @@ export function printMachineWeekly(report) {
           <thead><tr style="background:#f1f5f9;">
             ${['Day','Breakdown Desc.','Hrs Lost','Action Taken'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">${h}</th>`).join('')}
           </tr></thead>
-          <tbody>${Array(3).fill(`<tr>${Array(4).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}</tr>`).join('')}</tbody>
+          <tbody>${(report.breakdowns?.length ? report.breakdowns : Array(3).fill({})).map(b=>`<tr>
+            <td style="border:1px solid #cbd5e1;padding:5px;">${b.day||''}</td>
+            <td style="border:1px solid #cbd5e1;padding:5px;">${b.description||''}</td>
+            <td style="border:1px solid #cbd5e1;padding:5px;">${b.hrs_lost||''}</td>
+            <td style="border:1px solid #cbd5e1;padding:5px;">${b.action||''}</td>
+          </tr>`).join('')}</tbody>
         </table>
       </div>
 
       <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
         <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">G. Materials, Issues and Next Week Plan</div>
-        ${['Materials/consumables received or used','Major issues / constraints','Safety / quality / environment','Planned activities for next week'].map(label=>`
+        ${[['Materials/consumables received or used','materials'],['Major issues / constraints','issues'],['Safety / quality / environment','safety'],['Planned activities for next week','next_week']].map(([label,key])=>`
         <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
-        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-top:3px;"></div></div>`).join('')}
+        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-top:3px;">${report[key]||''}</div></div>`).join('')}
       </div>
 
       <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
