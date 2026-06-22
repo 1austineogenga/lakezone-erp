@@ -29,34 +29,65 @@ class FleetSyncService:
 
     def sync_config(self, config):
         from .models import Vehicle
-        vehicles = Vehicle.objects.filter(api_config=config, is_active=True)
+        # Start with vehicles already linked to this config
+        vehicle_list = list(Vehicle.objects.filter(api_config=config, is_active=True))
 
         synced_count = 0
         if config.api_type == 'token_based':
-            vehicle_list = list(vehicles)
             try:
-                # Pass empty lists to fetch ALL vehicles from the API when none registered yet
                 raw_data_list = self._fetch_token_based(config, vehicle_list)
                 for raw in raw_data_list:
                     vehicle_no = raw.get('Vehicle_No', '').strip()
                     if not vehicle_no:
                         continue
-                    # Auto-create vehicle record if not yet in DB
-                    try:
-                        vehicle = next(v for v in vehicle_list if v.vehicle_no == vehicle_no)
-                    except StopIteration:
-                        vehicle, created = Vehicle.objects.get_or_create(
+
+                    # 1. Try exact match in already-linked vehicles
+                    vehicle = next((v for v in vehicle_list if v.vehicle_no == vehicle_no), None)
+
+                    # 2. If not found, search ALL vehicles (case-insensitive, strip) —
+                    #    catches register-imported vehicles that share the same plate
+                    if vehicle is None:
+                        try:
+                            vehicle = Vehicle.objects.get(vehicle_no__iexact=vehicle_no)
+                        except Vehicle.DoesNotExist:
+                            vehicle = None
+                        except Vehicle.MultipleObjectsReturned:
+                            vehicle = Vehicle.objects.filter(
+                                vehicle_no__iexact=vehicle_no
+                            ).order_by('-updated_at').first()
+
+                    # 3. Create new vehicle if still not found
+                    if vehicle is None:
+                        vehicle = Vehicle.objects.create(
                             vehicle_no=vehicle_no,
-                            defaults={
-                                'vehicle_name': raw.get('Vehicle_Name', vehicle_no),
-                                'imei': raw.get('IMEI', ''),
-                                'vehicle_type': raw.get('Vehicletype', ''),
-                                'api_config': config,
-                                'is_active': True,
-                            }
+                            vehicle_name=raw.get('Vehicle_Name', '') or vehicle_no,
+                            imei=raw.get('IMEI', '') or '',
+                            vehicle_type=raw.get('Vehicletype', '') or '',
+                            api_config=config,
+                            is_active=True,
                         )
-                        if created:
-                            vehicle_list.append(vehicle)
+                    else:
+                        # Link to this config if not already, and fill in blanks from API
+                        update_fields = []
+                        if vehicle.api_config_id != config.id:
+                            vehicle.api_config = config
+                            update_fields.append('api_config')
+                        if not vehicle.imei and raw.get('IMEI'):
+                            vehicle.imei = raw.get('IMEI', '').strip()
+                            update_fields.append('imei')
+                        if not vehicle.vehicle_name and raw.get('Vehicle_Name'):
+                            vehicle.vehicle_name = raw.get('Vehicle_Name', '').strip()
+                            update_fields.append('vehicle_name')
+                        if not vehicle.vehicle_type and raw.get('Vehicletype'):
+                            vehicle.vehicle_type = raw.get('Vehicletype', '').strip()
+                            update_fields.append('vehicle_type')
+                        if update_fields:
+                            update_fields.append('updated_at')
+                            vehicle.save(update_fields=update_fields)
+
+                    if vehicle not in vehicle_list:
+                        vehicle_list.append(vehicle)
+
                     try:
                         data = self._parse_vehicle_data(raw)
                         self._process_vehicle(vehicle, data)
@@ -66,6 +97,7 @@ class FleetSyncService:
             except Exception as e:
                 logger.error(f"Token-based fetch failed: {e}")
         else:
+            vehicles = Vehicle.objects.filter(api_config=config, is_active=True)
             for vehicle in vehicles:
                 try:
                     raw = self._fetch_vehicle_wise(config, vehicle)
