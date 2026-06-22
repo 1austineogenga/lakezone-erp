@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
+import secrets
+import string
 from .models import User, Branch, Department
 from .serializers import (
     UserSerializer,
@@ -75,6 +77,26 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsSystemAdmin]
+
+
+class ResetUserPasswordView(APIView):
+    """Admin resets a user's password and receives the generated password."""
+    permission_classes = [IsSystemAdmin]
+
+    def post(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        alphabet = string.ascii_letters + string.digits + '!@#$%'
+        new_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+        return Response({
+            'detail': f"Password reset for {user.get_full_name() or user.email}.",
+            'new_password': new_password,
+        })
 
 
 class BranchListCreateView(generics.ListCreateAPIView):

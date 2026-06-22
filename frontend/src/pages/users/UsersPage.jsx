@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 import { ROLE_GROUPS, ALL_ROLES, getPermissions } from '../../utils/permissions'
 
-const getUsers   = (p) => api.get('/auth/users/', { params: p })
-const createUser = (d) => api.post('/auth/users/', d)
-const updateUser = (id, d) => api.patch(`/auth/users/${id}/`, d)
+const getUsers      = (p) => api.get('/auth/users/', { params: p })
+const createUser    = (d) => api.post('/auth/users/', d)
+const updateUser    = (id, d) => api.patch(`/auth/users/${id}/`, d)
+const resetPassword = (id) => api.post(`/auth/users/${id}/reset-password/`)
 
 const ROLE_COLORS = {
   system_admin: 'bg-red-100 text-red-700',
@@ -30,6 +31,78 @@ const EMPTY_FORM = {
   first_name: '', last_name: '', email: '', phone: '',
   role: 'site_engineer', password: '', password_confirm: '',
   is_active: true,
+}
+
+function ResetPasswordModal({ user, onClose }) {
+  const [generatedPassword, setGeneratedPassword] = useState(null)
+  const [copied, setCopied] = useState(false)
+
+  const resetMut = useMutation({
+    mutationFn: () => resetPassword(user.id),
+    onSuccess: (res) => setGeneratedPassword(res.data.new_password),
+    onError: () => toast.error('Failed to reset password.'),
+  })
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedPassword)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-brand-slate">Reset Password</h3>
+          <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          {!generatedPassword ? (
+            <>
+              <p className="text-xs text-gray-600">
+                Generate a new system password for <strong>{user.full_name || user.email}</strong>.
+                The user will need to be informed of the new password and should change it after logging in.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button onClick={onClose}
+                  className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button onClick={() => resetMut.mutate()} disabled={resetMut.isPending}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                  <KeyIcon className="w-3.5 h-3.5" />
+                  {resetMut.isPending ? 'Generating…' : 'Generate Password'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs text-green-700 font-medium mb-2">Password reset successfully</p>
+                <p className="text-[10px] text-green-600 mb-3">
+                  Copy this password and share it securely with the user. It will not be shown again.
+                </p>
+                <div className="flex items-center gap-2 bg-white border border-green-200 rounded px-3 py-2">
+                  <code className="flex-1 text-sm font-mono font-bold text-brand-slate tracking-widest">
+                    {generatedPassword}
+                  </code>
+                  <button onClick={copyToClipboard}
+                    className="text-green-600 hover:text-green-800 transition-colors">
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                {copied && <p className="text-[10px] text-green-600 mt-1 text-right">Copied!</p>}
+              </div>
+              <div className="flex justify-end">
+                <button onClick={onClose}
+                  className="px-4 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
+                  Done
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function UserModal({ open, onClose, initial, onSave, saving, isEdit }) {
@@ -154,9 +227,10 @@ export default function UsersPage() {
   const { isAdmin, canWrite } = usePermissions()
   const canEdit = isAdmin || canWrite('users')
 
-  const [search, setSearch]       = useState('')
-  const [filterRole, setFilterRole] = useState('')
-  const [modal, setModal]         = useState(null)
+  const [search, setSearch]           = useState('')
+  const [filterRole, setFilterRole]   = useState('')
+  const [modal, setModal]             = useState(null)
+  const [resetUser, setResetUser]     = useState(null)
   const [previewRole, setPreviewRole] = useState('')
 
   const { data: users = [], isLoading } = useQuery({
@@ -289,11 +363,18 @@ export default function UsersPage() {
                   </td>
                   {canEdit && (
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => setModal({ mode: 'edit', user: u })}
-                        className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50">
-                        <PencilIcon className="h-3 w-3" /> Edit
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setModal({ mode: 'edit', user: u })}
+                          className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50">
+                          <PencilIcon className="h-3 w-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => setResetUser(u)}
+                          className="flex items-center gap-1 px-2 py-1 border border-amber-200 text-amber-700 rounded text-xs hover:bg-amber-50">
+                          <KeyIcon className="h-3 w-3" /> Reset PW
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -311,6 +392,10 @@ export default function UsersPage() {
         saving={saveMut.isPending}
         isEdit={!!modal?.user?.id}
       />
+
+      {resetUser && (
+        <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} />
+      )}
     </div>
   )
 }
