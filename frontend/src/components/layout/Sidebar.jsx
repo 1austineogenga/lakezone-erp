@@ -84,9 +84,10 @@ const MODULES = [
       {
         heading: 'Time & Leave',
         links: [
-          { to: '/hr/attendance', label: 'Attendance',  icon: ClockIcon },
-          { to: '/hr/biometric',  label: 'Biometric',   icon: ClipboardDocumentListIcon },
-          { to: '/hr/leave',      label: 'Leave',       icon: CalendarDaysIcon },
+          { to: '/hr/attendance',       label: 'Attendance',       icon: ClockIcon },
+          { to: '/hr/biometric',        label: 'Biometric',        icon: ClipboardDocumentListIcon },
+          { to: '/hr/leave',            label: 'Leave',            icon: CalendarDaysIcon },
+          { to: '/hr/casuals-registry', label: 'Casuals Registry', icon: ClipboardDocumentListIcon },
         ],
       },
       {

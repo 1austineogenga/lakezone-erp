@@ -1,12 +1,14 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import FleetDashboard    from './FleetDashboard'
-import VehiclesPage      from './VehiclesPage'
-import VehicleDetailPage from './VehicleDetailPage'
-import FuelReportPage    from './FuelReportPage'
-import TripsReportPage   from './TripsReportPage'
-import AlertsPage        from './AlertsPage'
-import MaintenancePage   from './MaintenancePage'
-import FleetSettingsPage from './FleetSettingsPage'
+import FleetDashboard          from './FleetDashboard'
+import VehiclesPage            from './VehiclesPage'
+import VehicleDetailPage       from './VehicleDetailPage'
+import FuelReportPage          from './FuelReportPage'
+import TripsReportPage         from './TripsReportPage'
+import AlertsPage              from './AlertsPage'
+import MaintenancePage         from './MaintenancePage'
+import FleetSettingsPage       from './FleetSettingsPage'
+import MachineWeeklyReportPage from './MachineWeeklyReportPage'
+import MachineDailyReportPage from './MachineDailyReportPage'
 
 export default function FleetPage() {
   return (
@@ -14,6 +16,8 @@ export default function FleetPage() {
       <Route index element={<FleetDashboard />} />
       <Route path="vehicles" element={<VehiclesPage />} />
       <Route path="vehicles/:id" element={<VehicleDetailPage />} />
+      <Route path="vehicles/:id/weekly-report" element={<MachineWeeklyReportPage />} />
+      <Route path="vehicles/:id/daily-report" element={<MachineDailyReportPage />} />
       <Route path="fuel" element={<FuelReportPage />} />
       <Route path="trips" element={<TripsReportPage />} />
       <Route path="alerts" element={<AlertsPage />} />

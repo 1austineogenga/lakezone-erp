@@ -16,6 +16,8 @@ import InventoryPage from './pages/inventory/InventoryPage'
 import StockItemDetailPage from './pages/inventory/StockItemDetailPage'
 import AssetsPage from './pages/inventory/AssetsPage'
 import AssetDetailPage from './pages/inventory/AssetDetailPage'
+import InspectionAcceptanceFormPage from './pages/inventory/InspectionAcceptanceFormPage'
+import CounterIssueVoucherPage from './pages/inventory/CounterIssueVoucherPage'
 import CRMPage from './pages/crm/CRMPage'
 import RequisitionsPage from './pages/requisitions/RequisitionsPage'
 import NewRequisitionPage from './pages/requisitions/NewRequisitionPage'
@@ -47,6 +49,8 @@ export default function App() {
             <Route path="/procurement/po/:id"  element={<PODetailPage />} />
             <Route path="/inventory"          element={<InventoryPage />} />
             <Route path="/inventory/:id"      element={<StockItemDetailPage />} />
+            <Route path="/inventory/inspection"   element={<InspectionAcceptanceFormPage />} />
+            <Route path="/inventory/counter-issue" element={<CounterIssueVoucherPage />} />
             <Route path="/assets"             element={<AssetsPage />} />
             <Route path="/assets/:id"         element={<AssetDetailPage />} />
             <Route path="/crm"                element={<CRMPage />} />

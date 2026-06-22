@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
   CubeIcon, PlusIcon, MagnifyingGlassIcon,
-  ExclamationTriangleIcon, ArrowsRightLeftIcon,
+  ExclamationTriangleIcon, ArrowsRightLeftIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import {
   getStockItems, getTransactions, createStockItem, getStores,
@@ -316,6 +316,7 @@ export default function InventoryPage() {
   const [tab, setTab] = useState('items')
   const [showAddModal, setShowAddModal] = useState(false)
   const qc = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: itemsData, isLoading: loadingItems } = useQuery({
     queryKey: ['stock-items'],
@@ -350,6 +351,18 @@ export default function InventoryPage() {
             <h1 className="font-bold text-brand-slate text-lg">Inventory</h1>
             <p className="text-sm text-gray-500">Stock items, movements, and alerts</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/inventory/inspection')}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+            <DocumentTextIcon className="h-3.5 w-3.5" /> Inspection Form
+          </button>
+          <button
+            onClick={() => navigate('/inventory/counter-issue')}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+            <DocumentTextIcon className="h-3.5 w-3.5" /> Counter Issue Voucher
+          </button>
         </div>
       </div>
 

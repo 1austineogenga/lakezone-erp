@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getLeaveApplications, createLeaveApplication, submitLeave, reviewLeave, getLeaveTypes } from '../../api/hr'
 import api from '../../api/client'
-import { PlusIcon, CheckCircleIcon, XCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, CheckCircleIcon, XCircleIcon, PrinterIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { printLeaveApplication } from '../../utils/print'
 
 const STATUS_COLORS = {
@@ -18,6 +19,7 @@ const EMPTY = { employee: '', leave_type: '', start_date: '', end_date: '', reas
 
 export default function LeavePage() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [tab, setTab]         = useState('applications')
   const [statusFilter, setStatus] = useState('')
   const [showForm, setShowForm]   = useState(false)
@@ -194,6 +196,10 @@ export default function LeavePage() {
                               <button onClick={() => printLeaveApplication(app, { name: app.employee_name })}
                                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 font-medium">
                                 <PrinterIcon className="h-3.5 w-3.5" /> Print
+                              </button>
+                              <button onClick={() => navigate(`/hr/leave/${app.id}/application`)}
+                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                                <DocumentTextIcon className="h-3.5 w-3.5" /> Print Form
                               </button>
                             </div>
                           </td>

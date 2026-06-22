@@ -11,6 +11,8 @@ import PayrollPeriodPage from './PayrollPeriodPage'
 import AdvancesPage from './AdvancesPage'
 import DisciplinaryPage from './DisciplinaryPage'
 import TransfersPage from './TransfersPage'
+import DailyCasualsRegistryPage from './DailyCasualsRegistryPage'
+import LeaveApplicationPage from './LeaveApplicationPage'
 
 export default function HRPage() {
   return (
@@ -22,11 +24,13 @@ export default function HRPage() {
       <Route path="attendance"     element={<AttendancePage />} />
       <Route path="biometric"      element={<BiometricDevicesPage />} />
       <Route path="leave"          element={<LeavePage />} />
+      <Route path="leave/:id/application" element={<LeaveApplicationPage />} />
       <Route path="payroll"        element={<PayrollPage />} />
       <Route path="payroll/:id"    element={<PayrollPeriodPage />} />
       <Route path="advances"       element={<AdvancesPage />} />
       <Route path="disciplinary"   element={<DisciplinaryPage />} />
       <Route path="transfers"      element={<TransfersPage />} />
+      <Route path="casuals-registry" element={<DailyCasualsRegistryPage />} />
     </Routes>
   )
 }
