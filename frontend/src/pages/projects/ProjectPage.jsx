@@ -11,6 +11,7 @@ import {
   TruckIcon,
   UsersIcon,
   ArrowLeftIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import { getProjectDashboard } from '../../api/projects'
 import ProjectDashboard from './ProjectDashboard'
@@ -21,6 +22,8 @@ import WeeklyProgressPage from './WeeklyProgressPage'
 import RiskRegisterPage from './RiskRegisterPage'
 import FleetAssignmentPage from './FleetAssignmentPage'
 import TeamPage from './TeamPage'
+import ForemanWeeklyReportPage from './ForemanWeeklyReportPage'
+import SurveyorDailyReportPage from './SurveyorDailyReportPage'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -42,6 +45,7 @@ const TABS = [
   { id: 'risks',      label: 'Risk Register',   Icon: ExclamationTriangleIcon },
   { id: 'fleet',      label: 'Fleet',           Icon: TruckIcon },
   { id: 'team',       label: 'Team',            Icon: UsersIcon },
+  { id: 'reports',    label: 'Reports',         Icon: DocumentTextIcon },
 ]
 
 export default function ProjectPage() {
@@ -59,6 +63,8 @@ export default function ProjectPage() {
 
   const project = dashData?.project || {}
 
+  const [reportSubTab, setReportSubTab] = useState('foreman-weekly')
+
   const renderTab = () => {
     switch (activeTab) {
       case 'dashboard': return <ProjectDashboard dashData={dashData} />
@@ -69,6 +75,24 @@ export default function ProjectPage() {
       case 'risks':     return <RiskRegisterPage />
       case 'fleet':     return <FleetAssignmentPage />
       case 'team':      return <TeamPage />
+      case 'reports':   return (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            {[
+              { key: 'foreman-weekly', label: 'Foreman Weekly' },
+              { key: 'surveyor-daily', label: 'Surveyor Daily' },
+            ].map(opt => (
+              <button key={opt.key} onClick={() => setReportSubTab(opt.key)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors
+                  ${reportSubTab === opt.key ? 'bg-brand-red text-white border-brand-red' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-red'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {reportSubTab === 'foreman-weekly' && <ForemanWeeklyReportPage />}
+          {reportSubTab === 'surveyor-daily' && <SurveyorDailyReportPage />}
+        </div>
+      )
       default:          return <ProjectDashboard dashData={dashData} />
     }
   }

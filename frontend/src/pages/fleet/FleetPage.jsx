@@ -8,6 +8,7 @@ import AlertsPage              from './AlertsPage'
 import MaintenancePage         from './MaintenancePage'
 import FleetSettingsPage       from './FleetSettingsPage'
 import MachineWeeklyReportPage from './MachineWeeklyReportPage'
+import MachineDailyReportPage from './MachineDailyReportPage'
 
 export default function FleetPage() {
   return (
@@ -16,6 +17,7 @@ export default function FleetPage() {
       <Route path="vehicles" element={<VehiclesPage />} />
       <Route path="vehicles/:id" element={<VehicleDetailPage />} />
       <Route path="vehicles/:id/weekly-report" element={<MachineWeeklyReportPage />} />
+      <Route path="vehicles/:id/daily-report" element={<MachineDailyReportPage />} />
       <Route path="fuel" element={<FuelReportPage />} />
       <Route path="trips" element={<TripsReportPage />} />
       <Route path="alerts" element={<AlertsPage />} />

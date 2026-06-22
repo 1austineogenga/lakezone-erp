@@ -703,3 +703,250 @@ export function printMachineWeekly(report) {
     </div>`,
   })
 }
+
+// ── Machine Daily Report ──────────────────────────────────────────────────────
+export function printMachineDaily(report) {
+  const HOUR_CATS = ['Hours Idle','Hours Worked','Hrs Breakdown','Hrs Standby','Fuel Used (Ltrs)','Fuel Balance (Ltrs)']
+  const MAINT_ITEMS = ['Engine oil check','Filter check','Greasing/lubrication','Tyre/track inspection','Hydraulic check','Coolant level']
+
+  const hoursRows = HOUR_CATS.map(cat => `<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;font-weight:600;">${cat}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${report.daily_hours?.[cat]||''}</td>
+  </tr>`).join('')
+
+  const worksRows = (report.works||[]).map(w=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.no||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.location||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.description||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.unit||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${w.qty||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${w.remarks||''}</td>
+  </tr>`).join('') || Array(5).fill(`<tr>${Array(6).fill('<td style="border:1px solid #cbd5e1;padding:12px;"></td>').join('')}</tr>`).join('')
+
+  const maintRows = MAINT_ITEMS.map(item=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.maintenance?.[item]?.status||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${report.maintenance?.[item]?.notes||''}</td>
+  </tr>`).join('')
+
+  const breakRows = (report.breakdowns?.length ? report.breakdowns : Array(3).fill({})).map(b=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.day||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.description||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.hrs_lost||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${b.action||''}</td>
+  </tr>`).join('')
+
+  printDoc({
+    title: 'Machine Daily Report',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Project name:',report.project_name],['Contract No.:',report.contract_no],['Site/Section:',report.site_section],
+           ['Date:',report.date],['Machine Name:',report.machine_name||report.machine_id],['Machine ID/Reg:',report.machine_id],
+           ['Machine Type:',report.machine_type],['Fuel Type:',report.fuel_type],['Primary Operator:',report.primary_operator]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">A. Daily Hours</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Category</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:center;">Hours</th>
+          </tr></thead>
+          <tbody>${hoursRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">B. Work Activities Executed</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['No.','Location/Chainage','Description of Work','Unit','Qty','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${worksRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">C. Maintenance &amp; Inspections</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Maintenance Item','Status','Notes'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${maintRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">D. Breakdowns / Downtime</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Day','Breakdown Desc.','Hrs Lost','Action Taken'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${breakRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;background:#e2e8f0;padding:4px 8px;">E. Issues, Instructions and Next Day Plan</div>
+        ${[['Issues encountered','issues'],['Instructions received / issued','instructions'],['Planned activities for next day','next_day']].map(([label,key])=>`
+        <div style="margin-bottom:8px;"><label style="font-size:10px;font-weight:600;">${label}:</label>
+        <div style="border:1px solid #cbd5e1;min-height:32px;padding:4px;margin-top:3px;">${report[key]||''}</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+        <div><div style="font-size:10px;font-weight:700;">Prepared by (Operator/Driver)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;">Checked by (Site Agent/Engineer)</div><div style="border-bottom:1px solid #334155;height:40px;margin-top:4px;"></div></div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Daily Casuals Registry ────────────────────────────────────────────────────
+export function printDailyCasualsRegistry(report) {
+  const rows = (report.workers||[]).map((w,i)=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;text-align:center;">${i+1}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">${w.name||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">${w.phone||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">${w.id_no||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">${w.time_in||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">${w.time_out||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;">&nbsp;</td>
+  </tr>`).join('') || Array(26).fill(null).map((_,i)=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:4px 6px;text-align:center;">${i+1}</td>
+    ${Array(6).fill('<td style="border:1px solid #cbd5e1;padding:10px;"></td>').join('')}
+  </tr>`).join('')
+
+  printDoc({
+    title: 'Daily Casuals Registry Sheet',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="background:#1e293b;color:#fff;padding:8px 16px;font-size:12px;font-weight:700;text-align:center;">
+        ${report.project_name||'Project'} — Daily Casuals Registry Sheet
+      </div>
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        <div><label style="font-size:10px;color:#64748b;">Date:</label><div style="border-bottom:1px solid #334155;padding:3px 0;font-weight:600;">${report.date||''}</div></div>
+        <div><label style="font-size:10px;color:#64748b;">Location:</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${report.location||''}</div></div>
+      </div>
+      <div style="padding:10px 16px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['No.','Name','Phone No.','ID No.','Time In','Time Out','Signature'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;border-top:1px solid #cbd5e1;">
+        <div style="font-size:10px;font-weight:600;margin-bottom:4px;">Remarks:</div>
+        <div style="border:1px solid #cbd5e1;min-height:36px;padding:4px;margin-bottom:16px;">${report.remarks||''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;">Foreman / Supervisor</div>
+            <div style="margin-top:6px;font-size:10px;">Name: <span style="border-bottom:1px solid #334155;display:inline-block;min-width:160px;">${report.foreman_name||''}</span></div>
+            <div style="margin-top:8px;font-size:10px;">Signature: <span style="border-bottom:1px solid #334155;display:inline-block;min-width:140px;"></span></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;">Authorized By</div>
+            <div style="margin-top:6px;font-size:10px;">Name: <span style="border-bottom:1px solid #334155;display:inline-block;min-width:160px;">${report.authorized_by||''}</span></div>
+            <div style="margin-top:8px;font-size:10px;">Signature: <span style="border-bottom:1px solid #334155;display:inline-block;min-width:140px;"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Inspection and Acceptance Form ────────────────────────────────────────────
+export function printInspectionAcceptance(report) {
+  const itemRows = (report.items||[]).map(item=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item.qty||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item.description||''}</td>
+  </tr>`).join('') || Array(12).fill(`<tr><td style="border:1px solid #cbd5e1;padding:10px;"></td><td style="border:1px solid #cbd5e1;padding:10px;"></td></tr>`).join('')
+
+  const memberRows = (report.members||[]).map((m,i)=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${i+1}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${m.name||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${m.designation||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${m.signature||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${m.date||''}</td>
+  </tr>`).join('') || Array(3).fill(null).map((_,i)=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${i+1}</td>
+    ${Array(4).fill('<td style="border:1px solid #cbd5e1;padding:14px;"></td>').join('')}
+  </tr>`).join('')
+
+  printDoc({
+    title: 'Inspection and Acceptance Form',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="background:#1e293b;color:#fff;padding:8px 16px;font-size:13px;font-weight:700;text-align:center;letter-spacing:1px;">
+        INSPECTION AND ACCEPTANCE FORM
+      </div>
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Date:',report.date],['Supplier:',report.supplier],['Order No.:',report.order_no]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;width:120px;">Units/Quantity</th>
+            <th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">Item Description</th>
+          </tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;">
+        <div style="font-weight:700;font-size:11px;margin-bottom:8px;text-align:center;">INSPECTION &amp; ACCEPTANCE MEMBERS</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['#','Name','Designation','Signature','Date'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${memberRows}</tbody>
+        </table>
+      </div>
+    </div>`,
+  })
+}
+
+// ── Counter Issue Voucher ─────────────────────────────────────────────────────
+export function printCounterIssueVoucher(report) {
+  const itemRows = (report.items||[]).map((item,i)=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:center;">${i+1}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item.description||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${item.qty_requested||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;text-align:right;">${item.qty_issued||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${item.remarks||''}</td>
+  </tr>`).join('')
+
+  const sigRows = (report.signatories||[]).map(s=>`<tr>
+    <td style="border:1px solid #cbd5e1;padding:5px;font-weight:600;">${s.role||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${s.name||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${s.designation||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${s.signature||''}</td>
+    <td style="border:1px solid #cbd5e1;padding:5px;">${s.date||''}</td>
+  </tr>`).join('')
+
+  printDoc({
+    title: 'Counter Issue Voucher',
+    html: `
+    <div style="border:2px solid #1e293b;">
+      <div style="background:#1e293b;color:#fff;padding:8px 16px;font-size:13px;font-weight:700;text-align:center;letter-spacing:1px;">
+        COUNTER ISSUE VOUCHER
+      </div>
+      <div style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;border-bottom:1px solid #cbd5e1;">
+        ${[['Date:',report.date],['Issue Point:',report.issue_point],['Issued To:',report.issued_to]].map(([l,v])=>`
+        <div><label style="font-size:10px;color:#64748b;">${l}</label><div style="border-bottom:1px solid #334155;padding:3px 0;">${v||''}</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #cbd5e1;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['#','Item Description','Qty Requested','Qty Issued','Remarks'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f1f5f9;">
+            ${['Role','Name','Designation','Signature','Date'].map(h=>`<th style="border:1px solid #cbd5e1;padding:5px;font-size:10px;text-align:left;">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${sigRows}</tbody>
+        </table>
+      </div>
+    </div>`,
+  })
+}

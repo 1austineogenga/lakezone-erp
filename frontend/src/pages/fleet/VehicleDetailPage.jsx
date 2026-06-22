@@ -100,6 +100,11 @@ export default function VehicleDetailPage() {
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
               <DocumentTextIcon className="h-3.5 w-3.5" /> Machine Weekly Report
             </button>
+            <button
+              onClick={() => navigate(`/fleet/vehicles/${id}/daily-report`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+              <DocumentTextIcon className="h-3.5 w-3.5" /> Machine Daily Report
+            </button>
             {vehicle.last_status && (
               <>
                 <span className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT[vehicle.last_status] || 'bg-gray-300'}`} />

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getDailySheet, getMonthlyReport, bulkMarkAttendance, getAttendance } from '../../api/hr'
-import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, XCircleIcon, ClockIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
 
 const today = new Date().toISOString().split('T')[0]
 
@@ -18,6 +19,7 @@ const STATUS_COLORS = {
 
 export default function AttendancePage() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [view, setView]       = useState('daily')
   const [date, setDate]       = useState(today)
   const [month, setMonth]     = useState(today.slice(0, 7))
@@ -46,6 +48,14 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-5">
+      {/* Top action bar */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => navigate('/hr/casuals-registry')}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+          <ClipboardDocumentListIcon className="h-3.5 w-3.5" /> Daily Casuals Registry →
+        </button>
+      </div>
       {/* View toggle */}
       <div className="flex gap-2 flex-wrap items-center">
         {[
