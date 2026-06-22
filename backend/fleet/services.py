@@ -306,7 +306,7 @@ class FleetSyncService:
         return snapshot
 
     def _detect_fuel_events(self, vehicle, prev_reading, new_data):
-        from .models import FuelEvent
+        from .models import FuelEvent, FleetAlert
         prev_fuel = float(prev_reading.fuel_level) if prev_reading.fuel_level is not None else None
         new_fuel = new_data.get('fuel_level')
 
@@ -314,12 +314,14 @@ class FleetSyncService:
             return
 
         fuel_change = new_fuel - prev_fuel
+        occurred_at = new_data.get('device_datetime') or timezone.now()
+        unit = vehicle.fuel_sensor_unit or '%'
 
         if fuel_change >= self.FUEL_FILL_THRESHOLD:
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=FuelEvent.EventType.FILL,
-                occurred_at=new_data.get('device_datetime') or timezone.now(),
+                occurred_at=occurred_at,
                 location_name=new_data.get('location_name', ''),
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
@@ -327,18 +329,37 @@ class FleetSyncService:
                 fuel_after=new_fuel,
                 fuel_change=fuel_change,
             )
+            FleetAlert.objects.create(
+                vehicle=vehicle,
+                alert_type=FleetAlert.AlertType.FUEL_FILL,
+                severity=FleetAlert.Severity.LOW,
+                message=f"Fuel refill detected: +{fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                latitude=new_data.get('latitude'),
+                longitude=new_data.get('longitude'),
+                occurred_at=occurred_at,
+            )
         elif fuel_change <= -self.FUEL_DRAIN_THRESHOLD and not new_data.get('ignition_on'):
             event_type = FuelEvent.EventType.THEFT if abs(fuel_change) >= self.THEFT_THRESHOLD else FuelEvent.EventType.DRAIN
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=event_type,
-                occurred_at=new_data.get('device_datetime') or timezone.now(),
+                occurred_at=occurred_at,
                 location_name=new_data.get('location_name', ''),
                 latitude=new_data.get('latitude'),
                 longitude=new_data.get('longitude'),
                 fuel_before=prev_fuel,
                 fuel_after=new_fuel,
                 fuel_change=fuel_change,
+            )
+            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
+            FleetAlert.objects.create(
+                vehicle=vehicle,
+                alert_type=FleetAlert.AlertType.FUEL_DRAIN,
+                severity=FleetAlert.Severity.CRITICAL if is_theft else FleetAlert.Severity.HIGH,
+                message=f"{'Possible fuel theft' if is_theft else 'Fuel drain'} detected: {fuel_change:.1f}{unit} ({prev_fuel:.1f} → {new_fuel:.1f}{unit})",
+                latitude=new_data.get('latitude'),
+                longitude=new_data.get('longitude'),
+                occurred_at=occurred_at,
             )
 
     def _detect_trip(self, vehicle, prev_reading, new_data):

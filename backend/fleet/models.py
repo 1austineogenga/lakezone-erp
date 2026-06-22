@@ -185,6 +185,7 @@ class FleetAlert(models.Model):
         SOS = 'sos', 'SOS Emergency'
         SPEEDING = 'speeding', 'Overspeeding'
         LOW_FUEL = 'low_fuel', 'Low Fuel'
+        FUEL_FILL = 'fuel_fill', 'Fuel Refill'
         FUEL_DRAIN = 'fuel_drain', 'Fuel Drain/Theft'
         IGNITION_OFF_MOVING = 'ignition_off_moving', 'Moving Without Ignition'
         IDLE_LONG = 'idle_long', 'Long Idle'
