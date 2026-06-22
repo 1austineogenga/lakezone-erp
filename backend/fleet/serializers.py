@@ -25,6 +25,25 @@ class VehicleLiveDataSerializer(serializers.ModelSerializer):
         return round(obj.odometer / 1000, 2) if obj.odometer else 0
 
 
+class VehicleComplianceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCompliance
+        fields = '__all__'
+
+
+class VehicleAssignmentSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleAssignment
+        fields = '__all__'
+
+    def get_employee_name(self, obj):
+        if obj.employee:
+            return f"{obj.employee.first_name} {obj.employee.last_name}"
+        return obj.driver_name
+
+
 class VehicleSerializer(serializers.ModelSerializer):
     odometer_km = serializers.SerializerMethodField()
     last_seen_minutes_ago = serializers.SerializerMethodField()
@@ -92,25 +111,6 @@ class FleetAlertSerializer(serializers.ModelSerializer):
     class Meta:
         model = FleetAlert
         fields = '__all__'
-
-
-class VehicleComplianceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VehicleCompliance
-        fields = '__all__'
-
-
-class VehicleAssignmentSerializer(serializers.ModelSerializer):
-    employee_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = VehicleAssignment
-        fields = '__all__'
-
-    def get_employee_name(self, obj):
-        if obj.employee:
-            return f"{obj.employee.first_name} {obj.employee.last_name}"
-        return obj.driver_name
 
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
