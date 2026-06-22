@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count, Sum, Q
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -119,6 +120,50 @@ class VehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VehicleSerializer
     queryset = Vehicle.objects.all()
+
+
+class VehicleComplianceView(APIView):
+    """GET/PATCH compliance items for a vehicle."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        vehicle = get_object_or_404(Vehicle, pk=pk)
+        from .serializers import VehicleComplianceSerializer
+        data = VehicleComplianceSerializer(vehicle.compliance.all(), many=True).data
+        return Response(data)
+
+    def patch(self, request, pk):
+        vehicle = get_object_or_404(Vehicle, pk=pk)
+        compliance_type = request.data.get('compliance_type')
+        if not compliance_type:
+            return Response({'error': 'compliance_type required'}, status=400)
+        import datetime as dt_mod
+        expiry_raw = request.data.get('expiry_date')
+        status_override = request.data.get('status')
+        expiry_date = None
+        if expiry_raw:
+            try:
+                expiry_date = dt_mod.date.fromisoformat(expiry_raw)
+            except Exception:
+                pass
+        if not status_override and expiry_date:
+            today = dt_mod.date.today()
+            if expiry_date < today:
+                status_override = 'expired'
+            elif (expiry_date - today).days <= 30:
+                status_override = 'expiring_soon'
+            else:
+                status_override = 'valid'
+        obj, _ = VehicleCompliance.objects.update_or_create(
+            vehicle=vehicle, compliance_type=compliance_type,
+            defaults={
+                'expiry_date': expiry_date,
+                'status': status_override or 'unknown',
+                'notes': request.data.get('notes', ''),
+            }
+        )
+        from .serializers import VehicleComplianceSerializer
+        return Response(VehicleComplianceSerializer(obj).data)
 
 
 class FleetLiveView(APIView):

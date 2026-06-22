@@ -6,26 +6,290 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import {
   ArrowLeftIcon, ArrowPathIcon, MapPinIcon, BoltIcon,
   BeakerIcon, ExclamationTriangleIcon, DocumentTextIcon,
+  PencilIcon, TrashIcon, CheckIcon, XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts, acknowledgeAlert } from '../../api/fleet'
+import {
+  getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts,
+  acknowledgeAlert, updateVehicle, deleteVehicle, updateCompliance,
+} from '../../api/fleet'
+import api from '../../api/client'
 
 const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
 const STATUS_LABEL = { MOVING: 'Moving', IDLE: 'Idling', STOP: 'Stopped', INACTIVE: 'Offline' }
 const FUEL_COLORS  = { fill: 'bg-green-100 text-green-700', drain: 'bg-red-100 text-red-700', theft: 'bg-purple-100 text-purple-700' }
 
+const COMPLIANCE_TYPE_LABEL = {
+  insurance: 'Insurance', inspection: 'Inspection Certificate', speed_governor: 'Speed Governor Cert',
+}
+const COMPLIANCE_STATUS_CLS = {
+  valid: 'bg-green-100 text-green-700', expiring_soon: 'bg-amber-100 text-amber-700',
+  expired: 'bg-red-100 text-red-700', not_in_system: 'bg-orange-100 text-orange-700',
+  not_applicable: 'bg-gray-100 text-gray-400', unknown: 'bg-gray-100 text-gray-400',
+}
+const COMPLIANCE_STATUS_LABEL = {
+  valid: 'Valid', expiring_soon: 'Expiring Soon', expired: 'EXPIRED',
+  not_in_system: 'Not in System', not_applicable: 'N/A', unknown: '—',
+}
+
 const fmt = (n, d = 1) => Number(n || 0).toFixed(d)
 const fmtDt = s => new Date(s).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+
+function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    vehicle_no:    vehicle.vehicle_no || '',
+    vehicle_name:  vehicle.vehicle_name || '',
+    imei:          vehicle.imei || '',
+    vehicle_type:  vehicle.vehicle_type || '',
+    make:          vehicle.make || '',
+    model_name:    vehicle.model_name || '',
+    year:          vehicle.year || '',
+    fuel_type:     vehicle.fuel_type || 'diesel',
+    fuel_capacity: vehicle.fuel_capacity || 60,
+    project:       vehicle.project || '',
+    api_config:    vehicle.api_config || '',
+    erp_status:    vehicle.erp_status || '',
+    priority_flag: vehicle.priority_flag || '',
+    current_site:  vehicle.current_site || '',
+    meter_reading: vehicle.meter_reading || '',
+    erp_code:      vehicle.erp_code || '',
+    chassis_number: vehicle.chassis_number || '',
+    year_manufacture: vehicle.year_manufacture || '',
+    year_acquired:  vehicle.year_acquired || '',
+    known_defects:  vehicle.known_defects || '',
+    required_actions: vehicle.required_actions || '',
+    notes:          vehicle.notes || '',
+    is_active:      vehicle.is_active,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const payload = { ...form }
+      if (!payload.year) delete payload.year
+      if (!payload.year_manufacture) delete payload.year_manufacture
+      if (!payload.year_acquired) delete payload.year_acquired
+      if (!payload.project) delete payload.project
+      if (!payload.api_config) delete payload.api_config
+      await updateVehicle(vehicle.id, payload)
+      toast.success('Vehicle updated.')
+      onSaved()
+      onClose()
+    } catch (e) {
+      toast.error(e.response?.data?.vehicle_no?.[0] || 'Failed to update vehicle.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const textFields = [
+    { label: 'Vehicle No. *', key: 'vehicle_no' },
+    { label: 'Vehicle Name',  key: 'vehicle_name' },
+    { label: 'IMEI',          key: 'imei' },
+    { label: 'Make',          key: 'make' },
+    { label: 'Model',         key: 'model_name' },
+    { label: 'Year',          key: 'year', type: 'number' },
+    { label: 'Tank (litres)', key: 'fuel_capacity', type: 'number' },
+    { label: 'Vehicle Type',  key: 'vehicle_type' },
+    { label: 'ERP Code',      key: 'erp_code' },
+    { label: 'Chassis No.',   key: 'chassis_number' },
+    { label: 'Yr Manufacture',key: 'year_manufacture', type: 'number' },
+    { label: 'Yr Acquired',   key: 'year_acquired', type: 'number' },
+    { label: 'Current Site',  key: 'current_site' },
+    { label: 'Meter Reading', key: 'meter_reading' },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl my-4">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-bold text-brand-slate">Edit Vehicle — {vehicle.vehicle_no}</h2>
+          <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400" /></button>
+        </div>
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {textFields.map(({ label, key, type }) => (
+              <div key={key}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                <input type={type || 'text'} value={form[key]}
+                  onChange={e => field(key, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              </div>
+            ))}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Fuel Type</label>
+              <select value={form.fuel_type} onChange={e => field('fuel_type', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                {['diesel','petrol','electric','hybrid'].map(t => (
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">ERP Status</label>
+              <select value={form.erp_status} onChange={e => field('erp_status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— Unknown —</option>
+                {[['OPER','Operational'],['NON-OPER','Non-Operational'],['IDLE','Idle'],['UNKNOWN','Unknown']].map(([v,l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+              <select value={form.priority_flag} onChange={e => field('priority_flag', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— None —</option>
+                {['HIGH','MEDIUM','LOW'].map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Project</label>
+              <select value={form.project} onChange={e => field('project', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— Unassigned —</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">API Config</label>
+              <select value={form.api_config} onChange={e => field('api_config', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— None —</option>
+                {configs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {[['known_defects','Known Defects'],['required_actions','Required Actions'],['notes','Notes']].map(([key, label]) => (
+              <div key={key}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                <textarea rows={2} value={form[key]} onChange={e => field(key, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red resize-none" />
+              </div>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-600">
+            <input type="checkbox" checked={form.is_active} onChange={e => field('is_active', e.target.checked)}
+              className="rounded" />
+            Active / Operational
+          </label>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <button onClick={onClose}
+            className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={handleSave} disabled={saving || !form.vehicle_no}
+            className="px-4 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ComplianceRow({ vehicleId, item, onUpdated }) {
+  const [editing, setEditing] = useState(false)
+  const [expiryDate, setExpiryDate] = useState(item.expiry_date || '')
+  const [statusOverride, setStatusOverride] = useState(item.status || 'unknown')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await updateCompliance(vehicleId, {
+        compliance_type: item.compliance_type,
+        expiry_date: expiryDate || null,
+        status: expiryDate ? undefined : statusOverride,
+      })
+      toast.success('Compliance updated.')
+      onUpdated()
+      setEditing(false)
+    } catch {
+      toast.error('Failed to update compliance.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const statusCls = COMPLIANCE_STATUS_CLS[item.status] || 'bg-gray-100 text-gray-400'
+  const statusLabel = COMPLIANCE_STATUS_LABEL[item.status] || item.status
+  const typeLabel = COMPLIANCE_TYPE_LABEL[item.compliance_type] || item.compliance_type
+
+  return (
+    <div className="py-2 border-b border-gray-50 last:border-0">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-600 font-medium">{typeLabel}</span>
+        <div className="flex items-center gap-2">
+          {!editing && item.expiry_date && (
+            <span className="text-[10px] text-gray-400">{item.expiry_date}</span>
+          )}
+          {!editing && (
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusCls}`}>{statusLabel}</span>
+          )}
+          <button onClick={() => setEditing(e => !e)}
+            className="text-gray-400 hover:text-brand-red transition-colors">
+            {editing ? <XMarkIcon className="w-3.5 h-3.5" /> : <PencilIcon className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+      {editing && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-1">Expiry Date</label>
+            <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
+              className="px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red" />
+          </div>
+          {!expiryDate && (
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-1">Status</label>
+              <select value={statusOverride} onChange={e => setStatusOverride(e.target.value)}
+                className="px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red">
+                {Object.entries(COMPLIANCE_STATUS_LABEL).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1 px-3 py-1 bg-brand-red text-white text-xs rounded hover:opacity-90 disabled:opacity-60">
+            <CheckIcon className="w-3 h-3" /> {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function VehicleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [tab, setTab] = useState('fuel')
+  const [showEdit, setShowEdit] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const { data: vehicle } = useQuery({
     queryKey: ['fleet-vehicle', id],
     queryFn: () => getVehicle(id),
     select: r => r.data,
+  })
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-active'],
+    queryFn: () => api.get('/projects/'),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: showEdit,
+  })
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['fleet-config'],
+    queryFn: () => api.get('/fleet/config/'),
+    select: r => r.data?.results ?? (Array.isArray(r.data) ? r.data : [r.data].filter(Boolean)),
+    enabled: showEdit,
   })
 
   const { data: liveHistory = [] } = useQuery({
@@ -68,6 +332,24 @@ export default function VehicleDetailPage() {
     },
   })
 
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteVehicle(id)
+      toast.success('Vehicle deleted.')
+      qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
+      navigate('/fleet/vehicles')
+    } catch {
+      toast.error('Failed to delete vehicle.')
+      setDeleting(false)
+    }
+  }
+
+  const refreshVehicle = () => {
+    qc.invalidateQueries({ queryKey: ['fleet-vehicle', id] })
+    qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
+  }
+
   if (!vehicle) return <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
 
   const fuelChartData = liveHistory
@@ -79,10 +361,7 @@ export default function VehicleDetailPage() {
     }))
 
   const odomKm = vehicle.last_odometer ? (vehicle.last_odometer / 1000).toFixed(0) : null
-
-  // fuel_sensor_unit: 'L' = actual litres from sensor, '%' = normalized ADC 0–100%
   const fuelUnit = vehicle.fuel_sensor_unit === 'L' ? 'L' : '%'
-
   const fuelDisplay = (val) => val != null ? Number(val).toFixed(1) : '—'
 
   return (
@@ -95,16 +374,24 @@ export default function VehicleDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="font-bold text-brand-slate text-lg">{vehicle.vehicle_no}</h2>
-            <button
-              onClick={() => navigate(`/fleet/vehicles/${id}/weekly-report`)}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-              <DocumentTextIcon className="h-3.5 w-3.5" /> Machine Weekly Report
-            </button>
-            <button
-              onClick={() => navigate(`/fleet/vehicles/${id}/daily-report`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-              <DocumentTextIcon className="h-3.5 w-3.5" /> Machine Daily Report
-            </button>
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
+              <button onClick={() => navigate(`/fleet/vehicles/${id}/weekly-report`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                <DocumentTextIcon className="h-3.5 w-3.5" /> Weekly Report
+              </button>
+              <button onClick={() => navigate(`/fleet/vehicles/${id}/daily-report`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                <DocumentTextIcon className="h-3.5 w-3.5" /> Daily Report
+              </button>
+              <button onClick={() => setShowEdit(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
+                <PencilIcon className="h-3.5 w-3.5" /> Edit
+              </button>
+              <button onClick={() => setShowDelete(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-brand-red text-xs font-medium rounded-lg hover:bg-red-50">
+                <TrashIcon className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
             {vehicle.last_status && (
               <>
                 <span className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT[vehicle.last_status] || 'bg-gray-300'}`} />
@@ -170,6 +457,87 @@ export default function VehicleDetailPage() {
         </div>
       )}
 
+      {/* Compliance & Assignment */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Compliance — always shown, always editable */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <h3 className="text-xs font-bold text-brand-slate mb-3">Compliance Status</h3>
+          {vehicle.compliance?.length > 0 ? (
+            <div>
+              {vehicle.compliance.map(c => (
+                <ComplianceRow key={c.id} vehicleId={id} item={c} onUpdated={refreshVehicle} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">No compliance records. Import a Fleet Register to populate.</p>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {vehicle.current_assignment && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <h3 className="text-xs font-bold text-brand-slate mb-3">Current Assignment</h3>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Driver / Operator</span>
+                  <span className="font-medium text-brand-slate">
+                    {vehicle.current_assignment.employee_name || vehicle.current_assignment.driver_name || '—'}
+                  </span>
+                </div>
+                {vehicle.current_assignment.site && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Site</span>
+                    <span className="font-medium text-brand-slate">{vehicle.current_assignment.site}</span>
+                  </div>
+                )}
+                {vehicle.current_assignment.employee && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">HR Record</span>
+                    <span className="text-green-600 font-medium">Matched ✓</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Register details */}
+          {(vehicle.erp_status || vehicle.known_defects || vehicle.required_actions || vehicle.current_site) && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+              <h3 className="text-xs font-bold text-brand-slate">Fleet Register Details</h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {[
+                  ['ERP Status', vehicle.erp_status],
+                  ['Priority', vehicle.priority_flag],
+                  ['Current Site', vehicle.current_site],
+                  ['Meter Reading', vehicle.meter_reading],
+                  ['ERP Code', vehicle.erp_code],
+                  ['Year Mfg', vehicle.year_manufacture],
+                  ['Year Acquired', vehicle.year_acquired],
+                  ['Chassis No.', vehicle.chassis_number],
+                ].filter(([, v]) => v).map(([label, val]) => (
+                  <div key={label}>
+                    <div className="text-gray-400">{label}</div>
+                    <div className="font-medium text-brand-slate">{val}</div>
+                  </div>
+                ))}
+              </div>
+              {vehicle.known_defects && (
+                <div>
+                  <div className="text-[10px] font-semibold text-red-600 uppercase mb-1">Known Defects</div>
+                  <p className="text-xs text-gray-600">{vehicle.known_defects}</p>
+                </div>
+              )}
+              {vehicle.required_actions && (
+                <div>
+                  <div className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Required Actions</div>
+                  <p className="text-xs text-gray-600">{vehicle.required_actions}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="flex border-b border-gray-100">
@@ -182,7 +550,6 @@ export default function VehicleDetailPage() {
           ))}
         </div>
 
-        {/* Fuel Events */}
         {tab === 'fuel' && (
           fuelEvents.length === 0
             ? <p className="text-sm text-gray-400 p-8 text-center">No fuel events recorded.</p>
@@ -217,7 +584,6 @@ export default function VehicleDetailPage() {
               </div>
         )}
 
-        {/* Trips */}
         {tab === 'trips' && (
           trips.length === 0
             ? <p className="text-sm text-gray-400 p-8 text-center">No trips recorded.</p>
@@ -249,7 +615,6 @@ export default function VehicleDetailPage() {
               </div>
         )}
 
-        {/* Alerts */}
         {tab === 'alerts' && (
           alerts.length === 0
             ? <p className="text-sm text-gray-400 p-8 text-center">No alerts for this vehicle.</p>
@@ -272,109 +637,36 @@ export default function VehicleDetailPage() {
         )}
       </div>
 
-      {/* Compliance & Assignment */}
-      {(vehicle.compliance?.length > 0 || vehicle.current_assignment) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {vehicle.compliance?.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-brand-slate mb-3">Compliance Status</h3>
-              <div className="space-y-2">
-                {vehicle.compliance.map(c => {
-                  const statusCls = {
-                    valid: 'bg-green-100 text-green-700',
-                    expiring_soon: 'bg-amber-100 text-amber-700',
-                    expired: 'bg-red-100 text-red-700',
-                    not_in_system: 'bg-orange-100 text-orange-700',
-                    not_applicable: 'bg-gray-100 text-gray-400',
-                    unknown: 'bg-gray-100 text-gray-400',
-                  }[c.status] || 'bg-gray-100 text-gray-400'
-                  const statusLabel = {
-                    valid: 'Valid', expiring_soon: 'Expiring Soon', expired: 'EXPIRED',
-                    not_in_system: 'Not in System', not_applicable: 'N/A', unknown: '—',
-                  }[c.status] || c.status
-                  const typeLabel = {
-                    insurance: 'Insurance', inspection: 'Inspection Certificate',
-                    speed_governor: 'Speed Governor Cert',
-                  }[c.compliance_type] || c.compliance_type
-                  return (
-                    <div key={c.id} className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">{typeLabel}</span>
-                      <div className="flex items-center gap-2">
-                        {c.expiry_date && (
-                          <span className="text-[10px] text-gray-400">{c.expiry_date}</span>
-                        )}
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusCls}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {vehicle.current_assignment && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-brand-slate mb-3">Current Assignment</h3>
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Driver / Operator</span>
-                  <span className="font-medium text-brand-slate">
-                    {vehicle.current_assignment.employee_name || vehicle.current_assignment.driver_name || '—'}
-                  </span>
-                </div>
-                {vehicle.current_assignment.site && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Site</span>
-                    <span className="font-medium text-brand-slate">{vehicle.current_assignment.site}</span>
-                  </div>
-                )}
-                {vehicle.current_assignment.employee && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">HR Record</span>
-                    <span className="text-green-600 font-medium">Matched ✓</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Edit Modal */}
+      {showEdit && (
+        <EditVehicleModal
+          vehicle={vehicle}
+          projects={projects}
+          configs={configs}
+          onClose={() => setShowEdit(false)}
+          onSaved={refreshVehicle}
+        />
       )}
 
-      {/* Register fields */}
-      {(vehicle.known_defects || vehicle.required_actions || vehicle.erp_status) && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <h3 className="text-xs font-bold text-brand-slate">Fleet Register Details</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            {[
-              ['ERP Status', vehicle.erp_status],
-              ['Priority', vehicle.priority_flag],
-              ['Current Site', vehicle.current_site],
-              ['Meter Reading', vehicle.meter_reading],
-              ['ERP Code', vehicle.erp_code],
-              ['Year Manufactured', vehicle.year_manufacture],
-              ['Year Acquired', vehicle.year_acquired],
-              ['Chassis No.', vehicle.chassis_number],
-            ].filter(([, v]) => v).map(([label, val]) => (
-              <div key={label}>
-                <div className="text-gray-400">{label}</div>
-                <div className="font-medium text-brand-slate">{val}</div>
-              </div>
-            ))}
+      {/* Delete Confirm */}
+      {showDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+            <TrashIcon className="w-8 h-8 text-red-400 mx-auto mb-3" />
+            <h3 className="text-sm font-bold text-brand-slate mb-2">Delete Vehicle?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              This will permanently delete <strong>{vehicle.vehicle_no}</strong> and all associated data.
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button onClick={() => setShowDelete(false)}
+                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="px-4 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                {deleting ? 'Deleting…' : 'Delete Permanently'}
+              </button>
+            </div>
           </div>
-          {vehicle.known_defects && (
-            <div>
-              <div className="text-[10px] font-semibold text-red-600 uppercase mb-1">Known Defects</div>
-              <p className="text-xs text-gray-600">{vehicle.known_defects}</p>
-            </div>
-          )}
-          {vehicle.required_actions && (
-            <div>
-              <div className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Required Actions</div>
-              <p className="text-xs text-gray-600">{vehicle.required_actions}</p>
-            </div>
-          )}
         </div>
       )}
     </div>
