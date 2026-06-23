@@ -22,8 +22,11 @@ import WeeklyProgressPage from './WeeklyProgressPage'
 import RiskRegisterPage from './RiskRegisterPage'
 import FleetAssignmentPage from './FleetAssignmentPage'
 import TeamPage from './TeamPage'
+import ForemanDailyReportPage from './ForemanDailyReportPage'
 import ForemanWeeklyReportPage from './ForemanWeeklyReportPage'
 import SurveyorDailyReportPage from './SurveyorDailyReportPage'
+import SurveyorWeeklyReportPage from './SurveyorWeeklyReportPage'
+import RFIPage from './RFIPage'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -63,7 +66,7 @@ export default function ProjectPage() {
 
   const project = dashData?.project || {}
 
-  const [reportSubTab, setReportSubTab] = useState('foreman-weekly')
+  const [reportSubTab, setReportSubTab] = useState('foreman-daily')
 
   const renderTab = () => {
     switch (activeTab) {
@@ -77,10 +80,13 @@ export default function ProjectPage() {
       case 'team':      return <TeamPage />
       case 'reports':   return (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
-              { key: 'foreman-weekly', label: 'Foreman Weekly' },
-              { key: 'surveyor-daily', label: 'Surveyor Daily' },
+              { key: 'foreman-daily',   label: 'Foreman Daily' },
+              { key: 'foreman-weekly',  label: 'Foreman Weekly' },
+              { key: 'surveyor-daily',  label: 'Surveyor Daily' },
+              { key: 'surveyor-weekly', label: 'Surveyor Weekly' },
+              { key: 'rfi',             label: 'Request for Inspection' },
             ].map(opt => (
               <button key={opt.key} onClick={() => setReportSubTab(opt.key)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors
@@ -89,8 +95,11 @@ export default function ProjectPage() {
               </button>
             ))}
           </div>
-          {reportSubTab === 'foreman-weekly' && <ForemanWeeklyReportPage />}
-          {reportSubTab === 'surveyor-daily' && <SurveyorDailyReportPage />}
+          {reportSubTab === 'foreman-daily'   && <ForemanDailyReportPage />}
+          {reportSubTab === 'foreman-weekly'  && <ForemanWeeklyReportPage />}
+          {reportSubTab === 'surveyor-daily'  && <SurveyorDailyReportPage />}
+          {reportSubTab === 'surveyor-weekly' && <SurveyorWeeklyReportPage />}
+          {reportSubTab === 'rfi'             && <RFIPage />}
         </div>
       )
       default:          return <ProjectDashboard dashData={dashData} />
