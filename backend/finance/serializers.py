@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
                      ExpenseClaim, ExpenseClaimItem, RetentionRelease,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
-                     Timesheet, TimesheetLine, JournalEntry, JournalLine)
+                     Timesheet, TimesheetLine, JournalEntry, JournalLine,
+                     QuickBooksConfig, QBSyncLog)
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -352,3 +353,18 @@ class JournalEntryCreateSerializer(serializers.ModelSerializer):
         for line in lines_data:
             JournalLine.objects.create(journal=entry, **line)
         return entry
+
+
+class QuickBooksConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = QuickBooksConfig
+        fields = ['id','client_id','client_secret','environment','realm_id',
+                  'redirect_uri','is_connected','last_sync_at','token_expiry']
+        extra_kwargs = {'client_secret': {'write_only': True}}
+
+class QBSyncLogSerializer(serializers.ModelSerializer):
+    triggered_by_name = serializers.CharField(source='triggered_by.get_full_name', read_only=True, default='')
+    class Meta:
+        model  = QBSyncLog
+        fields = ['id','entity_type','direction','status','records_ok','records_fail',
+                  'error_detail','triggered_by_name','created_at']

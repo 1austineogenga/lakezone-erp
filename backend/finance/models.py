@@ -658,3 +658,56 @@ class JournalLine(models.Model):
 
     def __str__(self):
         return f'{self.account} Dr {self.debit} / Cr {self.credit}'
+
+
+# ── QuickBooks Integration ─────────────────────────────────────────────────────
+
+class QuickBooksConfig(models.Model):
+    """Stores OAuth 2.0 credentials and company info for QuickBooks Online."""
+    id                  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    client_id           = models.CharField(max_length=255)
+    client_secret       = models.CharField(max_length=255)
+    environment         = models.CharField(max_length=10, choices=[('sandbox','Sandbox'),('production','Production')], default='sandbox')
+    realm_id            = models.CharField(max_length=50, blank=True, help_text='QuickBooks Company ID')
+    access_token        = models.TextField(blank=True)
+    refresh_token       = models.TextField(blank=True)
+    token_expiry        = models.DateTimeField(null=True, blank=True)
+    redirect_uri        = models.CharField(max_length=500, blank=True)
+    is_connected        = models.BooleanField(default=False)
+    last_sync_at        = models.DateTimeField(null=True, blank=True)
+    created_at          = models.DateTimeField(auto_now_add=True)
+    updated_at          = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'QuickBooks Config'
+
+    def __str__(self):
+        return f'QuickBooks ({self.environment}) — {"Connected" if self.is_connected else "Disconnected"}'
+
+
+class QBSyncLog(models.Model):
+    """Records each sync operation with QuickBooks."""
+    class Direction(models.TextChoices):
+        PUSH = 'push', 'Push to QB'
+        PULL = 'pull', 'Pull from QB'
+
+    class SyncStatus(models.TextChoices):
+        SUCCESS = 'success', 'Success'
+        PARTIAL = 'partial', 'Partial'
+        FAILED  = 'failed',  'Failed'
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    entity_type  = models.CharField(max_length=50)
+    direction    = models.CharField(max_length=10, choices=Direction.choices)
+    status       = models.CharField(max_length=10, choices=SyncStatus.choices)
+    records_ok   = models.IntegerField(default=0)
+    records_fail = models.IntegerField(default=0)
+    error_detail = models.TextField(blank=True)
+    triggered_by = models.ForeignKey('core.User', on_delete=models.SET_NULL, null=True, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.entity_type} {self.direction} — {self.status} @ {self.created_at:%Y-%m-%d %H:%M}'

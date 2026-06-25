@@ -16,6 +16,7 @@ import PaymentCertificatesPage from './PaymentCertificatesPage'
 import PerformanceBondsPage from './PerformanceBondsPage'
 import TimesheetsPage from './TimesheetsPage'
 import GLJournalPage from './GLJournalPage'
+import QuickBooksPage from './QuickBooksPage'
 
 export default function FinancePage() {
   return (
@@ -37,6 +38,7 @@ export default function FinancePage() {
       <Route path="bonds"         element={<PerformanceBondsPage />} />
       <Route path="timesheets"    element={<TimesheetsPage />} />
       <Route path="gl"            element={<GLJournalPage />} />
+      <Route path="quickbooks"    element={<QuickBooksPage />} />
     </Routes>
   )
 }
