@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import api from '../../api/client'
@@ -52,19 +52,22 @@ export default function QuickBooksPage() {
   const { data: configData, isLoading: configLoading } = useQuery({
     queryKey: ['qb-config'],
     queryFn: () => getQBConfig().then(r => r.data),
-    onSuccess: (data) => {
-      if (!configForm) setConfigForm({
-        client_id:    data.client_id    || '',
-        client_secret: '',
-        environment:  data.environment  || 'sandbox',
-        redirect_uri: data.redirect_uri || '',
-      })
-    },
   })
+
+  useEffect(() => {
+    if (configData && !configForm) {
+      setConfigForm({
+        client_id:     configData.client_id    || '',
+        client_secret: '',
+        environment:   configData.environment  || 'sandbox',
+        redirect_uri:  configData.redirect_uri || '',
+      })
+    }
+  }, [configData])
 
   const { data: logsData } = useQuery({
     queryKey: ['qb-logs'],
-    queryFn: () => getQBLogs().then(r => r.data),
+    queryFn: () => getQBLogs().then(r => Array.isArray(r.data) ? r.data : (r.data?.results ?? [])),
     refetchInterval: 30000,
   })
 
