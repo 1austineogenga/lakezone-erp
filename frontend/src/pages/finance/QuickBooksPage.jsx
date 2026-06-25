@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import api from '../../api/client'
 import {
   LinkIcon, ArrowPathIcon, CheckCircleIcon, XCircleIcon,
-  CloudArrowUpIcon, Cog6ToothIcon,
+  CloudArrowUpIcon, Cog6ToothIcon, ArrowUpIcon, ArrowDownIcon,
 } from '@heroicons/react/24/outline'
 
 const getQBConfig  = ()     => api.get('/finance/quickbooks/config/')
@@ -45,8 +45,9 @@ export default function QuickBooksPage() {
   const [showCallbackModal, setShowCallbackModal] = useState(false)
   const [cbCode, setCbCode]         = useState('')
   const [cbRealm, setCbRealm]       = useState('')
-  const [syncResults, setSyncResults] = useState({})   // entity -> {ok, fail}
-  const [syncing, setSyncing]         = useState({})   // entity -> bool
+  const [syncResults, setSyncResults] = useState({})     // `${entity}-${dir}` -> {ok, fail, status}
+  const [syncing, setSyncing]         = useState({})     // `${entity}-${dir}` -> bool
+  const [syncDir, setSyncDir]         = useState({})     // entity -> 'push'|'pull'
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
 
   const { data: configData, isLoading: configLoading } = useQuery({
@@ -110,20 +111,21 @@ export default function QuickBooksPage() {
     onError: (e) => toast.error(e?.response?.data?.detail || 'Disconnect failed'),
   })
 
-  const handleSync = async (entity) => {
-    setSyncing(s => ({ ...s, [entity]: true }))
+  const handleSync = async (entity, direction) => {
+    const k = `${entity}-${direction}`
+    setSyncing(s => ({ ...s, [k]: true }))
     try {
-      const r = await qbSync({ entity, direction: 'push' })
+      const r = await qbSync({ entity, direction })
       const log = r.data.log
-      setSyncResults(s => ({ ...s, [entity]: { ok: log.records_ok, fail: log.records_fail, status: log.status } }))
-      if (log.status === 'success') toast.success(`${entity}: ${log.records_ok} synced`)
+      setSyncResults(s => ({ ...s, [k]: { ok: log.records_ok, fail: log.records_fail, status: log.status } }))
+      if (log.status === 'success') toast.success(`${entity}: ${log.records_ok} ${direction === 'pull' ? 'imported' : 'pushed'}`)
       else if (log.status === 'partial') toast.warn(`${entity}: ${log.records_ok} ok, ${log.records_fail} failed`)
       else toast.error(`${entity} sync failed`)
       qc.invalidateQueries(['qb-logs'])
     } catch (e) {
       toast.error(e?.response?.data?.detail || `${entity} sync error`)
     } finally {
-      setSyncing(s => ({ ...s, [entity]: false }))
+      setSyncing(s => ({ ...s, [k]: false }))
     }
   }
 
@@ -271,13 +273,30 @@ export default function QuickBooksPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {ENTITIES.map(({ key, label, desc }) => {
-              const res = syncResults[key]
-              const busy = syncing[key]
+              const dir = syncDir[key] || 'push'
+              const k = `${key}-${dir}`
+              const res = syncResults[k]
+              const busy = syncing[k]
               return (
                 <div key={key} className="border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
                   <div>
                     <p className="font-medium text-sm text-gray-800">{label}</p>
-                    <p className="text-xs text-gray-500">{desc}</p>
+                    <p className="text-xs text-gray-500 mb-1">{desc}</p>
+                  </div>
+                  {/* Push / Pull toggle */}
+                  <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
+                    <button
+                      onClick={() => setSyncDir(d => ({ ...d, [key]: 'push' }))}
+                      className={`flex-1 flex items-center justify-center gap-1 py-1.5 transition ${dir === 'push' ? 'bg-brand-red text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      <ArrowUpIcon className="w-3 h-3" /> Push ↑
+                    </button>
+                    <button
+                      onClick={() => setSyncDir(d => ({ ...d, [key]: 'pull' }))}
+                      className={`flex-1 flex items-center justify-center gap-1 py-1.5 transition ${dir === 'pull' ? 'bg-brand-red text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      <ArrowDownIcon className="w-3 h-3" /> Pull ↓
+                    </button>
                   </div>
                   {res && (
                     <p className="text-xs">
@@ -286,14 +305,14 @@ export default function QuickBooksPage() {
                     </p>
                   )}
                   <button
-                    onClick={() => handleSync(key)}
+                    onClick={() => handleSync(key, dir)}
                     disabled={busy}
                     className="mt-auto flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:opacity-60"
                     style={{ backgroundColor: BRAND_RED }}
                   >
                     {busy
                       ? <><ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> Syncing...</>
-                      : 'Sync Now'}
+                      : dir === 'pull' ? 'Pull from QB' : 'Push to QB'}
                   </button>
                 </div>
               )
