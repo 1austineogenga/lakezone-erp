@@ -966,7 +966,7 @@ class QBConnectView(APIView):
         config, _ = QuickBooksConfig.objects.get_or_create(pk='00000000-0000-0000-0000-000000000001')
         if not config.client_id or not config.redirect_uri:
             return Response({'detail': 'Configure client_id and redirect_uri first.'}, status=400)
-        svc = QBService(config)
+        svc = QBService(config, user=request.user)
         url = svc.get_auth_url(state='lakezone_qb')
         return Response({'auth_url': url})
 
@@ -1020,7 +1020,7 @@ class QBSyncView(APIView):
         if not config or not config.is_connected:
             return Response({'detail': 'QuickBooks is not connected.'}, status=400)
 
-        svc = QBService(config)
+        svc = QBService(config, user=request.user)
         try:
             push_fns = {
                 'accounts':  svc.sync_accounts,
