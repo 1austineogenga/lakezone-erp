@@ -18,6 +18,7 @@ from .serializers import (
     ProjectBudgetSerializer, PaymentCertificateSerializer, PerformanceBondSerializer,
     TimesheetSerializer, TimesheetCreateSerializer,
     JournalEntrySerializer, JournalEntryCreateSerializer,
+    QuickBooksConfigSerializer, QBSyncLogSerializer,
 )
 
 
@@ -940,3 +941,127 @@ class TrialBalanceView(APIView):
             'total_credits': total_credits,
             'is_balanced':   abs(total_debits - total_credits) < 0.01,
         })
+
+
+# ── QuickBooks Integration Views ──────────────────────────────────────────────
+
+class QBConfigView(generics.RetrieveUpdateAPIView):
+    """Get or update the QB config (client_id, client_secret, environment, redirect_uri)."""
+    serializer_class   = QuickBooksConfigSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        from .models import QuickBooksConfig
+        config, _ = QuickBooksConfig.objects.get_or_create(pk='00000000-0000-0000-0000-000000000001')
+        return config
+
+
+class QBConnectView(APIView):
+    """Generate the QB OAuth 2.0 authorization URL."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import QuickBooksConfig
+        from .qb_service import QBService
+        config, _ = QuickBooksConfig.objects.get_or_create(pk='00000000-0000-0000-0000-000000000001')
+        if not config.client_id or not config.redirect_uri:
+            return Response({'detail': 'Configure client_id and redirect_uri first.'}, status=400)
+        svc = QBService(config)
+        url = svc.get_auth_url(state='lakezone_qb')
+        return Response({'auth_url': url})
+
+
+class QBCallbackView(APIView):
+    """Handle OAuth callback: exchange code for tokens."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .models import QuickBooksConfig
+        from .qb_service import QBService
+        code     = request.data.get('code')
+        realm_id = request.data.get('realm_id') or request.data.get('realmId')
+        if not code or not realm_id:
+            return Response({'detail': 'code and realm_id required.'}, status=400)
+        config, _ = QuickBooksConfig.objects.get_or_create(pk='00000000-0000-0000-0000-000000000001')
+        try:
+            QBService(config).exchange_code(code, realm_id)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=400)
+        return Response({'detail': 'Connected to QuickBooks successfully.'})
+
+
+class QBDisconnectView(APIView):
+    """Revoke QB tokens and mark as disconnected."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .models import QuickBooksConfig
+        from .qb_service import QBService
+        config, _ = QuickBooksConfig.objects.get_or_create(pk='00000000-0000-0000-0000-000000000001')
+        QBService(config).disconnect()
+        return Response({'detail': 'Disconnected from QuickBooks.'})
+
+
+class QBSyncView(APIView):
+    """Trigger sync for a specific entity type."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .models import QuickBooksConfig, QBSyncLog
+        from .qb_service import QBService
+        entity    = request.data.get('entity')
+        direction = request.data.get('direction', 'push')
+
+        VALID = ['accounts', 'customers', 'vendors', 'invoices', 'bills', 'payments']
+        if entity not in VALID:
+            return Response({'detail': f'entity must be one of: {", ".join(VALID)}'}, status=400)
+
+        config = QuickBooksConfig.objects.filter(pk='00000000-0000-0000-0000-000000000001').first()
+        if not config or not config.is_connected:
+            return Response({'detail': 'QuickBooks is not connected.'}, status=400)
+
+        svc = QBService(config)
+        try:
+            sync_fn = {
+                'accounts':  svc.sync_accounts,
+                'customers': svc.sync_customers,
+                'vendors':   svc.sync_vendors,
+                'invoices':  svc.sync_invoices,
+                'bills':     svc.sync_bills,
+                'payments':  svc.sync_payments,
+            }[entity]
+            ok, fail, errors = sync_fn()
+        except Exception as e:
+            from .models import QBSyncLog
+            QBSyncLog.objects.create(
+                entity_type=entity, direction=direction, status='failed',
+                records_ok=0, records_fail=0, error_detail=str(e),
+                triggered_by=request.user,
+            )
+            return Response({'detail': str(e)}, status=500)
+
+        status_val = 'success' if fail == 0 else ('partial' if ok > 0 else 'failed')
+        log = QBSyncLog.objects.create(
+            entity_type=entity, direction=direction, status=status_val,
+            records_ok=ok, records_fail=fail,
+            error_detail='\n'.join(errors) if errors else '',
+            triggered_by=request.user,
+        )
+        config.last_sync_at = timezone.now()
+        config.save(update_fields=['last_sync_at'])
+
+        from .serializers import QBSyncLogSerializer
+        return Response({
+            'detail': f'Synced {ok} {entity} successfully, {fail} failed.',
+            'log': QBSyncLogSerializer(log).data,
+        })
+
+
+class QBSyncLogListView(generics.ListAPIView):
+    """List recent sync logs."""
+    serializer_class   = QBSyncLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        from .models import QBSyncLog
+        return QBSyncLog.objects.select_related('triggered_by').all()[:100]

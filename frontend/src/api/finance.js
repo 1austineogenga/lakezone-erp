@@ -61,3 +61,12 @@ export const createJournal    = (data)   => api.post('/finance/journals/', data)
 export const postJournal      = (id)     => api.post(`/finance/journals/${id}/post/`)
 export const reverseJournal   = (id)     => api.post(`/finance/journals/${id}/reverse/`)
 export const getTrialBalance  = (params) => api.get('/finance/trial-balance/', { params })
+
+// QuickBooks integration
+export const getQBConfig     = ()     => api.get('/finance/quickbooks/config/')
+export const saveQBConfig    = (data) => api.patch('/finance/quickbooks/config/', data)
+export const getQBAuthUrl    = ()     => api.get('/finance/quickbooks/connect/')
+export const qbCallback      = (data) => api.post('/finance/quickbooks/callback/', data)
+export const qbDisconnect    = ()     => api.post('/finance/quickbooks/disconnect/')
+export const qbSync          = (data) => api.post('/finance/quickbooks/sync/', data)
+export const getQBLogs       = ()     => api.get('/finance/quickbooks/logs/')
