@@ -63,8 +63,9 @@ const MODULES = [
       {
         heading: 'Accounting',
         links: [
-          { to: '/finance/timesheets', label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
-          { to: '/finance/gl',         label: 'GL Journal',     icon: BookOpenIcon },
+          { to: '/finance/timesheets',  label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
+          { to: '/finance/gl',          label: 'GL Journal',     icon: BookOpenIcon },
+          { to: '/finance/quickbooks',  label: 'QuickBooks',     icon: ArrowsRightLeftIcon },
         ],
       },
     ],
