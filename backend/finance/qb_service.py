@@ -386,3 +386,358 @@ class QBService:
                 fail += 1
                 errors.append(f'Payment {str(pmt.id)[:8]}: {e}')
         return ok, fail, errors
+
+    # ── PULL methods (QB → Lakezone) ──────────────────────────────────────────
+
+    def pull_accounts(self):
+        """Fetch QB Accounts and create/update Lakezone chart of accounts."""
+        from .models import Account
+
+        # QB AccountType → Lakezone account_type
+        QB_TYPE_MAP = {
+            'Asset':     'asset',
+            'Bank':      'asset',
+            'Other Asset': 'asset',
+            'Other Current Asset': 'asset',
+            'Fixed Asset': 'asset',
+            'Accounts Receivable': 'asset',
+            'Liability': 'liability',
+            'Credit Card': 'liability',
+            'Long Term Liability': 'liability',
+            'Other Current Liability': 'liability',
+            'Accounts Payable': 'liability',
+            'Equity':    'equity',
+            'Revenue':   'revenue',
+            'Income':    'revenue',
+            'Other Income': 'revenue',
+            'Expense':   'expense',
+            'Other Expense': 'expense',
+            'Cost of Goods Sold': 'expense',
+        }
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Account MAXRESULTS 1000')
+            accounts = resp.get('QueryResponse', {}).get('Account', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch accounts from QB: {e}']
+
+        for qb_acct in accounts:
+            acct_num  = (qb_acct.get('AcctNum') or '').strip()
+            name      = qb_acct.get('Name', '')[:255]
+            qb_type   = qb_acct.get('AccountType', '')
+            lz_type   = QB_TYPE_MAP.get(qb_type, 'expense')
+            active    = qb_acct.get('Active', True)
+            desc      = qb_acct.get('Description', '') or ''
+
+            if not name:
+                continue
+
+            # Use AcctNum as code if available, else sanitise name
+            code = acct_num if acct_num else name[:20].replace(' ', '_').upper()
+
+            try:
+                acct, created = Account.objects.update_or_create(
+                    code=code,
+                    defaults={
+                        'name':         name,
+                        'account_type': lz_type,
+                        'description':  desc[:500],
+                        'is_active':    active,
+                    }
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'{name}: {e}')
+
+        return ok, fail, errors
+
+    def pull_customers(self):
+        """Fetch QB Customers and create/update CRM Clients."""
+        from crm.models import Client
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Customer MAXRESULTS 1000')
+            customers = resp.get('QueryResponse', {}).get('Customer', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch customers from QB: {e}']
+
+        for cust in customers:
+            name    = (cust.get('DisplayName') or cust.get('CompanyName') or '').strip()
+            email   = (cust.get('PrimaryEmailAddr') or {}).get('Address', '')
+            phone   = (cust.get('PrimaryPhone') or {}).get('FreeFormNumber', '')
+            active  = cust.get('Active', True)
+
+            if not name:
+                continue
+
+            try:
+                Client.objects.update_or_create(
+                    company_name=name[:255],
+                    defaults={
+                        'email':     email[:254] if email else '',
+                        'phone':     phone[:20]  if phone else '',
+                        'is_active': active,
+                    }
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'{name}: {e}')
+
+        return ok, fail, errors
+
+    def pull_vendors(self):
+        """Fetch QB Vendors and create/update Procurement Suppliers."""
+        from procurement.models import Supplier
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Vendor MAXRESULTS 1000')
+            vendors = resp.get('QueryResponse', {}).get('Vendor', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch vendors from QB: {e}']
+
+        for v in vendors:
+            name    = (v.get('DisplayName') or v.get('CompanyName') or '').strip()
+            email   = (v.get('PrimaryEmailAddr') or {}).get('Address', '')
+            phone   = (v.get('PrimaryPhone') or {}).get('FreeFormNumber', '')
+            kra_pin = (v.get('TaxIdentifier') or '').strip()
+            active  = v.get('Active', True)
+
+            if not name:
+                continue
+
+            try:
+                Supplier.objects.update_or_create(
+                    company_name=name[:255],
+                    defaults={
+                        'email':          email[:254]  if email   else '',
+                        'phone':          phone[:20]   if phone   else '',
+                        'kra_pin':        kra_pin[:20] if kra_pin else '',
+                        'contact_person': name[:255],
+                        'status':         'active' if active else 'pending',
+                    }
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'{name}: {e}')
+
+        return ok, fail, errors
+
+    def pull_invoices(self):
+        """Fetch QB Invoices and create/update Lakezone Invoices."""
+        from .models import Invoice, InvoiceLine
+        from crm.models import Client
+        from decimal import Decimal, InvalidOperation
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Invoice MAXRESULTS 1000')
+            invoices = resp.get('QueryResponse', {}).get('Invoice', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch invoices from QB: {e}']
+
+        # Build customer name → Client map
+        client_map = {c.company_name.lower(): c for c in Client.objects.all()}
+
+        for qb_inv in invoices:
+            doc_num    = (qb_inv.get('DocNumber') or '').strip()
+            txn_date   = qb_inv.get('TxnDate', '')
+            due_date   = qb_inv.get('DueDate', txn_date)
+            total      = qb_inv.get('TotalAmt', 0)
+            balance    = qb_inv.get('Balance', 0)
+            cust_name  = (qb_inv.get('CustomerRef') or {}).get('name', '').lower()
+
+            if not doc_num:
+                continue
+
+            client = client_map.get(cust_name)
+
+            # Determine status
+            try:
+                bal = Decimal(str(balance))
+                tot = Decimal(str(total))
+            except InvalidOperation:
+                bal, tot = Decimal('0'), Decimal('0')
+
+            if bal == 0 and tot > 0:
+                status = 'paid'
+            elif bal < tot:
+                status = 'partial'
+            else:
+                status = 'sent'
+
+            try:
+                inv, created = Invoice.objects.update_or_create(
+                    invoice_number=doc_num,
+                    defaults={
+                        'client':       client,
+                        'issue_date':   txn_date   or '2000-01-01',
+                        'due_date':     due_date   or txn_date or '2000-01-01',
+                        'subtotal':     total,
+                        'total_amount': total,
+                        'amount_paid':  Decimal(str(total)) - bal,
+                        'balance_due':  bal,
+                        'status':       status,
+                        'invoice_type': 'other',
+                    }
+                )
+
+                # Sync line items
+                if created:
+                    for line in qb_inv.get('Line', []):
+                        desc   = line.get('Description', '') or ''
+                        amount = line.get('Amount', 0)
+                        detail = line.get('SalesItemLineDetail', {})
+                        qty    = detail.get('Qty', 1) or 1
+                        price  = detail.get('UnitPrice', amount) or amount
+                        if desc or amount:
+                            InvoiceLine.objects.create(
+                                invoice=inv,
+                                description=desc[:255] or 'QB line item',
+                                quantity=qty,
+                                unit_price=price,
+                                amount=amount,
+                            )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'Invoice {doc_num}: {e}')
+
+        return ok, fail, errors
+
+    def pull_bills(self):
+        """Fetch QB Bills and create/update Lakezone Bills."""
+        from .models import Bill, BillLine
+        from procurement.models import Supplier
+        from decimal import Decimal, InvalidOperation
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Bill MAXRESULTS 1000')
+            bills = resp.get('QueryResponse', {}).get('Bill', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch bills from QB: {e}']
+
+        vendor_map = {s.company_name.lower(): s for s in Supplier.objects.all()}
+
+        for qb_bill in bills:
+            doc_num    = (qb_bill.get('DocNumber') or '').strip()
+            txn_date   = qb_bill.get('TxnDate', '')
+            due_date   = qb_bill.get('DueDate', txn_date)
+            total      = qb_bill.get('TotalAmt', 0)
+            balance    = qb_bill.get('Balance', 0)
+            vend_name  = (qb_bill.get('VendorRef') or {}).get('name', '').lower()
+
+            if not doc_num:
+                continue
+
+            supplier = vendor_map.get(vend_name)
+
+            try:
+                bal = Decimal(str(balance))
+                tot = Decimal(str(total))
+            except InvalidOperation:
+                bal, tot = Decimal('0'), Decimal('0')
+
+            if bal == 0 and tot > 0:
+                status = 'paid'
+            elif bal < tot:
+                status = 'partial'
+            else:
+                status = 'approved'
+
+            if not supplier:
+                errors.append(f'Bill {doc_num}: vendor "{vend_name}" not in ERP — pull vendors first')
+                fail += 1
+                continue
+
+            try:
+                bill, created = Bill.objects.update_or_create(
+                    bill_number=doc_num,
+                    defaults={
+                        'supplier':     supplier,
+                        'issue_date':   txn_date or '2000-01-01',
+                        'due_date':     due_date or txn_date or '2000-01-01',
+                        'subtotal':     total,
+                        'total_amount': total,
+                        'amount_paid':  tot - bal,
+                        'balance_due':  bal,
+                        'status':       status,
+                        'bill_type':    'supplier',
+                    }
+                )
+
+                if created:
+                    for line in qb_bill.get('Line', []):
+                        desc   = line.get('Description', '') or ''
+                        amount = line.get('Amount', 0)
+                        detail = line.get('AccountBasedExpenseLineDetail', {})
+                        if desc or amount:
+                            BillLine.objects.create(
+                                bill=bill,
+                                description=desc[:255] or 'QB line item',
+                                quantity=1,
+                                unit_price=amount,
+                                amount=amount,
+                            )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'Bill {doc_num}: {e}')
+
+        return ok, fail, errors
+
+    def pull_payments(self):
+        """Fetch QB Payments (customer receipts) and create Lakezone Payment records."""
+        from .models import Payment, Invoice
+        from decimal import Decimal
+
+        ok, fail, errors = 0, 0, []
+        try:
+            resp = self.query('SELECT * FROM Payment MAXRESULTS 1000')
+            payments = resp.get('QueryResponse', {}).get('Payment', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch payments from QB: {e}']
+
+        for qb_pmt in payments:
+            ref       = str(qb_pmt.get('Id', ''))
+            txn_date  = qb_pmt.get('TxnDate', '')
+            amount    = qb_pmt.get('TotalAmt', 0)
+            note      = (qb_pmt.get('PrivateNote') or '').strip()
+
+            # Skip if already imported (reference matches QB Id)
+            if Payment.objects.filter(reference=f'QB-{ref}').exists():
+                ok += 1
+                continue
+
+            # Try to match to an invoice via linked transactions
+            invoice = None
+            for line in qb_pmt.get('Line', []):
+                for linked in line.get('LinkedTxn', []):
+                    if linked.get('TxnType') == 'Invoice':
+                        txn_id = linked.get('TxnId', '')
+                        # Look up invoice by a QB doc number stored as invoice_number
+                        # (best effort — may not match if not previously pulled)
+                        break
+
+            try:
+                Payment.objects.create(
+                    payment_type='receipt',
+                    payment_method='bank_transfer',
+                    invoice=invoice,
+                    amount=Decimal(str(amount)),
+                    payment_date=txn_date or '2000-01-01',
+                    reference=f'QB-{ref}',
+                    notes=note or f'Imported from QuickBooks (ID {ref})',
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'Payment QB-{ref}: {e}')
+
+        return ok, fail, errors
