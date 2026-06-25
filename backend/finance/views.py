@@ -1022,14 +1022,26 @@ class QBSyncView(APIView):
 
         svc = QBService(config)
         try:
-            sync_fn = {
+            push_fns = {
                 'accounts':  svc.sync_accounts,
                 'customers': svc.sync_customers,
                 'vendors':   svc.sync_vendors,
                 'invoices':  svc.sync_invoices,
                 'bills':     svc.sync_bills,
                 'payments':  svc.sync_payments,
-            }[entity]
+            }
+            pull_fns = {
+                'accounts':  svc.pull_accounts,
+                'customers': svc.pull_customers,
+                'vendors':   svc.pull_vendors,
+                'invoices':  svc.pull_invoices,
+                'bills':     svc.pull_bills,
+                'payments':  svc.pull_payments,
+            }
+            fns = pull_fns if direction == 'pull' else push_fns
+            if entity not in fns:
+                return Response({'detail': f'entity not supported for {direction}'}, status=400)
+            sync_fn = fns[entity]
             ok, fail, errors = sync_fn()
         except Exception as e:
             from .models import QBSyncLog
