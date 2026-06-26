@@ -85,7 +85,15 @@ def _safe_decimal(val):
 
 
 def _safe_date(val, fallback='2000-01-01'):
-    return val if val else fallback
+    from datetime import date
+    raw = val if val else fallback
+    if isinstance(raw, date):
+        return raw
+    try:
+        from datetime import datetime
+        return datetime.strptime(raw, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return datetime.strptime(fallback, '%Y-%m-%d').date()
 
 
 class QBService:
