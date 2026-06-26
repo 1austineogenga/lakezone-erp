@@ -5,9 +5,78 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.mail import send_mail
+from django.conf import settings
 import secrets
 import string
+import logging
 from .models import User, Branch, Department
+
+logger = logging.getLogger(__name__)
+
+
+def _send_welcome_email(user, password):
+    """Send login credentials to a newly created user."""
+    subject = 'Welcome to Lake Zone ERP — Your Login Details'
+    message = f"""Hello {user.first_name},
+
+Your account has been created on the Lake Zone Enterprises ERP system.
+
+Here are your login details:
+
+  Login URL:  https://erp.lakezone.ke
+  Email:      {user.email}
+  Password:   {password}
+
+Please log in and change your password immediately after your first login.
+
+If you have any issues accessing your account, contact your system administrator.
+
+Regards,
+Lake Zone Enterprises
+"""
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f'Failed to send welcome email to {user.email}: {e}')
+
+
+def _send_password_reset_email(user, password):
+    """Send new password to user after admin-triggered reset."""
+    subject = 'Lake Zone ERP — Your Password Has Been Reset'
+    message = f"""Hello {user.first_name},
+
+Your password on the Lake Zone Enterprises ERP system has been reset by an administrator.
+
+Your new login details:
+
+  Login URL:  https://erp.lakezone.ke
+  Email:      {user.email}
+  Password:   {password}
+
+Please log in and change your password as soon as possible.
+
+If you did not request this change, contact your system administrator immediately.
+
+Regards,
+Lake Zone Enterprises
+"""
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f'Failed to send password reset email to {user.email}: {e}')
 from .serializers import (
     UserSerializer,
     UserCreateSerializer,
@@ -72,6 +141,12 @@ class UserListCreateView(generics.ListCreateAPIView):
             return UserCreateSerializer
         return UserSerializer
 
+    def perform_create(self, serializer):
+        user = serializer.save()
+        password = getattr(user, '_plain_password', None)
+        if password:
+            _send_welcome_email(user, password)
+
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
@@ -93,9 +168,9 @@ class ResetUserPasswordView(APIView):
         new_password = ''.join(secrets.choice(alphabet) for _ in range(12))
         user.set_password(new_password)
         user.save(update_fields=['password'])
+        _send_password_reset_email(user, new_password)
         return Response({
-            'detail': f"Password reset for {user.get_full_name() or user.email}.",
-            'new_password': new_password,
+            'detail': f"Password reset for {user.get_full_name() or user.email}. New credentials sent to {user.email}.",
         })
 
 
