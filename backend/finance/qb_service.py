@@ -1095,16 +1095,18 @@ class QBService:
                 )
                 je.lines.all().delete()
                 for line in qb_je.get('Line', []):
-                    detail   = line.get('JournalEntryLineDetail', {})
-                    posting  = detail.get('PostingType', 'Debit')
-                    acct_ref = detail.get('AccountRef', {})
+                    detail    = line.get('JournalEntryLineDetail', {})
+                    posting   = detail.get('PostingType', 'Debit')
+                    acct_ref  = detail.get('AccountRef', {})
                     acct_name = acct_ref.get('name', '').lower()
                     acct_num  = acct_ref.get('value', '')
-                    amount   = _safe_decimal(line.get('Amount', 0))
-                    desc     = (line.get('Description') or '')[:255]
-                    acct     = account_map.get(acct_name) or account_code_map.get(acct_num)
+                    amount    = _safe_decimal(line.get('Amount', 0))
+                    desc      = (line.get('Description') or '')[:255]
+                    acct      = account_map.get(acct_name) or account_code_map.get(acct_num)
+                    if not acct:
+                        continue  # account is required (non-null FK) — skip unmatched lines
                     JournalLine.objects.create(
-                        entry=je, account=acct, description=desc,
+                        journal=je, account=acct, description=desc,
                         debit=amount  if posting == 'Debit'  else Decimal('0'),
                         credit=amount if posting == 'Credit' else Decimal('0'),
                     )
