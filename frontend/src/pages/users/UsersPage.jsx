@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 import { ROLE_GROUPS, ALL_ROLES, getPermissions } from '../../utils/permissions'
@@ -29,25 +29,17 @@ const ROLE_COLORS = {
 
 const EMPTY_FORM = {
   first_name: '', last_name: '', email: '', phone: '',
-  role: 'site_engineer', password: '', password_confirm: '',
-  is_active: true,
+  role: 'site_engineer', is_active: true,
 }
 
 function ResetPasswordModal({ user, onClose }) {
-  const [generatedPassword, setGeneratedPassword] = useState(null)
-  const [copied, setCopied] = useState(false)
+  const [done, setDone] = useState(false)
 
   const resetMut = useMutation({
     mutationFn: () => resetPassword(user.id),
-    onSuccess: (res) => setGeneratedPassword(res.data.new_password),
+    onSuccess: () => setDone(true),
     onError: () => toast.error('Failed to reset password.'),
   })
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedPassword)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -57,11 +49,11 @@ function ResetPasswordModal({ user, onClose }) {
           <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
         </div>
         <div className="p-5 space-y-4">
-          {!generatedPassword ? (
+          {!done ? (
             <>
               <p className="text-xs text-gray-600">
-                Generate a new system password for <strong>{user.full_name || user.email}</strong>.
-                The user will need to be informed of the new password and should change it after logging in.
+                Reset the password for <strong>{user.full_name || user.email}</strong>.
+                A new password will be generated and sent to their email address.
               </p>
               <div className="flex gap-2 justify-end">
                 <button onClick={onClose}
@@ -69,27 +61,17 @@ function ResetPasswordModal({ user, onClose }) {
                 <button onClick={() => resetMut.mutate()} disabled={resetMut.isPending}
                   className="flex items-center gap-1.5 px-4 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
                   <KeyIcon className="w-3.5 h-3.5" />
-                  {resetMut.isPending ? 'Generating…' : 'Generate Password'}
+                  {resetMut.isPending ? 'Resetting…' : 'Reset Password'}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-xs text-green-700 font-medium mb-2">Password reset successfully</p>
-                <p className="text-[10px] text-green-600 mb-3">
-                  Copy this password and share it securely with the user. It will not be shown again.
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-green-700 font-semibold mb-1">Password reset successfully</p>
+                <p className="text-xs text-green-600">
+                  New login credentials have been sent to <strong>{user.email}</strong>.
                 </p>
-                <div className="flex items-center gap-2 bg-white border border-green-200 rounded px-3 py-2">
-                  <code className="flex-1 text-sm font-mono font-bold text-brand-slate tracking-widest">
-                    {generatedPassword}
-                  </code>
-                  <button onClick={copyToClipboard}
-                    className="text-green-600 hover:text-green-800 transition-colors">
-                    <ClipboardDocumentIcon className="w-4 h-4" />
-                  </button>
-                </div>
-                {copied && <p className="text-[10px] text-green-600 mt-1 text-right">Copied!</p>}
               </div>
               <div className="flex justify-end">
                 <button onClick={onClose}
@@ -153,18 +135,9 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit }) {
               </select>
             </div>
             {!isEdit && (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Password *</label>
-                  <input type="password" value={form.password} onChange={e => set('password', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Confirm Password *</label>
-                  <input type="password" value={form.password_confirm} onChange={e => set('password_confirm', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-                </div>
-              </>
+              <div className="col-span-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+                <p className="text-xs text-blue-700">A secure password will be auto-generated and emailed to the user.</p>
+              </div>
             )}
             {isEdit && (
               <div className="col-span-2">
@@ -242,8 +215,7 @@ export default function UsersPage() {
   const saveMut = useMutation({
     mutationFn: (form) => {
       if (modal?.user?.id) {
-        const { password, password_confirm, ...rest } = form
-        return updateUser(modal.user.id, rest)
+        return updateUser(modal.user.id, form)
       }
       return createUser(form)
     },

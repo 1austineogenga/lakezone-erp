@@ -36,23 +36,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, validators=[validate_password])
-    password_confirm = serializers.CharField(write_only=True)
-
     class Meta:
         model = User
         fields = [
             "email", "first_name", "last_name", "role",
-            "branch", "department", "phone", "password", "password_confirm",
+            "branch", "department", "phone",
         ]
 
-    def validate(self, attrs):
-        if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-        return attrs
-
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        import secrets, string
+        alphabet = string.ascii_letters + string.digits + '!@#$%'
+        password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        user = User.objects.create_user(password=password, **validated_data)
+        user._plain_password = password  # stash for post-create email
+        return user
 
 
 class ChangePasswordSerializer(serializers.Serializer):
