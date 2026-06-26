@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { TruckIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { getProjectVehicles, assignVehicle } from '../../api/projects'
 import { getVehicles } from '../../api/fleet'
+import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_DOT = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
 
@@ -13,6 +14,8 @@ const EMPTY = { vehicle: '', assigned_from: '', assigned_to: '', daily_rate: '',
 export default function FleetAssignmentPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
 
@@ -51,10 +54,12 @@ export default function FleetAssignmentPage() {
           <h2 className="font-bold text-brand-slate text-lg">Fleet Assignment</h2>
           <p className="text-xs text-gray-400 mt-0.5">Vehicles assigned to this project</p>
         </div>
-        <button onClick={() => setModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Assign Vehicle
-        </button>
+        {canEdit && (
+          <button onClick={() => setModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Assign Vehicle
+          </button>
+        )}
       </div>
 
       {/* Summary */}

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { getRisks, createRisk, updateRisk } from '../../api/projects'
+import usePermissions from '../../hooks/usePermissions'
 
 const IMPACT_COLORS = {
   critical: 'bg-red-100 text-red-700',
@@ -30,6 +31,8 @@ const EMPTY_FORM = {
 export default function RiskRegisterPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -77,10 +80,12 @@ export default function RiskRegisterPage() {
           <h2 className="font-bold text-brand-slate text-lg">Risk Register</h2>
           <p className="text-xs text-gray-400 mt-0.5">{risks.length} risks tracked</p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Add Risk
-        </button>
+        {canEdit && (
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Add Risk
+          </button>
+        )}
       </div>
 
       {/* Status Summary Chips */}

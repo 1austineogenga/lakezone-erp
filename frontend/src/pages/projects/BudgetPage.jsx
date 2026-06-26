@@ -9,6 +9,7 @@ import { PlusIcon } from '@heroicons/react/24/outline'
 import {
   getProjectBudgets, createBudget, getBudgetSummary, getBudgetItems, createBudgetItem,
 } from '../../api/projects'
+import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_OPTIONS = ['draft', 'active', 'locked']
 const CATEGORY_OPTIONS = ['materials', 'fuel', 'labour', 'casuals', 'equipment', 'overheads', 'other']
@@ -24,6 +25,8 @@ const EMPTY_ITEM_FORM = {
 export default function BudgetPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const [tab, setTab] = useState('category')
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -164,10 +167,12 @@ export default function BudgetPage() {
           <h2 className="font-bold text-brand-slate text-lg">Budget</h2>
           <p className="text-xs text-gray-400 mt-0.5">{activeBudget.title || 'Project Budget'} · {activeBudget.period_weeks} weeks</p>
         </div>
-        <button onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> New Budget
-        </button>
+        {canEdit && (
+          <button onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> New Budget
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -314,10 +319,12 @@ export default function BudgetPage() {
               onChange={e => setItemSearch(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red"
             />
-            <button onClick={() => setShowItemModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-              <PlusIcon className="h-3.5 w-3.5" /> Add Item
-            </button>
+            {canEdit && (
+              <button onClick={() => setShowItemModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+                <PlusIcon className="h-3.5 w-3.5" /> Add Item
+              </button>
+            )}
           </div>
           <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             <div className="overflow-x-auto">
