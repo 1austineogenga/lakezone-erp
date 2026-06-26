@@ -603,6 +603,7 @@ class JournalEntry(models.Model):
                                      null=True, blank=True, related_name='journal_entries')
     status       = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
     is_reversing = models.BooleanField(default=False)
+    source       = models.CharField(max_length=20, default='manual', blank=True)
     reversal_of  = models.ForeignKey('self', on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='reversal')
     created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
@@ -711,3 +712,71 @@ class QBSyncLog(models.Model):
 
     def __str__(self):
         return f'{self.entity_type} {self.direction} — {self.status} @ {self.created_at:%Y-%m-%d %H:%M}'
+
+
+# ── Bank Transaction (imported from QB) ───────────────────────────────────────
+
+class BankTransaction(models.Model):
+    class TxnType(models.TextChoices):
+        DEPOSIT    = 'deposit',    'Deposit'
+        WITHDRAWAL = 'withdrawal', 'Withdrawal'
+        TRANSFER   = 'transfer',   'Transfer'
+        OTHER      = 'other',      'Other'
+
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference      = models.CharField(max_length=100, unique=True)
+    txn_date       = models.DateField()
+    txn_type       = models.CharField(max_length=15, choices=TxnType.choices, default=TxnType.OTHER)
+    account        = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name='bank_transactions')
+    amount         = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    description    = models.TextField(blank=True)
+    payee          = models.CharField(max_length=255, blank=True)
+    source         = models.CharField(max_length=20, default='manual', blank=True)
+    created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                       related_name='bank_transactions_created')
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-txn_date']
+
+    def __str__(self):
+        return f'{self.reference} — {self.txn_type} {self.amount}'
+
+
+# ── Credit Memo / Vendor Credit (imported from QB) ────────────────────────────
+
+class CreditNote(models.Model):
+    class CreditType(models.TextChoices):
+        AR = 'ar', 'Credit Memo (Client)'
+        AP = 'ap', 'Vendor Credit (Supplier)'
+
+    class Status(models.TextChoices):
+        OPEN   = 'open',   'Open'
+        APPLIED = 'applied', 'Applied'
+        VOIDED = 'voided', 'Voided'
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference    = models.CharField(max_length=50, unique=True)
+    credit_type  = models.CharField(max_length=5, choices=CreditType.choices)
+    txn_date     = models.DateField()
+    client       = models.ForeignKey('crm.Client', on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='credit_notes')
+    supplier     = models.ForeignKey('procurement.Supplier', on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='credit_notes')
+    amount       = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    balance      = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    memo         = models.TextField(blank=True)
+    status       = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    source       = models.CharField(max_length=20, default='manual', blank=True)
+    created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                     related_name='credit_notes_created')
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-txn_date']
+
+    def __str__(self):
+        party = self.client or self.supplier
+        return f'{self.reference} — {party} — KES {self.amount}'

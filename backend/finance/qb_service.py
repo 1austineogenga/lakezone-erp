@@ -1053,3 +1053,201 @@ class QBService:
                 errors.append(f'BillPayment QB-{ref}: {e}')
 
         return ok, fail, errors
+
+    # ── Pull: Journal Entries (QB → Lakezone) ─────────────────────────────────
+
+    def pull_journal_entries(self):
+        from .models import JournalEntry, JournalLine, Account
+        ok, fail, errors = 0, 0, []
+
+        if not self.user:
+            return 0, 0, ['pull_journal_entries requires a user context']
+
+        try:
+            resp = self.query('SELECT * FROM JournalEntry MAXRESULTS 1000')
+            entries = resp.get('QueryResponse', {}).get('JournalEntry', [])
+        except Exception as e:
+            return 0, 0, [f'Failed to fetch journal entries from QB: {e}']
+
+        account_map      = {a.name.lower(): a for a in Account.objects.filter(is_active=True)}
+        account_code_map = {a.code: a for a in Account.objects.all()}
+
+        for qb_je in entries:
+            ref      = str(qb_je.get('Id', ''))
+            doc_num  = (qb_je.get('DocNumber') or f'QB-JE-{ref}').strip()
+            txn_date = qb_je.get('TxnDate', '')
+            memo     = (qb_je.get('PrivateNote') or '').strip()
+
+            if not ref:
+                continue
+
+            try:
+                je, _ = JournalEntry.objects.update_or_create(
+                    reference=doc_num[:30],
+                    defaults={
+                        'entry_date':  _safe_date(txn_date),
+                        'entry_type':  'manual',
+                        'description': memo[:500] or f'Imported from QuickBooks JE {ref}',
+                        'status':      'posted',
+                        'source':      'quickbooks',
+                        'created_by':  self.user,
+                    },
+                )
+                je.lines.all().delete()
+                for line in qb_je.get('Line', []):
+                    detail   = line.get('JournalEntryLineDetail', {})
+                    posting  = detail.get('PostingType', 'Debit')
+                    acct_ref = detail.get('AccountRef', {})
+                    acct_name = acct_ref.get('name', '').lower()
+                    acct_num  = acct_ref.get('value', '')
+                    amount   = _safe_decimal(line.get('Amount', 0))
+                    desc     = (line.get('Description') or '')[:255]
+                    acct     = account_map.get(acct_name) or account_code_map.get(acct_num)
+                    JournalLine.objects.create(
+                        entry=je, account=acct, description=desc,
+                        debit=amount  if posting == 'Debit'  else Decimal('0'),
+                        credit=amount if posting == 'Credit' else Decimal('0'),
+                    )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'JournalEntry {doc_num}: {e}')
+
+        return ok, fail, errors
+
+    # ── Pull: Bank Transactions / Deposits (QB → Lakezone) ────────────────────
+
+    def pull_bank_transactions(self):
+        from .models import BankTransaction, Account
+        ok, fail, errors = 0, 0, []
+
+        if not self.user:
+            return 0, 0, ['pull_bank_transactions requires a user context']
+
+        account_map = {a.name.lower(): a for a in Account.objects.filter(is_active=True)}
+
+        try:
+            resp = self.query('SELECT * FROM Deposit MAXRESULTS 1000')
+            deposits = resp.get('QueryResponse', {}).get('Deposit', [])
+        except Exception as e:
+            deposits = []
+            errors.append(f'Failed to fetch deposits: {e}')
+
+        for dep in deposits:
+            ref      = f'QB-DEP-{dep.get("Id", "")}'
+            txn_date = dep.get('TxnDate', '')
+            total    = _safe_decimal(dep.get('TotalAmt', 0))
+            memo     = (dep.get('PrivateNote') or '').strip()
+            acct_ref = dep.get('DepositToAccountRef') or {}
+            acct     = account_map.get(acct_ref.get('name', '').lower())
+            try:
+                BankTransaction.objects.update_or_create(
+                    reference=ref[:100],
+                    defaults={
+                        'txn_date': _safe_date(txn_date), 'txn_type': 'deposit',
+                        'account': acct, 'amount': total, 'description': memo,
+                        'source': 'quickbooks', 'created_by': self.user,
+                    },
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1; errors.append(f'{ref}: {e}')
+
+        try:
+            resp = self.query('SELECT * FROM Transfer MAXRESULTS 1000')
+            transfers = resp.get('QueryResponse', {}).get('Transfer', [])
+        except Exception as e:
+            transfers = []
+            errors.append(f'Failed to fetch transfers: {e}')
+
+        for txf in transfers:
+            ref      = f'QB-TRF-{txf.get("Id", "")}'
+            txn_date = txf.get('TxnDate', '')
+            amount   = _safe_decimal(txf.get('Amount', 0))
+            memo     = (txf.get('PrivateNote') or '').strip()
+            acct     = account_map.get((txf.get('FromAccountRef') or {}).get('name', '').lower())
+            try:
+                BankTransaction.objects.update_or_create(
+                    reference=ref[:100],
+                    defaults={
+                        'txn_date': _safe_date(txn_date), 'txn_type': 'transfer',
+                        'account': acct, 'amount': amount, 'description': memo,
+                        'source': 'quickbooks', 'created_by': self.user,
+                    },
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1; errors.append(f'{ref}: {e}')
+
+        return ok, fail, errors
+
+    # ── Pull: Credit Memos & Vendor Credits (QB → Lakezone) ───────────────────
+
+    def pull_credit_notes(self):
+        from .models import CreditNote
+        from crm.models import Client
+        from procurement.models import Supplier
+        ok, fail, errors = 0, 0, []
+
+        if not self.user:
+            return 0, 0, ['pull_credit_notes requires a user context']
+
+        client_map   = {c.company_name.lower(): c for c in Client.objects.all()}
+        supplier_map = {s.company_name.lower(): s for s in Supplier.objects.all()}
+
+        try:
+            resp = self.query('SELECT * FROM CreditMemo MAXRESULTS 1000')
+            credit_memos = resp.get('QueryResponse', {}).get('CreditMemo', [])
+        except Exception as e:
+            credit_memos = []
+            errors.append(f'Failed to fetch credit memos: {e}')
+
+        for cm in credit_memos:
+            ref      = (cm.get('DocNumber') or f'QB-CM-{cm.get("Id", "")}').strip()
+            txn_date = cm.get('TxnDate', '')
+            total    = _safe_decimal(cm.get('TotalAmt', 0))
+            balance  = _safe_decimal(cm.get('RemainingCredit', total))
+            memo     = (cm.get('CustomerMemo') or {}).get('value', '') or (cm.get('PrivateNote') or '')
+            client   = client_map.get((cm.get('CustomerRef') or {}).get('name', '').lower())
+            try:
+                CreditNote.objects.update_or_create(
+                    reference=ref[:50],
+                    defaults={
+                        'credit_type': 'ar', 'txn_date': _safe_date(txn_date),
+                        'client': client, 'amount': total, 'balance': balance,
+                        'memo': str(memo)[:500], 'status': 'open' if balance > 0 else 'applied',
+                        'source': 'quickbooks', 'created_by': self.user,
+                    },
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1; errors.append(f'CreditMemo {ref}: {e}')
+
+        try:
+            resp = self.query('SELECT * FROM VendorCredit MAXRESULTS 1000')
+            vendor_credits = resp.get('QueryResponse', {}).get('VendorCredit', [])
+        except Exception as e:
+            vendor_credits = []
+            errors.append(f'Failed to fetch vendor credits: {e}')
+
+        for vc in vendor_credits:
+            ref      = (vc.get('DocNumber') or f'QB-VC-{vc.get("Id", "")}').strip()
+            txn_date = vc.get('TxnDate', '')
+            total    = _safe_decimal(vc.get('TotalAmt', 0))
+            memo     = (vc.get('PrivateNote') or '').strip()
+            supplier = supplier_map.get((vc.get('VendorRef') or {}).get('name', '').lower())
+            try:
+                CreditNote.objects.update_or_create(
+                    reference=ref[:50],
+                    defaults={
+                        'credit_type': 'ap', 'txn_date': _safe_date(txn_date),
+                        'supplier': supplier, 'amount': total, 'balance': total,
+                        'memo': memo[:500], 'status': 'open',
+                        'source': 'quickbooks', 'created_by': self.user,
+                    },
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1; errors.append(f'VendorCredit {ref}: {e}')
+
+        return ok, fail, errors

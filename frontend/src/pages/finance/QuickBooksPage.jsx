@@ -19,12 +19,15 @@ const BRAND_RED   = '#e11d48'
 const BRAND_SLATE = '#1e293b'
 
 const ENTITIES = [
-  { key: 'accounts',  label: 'Chart of Accounts', desc: 'Push your GL accounts to QuickBooks' },
-  { key: 'customers', label: 'Customers',          desc: 'Sync CRM clients as QB Customers' },
-  { key: 'vendors',   label: 'Vendors',            desc: 'Sync procurement suppliers as QB Vendors' },
-  { key: 'invoices',  label: 'Invoices',           desc: 'Push non-draft invoices to QuickBooks' },
-  { key: 'bills',     label: 'Bills',              desc: 'Push approved/paid bills to QuickBooks' },
-  { key: 'payments',  label: 'Payments',           desc: 'Push receipt payments to QuickBooks' },
+  { key: 'accounts',          label: 'Chart of Accounts', desc: 'Push GL accounts ↑ or pull QB accounts ↓' },
+  { key: 'customers',         label: 'Customers',          desc: 'Sync CRM clients with QB Customers' },
+  { key: 'vendors',           label: 'Vendors',            desc: 'Sync suppliers with QB Vendors' },
+  { key: 'invoices',          label: 'Invoices',           desc: 'Push/pull invoices with QuickBooks' },
+  { key: 'bills',             label: 'Bills',              desc: 'Push/pull bills with QuickBooks' },
+  { key: 'payments',          label: 'Payments',           desc: 'Push/pull AR & AP payments' },
+  { key: 'journal_entries',   label: 'Journal Entries',    desc: 'Pull GL journal entries from QB', pullOnly: true },
+  { key: 'bank_transactions', label: 'Bank Transactions',  desc: 'Pull deposits & transfers from QB', pullOnly: true },
+  { key: 'credit_notes',      label: 'Credit Notes',       desc: 'Pull credit memos & vendor credits from QB', pullOnly: true },
 ]
 
 const STATUS_BADGE = {
@@ -272,8 +275,8 @@ export default function QuickBooksPage() {
             <h2 className="font-semibold text-gray-800">Sync Controls</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ENTITIES.map(({ key, label, desc }) => {
-              const dir = syncDir[key] || 'push'
+            {ENTITIES.map(({ key, label, desc, pullOnly }) => {
+              const dir = pullOnly ? 'pull' : (syncDir[key] || 'push')
               const k = `${key}-${dir}`
               const res = syncResults[k]
               const busy = syncing[k]
@@ -283,8 +286,8 @@ export default function QuickBooksPage() {
                     <p className="font-medium text-sm text-gray-800">{label}</p>
                     <p className="text-xs text-gray-500 mb-1">{desc}</p>
                   </div>
-                  {/* Push / Pull toggle */}
-                  <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
+                  {/* Push / Pull toggle — hidden for pull-only entities */}
+                  {!pullOnly && <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
                     <button
                       onClick={() => setSyncDir(d => ({ ...d, [key]: 'push' }))}
                       className={`flex-1 flex items-center justify-center gap-1 py-1.5 transition ${dir === 'push' ? 'bg-brand-red text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
@@ -297,7 +300,7 @@ export default function QuickBooksPage() {
                     >
                       <ArrowDownIcon className="w-3 h-3" /> Pull ↓
                     </button>
-                  </div>
+                  </div>}
                   {res && (
                     <p className="text-xs">
                       <span className="text-green-600 font-medium">{res.ok} ok</span>
