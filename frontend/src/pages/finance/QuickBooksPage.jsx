@@ -19,15 +19,15 @@ const BRAND_RED   = '#e11d48'
 const BRAND_SLATE = '#1e293b'
 
 const ENTITIES = [
-  { key: 'accounts',          label: 'Chart of Accounts', desc: 'Push GL accounts ↑ or pull QB accounts ↓' },
-  { key: 'customers',         label: 'Customers',          desc: 'Sync CRM clients with QB Customers' },
-  { key: 'vendors',           label: 'Vendors',            desc: 'Sync suppliers with QB Vendors' },
-  { key: 'invoices',          label: 'Invoices',           desc: 'Push/pull invoices with QuickBooks' },
-  { key: 'bills',             label: 'Bills',              desc: 'Push/pull bills with QuickBooks' },
-  { key: 'payments',          label: 'Payments',           desc: 'Push/pull AR & AP payments' },
-  { key: 'journal_entries',   label: 'Journal Entries',    desc: 'Pull GL journal entries from QB', pullOnly: true },
-  { key: 'bank_transactions', label: 'Bank Transactions',  desc: 'Pull deposits & transfers from QB', pullOnly: true },
-  { key: 'credit_notes',      label: 'Credit Notes',       desc: 'Pull credit memos & vendor credits from QB', pullOnly: true },
+  { key: 'accounts',          label: '1. Chart of Accounts', desc: 'Pull GL accounts from QuickBooks',             pullOnly: true },
+  { key: 'vendors',           label: '2. Vendors',           desc: 'Pull suppliers from QuickBooks',               pullOnly: true },
+  { key: 'customers',         label: '3. Customers',         desc: 'Pull clients from QuickBooks',                 pullOnly: true },
+  { key: 'invoices',          label: '4. Invoices',          desc: 'Pull invoices from QuickBooks',                pullOnly: true },
+  { key: 'bills',             label: '5. Bills',             desc: 'Pull supplier bills from QuickBooks',          pullOnly: true },
+  { key: 'payments',          label: '6. Payments',          desc: 'Pull AR & AP payments from QuickBooks',        pullOnly: true },
+  { key: 'journal_entries',   label: '7. Journal Entries',   desc: 'Pull GL journal entries from QuickBooks',      pullOnly: true },
+  { key: 'bank_transactions', label: '8. Bank Transactions', desc: 'Pull deposits & transfers from QuickBooks',    pullOnly: true },
+  { key: 'credit_notes',      label: '9. Credit Notes',      desc: 'Pull credit memos & vendor credits from QB',  pullOnly: true },
 ]
 
 const STATUS_BADGE = {
@@ -315,7 +315,7 @@ export default function QuickBooksPage() {
                   >
                     {busy
                       ? <><ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> Syncing...</>
-                      : dir === 'pull' ? 'Pull from QB' : 'Push to QB'}
+                      : 'Pull from QB'}
                   </button>
                 </div>
               )
