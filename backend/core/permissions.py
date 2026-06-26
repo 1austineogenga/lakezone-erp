@@ -36,6 +36,8 @@ SITE_STAFF = (
 )
 
 FINANCE_ROLES      = EXEC + (UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER)
+# Finance write: only dedicated finance staff + system admin (excludes exec from write access)
+FINANCE_WRITE_ROLES = (UserRole.SYSTEM_ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER)
 PROCUREMENT_ROLES  = EXEC + (UserRole.PROCUREMENT_OFFICER,)
 HR_ROLES           = EXEC + (UserRole.HR_MANAGER,)
 
@@ -44,6 +46,7 @@ IsSystemAdmin        = role_permission(UserRole.SYSTEM_ADMIN)
 IsManagingDirector   = role_permission(*EXEC)
 IsManagement         = role_permission(*MANAGEMENT)
 IsFinanceManager     = role_permission(*FINANCE_ROLES)
+IsFinanceStaff       = role_permission(*FINANCE_WRITE_ROLES)  # write access, excludes exec
 IsHRManager          = role_permission(*HR_ROLES)
 IsProcurementOfficer = role_permission(*PROCUREMENT_ROLES)
 IsSiteStaff          = role_permission(*EXEC, *SITE_STAFF)
