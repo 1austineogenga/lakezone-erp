@@ -16,6 +16,7 @@ import { getPRs } from '../../api/procurement'
 import { getStockLevels } from '../../api/inventory'
 import { getFleetLive } from '../../api/fleet'
 import useAuthStore from '../../store/authStore'
+import usePermissions from '../../hooks/usePermissions'
 
 // Fix default leaflet icon paths (broken in bundlers)
 delete L.Icon.Default.prototype._getIconUrl
@@ -74,6 +75,8 @@ function StatCard({ label, value, sub, icon: Icon, color, onClick }) {
 export default function DashboardPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
+  const { can } = usePermissions()
+  const nav = (module, path) => can(module) ? () => navigate(path) : undefined
 
   const { data: projectsRes } = useQuery({ queryKey: ['projects'], queryFn: () => getProjects({ page_size: 100 }) })
   const { data: prsRes }      = useQuery({ queryKey: ['prs'],      queryFn: () => getPRs({ page_size: 100 }) })
@@ -116,12 +119,12 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-        <StatCard label="Active Projects"    value={activeProjects.length}  icon={FolderIcon}                sub={`${projectList.length} total`}                color="red"   onClick={() => navigate('/projects?status=active')} />
-        <StatCard label="Contract Value"     value={`KES ${(totalContractValue / 1e6).toFixed(1)}M`}        icon={BanknotesIcon}                               sub="Active projects"      color="teal"  onClick={() => navigate('/projects')} />
-        <StatCard label="Fleet Online"       value={`${onlineVehicles} / ${vehicles.length}`}              icon={TruckIcon}                                   sub="Live GPS vehicles"    color="blue"  onClick={() => navigate('/fleet')} />
-        <StatCard label="Pending PRs"        value={pendingPRs}             icon={ClipboardDocumentListIcon} sub="Awaiting approval"                            color="slate" onClick={() => navigate('/procurement')} />
-        <StatCard label="Low Stock Alerts"   value={lowStock}               icon={CubeIcon}                 sub="Below reorder level"                          color="amber" onClick={() => navigate('/inventory')} />
-        <StatCard label="Open Risks"         value={openRisks}              icon={ExclamationTriangleIcon}  sub="Across all projects"                          color="red"   onClick={() => navigate('/projects')} />
+        <StatCard label="Active Projects"    value={activeProjects.length}  icon={FolderIcon}                sub={`${projectList.length} total`}     color="red"   onClick={nav('projects',     '/projects?status=active')} />
+        <StatCard label="Contract Value"     value={`KES ${(totalContractValue / 1e6).toFixed(1)}M`} icon={BanknotesIcon}  sub="Active projects"          color="teal"  onClick={nav('projects',     '/projects')} />
+        <StatCard label="Fleet Online"       value={`${onlineVehicles} / ${vehicles.length}`}        icon={TruckIcon}      sub="Live GPS vehicles"         color="blue"  onClick={nav('fleet',        '/fleet')} />
+        <StatCard label="Pending PRs"        value={pendingPRs}             icon={ClipboardDocumentListIcon} sub="Awaiting approval"                color="slate" onClick={nav('procurement',  '/procurement')} />
+        <StatCard label="Low Stock Alerts"   value={lowStock}               icon={CubeIcon}                 sub="Below reorder level"              color="amber" onClick={nav('inventory',    '/inventory')} />
+        <StatCard label="Open Risks"         value={openRisks}              icon={ExclamationTriangleIcon}  sub="Across all projects"              color="red"   onClick={nav('projects',     '/projects')} />
       </div>
 
       {/* Live Map */}

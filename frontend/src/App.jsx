@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 import AppLayout from './components/layout/AppLayout'
+import PrivateRoute from './components/PrivateRoute'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import ProjectsPage from './pages/projects/ProjectsPage'
@@ -41,26 +42,26 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<AppLayout />}>
             <Route path="/"                   element={<DashboardPage />} />
-            <Route path="/projects"           element={<ProjectsPage />} />
-            <Route path="/projects/:projectId/*" element={<ProjectPage />} />
-            <Route path="/procurement"          element={<ProcurementPage />} />
-            <Route path="/procurement/new-pr"  element={<NewPRPage />} />
-            <Route path="/procurement/pr/:id"  element={<PRDetailPage />} />
-            <Route path="/procurement/po/:id"  element={<PODetailPage />} />
-            <Route path="/inventory"          element={<InventoryPage />} />
-            <Route path="/inventory/:id"      element={<StockItemDetailPage />} />
-            <Route path="/inventory/inspection"   element={<InspectionAcceptanceFormPage />} />
-            <Route path="/inventory/counter-issue" element={<CounterIssueVoucherPage />} />
-            <Route path="/assets"             element={<AssetsPage />} />
-            <Route path="/assets/:id"         element={<AssetDetailPage />} />
-            <Route path="/crm"                element={<CRMPage />} />
-            <Route path="/requisitions"       element={<RequisitionsPage />} />
-            <Route path="/requisitions/new"   element={<NewRequisitionPage />} />
-            <Route path="/requisitions/:id"   element={<RequisitionDetailPage />} />
-            <Route path="/finance/*"          element={<FinancePage />} />
-            <Route path="/hr/*"               element={<HRPage />} />
-            <Route path="/fleet/*"            element={<FleetPage />} />
-            <Route path="/users"              element={<UsersPage />} />
+            <Route path="/projects"              element={<PrivateRoute module="projects"><ProjectsPage /></PrivateRoute>} />
+            <Route path="/projects/:projectId/*" element={<PrivateRoute module="projects"><ProjectPage /></PrivateRoute>} />
+            <Route path="/procurement"           element={<PrivateRoute module="procurement"><ProcurementPage /></PrivateRoute>} />
+            <Route path="/procurement/new-pr"    element={<PrivateRoute module="procurement"><NewPRPage /></PrivateRoute>} />
+            <Route path="/procurement/pr/:id"    element={<PrivateRoute module="procurement"><PRDetailPage /></PrivateRoute>} />
+            <Route path="/procurement/po/:id"    element={<PrivateRoute module="procurement"><PODetailPage /></PrivateRoute>} />
+            <Route path="/inventory"             element={<PrivateRoute module="inventory"><InventoryPage /></PrivateRoute>} />
+            <Route path="/inventory/:id"         element={<PrivateRoute module="inventory"><StockItemDetailPage /></PrivateRoute>} />
+            <Route path="/inventory/inspection"  element={<PrivateRoute module="inventory"><InspectionAcceptanceFormPage /></PrivateRoute>} />
+            <Route path="/inventory/counter-issue" element={<PrivateRoute module="inventory"><CounterIssueVoucherPage /></PrivateRoute>} />
+            <Route path="/assets"                element={<PrivateRoute module="assets"><AssetsPage /></PrivateRoute>} />
+            <Route path="/assets/:id"            element={<PrivateRoute module="assets"><AssetDetailPage /></PrivateRoute>} />
+            <Route path="/crm"                   element={<PrivateRoute module="crm"><CRMPage /></PrivateRoute>} />
+            <Route path="/requisitions"          element={<RequisitionsPage />} />
+            <Route path="/requisitions/new"      element={<NewRequisitionPage />} />
+            <Route path="/requisitions/:id"      element={<RequisitionDetailPage />} />
+            <Route path="/finance/*"             element={<PrivateRoute module="finance"><FinancePage /></PrivateRoute>} />
+            <Route path="/hr/*"                  element={<PrivateRoute module="hr"><HRPage /></PrivateRoute>} />
+            <Route path="/fleet/*"               element={<PrivateRoute module="fleet"><FleetPage /></PrivateRoute>} />
+            <Route path="/users"                 element={<PrivateRoute module="users"><UsersPage /></PrivateRoute>} />
             <Route path="/profile"            element={<ProfilePage />} />
             <Route path="/workspace"          element={<WorkspacePage />} />
           </Route>
