@@ -3,7 +3,8 @@ from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
                      ExpenseClaim, ExpenseClaimItem, RetentionRelease,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
                      Timesheet, TimesheetLine, JournalEntry, JournalLine,
-                     QuickBooksConfig, QBSyncLog)
+                     QuickBooksConfig, QBSyncLog,
+                     BankTransaction, CreditNote)
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -361,6 +362,23 @@ class QuickBooksConfigSerializer(serializers.ModelSerializer):
         fields = ['id','client_id','client_secret','environment','realm_id',
                   'redirect_uri','is_connected','last_sync_at','token_expiry']
         extra_kwargs = {'client_secret': {'write_only': True}}
+
+class BankTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = BankTransaction
+        fields = ['id', 'reference', 'txn_date', 'txn_type', 'account',
+                  'amount', 'description', 'payee', 'source', 'created_at']
+        read_only_fields = ['created_at']
+
+
+class CreditNoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = CreditNote
+        fields = ['id', 'reference', 'credit_type', 'txn_date', 'client',
+                  'supplier', 'amount', 'balance', 'memo', 'status',
+                  'source', 'created_at']
+        read_only_fields = ['created_at']
+
 
 class QBSyncLogSerializer(serializers.ModelSerializer):
     triggered_by_name = serializers.CharField(source='triggered_by.get_full_name', read_only=True, default='')

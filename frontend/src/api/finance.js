@@ -14,7 +14,10 @@ export const getBill    = (id)     => api.get(`/finance/bills/${id}/`)
 export const createBill = (data)   => api.post('/finance/bills/', data)
 export const updateBill = (id, data) => api.patch(`/finance/bills/${id}/`, data)
 
-export const createPayment = (data) => api.post('/finance/payments/', data)
+export const getPayments         = (params) => api.get('/finance/payments/', { params })
+export const createPayment       = (data)   => api.post('/finance/payments/', data)
+export const getBankTransactions = (params) => api.get('/finance/bank-transactions/', { params })
+export const getCreditNotes      = (params) => api.get('/finance/credit-notes/', { params })
 
 export const getExpenses      = (params) => api.get('/finance/expenses/', { params })
 export const getExpense       = (id)     => api.get(`/finance/expenses/${id}/`)

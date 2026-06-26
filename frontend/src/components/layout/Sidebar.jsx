@@ -47,10 +47,13 @@ const MODULES = [
       {
         heading: 'Transactions',
         links: [
-          { to: '/finance/invoices',     label: 'Invoices (AR)',  icon: DocumentTextIcon },
-          { to: '/finance/bills',        label: 'Bills (AP)',     icon: CreditCardIcon },
-          { to: '/finance/expenses',     label: 'Expenses',       icon: ReceiptPercentIcon },
-          { to: '/finance/certificates', label: 'IPC / Certs',   icon: DocumentCheckIcon },
+          { to: '/finance/invoices',          label: 'Invoices (AR)',      icon: DocumentTextIcon },
+          { to: '/finance/bills',             label: 'Bills (AP)',         icon: CreditCardIcon },
+          { to: '/finance/expenses',          label: 'Expenses',           icon: ReceiptPercentIcon },
+          { to: '/finance/certificates',      label: 'IPC / Certs',        icon: DocumentCheckIcon },
+          { to: '/finance/payments',          label: 'Payments',           icon: BanknotesIcon },
+          { to: '/finance/bank-transactions', label: 'Bank Transactions',  icon: ArrowsRightLeftIcon },
+          { to: '/finance/credit-notes',      label: 'Credit Notes',       icon: DocumentCheckIcon },
         ],
       },
       {
