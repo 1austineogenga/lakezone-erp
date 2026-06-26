@@ -1082,3 +1082,124 @@ class QBSyncLogListView(generics.ListAPIView):
     def get_queryset(self):
         from .models import QBSyncLog
         return QBSyncLog.objects.select_related('triggered_by').all()[:100]
+
+
+# ── Financial Statements ──────────────────────────────────────────────────────
+
+class BalanceSheetView(APIView):
+    """Balance sheet as of a given date, derived from posted GL journal lines."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        as_of_str = request.query_params.get('as_of', date.today().isoformat())
+        try:
+            as_of = date.fromisoformat(as_of_str)
+        except ValueError:
+            return Response({'detail': 'Invalid date. Use YYYY-MM-DD.'}, status=400)
+
+        lines = (
+            JournalLine.objects
+            .filter(journal__status='posted', journal__entry_date__lte=as_of)
+            .values('account__id', 'account__code', 'account__name', 'account__account_type')
+            .annotate(total_debit=Sum('debit'), total_credit=Sum('credit'))
+            .order_by('account__code')
+        )
+
+        assets, liabilities, equity = [], [], []
+        for row in lines:
+            acct_type = row['account__account_type']
+            dr = row['total_debit'] or 0
+            cr = row['total_credit'] or 0
+            # Normal balance: assets/expenses debit; liabilities/equity/revenue credit
+            if acct_type == 'asset':
+                balance = dr - cr
+                if balance != 0:
+                    assets.append({'code': row['account__code'], 'name': row['account__name'], 'balance': float(balance)})
+            elif acct_type == 'liability':
+                balance = cr - dr
+                if balance != 0:
+                    liabilities.append({'code': row['account__code'], 'name': row['account__name'], 'balance': float(balance)})
+            elif acct_type == 'equity':
+                balance = cr - dr
+                if balance != 0:
+                    equity.append({'code': row['account__code'], 'name': row['account__name'], 'balance': float(balance)})
+            elif acct_type == 'revenue':
+                # Retained earnings component: revenue increases equity
+                balance = cr - dr
+                if balance != 0:
+                    equity.append({'code': row['account__code'], 'name': row['account__name'], 'balance': float(balance), 'is_income': True})
+            elif acct_type == 'expense':
+                # Retained earnings component: expenses decrease equity
+                balance = dr - cr
+                if balance != 0:
+                    equity.append({'code': row['account__code'], 'name': row['account__name'], 'balance': float(-balance), 'is_income': True})
+
+        total_assets = sum(a['balance'] for a in assets)
+        total_liabilities = sum(l['balance'] for l in liabilities)
+        total_equity = sum(e['balance'] for e in equity)
+
+        return Response({
+            'as_of': as_of.isoformat(),
+            'assets': assets,
+            'liabilities': liabilities,
+            'equity': equity,
+            'total_assets': total_assets,
+            'total_liabilities': total_liabilities,
+            'total_equity': total_equity,
+        })
+
+
+class IncomeStatementView(APIView):
+    """Profit & Loss for a period, derived from posted GL journal lines."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        today = date.today()
+        period_from_str = request.query_params.get('period_from', date(today.year, 1, 1).isoformat())
+        period_to_str   = request.query_params.get('period_to',   today.isoformat())
+        try:
+            period_from = date.fromisoformat(period_from_str)
+            period_to   = date.fromisoformat(period_to_str)
+        except ValueError:
+            return Response({'detail': 'Invalid date. Use YYYY-MM-DD.'}, status=400)
+
+        lines = (
+            JournalLine.objects
+            .filter(
+                journal__status='posted',
+                journal__entry_date__gte=period_from,
+                journal__entry_date__lte=period_to,
+                account__account_type__in=['revenue', 'expense'],
+            )
+            .values('account__id', 'account__code', 'account__name', 'account__account_type')
+            .annotate(total_debit=Sum('debit'), total_credit=Sum('credit'))
+            .order_by('account__code')
+        )
+
+        revenue, expenses = [], []
+        for row in lines:
+            dr = row['total_debit'] or 0
+            cr = row['total_credit'] or 0
+            if row['account__account_type'] == 'revenue':
+                amount = float(cr - dr)
+                if amount != 0:
+                    revenue.append({'code': row['account__code'], 'name': row['account__name'], 'amount': amount})
+            else:
+                amount = float(dr - cr)
+                if amount != 0:
+                    expenses.append({'code': row['account__code'], 'name': row['account__name'], 'amount': amount})
+
+        total_revenue  = sum(r['amount'] for r in revenue)
+        total_expenses = sum(e['amount'] for e in expenses)
+        net_income     = total_revenue - total_expenses
+
+        return Response({
+            'period_from':     period_from.isoformat(),
+            'period_to':       period_to.isoformat(),
+            'revenue':         revenue,
+            'expenses':        expenses,
+            'total_revenue':   total_revenue,
+            'total_expenses':  total_expenses,
+            'net_income':      net_income,
+            'is_profit':       net_income >= 0,
+        })

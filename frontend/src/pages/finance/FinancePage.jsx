@@ -17,6 +17,8 @@ import PerformanceBondsPage from './PerformanceBondsPage'
 import TimesheetsPage from './TimesheetsPage'
 import GLJournalPage from './GLJournalPage'
 import QuickBooksPage from './QuickBooksPage'
+import BalanceSheetPage from './BalanceSheetPage'
+import IncomeStatementPage from './IncomeStatementPage'
 
 export default function FinancePage() {
   return (
@@ -37,8 +39,10 @@ export default function FinancePage() {
       <Route path="certificates"  element={<PaymentCertificatesPage />} />
       <Route path="bonds"         element={<PerformanceBondsPage />} />
       <Route path="timesheets"    element={<TimesheetsPage />} />
-      <Route path="gl"            element={<GLJournalPage />} />
-      <Route path="quickbooks"    element={<QuickBooksPage />} />
+      <Route path="gl"                element={<GLJournalPage />} />
+      <Route path="balance-sheet"     element={<BalanceSheetPage />} />
+      <Route path="income-statement"  element={<IncomeStatementPage />} />
+      <Route path="quickbooks"        element={<QuickBooksPage />} />
     </Routes>
   )
 }

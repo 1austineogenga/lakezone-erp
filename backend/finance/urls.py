@@ -20,6 +20,7 @@ from .views import (
     JournalEntryListCreateView, JournalEntryDetailView,
     JournalPostView, JournalReverseView, TrialBalanceView,
     QBConfigView, QBConnectView, QBCallbackView, QBDisconnectView, QBSyncView, QBSyncLogListView,
+    BalanceSheetView, IncomeStatementView,
 )
 
 urlpatterns = [
@@ -68,6 +69,9 @@ urlpatterns = [
     path('journals/<uuid:pk>/post/',              JournalPostView.as_view(),                  name='journal-post'),
     path('journals/<uuid:pk>/reverse/',           JournalReverseView.as_view(),               name='journal-reverse'),
     path('trial-balance/',                        TrialBalanceView.as_view(),                 name='trial-balance'),
+    # Financial Statements
+    path('balance-sheet/',      BalanceSheetView.as_view(),    name='balance-sheet'),
+    path('income-statement/',   IncomeStatementView.as_view(), name='income-statement'),
     # QuickBooks integration
     path('quickbooks/config/',      QBConfigView.as_view(),      name='qb-config'),
     path('quickbooks/connect/',     QBConnectView.as_view(),      name='qb-connect'),
