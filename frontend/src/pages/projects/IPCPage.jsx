@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { getIPCs, createIPC, updateIPC } from '../../api/projects'
+import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_COLORS = {
   draft:      'bg-gray-100 text-gray-600',
@@ -30,6 +31,8 @@ const fmt = v => `KES ${Number(v || 0).toLocaleString()}`
 export default function IPCPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -82,10 +85,12 @@ export default function IPCPage() {
           <h2 className="font-bold text-brand-slate text-lg">Interim Payment Certificates</h2>
           <p className="text-xs text-gray-400 mt-0.5">{ipcs.length} IPCs</p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> New IPC
-        </button>
+        {canEdit && (
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> New IPC
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}

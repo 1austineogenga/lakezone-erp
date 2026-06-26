@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { DocumentArrowUpIcon, ChevronDownIcon, ChevronRightIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { getProjectBOQs, importBOQ } from '../../api/projects'
 import { printBOQ } from '../../utils/print'
+import usePermissions from '../../hooks/usePermissions'
 
 function fmt(val) {
   return `KES ${Number(val || 0).toLocaleString()}`
@@ -60,6 +61,8 @@ export default function BOQPage({ projectName }) {
   const { projectId } = useParams()
   const qc = useQueryClient()
   const fileRef = useRef()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const [showUpload, setShowUpload] = useState(false)
   const [title, setTitle] = useState('')
@@ -189,12 +192,14 @@ export default function BOQPage({ projectName }) {
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
             <PrinterIcon className="h-3.5 w-3.5" /> Print BOQ
           </button>
-          <button
-            onClick={() => setShowUpload(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-          >
-            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import New BOQ
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+            >
+              <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import New BOQ
+            </button>
+          )}
         </div>
       </div>
 

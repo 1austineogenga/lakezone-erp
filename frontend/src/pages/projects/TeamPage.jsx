@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { UsersIcon, PlusIcon, XMarkIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import { getPersonnel, addPersonnel, updatePersonnel } from '../../api/projects'
 import api from '../../api/client'
+import usePermissions from '../../hooks/usePermissions'
 
 const ROLES = [
   { value: 'site_engineer',    label: 'Site Engineer' },
@@ -35,6 +36,8 @@ const EMPTY = { employee_name: '', role: 'site_engineer', start_date: '', end_da
 export default function TeamPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
   const [modal, setModal] = useState(false)
   const [reassignModal, setReassignModal] = useState(null) // personnel record
   const [form, setForm] = useState(EMPTY)
@@ -125,10 +128,12 @@ export default function TeamPage() {
           <h2 className="font-bold text-brand-slate text-lg">Project Team</h2>
           <p className="text-xs text-gray-400 mt-0.5">Personnel assigned to this project</p>
         </div>
-        <button onClick={() => setModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Add Member
-        </button>
+        {canEdit && (
+          <button onClick={() => setModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Add Member
+          </button>
+        )}
       </div>
 
       {/* Summary */}

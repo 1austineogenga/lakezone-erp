@@ -6,6 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
 import { PlusIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import usePermissions from '../../hooks/usePermissions'
 import { printForemanWeekly, printSurveyorWeekly } from '../../utils/print'
 import { getProgress, createProgress, getProjectBudgets, getBudgetItems } from '../../api/projects'
 
@@ -22,6 +23,8 @@ const EMPTY_FORM = {
 export default function WeeklyProgressPage() {
   const { projectId } = useParams()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -102,10 +105,12 @@ export default function WeeklyProgressPage() {
           <h2 className="font-bold text-brand-slate text-lg">Weekly Progress</h2>
           <p className="text-xs text-gray-400 mt-0.5">{progressList.length} weeks logged</p>
         </div>
-        <button onClick={() => { setForm(f => ({ ...f, week_no: String(nextWeekNo) })); setShowModal(true) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Log Week {nextWeekNo} Progress
-        </button>
+        {canEdit && (
+          <button onClick={() => { setForm(f => ({ ...f, week_no: String(nextWeekNo) })); setShowModal(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Log Week {nextWeekNo} Progress
+          </button>
+        )}
       </div>
 
       {/* Cumulative chart */}
