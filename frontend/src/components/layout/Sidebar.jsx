@@ -29,10 +29,20 @@ const TOP_LINKS = [
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
 
+// Roles that may access QuickBooks
+const QB_ROLES = new Set(['system_admin', 'finance_officer', 'finance_manager'])
+
+// Primary module per role — shown first in the Management section
+const MODULE_PRIMARY = {
+  finance_officer: 'finance', finance_manager: 'finance',
+  hr_manager: 'hr',
+  fleet_manager: 'fleet',
+}
+
 const MODULES = [
   {
     key: 'finance', label: 'Finance', icon: BanknotesIcon, root: '/finance',
-    sections: [
+    sections: (role) => [
       { heading: null, links: [{ to: '/finance', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
       {
         heading: 'Transactions',
@@ -65,9 +75,9 @@ const MODULES = [
       {
         heading: 'Accounting',
         links: [
-          { to: '/finance/timesheets',  label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
-          { to: '/finance/gl',          label: 'GL Journal',     icon: BookOpenIcon },
-          { to: '/finance/quickbooks',  label: 'QuickBooks',     icon: ArrowsRightLeftIcon },
+          { to: '/finance/timesheets', label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
+          { to: '/finance/gl',         label: 'GL Journal',     icon: BookOpenIcon },
+          ...(QB_ROLES.has(role) ? [{ to: '/finance/quickbooks', label: 'QuickBooks', icon: ArrowsRightLeftIcon }] : []),
         ],
       },
     ],
@@ -134,12 +144,27 @@ export default function Sidebar() {
   const location = useLocation()
   const { can } = usePermissions()
   const isAdmin = user?.role === 'system_admin'
+  const role = user?.role || ''
+
+  // Sort modules: user's primary module first, then others
+  const primaryKey = MODULE_PRIMARY[role]
+  const sortedModules = [...MODULES].sort((a, b) => {
+    if (a.key === primaryKey) return -1
+    if (b.key === primaryKey) return 1
+    return 0
+  })
 
   const initialOpen = {}
-  MODULES.forEach(m => { initialOpen[m.key] = location.pathname.startsWith(m.root) })
+  sortedModules.forEach(m => {
+    // Auto-open primary module or the one matching current path
+    initialOpen[m.key] = m.key === primaryKey || location.pathname.startsWith(m.root)
+  })
   const [open, setOpen] = useState(initialOpen)
 
   const toggle = key => setOpen(o => ({ ...o, [key]: !o[key] }))
+
+  // Resolve sections — may be a plain array or a function(role)
+  const getSections = (mod) => typeof mod.sections === 'function' ? mod.sections(role) : mod.sections
 
   const handleLogout = async () => {
     try { await apiLogout(refreshToken) } catch {}
@@ -177,7 +202,7 @@ export default function Sidebar() {
         ))}
 
         {/* Management modules */}
-        {MODULES.filter(mod => can(mod.key)).length > 0 && (
+        {sortedModules.filter(mod => can(mod.key)).length > 0 && (
           <>
             <div className="pt-4 pb-2">
               <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
@@ -185,10 +210,11 @@ export default function Sidebar() {
               </p>
             </div>
 
-            {MODULES.filter(mod => can(mod.key)).map(mod => {
+            {sortedModules.filter(mod => can(mod.key)).map(mod => {
               const isActive = location.pathname.startsWith(mod.root)
               const isOpen   = open[mod.key]
               const Icon     = mod.icon
+              const sections = getSections(mod)
 
               return (
                 <div key={mod.key}>
@@ -202,7 +228,7 @@ export default function Sidebar() {
 
                   {isOpen && (
                     <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
-                      {mod.sections.filter(section =>
+                      {sections.filter(section =>
                         section.heading !== 'Config' || isAdmin
                       ).map((section, si) => (
                         <div key={si}>

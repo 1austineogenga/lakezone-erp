@@ -5,6 +5,15 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
+from core.permissions import IsFinanceStaff
+
+
+class FinanceWritePermission:
+    """Mixin: read = any authenticated user, write = finance staff only."""
+    def get_permissions(self):
+        if self.request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            return [IsFinanceStaff()]
+        return [permissions.IsAuthenticated()]
 from .models import (Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
                      Timesheet, JournalEntry, JournalLine)
@@ -22,20 +31,17 @@ from .serializers import (
 )
 
 
-class AccountListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class AccountListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = AccountSerializer
     queryset           = Account.objects.filter(is_active=True)
 
 
-class AccountDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class AccountDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = AccountSerializer
     queryset           = Account.objects.all()
 
 
-class InvoiceListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class InvoiceListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
 
     def get_serializer_class(self):
         return InvoiceCreateSerializer if self.request.method == 'POST' else InvoiceSerializer
@@ -48,14 +54,12 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class InvoiceDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class InvoiceDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = InvoiceSerializer
     queryset           = Invoice.objects.all()
 
 
-class BillListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class BillListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
 
     def get_serializer_class(self):
         return BillCreateSerializer if self.request.method == 'POST' else BillSerializer
@@ -68,14 +72,12 @@ class BillListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class BillDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class BillDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = BillSerializer
     queryset           = Bill.objects.all()
 
 
-class PaymentListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PaymentListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = PaymentSerializer
 
     def get_queryset(self):
@@ -358,9 +360,7 @@ class RetentionScheduleView(APIView):
         })
 
 
-class RetentionReleaseListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-
+class RetentionReleaseListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     def get_serializer_class(self):
         return RetentionReleaseCreateSerializer if self.request.method == 'POST' else RetentionReleaseSerializer
 
@@ -373,15 +373,14 @@ class RetentionReleaseListCreateView(generics.ListCreateAPIView):
         serializer.save()
 
 
-class RetentionReleaseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class RetentionReleaseDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = RetentionReleaseSerializer
     queryset           = RetentionRelease.objects.all()
 
 
 class RetentionMarkReleasedView(APIView):
     """Mark a retention release as released / paid."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceStaff]
 
     def post(self, request, pk):
         try:
@@ -487,8 +486,7 @@ class AgedCreditorsView(APIView):
 
 # ── Budget vs Actual ───────────────────────────────────────────────────────────
 
-class ProjectBudgetListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class ProjectBudgetListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = ProjectBudgetSerializer
 
     def get_queryset(self):
@@ -499,8 +497,7 @@ class ProjectBudgetListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class ProjectBudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class ProjectBudgetDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = ProjectBudgetSerializer
     queryset           = ProjectBudget.objects.all()
 
@@ -677,8 +674,7 @@ class WHTRegisterView(APIView):
 
 # ── Payment Certificates ───────────────────────────────────────────────────────
 
-class PaymentCertificateListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PaymentCertificateListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = PaymentCertificateSerializer
 
     def get_queryset(self):
@@ -689,16 +685,14 @@ class PaymentCertificateListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class PaymentCertificateDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PaymentCertificateDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = PaymentCertificateSerializer
     queryset           = PaymentCertificate.objects.all()
 
 
 # ── Performance Bonds ──────────────────────────────────────────────────────────
 
-class PerformanceBondListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PerformanceBondListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = PerformanceBondSerializer
 
     def get_queryset(self):
@@ -709,8 +703,7 @@ class PerformanceBondListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class PerformanceBondDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PerformanceBondDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = PerformanceBondSerializer
     queryset           = PerformanceBond.objects.all()
 
@@ -815,9 +808,7 @@ class PayrollSummaryView(APIView):
 
 # ── General Ledger Journal ─────────────────────────────────────────────────────
 
-class JournalEntryListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-
+class JournalEntryListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     def get_serializer_class(self):
         return JournalEntryCreateSerializer if self.request.method == 'POST' else JournalEntrySerializer
 
@@ -834,15 +825,14 @@ class JournalEntryListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class JournalEntryDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class JournalEntryDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = JournalEntrySerializer
     queryset           = JournalEntry.objects.prefetch_related('lines__account').all()
 
 
 class JournalPostView(APIView):
     """Post a draft journal entry to the ledger."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceStaff]
 
     def post(self, request, pk):
         try:
@@ -864,7 +854,7 @@ class JournalPostView(APIView):
 
 class JournalReverseView(APIView):
     """Create a reversing entry for a posted journal."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceStaff]
 
     def post(self, request, pk):
         try:

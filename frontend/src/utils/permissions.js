@@ -20,7 +20,7 @@ const PERMISSIONS = {
   managing_director: {
     dashboard: 'full', projects: 'full', procurement: 'full',
     requisitions: 'full', inventory: 'read', assets: 'read',
-    crm: 'full', finance: 'full', hr: 'read', fleet: 'read',
+    crm: 'full', finance: 'read', hr: 'read', fleet: 'read',
     users: 'read',
   },
   general_manager: {
