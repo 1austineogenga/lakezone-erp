@@ -120,10 +120,11 @@ export default function QuickBooksPage() {
     try {
       const r = await qbSync({ entity, direction })
       const log = r.data.log
-      setSyncResults(s => ({ ...s, [k]: { ok: log.records_ok, fail: log.records_fail, status: log.status } }))
+      const errs = r.data.errors || []
+      setSyncResults(s => ({ ...s, [k]: { ok: log.records_ok, fail: log.records_fail, status: log.status, errors: errs } }))
       if (log.status === 'success') toast.success(`${entity}: ${log.records_ok} ${direction === 'pull' ? 'imported' : 'pushed'}`)
-      else if (log.status === 'partial') toast.warn(`${entity}: ${log.records_ok} ok, ${log.records_fail} failed`)
-      else toast.error(`${entity} sync failed`)
+      else if (log.status === 'partial') toast.warn(`${entity}: ${log.records_ok} ok, ${log.records_fail} failed — ${errs[0] || ''}`)
+      else toast.error(`${entity} sync failed — ${errs[0] || 'check logs'}`)
       qc.invalidateQueries(['qb-logs'])
     } catch (e) {
       toast.error(e?.response?.data?.detail || `${entity} sync error`)
@@ -302,10 +303,15 @@ export default function QuickBooksPage() {
                     </button>
                   </div>}
                   {res && (
-                    <p className="text-xs">
-                      <span className="text-green-600 font-medium">{res.ok} ok</span>
-                      {res.fail > 0 && <span className="text-red-500 font-medium ml-2">{res.fail} failed</span>}
-                    </p>
+                    <div className="text-xs space-y-0.5">
+                      <p>
+                        <span className="text-green-600 font-medium">{res.ok} ok</span>
+                        {res.fail > 0 && <span className="text-red-500 font-medium ml-2">{res.fail} failed</span>}
+                      </p>
+                      {res.errors?.length > 0 && (
+                        <p className="text-red-400 truncate" title={res.errors.join('\n')}>{res.errors[0]}</p>
+                      )}
+                    </div>
                   )}
                   <button
                     onClick={() => handleSync(key, dir)}

@@ -1070,6 +1070,7 @@ class QBSyncView(APIView):
         return Response({
             'detail': f'Synced {ok} {entity} successfully, {fail} failed.',
             'log': QBSyncLogSerializer(log).data,
+            'errors': errors[:10],  # return first 10 errors for debugging
         })
 
 
