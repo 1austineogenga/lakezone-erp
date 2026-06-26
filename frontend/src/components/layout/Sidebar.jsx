@@ -10,7 +10,7 @@ import {
   BookOpenIcon, ClockIcon, CalendarDaysIcon,
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
-  Cog6ToothIcon, KeyIcon, BriefcaseIcon,
+  Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -46,10 +46,12 @@ const MODULES = [
       {
         heading: 'Reporting',
         links: [
-          { to: '/finance/cash-flow',     label: 'Cash Flow',        icon: ArrowTrendingUpIcon },
-          { to: '/finance/profitability', label: 'Profitability',    icon: BanknotesIcon },
-          { to: '/finance/budget',        label: 'Budget vs Actual', icon: CalculatorIcon },
-          { to: '/finance/aged',          label: 'Aged Report',      icon: ClockIcon },
+          { to: '/finance/balance-sheet',    label: 'Balance Sheet',    icon: TableCellsIcon },
+          { to: '/finance/income-statement', label: 'Income Statement', icon: PresentationChartLineIcon },
+          { to: '/finance/cash-flow',        label: 'Cash Flow',        icon: ArrowTrendingUpIcon },
+          { to: '/finance/profitability',    label: 'Profitability',    icon: BanknotesIcon },
+          { to: '/finance/budget',           label: 'Budget vs Actual', icon: CalculatorIcon },
+          { to: '/finance/aged',             label: 'Aged Report',      icon: ClockIcon },
         ],
       },
       {
