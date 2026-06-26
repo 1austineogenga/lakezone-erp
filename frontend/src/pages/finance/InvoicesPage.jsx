@@ -16,7 +16,7 @@ export default function InvoicesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['invoices', status],
     queryFn:  () => getInvoices(status ? { status } : {}),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
 
   return (
