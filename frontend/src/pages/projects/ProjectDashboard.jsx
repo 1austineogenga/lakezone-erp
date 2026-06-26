@@ -7,6 +7,7 @@ import {
 import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-toastify'
 import { getProjectDashboard, updateProject } from '../../api/projects'
+import usePermissions from '../../hooks/usePermissions'
 
 const IPC_STATUS_COLORS = {
   draft:      'bg-gray-100 text-gray-600',
@@ -113,6 +114,8 @@ function EditProjectModal({ project, onClose }) {
 export default function ProjectDashboard({ dashData: prefetched }) {
   const { projectId } = useParams()
   const [editing, setEditing] = useState(false)
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['project-dashboard', projectId],
@@ -201,12 +204,14 @@ export default function ProjectDashboard({ dashData: prefetched }) {
           <h2 className="font-bold text-brand-slate text-lg">Project Dashboard</h2>
           <p className="text-xs text-gray-400 mt-0.5">Overview of project financials and progress</p>
         </div>
-        <button
-          onClick={() => setEditing(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-500 hover:text-brand-slate hover:border-gray-300"
-        >
-          <PencilSquareIcon className="h-3.5 w-3.5" /> Edit Details
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-500 hover:text-brand-slate hover:border-gray-300"
+          >
+            <PencilSquareIcon className="h-3.5 w-3.5" /> Edit Details
+          </button>
+        )}
       </div>
       {editing && <EditProjectModal project={project} onClose={() => setEditing(false)} />}
 
