@@ -19,6 +19,9 @@ import GLJournalPage from './GLJournalPage'
 import QuickBooksPage from './QuickBooksPage'
 import BalanceSheetPage from './BalanceSheetPage'
 import IncomeStatementPage from './IncomeStatementPage'
+import PaymentsPage from './PaymentsPage'
+import BankTransactionsPage from './BankTransactionsPage'
+import CreditNotesPage from './CreditNotesPage'
 
 export default function FinancePage() {
   return (
@@ -42,7 +45,10 @@ export default function FinancePage() {
       <Route path="gl"                element={<GLJournalPage />} />
       <Route path="balance-sheet"     element={<BalanceSheetPage />} />
       <Route path="income-statement"  element={<IncomeStatementPage />} />
-      <Route path="quickbooks"        element={<QuickBooksPage />} />
+      <Route path="quickbooks"         element={<QuickBooksPage />} />
+      <Route path="payments"           element={<PaymentsPage />} />
+      <Route path="bank-transactions"  element={<BankTransactionsPage />} />
+      <Route path="credit-notes"       element={<CreditNotesPage />} />
     </Routes>
   )
 }

@@ -16,7 +16,8 @@ class FinanceWritePermission:
         return [permissions.IsAuthenticated()]
 from .models import (Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
-                     Timesheet, JournalEntry, JournalLine)
+                     Timesheet, JournalEntry, JournalLine,
+                     BankTransaction, CreditNote)
 from .serializers import (
     AccountSerializer,
     InvoiceSerializer, InvoiceCreateSerializer,
@@ -28,6 +29,7 @@ from .serializers import (
     TimesheetSerializer, TimesheetCreateSerializer,
     JournalEntrySerializer, JournalEntryCreateSerializer,
     QuickBooksConfigSerializer, QBSyncLogSerializer,
+    BankTransactionSerializer, CreditNoteSerializer,
 )
 
 
@@ -88,6 +90,31 @@ class PaymentListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
             qs = qs.filter(invoice=invoice_id)
         if bill_id:
             qs = qs.filter(bill=bill_id)
+        return qs
+
+
+class BankTransactionListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
+    serializer_class = BankTransactionSerializer
+
+    def get_queryset(self):
+        qs = BankTransaction.objects.select_related('account').all()
+        txn_type = self.request.query_params.get('txn_type')
+        if txn_type:
+            qs = qs.filter(txn_type=txn_type)
+        return qs
+
+
+class CreditNoteListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
+    serializer_class = CreditNoteSerializer
+
+    def get_queryset(self):
+        qs = CreditNote.objects.all()
+        credit_type = self.request.query_params.get('credit_type')
+        status = self.request.query_params.get('status')
+        if credit_type:
+            qs = qs.filter(credit_type=credit_type)
+        if status:
+            qs = qs.filter(status=status)
         return qs
 
 

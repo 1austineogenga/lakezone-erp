@@ -29,7 +29,7 @@ export default function RetentionPage() {
   const { data: invoices } = useQuery({
     queryKey: ['invoices-simple'],
     queryFn:  () => api.get('/finance/invoices/'),
-    select:   r => r.data?.filter(i => i.retention_amount > 0),
+    select:   r => (r.data?.results ?? r.data ?? []).filter(i => i.retention_amount > 0),
   })
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
