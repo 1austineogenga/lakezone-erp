@@ -24,7 +24,7 @@ export default function RetentionPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['retention'],
     queryFn:  getRetentionSchedule,
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
   const { data: invoices } = useQuery({
     queryKey: ['invoices-simple'],
@@ -34,7 +34,7 @@ export default function RetentionPage() {
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn:  () => api.get('/projects/'),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
 
   const createMutation = useMutation({

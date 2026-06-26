@@ -16,7 +16,7 @@ export default function BillsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['bills', status],
     queryFn:  () => getBills(status ? { status } : {}),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
 
   return (
