@@ -1012,7 +1012,8 @@ class QBSyncView(APIView):
         entity    = request.data.get('entity')
         direction = request.data.get('direction', 'push')
 
-        VALID = ['accounts', 'customers', 'vendors', 'invoices', 'bills', 'payments']
+        VALID = ['accounts', 'customers', 'vendors', 'invoices', 'bills', 'payments',
+                 'journal_entries', 'bank_transactions', 'credit_notes']
         if entity not in VALID:
             return Response({'detail': f'entity must be one of: {", ".join(VALID)}'}, status=400)
 
@@ -1031,12 +1032,15 @@ class QBSyncView(APIView):
                 'payments':  svc.sync_payments,
             }
             pull_fns = {
-                'accounts':  svc.pull_accounts,
-                'customers': svc.pull_customers,
-                'vendors':   svc.pull_vendors,
-                'invoices':  svc.pull_invoices,
-                'bills':     svc.pull_bills,
-                'payments':  svc.pull_payments,
+                'accounts':          svc.pull_accounts,
+                'customers':         svc.pull_customers,
+                'vendors':           svc.pull_vendors,
+                'invoices':          svc.pull_invoices,
+                'bills':             svc.pull_bills,
+                'payments':          svc.pull_payments,
+                'journal_entries':   svc.pull_journal_entries,
+                'bank_transactions': svc.pull_bank_transactions,
+                'credit_notes':      svc.pull_credit_notes,
             }
             fns = pull_fns if direction == 'pull' else push_fns
             if entity not in fns:
