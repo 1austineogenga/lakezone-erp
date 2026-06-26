@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon, DocumentArrowUpIcon, TableCellsIcon } from '@heroicons/react/24/outline'
 import { getProjects, createProject, importProjects, importBudgetWorkbook } from '../../api/projects'
+import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -25,6 +26,8 @@ const EMPTY_FORM = {
 export default function ProjectsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('projects')
   const [showModal, setShowModal]         = useState(false)
   const [showImport, setShowImport]       = useState(false)
   const [showBudgetImport, setShowBudget] = useState(false)
@@ -111,26 +114,28 @@ export default function ProjectsPage() {
           <h2 className="font-bold text-brand-slate text-lg">Projects</h2>
           <p className="text-xs text-gray-400 mt-0.5">{projects.length} total projects</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowBudget(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50"
-          >
-            <TableCellsIcon className="h-3.5 w-3.5" /> Import Budget Workbook
-          </button>
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
-          >
-            <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Projects Excel
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-          >
-            <PlusIcon className="h-3.5 w-3.5" /> New Project
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBudget(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50"
+            >
+              <TableCellsIcon className="h-3.5 w-3.5" /> Import Budget Workbook
+            </button>
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
+            >
+              <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Projects Excel
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+            >
+              <PlusIcon className="h-3.5 w-3.5" /> New Project
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Projects Grid */}
@@ -140,17 +145,19 @@ export default function ProjectsPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
           <BuildingOffice2Icon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-500">No projects yet</p>
-          <p className="text-xs text-gray-400 mt-1">Create manually or import from Excel.</p>
-          <div className="flex justify-center gap-2 mt-4">
-            <button onClick={() => setShowImport(true)}
-              className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 flex items-center gap-1.5">
-              <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
-            </button>
-            <button onClick={() => setShowModal(true)}
-              className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-              Create Project
-            </button>
-          </div>
+          <p className="text-xs text-gray-400 mt-1">{canEdit ? 'Create manually or import from Excel.' : 'No projects have been created yet.'}</p>
+          {canEdit && (
+            <div className="flex justify-center gap-2 mt-4">
+              <button onClick={() => setShowImport(true)}
+                className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 flex items-center gap-1.5">
+                <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
+              </button>
+              <button onClick={() => setShowModal(true)}
+                className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+                Create Project
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
