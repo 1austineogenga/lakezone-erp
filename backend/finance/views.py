@@ -17,7 +17,8 @@ class FinanceWritePermission:
 from .models import (Account, Invoice, Bill, Payment, ExpenseClaim, RetentionRelease,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
                      Timesheet, JournalEntry, JournalLine,
-                     BankTransaction, CreditNote)
+                     BankTransaction, CreditNote,
+                     BankReconciliation, BankReconciliationLine)
 from .serializers import (
     AccountSerializer,
     InvoiceSerializer, InvoiceCreateSerializer,
@@ -30,6 +31,7 @@ from .serializers import (
     JournalEntrySerializer, JournalEntryCreateSerializer,
     QuickBooksConfigSerializer, QBSyncLogSerializer,
     BankTransactionSerializer, CreditNoteSerializer,
+    BankReconciliationSerializer,
 )
 
 
@@ -857,28 +859,6 @@ class JournalEntryDetailView(FinanceWritePermission, generics.RetrieveUpdateDest
     queryset           = JournalEntry.objects.prefetch_related('lines__account').all()
 
 
-class JournalPostView(APIView):
-    """Post a draft journal entry to the ledger."""
-    permission_classes = [IsFinanceStaff]
-
-    def post(self, request, pk):
-        try:
-            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
-        except JournalEntry.DoesNotExist:
-            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
-        if entry.status != JournalEntry.Status.DRAFT:
-            return Response({'detail': 'Only draft entries can be posted.'},
-                            status=drf_status.HTTP_400_BAD_REQUEST)
-        if not entry.is_balanced:
-            return Response({'detail': f'Journal is not balanced. Debits={entry.total_debits}, Credits={entry.total_credits}'},
-                            status=drf_status.HTTP_400_BAD_REQUEST)
-        entry.status    = JournalEntry.Status.POSTED
-        entry.posted_by = request.user
-        entry.posted_at = timezone.now()
-        entry.save(update_fields=['status', 'posted_by', 'posted_at'])
-        return Response(JournalEntrySerializer(entry).data)
-
-
 class JournalReverseView(APIView):
     """Create a reversing entry for a posted journal."""
     permission_classes = [IsFinanceStaff]
@@ -914,6 +894,193 @@ class JournalReverseView(APIView):
         entry.status = JournalEntry.Status.REVERSED
         entry.save(update_fields=['status'])
         return Response(JournalEntrySerializer(reversal).data, status=drf_status.HTTP_201_CREATED)
+
+
+class JournalApproveView(APIView):
+    """Approve a journal entry that is pending approval, allowing it to be posted."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status != JournalEntry.Status.PENDING_APPROVAL:
+            return Response(
+                {'detail': 'Only entries with status pending_approval can be approved.'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        if not entry.is_balanced:
+            return Response(
+                {'detail': f'Journal is not balanced. Debits={entry.total_debits}, Credits={entry.total_credits}'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        entry.status      = JournalEntry.Status.APPROVED
+        entry.approved_by = request.user
+        entry.approved_at = timezone.now()
+        entry.save(update_fields=['status', 'approved_by', 'approved_at'])
+        return Response(JournalEntrySerializer(entry).data)
+
+
+class JournalRejectView(APIView):
+    """Reject a journal entry that is pending approval."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status != JournalEntry.Status.PENDING_APPROVAL:
+            return Response(
+                {'detail': 'Only entries with status pending_approval can be rejected.'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        reason = request.data.get('reason', '')
+        entry.status           = JournalEntry.Status.REJECTED
+        entry.rejection_reason = reason
+        entry.save(update_fields=['status', 'rejection_reason'])
+        return Response(JournalEntrySerializer(entry).data)
+
+
+class JournalSubmitForApprovalView(APIView):
+    """Submit a draft journal entry for approval."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status != JournalEntry.Status.DRAFT:
+            return Response(
+                {'detail': 'Only draft entries can be submitted for approval.'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        if not entry.is_balanced:
+            return Response(
+                {'detail': f'Journal is not balanced. Debits={entry.total_debits}, Credits={entry.total_credits}'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        entry.status = JournalEntry.Status.PENDING_APPROVAL
+        entry.save(update_fields=['status'])
+        return Response(JournalEntrySerializer(entry).data)
+
+
+# Override JournalPostView to require approved status
+class JournalPostView(APIView):
+    """Post an approved journal entry to the ledger."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            entry = JournalEntry.objects.prefetch_related('lines').get(pk=pk)
+        except JournalEntry.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if entry.status not in (JournalEntry.Status.DRAFT, JournalEntry.Status.APPROVED):
+            return Response(
+                {'detail': 'Only draft or approved entries can be posted.'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        if not entry.is_balanced:
+            return Response(
+                {'detail': f'Journal is not balanced. Debits={entry.total_debits}, Credits={entry.total_credits}'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        entry.status    = JournalEntry.Status.POSTED
+        entry.posted_by = request.user
+        entry.posted_at = timezone.now()
+        entry.save(update_fields=['status', 'posted_by', 'posted_at'])
+        return Response(JournalEntrySerializer(entry).data)
+
+
+# ── Reconciliation Endpoints ───────────────────────────────────────────────────
+
+class InvoiceReconcileView(APIView):
+    """Mark an invoice as reconciled."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            invoice = Invoice.objects.get(pk=pk)
+        except Invoice.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        invoice.is_reconciled = True
+        invoice.save(update_fields=['is_reconciled'])
+        return Response(InvoiceSerializer(invoice).data)
+
+    def delete(self, request, pk):
+        try:
+            invoice = Invoice.objects.get(pk=pk)
+        except Invoice.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        invoice.is_reconciled = False
+        invoice.save(update_fields=['is_reconciled'])
+        return Response(InvoiceSerializer(invoice).data)
+
+
+class BillReconcileView(APIView):
+    """Mark a bill as reconciled."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            bill = Bill.objects.get(pk=pk)
+        except Bill.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        bill.is_reconciled = True
+        bill.save(update_fields=['is_reconciled'])
+        return Response(BillSerializer(bill).data)
+
+    def delete(self, request, pk):
+        try:
+            bill = Bill.objects.get(pk=pk)
+        except Bill.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        bill.is_reconciled = False
+        bill.save(update_fields=['is_reconciled'])
+        return Response(BillSerializer(bill).data)
+
+
+class BankReconciliationListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
+    serializer_class = BankReconciliationSerializer
+
+    def get_queryset(self):
+        qs = BankReconciliation.objects.select_related('account', 'reconciled_by').prefetch_related('lines__transaction').all()
+        account_id = self.request.query_params.get('account')
+        status     = self.request.query_params.get('status')
+        if account_id:
+            qs = qs.filter(account_id=account_id)
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+
+class BankReconciliationDetailView(FinanceWritePermission, generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BankReconciliationSerializer
+    queryset         = BankReconciliation.objects.prefetch_related('lines__transaction').all()
+
+
+class BankReconciliationCloseView(APIView):
+    """Close a bank reconciliation once the difference is zero."""
+    permission_classes = [IsFinanceStaff]
+
+    def post(self, request, pk):
+        try:
+            recon = BankReconciliation.objects.get(pk=pk)
+        except BankReconciliation.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=drf_status.HTTP_404_NOT_FOUND)
+        if recon.status == BankReconciliation.Status.CLOSED:
+            return Response({'detail': 'Already closed.'}, status=drf_status.HTTP_400_BAD_REQUEST)
+        if abs(recon.difference) >= 0.01:
+            return Response(
+                {'detail': f'Cannot close: difference is {recon.difference}. Must be zero.'},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
+        recon.status        = BankReconciliation.Status.CLOSED
+        recon.reconciled_at = timezone.now()
+        recon.save(update_fields=['status', 'reconciled_at'])
+        return Response(BankReconciliationSerializer(recon).data)
 
 
 class TrialBalanceView(APIView):

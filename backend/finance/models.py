@@ -103,6 +103,7 @@ class Invoice(models.Model):
     balance_due      = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     notes      = models.TextField(blank=True)
+    is_reconciled = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                    related_name='invoices_created')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -113,6 +114,11 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f'{self.invoice_number} — {self.client}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.due_date and self.issue_date and self.due_date < self.issue_date:
+            raise ValidationError({'due_date': 'Due date must be on or after issue date.'})
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
@@ -189,6 +195,7 @@ class Bill(models.Model):
     balance_due     = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     notes      = models.TextField(blank=True)
+    is_reconciled = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                    related_name='bills_created')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -199,6 +206,11 @@ class Bill(models.Model):
 
     def __str__(self):
         return f'{self.bill_number} — {self.supplier}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.due_date and self.issue_date and self.due_date < self.issue_date:
+            raise ValidationError({'due_date': 'Due date must be on or after issue date.'})
 
     def save(self, *args, **kwargs):
         if not self.bill_number:
@@ -262,6 +274,11 @@ class Payment(models.Model):
 
     def __str__(self):
         return f'{self.get_payment_type_display()} — KES {self.amount} on {self.payment_date}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.amount is not None and self.amount <= 0:
+            raise ValidationError({'amount': 'Payment amount must be greater than zero.'})
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -588,9 +605,12 @@ class JournalEntry(models.Model):
         PERIOD_CLOSE = 'period_close', 'Period-End Close'
 
     class Status(models.TextChoices):
-        DRAFT    = 'draft',    'Draft'
-        POSTED   = 'posted',   'Posted'
-        REVERSED = 'reversed', 'Reversed'
+        DRAFT            = 'draft',            'Draft'
+        PENDING_APPROVAL = 'pending_approval', 'Pending Approval'
+        APPROVED         = 'approved',         'Approved'
+        REJECTED         = 'rejected',         'Rejected'
+        POSTED           = 'posted',           'Posted'
+        REVERSED         = 'reversed',         'Reversed'
 
     id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reference    = models.CharField(max_length=30, unique=True, blank=True)
@@ -601,7 +621,7 @@ class JournalEntry(models.Model):
     description  = models.CharField(max_length=500)
     project      = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='journal_entries')
-    status       = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    status       = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     is_reversing = models.BooleanField(default=False)
     source       = models.CharField(max_length=20, default='manual', blank=True)
     reversal_of  = models.ForeignKey('self', on_delete=models.SET_NULL,
@@ -611,6 +631,10 @@ class JournalEntry(models.Model):
     posted_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='journal_entries_posted')
     posted_at    = models.DateTimeField(null=True, blank=True)
+    approved_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='journal_entries_approved')
+    approved_at  = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
 
@@ -638,6 +662,14 @@ class JournalEntry(models.Model):
     @property
     def is_balanced(self):
         return abs(self.total_debits - self.total_credits) < 0.01
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.status == self.Status.POSTED and not self.is_balanced:
+            raise ValidationError(
+                f'Cannot post an unbalanced journal entry. '
+                f'Debits={self.total_debits}, Credits={self.total_credits}.'
+            )
 
     def __str__(self):
         return f'{self.reference} — {self.description}'
@@ -780,3 +812,214 @@ class CreditNote(models.Model):
     def __str__(self):
         party = self.client or self.supplier
         return f'{self.reference} — {party} — KES {self.amount}'
+
+
+# ── Bank Reconciliation ────────────────────────────────────────────────────────
+
+class BankReconciliation(models.Model):
+    class Status(models.TextChoices):
+        OPEN   = 'open',   'Open'
+        CLOSED = 'closed', 'Closed'
+
+    id               = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account          = models.ForeignKey(Account, on_delete=models.PROTECT,
+                                         related_name='reconciliations',
+                                         limit_choices_to={'account_type': 'asset'})
+    statement_date   = models.DateField()
+    statement_balance = models.DecimalField(max_digits=15, decimal_places=2)
+    reconciled_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    difference       = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    status           = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    notes            = models.TextField(blank=True)
+    reconciled_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                         related_name='bank_reconciliations')
+    reconciled_at    = models.DateTimeField(null=True, blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    updated_at       = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-statement_date']
+
+    def __str__(self):
+        return f'Reconciliation {self.account} — {self.statement_date} ({self.status})'
+
+    def save(self, *args, **kwargs):
+        self.difference = self.statement_balance - self.reconciled_balance
+        super().save(*args, **kwargs)
+
+
+class BankReconciliationLine(models.Model):
+    """Links a BankTransaction to a reconciliation and marks it as cleared."""
+    id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reconciliation  = models.ForeignKey(BankReconciliation, on_delete=models.CASCADE,
+                                        related_name='lines')
+    transaction     = models.ForeignKey(BankTransaction, on_delete=models.PROTECT,
+                                        related_name='reconciliation_lines')
+    is_cleared      = models.BooleanField(default=True)
+    notes           = models.TextField(blank=True)
+
+    def __str__(self):
+        return f'{self.reconciliation} — {self.transaction.reference}'
+
+
+# ── GL Auto-Journal Signals ────────────────────────────────────────────────────
+# These signals create journal entries automatically when invoices, bills, or
+# payments transition to key statuses (sent/approved/created).
+
+def _get_or_create_system_account(code, name, account_type):
+    """Return an Account by code, creating a placeholder if it doesn't exist."""
+    obj, _ = Account.objects.get_or_create(
+        code=code,
+        defaults={'name': name, 'account_type': account_type},
+    )
+    return obj
+
+
+def _create_gl_journal(entry_type, entry_date, description, project, source_ref, lines_data):
+    """
+    Create a JournalEntry + JournalLines from lines_data.
+    lines_data: list of {'account': Account, 'debit': Decimal, 'credit': Decimal, 'description': str}
+    The entry is created as DRAFT (auto-journals still require manual posting/approval).
+    Uses the first superuser as created_by fallback.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    system_user = User.objects.filter(is_superuser=True).order_by('date_joined').first()
+    if system_user is None:
+        return  # No user to assign — skip silently (e.g. during initial data load)
+
+    entry = JournalEntry.objects.create(
+        entry_type=entry_type,
+        entry_date=entry_date,
+        description=description,
+        project=project,
+        source=source_ref,
+        status=JournalEntry.Status.DRAFT,
+        created_by=system_user,
+    )
+    for ld in lines_data:
+        JournalLine.objects.create(
+            journal=entry,
+            account=ld['account'],
+            description=ld.get('description', ''),
+            debit=ld.get('debit', 0),
+            credit=ld.get('credit', 0),
+        )
+    return entry
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from decimal import Decimal
+
+
+@receiver(post_save, sender=Invoice)
+def gl_auto_journal_invoice(sender, instance, created, **kwargs):
+    """
+    When an Invoice is first sent (status=sent) or certified, create a GL entry:
+      Dr Accounts Receivable (1200)
+      Cr Revenue (4000)
+    Only fires once per invoice (checked via existing journal with source=invoice_number).
+    """
+    if instance.status not in (Invoice.Status.SENT, Invoice.Status.CERTIFIED):
+        return
+    # Avoid duplicate journals
+    if JournalEntry.objects.filter(source=instance.invoice_number,
+                                   entry_type=JournalEntry.EntryType.INVOICE).exists():
+        return
+    try:
+        ar_account  = _get_or_create_system_account('1200', 'Accounts Receivable', Account.AccountType.ASSET)
+        rev_account = _get_or_create_system_account('4000', 'Revenue',             Account.AccountType.REVENUE)
+        amount = instance.total_amount or Decimal('0.00')
+        _create_gl_journal(
+            entry_type=JournalEntry.EntryType.INVOICE,
+            entry_date=instance.issue_date,
+            description=f'Invoice {instance.invoice_number} — {instance.client}',
+            project=instance.project,
+            source_ref=instance.invoice_number,
+            lines_data=[
+                {'account': ar_account,  'debit': amount,  'credit': Decimal('0.00'),
+                 'description': f'AR — {instance.invoice_number}'},
+                {'account': rev_account, 'debit': Decimal('0.00'), 'credit': amount,
+                 'description': f'Revenue — {instance.invoice_number}'},
+            ],
+        )
+    except Exception:
+        pass  # Never block the invoice save
+
+
+@receiver(post_save, sender=Bill)
+def gl_auto_journal_bill(sender, instance, created, **kwargs):
+    """
+    When a Bill is approved, create a GL entry:
+      Dr Expense (5000)
+      Cr Accounts Payable (2000)
+    """
+    if instance.status != Bill.Status.APPROVED:
+        return
+    if JournalEntry.objects.filter(source=instance.bill_number,
+                                   entry_type=JournalEntry.EntryType.BILL).exists():
+        return
+    try:
+        exp_account = _get_or_create_system_account('5000', 'Cost of Sales / Expenses', Account.AccountType.EXPENSE)
+        ap_account  = _get_or_create_system_account('2000', 'Accounts Payable',          Account.AccountType.LIABILITY)
+        amount = instance.total_amount or Decimal('0.00')
+        _create_gl_journal(
+            entry_type=JournalEntry.EntryType.BILL,
+            entry_date=instance.issue_date,
+            description=f'Bill {instance.bill_number} — {instance.supplier}',
+            project=instance.project,
+            source_ref=instance.bill_number,
+            lines_data=[
+                {'account': exp_account, 'debit': amount,              'credit': Decimal('0.00'),
+                 'description': f'Expense — {instance.bill_number}'},
+                {'account': ap_account,  'debit': Decimal('0.00'), 'credit': amount,
+                 'description': f'AP — {instance.bill_number}'},
+            ],
+        )
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=Payment)
+def gl_auto_journal_payment(sender, instance, created, **kwargs):
+    """
+    Receipt (from client):  Dr Bank/Cash (1100)  Cr Accounts Receivable (1200)
+    Payment (to supplier):  Dr Accounts Payable (2000)  Cr Bank/Cash (1100)
+    """
+    if not created:
+        return  # Only on first creation
+    try:
+        bank_account = _get_or_create_system_account('1100', 'Bank / Cash', Account.AccountType.ASSET)
+        ar_account   = _get_or_create_system_account('1200', 'Accounts Receivable', Account.AccountType.ASSET)
+        ap_account   = _get_or_create_system_account('2000', 'Accounts Payable',    Account.AccountType.LIABILITY)
+        amount = instance.amount or Decimal('0.00')
+        project = instance.invoice.project if instance.invoice else (
+            instance.bill.project if instance.bill else None)
+        ref = f'PMT-{instance.id}'
+
+        if instance.payment_type == Payment.PaymentType.RECEIPT:
+            lines_data = [
+                {'account': bank_account, 'debit': amount,              'credit': Decimal('0.00'),
+                 'description': f'Bank receipt — {instance.reference or ref}'},
+                {'account': ar_account,   'debit': Decimal('0.00'), 'credit': amount,
+                 'description': f'Clear AR — {instance.reference or ref}'},
+            ]
+        else:  # PAYMENT
+            lines_data = [
+                {'account': ap_account,   'debit': amount,              'credit': Decimal('0.00'),
+                 'description': f'Clear AP — {instance.reference or ref}'},
+                {'account': bank_account, 'debit': Decimal('0.00'), 'credit': amount,
+                 'description': f'Bank payment — {instance.reference or ref}'},
+            ]
+
+        _create_gl_journal(
+            entry_type=JournalEntry.EntryType.PAYMENT,
+            entry_date=instance.payment_date,
+            description=f'{instance.get_payment_type_display()} KES {amount} — {instance.reference or ref}',
+            project=project,
+            source_ref=ref,
+            lines_data=lines_data,
+        )
+    except Exception:
+        pass
