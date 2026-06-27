@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '../../api/axios'
+import api from '../../api/client'
 import {
   PlusIcon, MagnifyingGlassIcon, ArrowUpTrayIcon,
   CheckCircleIcon, XMarkIcon, ClockIcon, CalendarDaysIcon,
