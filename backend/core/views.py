@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,6 +12,10 @@ import secrets
 import string
 import logging
 from .models import User, Branch, Department
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    rate = "5/min"
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +95,7 @@ from .permissions import IsSystemAdmin, IsManagement
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     serializer_class = CustomTokenObtainPairSerializer
 
 

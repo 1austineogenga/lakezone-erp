@@ -15,7 +15,7 @@ class NotificationListView(generics.ListAPIView):
         return Notification.objects.filter(recipient=self.request.user)[:50]
 
 
-@api_view(["POST"])
+@api_view(["POST", "PATCH"])
 @permission_classes([IsAuthenticated])
 def mark_read(request, pk):
     try:
@@ -23,6 +23,17 @@ def mark_read(request, pk):
         n.is_read = True
         n.save(update_fields=["is_read"])
         return Response({"status": "ok"})
+    except Notification.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, pk):
+    try:
+        n = Notification.objects.get(pk=pk, recipient=request.user)
+        n.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     except Notification.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 

@@ -183,6 +183,10 @@ class FleetLiveView(APIView):
                 service.sync_all()
             except Exception as e:
                 logger.error(f"Auto-sync failed: {e}")
+                return Response(
+                    {"detail": f"Fleet sync failed: {e}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
         vehicles = Vehicle.objects.filter(is_active=True).prefetch_related('live_data')
         data = VehicleSerializer(vehicles, many=True).data
@@ -820,8 +824,8 @@ class FleetRegisterImportView(APIView):
                         notes=self._clean(defects),
                     )
                 )
-            except Exception:
-                pass  # Asset sync is best-effort
+            except Exception as e:
+                logger.warning(f"Asset sync failed for vehicle {vehicle_no}: {e}")
 
         return Response({
             'imported': imported,

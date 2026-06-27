@@ -1,4 +1,5 @@
 import uuid
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
 from projects.models import Project, BOQItem
@@ -60,6 +61,10 @@ class StockItem(models.Model):
     def __str__(self):
         return f"{self.item_code} — {self.name}"
 
+    def clean(self):
+        if self.reorder_level is not None and self.reorder_level < 0:
+            raise ValidationError({"reorder_level": "Reorder level must be >= 0."})
+
     def current_stock(self, store=None):
         qs = self.stock_levels.all()
         if store:
@@ -104,6 +109,10 @@ class StockTransaction(models.Model):
         PurchaseOrder, on_delete=models.SET_NULL, null=True, blank=True, related_name="grns"
     )
     reference_number = models.CharField(max_length=50, unique=True)
+    reason = models.TextField(
+        blank=True,
+        help_text="Required for ADJUSTMENT transactions. Explain why the adjustment is being made.",
+    )
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_transactions"
     )
@@ -117,7 +126,35 @@ class StockTransaction(models.Model):
     def __str__(self):
         return f"{self.reference_number} — {self.transaction_type}"
 
+    def clean(self):
+        errors = {}
+        # quantity must be positive
+        if self.quantity is not None and self.quantity <= 0:
+            errors["quantity"] = "Quantity must be greater than 0."
+        # unit_cost must be non-negative
+        if self.unit_cost is not None and self.unit_cost < 0:
+            errors["unit_cost"] = "Unit cost must be >= 0."
+        # adjustments require a reason
+        if self.transaction_type == TransactionType.ADJUSTMENT and not self.reason:
+            errors["reason"] = "A reason is required for stock adjustments."
+        if errors:
+            raise ValidationError(errors)
+
     def save(self, *args, **kwargs):
+        self.full_clean()
+        # Check for negative stock on outbound transactions (before saving)
+        if self.transaction_type in (TransactionType.ISSUE, TransactionType.TRANSFER):
+            try:
+                current = StockLevel.objects.get(item=self.item, store=self.store)
+                if current.quantity_on_hand - self.quantity < 0:
+                    raise ValidationError(
+                        f"Insufficient stock: {self.item} has {current.quantity_on_hand} units in "
+                        f"{self.store}; cannot issue/transfer {self.quantity}."
+                    )
+            except StockLevel.DoesNotExist:
+                raise ValidationError(
+                    f"No stock record found for {self.item} in {self.store}. Cannot issue/transfer."
+                )
         super().save(*args, **kwargs)
         self._update_stock_level()
         if self.project and self.boq_item and self.transaction_type == TransactionType.ISSUE:
