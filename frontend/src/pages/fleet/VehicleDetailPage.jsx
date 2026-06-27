@@ -643,7 +643,6 @@ export default function VehicleDetailPage() {
                 ))}
               </div>
         )}
-      </div>
 
         {tab === 'maintenance' && (
           maintenanceRecords.length === 0
