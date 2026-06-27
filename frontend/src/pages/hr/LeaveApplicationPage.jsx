@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon, PrinterIcon } from '@heroicons/react/24/outline'
-import { getLeaveApplications } from '../../api/hr'
+import { getLeaveApplications, getLeaveTypes } from '../../api/hr'
 import { printLeaveApplication } from '../../utils/print'
 import useAuthStore from '../../store/authStore'
+import api from '../../api/client'
 
 const inputCls = 'border border-gray-200 rounded px-1.5 py-1 text-xs w-full focus:outline-none focus:ring-1 focus:ring-brand-red/40'
 
@@ -39,10 +40,6 @@ function Section({ title, children }) {
   )
 }
 
-const LEAVE_TYPES = [
-  'Annual Leave','Maternity Leave','Compassionate Leave','Study Leave',
-  'Sick Leave','Paternity Leave','Other','Unpaid Leave'
-]
 
 const OFFICE_LABELS = [
   'Leave Balance Brought Forward (Previous Year)',
@@ -66,6 +63,11 @@ export default function LeaveApplicationPage() {
       if (Array.isArray(results)) return results.find(l => String(l.id) === String(id))
       return r.data
     },
+  })
+
+  const { data: leaveTypes = [] } = useQuery({
+    queryKey: ['leave-types'],
+    queryFn:  () => getLeaveTypes().then(r => r.data?.results ?? r.data ?? []),
   })
 
   const [coverageLines, setCoverageLines] = useState(['','','','',''])
@@ -122,14 +124,14 @@ export default function LeaveApplicationPage() {
         <div className="mt-3">
           <p className="text-[10px] font-medium text-gray-500 mb-1">Leave Type</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-            {LEAVE_TYPES.map(type => {
-              const isChecked = type === leave?.leave_type_name || type.replace(' Leave','') === leave?.leave_type_name
+            {leaveTypes.map(lt => {
+              const isChecked = lt.name === leave?.leave_type_name || lt.id === leave?.leave_type
               return (
-                <label key={type} className="flex items-center gap-1.5 text-xs cursor-default">
+                <label key={lt.id} className="flex items-center gap-1.5 text-xs cursor-default">
                   <span className={`inline-flex items-center justify-center w-4 h-4 border rounded ${isChecked ? 'bg-brand-red border-brand-red text-white' : 'border-gray-300'}`}>
                     {isChecked ? '✓' : ''}
                   </span>
-                  {type}
+                  {lt.name}
                 </label>
               )
             })}

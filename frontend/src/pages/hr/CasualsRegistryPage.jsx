@@ -42,6 +42,13 @@ export default function CasualsRegistryPage() {
   const [showLogForm, setShowLogForm] = useState(false)
   const [importErr, setImportErr]   = useState('')
 
+  // Fetch branches (e.g. Head Office) for placement dropdown
+  const { data: branchNames = [] } = useQuery({
+    queryKey: ['branches-names'],
+    queryFn:  () => api.get('/auth/branches/', { params: { page_size: 50 } }),
+    select:   r => (r.data?.results ?? r.data ?? []).map(b => b.name),
+  })
+
   // Fetch project locations for placement dropdown
   const { data: projectLocations = [] } = useQuery({
     queryKey: ['project-locations'],
@@ -52,7 +59,7 @@ export default function CasualsRegistryPage() {
     },
   })
 
-  const placementOptions = ['Head Office', ...projectLocations]
+  const placementOptions = [...branchNames, ...projectLocations]
 
   const { data: casuals = [], isLoading } = useQuery({
     queryKey: ['casuals', search, statusFilter],
