@@ -634,3 +634,66 @@ class EmployeeTransfer(models.Model):
     @property
     def total_allowance(self):
         return self.relocation_allowance + (self.daily_allowance * self.daily_allowance_days)
+
+
+# ── Casuals Register ────────────────────────────────────────────────────────────
+
+class Casual(models.Model):
+    class Status(models.TextChoices):
+        PENDING          = 'pending',          'Pending'
+        FOREMAN_APPROVED = 'foreman_approved', 'Foreman Approved'
+        HR_APPROVED      = 'hr_approved',      'HR Approved'
+        PAID             = 'paid',             'Paid'
+        CANCELLED        = 'cancelled',        'Cancelled'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id_number   = models.CharField(max_length=20, unique=True, db_index=True,
+                                   help_text='National ID — used to identify returning casuals')
+    full_name   = models.CharField(max_length=200, help_text='Full name as it appears on ID')
+    phone       = models.CharField(max_length=20, help_text='Phone for mobile money payment')
+    placement   = models.CharField(max_length=200, help_text='Head Office or project site location')
+    assignment  = models.TextField(help_text='Work assigned to the casual')
+    daily_rate  = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status      = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    foreman_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='casuals_foreman_approved'
+    )
+    foreman_approved_at = models.DateTimeField(null=True, blank=True)
+    hr_approved_by      = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='casuals_hr_approved'
+    )
+    hr_approved_at      = models.DateTimeField(null=True, blank=True)
+    notes               = models.TextField(blank=True)
+
+    created_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                    related_name='casuals_created')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.full_name} ({self.id_number})'
+
+
+class CasualDailyLog(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    casual      = models.ForeignKey(Casual, on_delete=models.CASCADE, related_name='daily_logs')
+    work_date   = models.DateField()
+    days_worked = models.DecimalField(max_digits=4, decimal_places=2, default=1,
+                                      help_text='1 = full day, 0.5 = half day')
+    notes       = models.TextField(blank=True)
+    logged_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                    related_name='casual_logs_created')
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering  = ['-work_date']
+        unique_together = [['casual', 'work_date']]
+
+    def __str__(self):
+        return f'{self.casual.full_name} – {self.work_date} ({self.days_worked}d)'

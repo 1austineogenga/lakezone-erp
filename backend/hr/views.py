@@ -11,7 +11,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
-    EmployeeTransfer,
+    EmployeeTransfer, Casual, CasualDailyLog,
 )
 from .serializers import (
     JobGradeSerializer, PositionSerializer,
@@ -24,6 +24,7 @@ from .serializers import (
     SalaryAdvanceSerializer, AdvanceReviewSerializer,
     DisciplinaryRecordSerializer,
     EmployeeTransferSerializer, EmployeeTransferCreateSerializer, TransferReviewSerializer,
+    CasualSerializer, CasualDailyLogSerializer,
 )
 
 
@@ -833,3 +834,170 @@ class TransferReviewView(APIView):
                     pass  # Finance integration is best-effort; don't fail the approval
 
         return Response(EmployeeTransferSerializer(transfer).data)
+
+
+# ── Casuals Register ────────────────────────────────────────────────────────────
+
+from django.utils import timezone
+import io
+
+
+class CasualListCreateView(generics.ListCreateAPIView):
+    serializer_class   = CasualSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = Casual.objects.select_related(
+            'created_by', 'foreman_approved_by', 'hr_approved_by'
+        ).prefetch_related('daily_logs')
+        status = self.request.query_params.get('status')
+        search = self.request.query_params.get('search')
+        placement = self.request.query_params.get('placement')
+        if status:
+            qs = qs.filter(status=status)
+        if placement:
+            qs = qs.filter(placement__icontains=placement)
+        if search:
+            qs = qs.filter(
+                Q(full_name__icontains=search) |
+                Q(id_number__icontains=search) |
+                Q(phone__icontains=search)
+            )
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class CasualDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset           = Casual.objects.prefetch_related('daily_logs')
+    serializer_class   = CasualSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CasualLookupView(APIView):
+    """Return existing casual by ID number (for returning casual pre-fill)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        id_number = request.query_params.get('id_number', '').strip()
+        if not id_number:
+            return Response({'error': 'id_number required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            casual = Casual.objects.prefetch_related('daily_logs').get(id_number=id_number)
+            return Response(CasualSerializer(casual).data)
+        except Casual.DoesNotExist:
+            return Response(None, status=status.HTTP_404_NOT_FOUND)
+
+
+class CasualApproveView(APIView):
+    """Foreman or HR approval step."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            casual = Casual.objects.get(pk=pk)
+        except Casual.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get('action')  # 'foreman_approve' | 'hr_approve' | 'cancel'
+        now    = timezone.now()
+
+        if action == 'foreman_approve':
+            if casual.status != Casual.Status.PENDING:
+                return Response({'error': 'Can only foreman-approve pending casuals'}, status=400)
+            casual.status              = Casual.Status.FOREMAN_APPROVED
+            casual.foreman_approved_by = request.user
+            casual.foreman_approved_at = now
+        elif action == 'hr_approve':
+            if casual.status != Casual.Status.FOREMAN_APPROVED:
+                return Response({'error': 'Foreman must approve first'}, status=400)
+            casual.status          = Casual.Status.HR_APPROVED
+            casual.hr_approved_by  = request.user
+            casual.hr_approved_at  = now
+        elif action == 'cancel':
+            casual.status = Casual.Status.CANCELLED
+        elif action == 'mark_paid':
+            if casual.status != Casual.Status.HR_APPROVED:
+                return Response({'error': 'HR must approve before marking paid'}, status=400)
+            casual.status = Casual.Status.PAID
+        else:
+            return Response({'error': 'Invalid action'}, status=400)
+
+        casual.save()
+        return Response(CasualSerializer(casual).data)
+
+
+class CasualDailyLogListCreateView(generics.ListCreateAPIView):
+    serializer_class   = CasualDailyLogSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = CasualDailyLog.objects.select_related('casual', 'logged_by')
+        casual_id  = self.request.query_params.get('casual')
+        work_date  = self.request.query_params.get('work_date')
+        if casual_id:
+            qs = qs.filter(casual_id=casual_id)
+        if work_date:
+            qs = qs.filter(work_date=work_date)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(logged_by=self.request.user)
+
+
+class CasualImportView(APIView):
+    """Import casuals from Excel (.xlsx). Columns: full_name, id_number, phone, placement, assignment, daily_rate"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            import openpyxl
+        except ImportError:
+            return Response({'error': 'openpyxl not installed'}, status=500)
+
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided'}, status=400)
+
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(file.read()), read_only=True, data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+        except Exception as e:
+            return Response({'error': f'Cannot read file: {e}'}, status=400)
+
+        if not rows:
+            return Response({'error': 'Empty file'}, status=400)
+
+        headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+        required = {'full_name', 'id_number', 'phone', 'placement'}
+        if not required.issubset(set(headers)):
+            return Response({'error': f'Missing columns. Required: {required}'}, status=400)
+
+        def col(row, name):
+            idx = headers.index(name)
+            return str(row[idx]).strip() if row[idx] is not None else ''
+
+        created, updated, errors = [], [], []
+        for i, row in enumerate(rows[1:], start=2):
+            id_number = col(row, 'id_number')
+            if not id_number:
+                continue
+            try:
+                defaults = {
+                    'full_name':  col(row, 'full_name'),
+                    'phone':      col(row, 'phone'),
+                    'placement':  col(row, 'placement'),
+                    'assignment': col(row, 'assignment') if 'assignment' in headers else '',
+                    'daily_rate': col(row, 'daily_rate') if 'daily_rate' in headers else 0,
+                    'created_by': request.user,
+                }
+                casual, was_created = Casual.objects.update_or_create(
+                    id_number=id_number, defaults=defaults
+                )
+                (created if was_created else updated).append(id_number)
+            except Exception as e:
+                errors.append({'row': i, 'error': str(e)})
+
+        return Response({'created': len(created), 'updated': len(updated), 'errors': errors})
