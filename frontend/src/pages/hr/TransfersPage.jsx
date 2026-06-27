@@ -202,7 +202,7 @@ export default function TransfersPage() {
             </div>
 
             {/* Allowances — only for site moves */}
-            {isSite && (
+            {true && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <BanknotesIcon className="h-4 w-4 text-blue-600" />
