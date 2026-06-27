@@ -336,28 +336,64 @@ function ProfileTab({ user, refetch }) {
 }
 
 // ── Leave Tab ─────────────────────────────────────────────────────────────────
+const LEAVE_STATUS_COLORS = {
+  draft:     'bg-gray-100 text-gray-600',
+  submitted: 'bg-blue-100 text-blue-700',
+  approved:  'bg-green-100 text-green-700',
+  rejected:  'bg-red-100 text-red-700',
+  cancelled: 'bg-gray-100 text-gray-400',
+}
+const LEAVE_STATUS_LABELS = {
+  draft: 'Draft', submitted: 'Pending Approval',
+  approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled',
+}
+
 function LeaveTab() {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ leave_type: '', start_date: '', end_date: '', reason: '' })
+  const [form, setForm] = useState({ leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ['leave-types'], queryFn: () => getLeaveTypes().then(r => r.data?.results ?? r.data ?? []) })
-  const { data: balances   = [] } = useQuery({ queryKey: ['leave-balances'], queryFn: () => getLeaveBalances().then(r => r.data?.results ?? r.data ?? []) })
-  const { data: leaves     = [], isLoading } = useQuery({ queryKey: ['my-leaves'], queryFn: () => getMyLeaves().then(r => r.data?.results ?? r.data ?? []) })
+  const { data: leaveTypes = [] } = useQuery({
+    queryKey: ['leave-types'],
+    queryFn:  () => getLeaveTypes().then(r => r.data?.results ?? r.data ?? []),
+  })
+  const { data: balances = [] } = useQuery({
+    queryKey: ['leave-balances'],
+    queryFn:  () => getLeaveBalances().then(r => r.data?.results ?? r.data ?? []),
+  })
+  const { data: leaves = [], isLoading } = useQuery({
+    queryKey: ['my-leaves'],
+    queryFn:  () => getMyLeaves().then(r => r.data?.results ?? r.data ?? []),
+  })
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['employees-simple'],
+    queryFn:  () => api.get('/hr/employees/', { params: { is_active: true, page_size: 200 } })
+                       .then(r => r.data?.results ?? r.data ?? []),
+  })
+
+  // Annual leave balance — 21 days/year as the primary display
+  const annualBalance = balances.find(b =>
+    b.leave_type_name?.toLowerCase().includes('annual') ||
+    b.leave_type_code === 'AL'
+  )
+  const annualDaysLeft = annualBalance ? Number(annualBalance.balance ?? 0) : 21
+  const annualUsed     = annualBalance ? Number(annualBalance.taken_days ?? annualBalance.used ?? 0) : 0
 
   const createMut = useMutation({
     mutationFn: async (data) => {
-      const res = await createLeave(data)
+      const payload = { ...data }
+      if (!payload.handover_to) delete payload.handover_to
+      const res = await createLeave(payload)
       await submitLeave(res.data.id)
       return res
     },
     onSuccess: () => {
-      toast.success('Leave application submitted')
+      toast.success('Leave application submitted for approval.')
       qc.invalidateQueries({ queryKey: ['my-leaves'] })
       qc.invalidateQueries({ queryKey: ['leave-balances'] })
       setShowForm(false)
-      setForm({ leave_type: '', start_date: '', end_date: '', reason: '' })
+      setForm({ leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' })
     },
     onError: e => {
       const d = e.response?.data
@@ -365,36 +401,41 @@ function LeaveTab() {
     },
   })
 
+  const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red'
+
   return (
     <div className="space-y-5">
-      {/* Balance cards */}
-      {balances.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {balances.map(b => {
-            const entitled = Number(b.days_entitlement || b.entitlement || 0)
-            const used     = Number(b.used || 0)
-            const balance  = Number(b.balance || 0)
-            const pct      = entitled > 0 ? Math.round((used / entitled) * 100) : 0
-            return (
-              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs font-semibold text-brand-slate mb-1">{b.leave_type_name}</p>
-                <p className="text-2xl font-bold text-green-600">{balance}</p>
-                <p className="text-xs text-gray-400">days remaining</p>
-                <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">{used}/{entitled} used</p>
-              </div>
-            )
-          })}
+      {/* Annual leave banner */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
+        <div className="flex-shrink-0 w-14 h-14 bg-green-100 rounded-full flex flex-col items-center justify-center">
+          <p className="text-2xl font-bold text-green-700 leading-none">{annualDaysLeft}</p>
+          <p className="text-[9px] font-medium text-green-600 leading-none mt-0.5">DAYS</p>
         </div>
-      )}
+        <div>
+          <p className="font-semibold text-green-800">Annual Leave Balance</p>
+          <p className="text-xs text-green-600 mt-0.5">
+            {annualUsed} days used · {annualDaysLeft} days remaining out of 21 days entitlement
+          </p>
+        </div>
+        {balances.length > 1 && (
+          <div className="ml-auto hidden sm:flex gap-3">
+            {balances.filter(b => !b.leave_type_name?.toLowerCase().includes('annual')).map(b => (
+              <div key={b.id} className="text-center">
+                <p className="text-sm font-bold text-gray-700">{Number(b.balance ?? 0)}</p>
+                <p className="text-[10px] text-gray-500">{b.leave_type_name}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Apply form */}
+      {/* Apply button + form */}
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-brand-slate text-sm">Leave Applications</h3>
-        <button onClick={() => setShowForm(s => !s)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+        <h3 className="font-semibold text-brand-slate text-sm">My Leave Applications</h3>
+        <button
+          onClick={() => setShowForm(s => !s)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+        >
           <PlusIcon className="h-3.5 w-3.5" /> Apply for Leave
         </button>
       </div>
@@ -405,36 +446,56 @@ function LeaveTab() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Leave Type *</label>
-              <select value={form.leave_type} onChange={e => set('leave_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+              <select value={form.leave_type} onChange={e => set('leave_type', e.target.value)} className={inputCls}>
                 <option value="">Select type…</option>
-                {leaveTypes.map(t => <option key={t.id} value={t.id}>{t.name} ({t.days_entitlement} days/yr)</option>)}
+                {leaveTypes.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}{t.days_entitled > 0 ? ` (${t.days_entitled} days/yr)` : ''}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Start Date *</label>
-              <input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              <input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">End Date *</label>
-              <input type="date" value={form.end_date} min={form.start_date} onChange={e => set('end_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              <input type="date" value={form.end_date} min={form.start_date} onChange={e => set('end_date', e.target.value)} className={inputCls} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Reason</label>
-              <textarea value={form.reason} onChange={e => set('reason', e.target.value)} rows={2}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Handover To</label>
+              <select value={form.handover_to} onChange={e => set('handover_to', e.target.value)} className={inputCls}>
+                <option value="">No handover</option>
+                {allEmployees.map(e => (
+                  <option key={e.id} value={e.id}>{e.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Reason *</label>
+              <textarea
+                value={form.reason}
+                onChange={e => set('reason', e.target.value)}
+                rows={3}
+                required
+                placeholder="Briefly describe the reason for your leave…"
+                className={inputCls}
+              />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <button onClick={() => createMut.mutate(form)}
-              disabled={createMut.isPending || !form.leave_type || !form.start_date || !form.end_date}
-              className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            <button
+              onClick={() => createMut.mutate(form)}
+              disabled={createMut.isPending || !form.leave_type || !form.start_date || !form.end_date || !form.reason}
+              className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60"
+            >
               {createMut.isPending ? 'Submitting…' : 'Submit Application'}
             </button>
             <button onClick={() => setShowForm(false)}
-              className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+              className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -442,29 +503,43 @@ function LeaveTab() {
       {/* History table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
-          <p className="font-semibold text-brand-slate text-sm">History ({leaves.length})</p>
+          <p className="font-semibold text-brand-slate text-sm">My Applications</p>
         </div>
-        {isLoading ? <div className="p-6 space-y-2">{[...Array(4)].map((_,i)=><div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
-        : leaves.length === 0 ? <p className="text-sm text-gray-400 p-8 text-center">No leave applications yet.</p>
-        : (
-          <table className="w-full text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-100">
-              {['Type','From','To','Days','Reason','Status'].map(h=><th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-gray-50">
-              {leaves.map(l=>(
-                <tr key={l.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-brand-slate">{l.leave_type_name||'—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{l.start_date}</td>
-                  <td className="px-4 py-3 text-gray-600">{l.end_date}</td>
-                  <td className="px-4 py-3 text-gray-600">{l.days_requested??'—'}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{l.reason||'—'}</td>
-                  <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[l.status]||'bg-gray-100 text-gray-600'}`}>{l.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {isLoading
+          ? <div className="p-6 space-y-2">{[...Array(3)].map((_,i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
+          : leaves.length === 0
+            ? <p className="text-sm text-gray-400 p-8 text-center">No leave applications yet.</p>
+            : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    {['Ref', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Comments'].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {leaves.map(l => (
+                    <tr key={l.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{l.reference}</td>
+                      <td className="px-4 py-3 font-medium text-brand-slate">{l.leave_type_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{l.start_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{l.end_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{l.days ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${LEAVE_STATUS_COLORS[l.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {LEAVE_STATUS_LABELS[l.status] || l.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 max-w-[160px] truncate italic">
+                        {l.review_notes || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+        }
       </div>
     </div>
   )
