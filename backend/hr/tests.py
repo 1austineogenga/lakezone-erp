@@ -37,39 +37,47 @@ class PayrollPAYETest(TestCase):
 
 
 class NSSFCalculationTest(TestCase):
+    """NSSF 2023 Act: 6% of gross, capped at KES 2,160/month."""
+
     def test_nssf_for_50000_gross(self):
         from hr.models import PayrollEntry
-        # Tier1: min(50000,7000)*6% = 420
-        # Tier2: (min(50000,43000)-7000)*6% = 36000*6% = 2160
-        # Total = 2580
+        # 50000 * 6% = 3000, but capped at 2160
         nssf = PayrollEntry.compute_nssf(50000)
-        self.assertAlmostEqual(float(nssf), 2580.0, places=2)
+        self.assertAlmostEqual(float(nssf), 2160.0, places=2)
 
-    def test_nssf_below_tier1_ceiling(self):
+    def test_nssf_below_cap(self):
         from hr.models import PayrollEntry
-        # Gross 5000: only tier1 applies → 5000*6% = 300
+        # 5000 * 6% = 300, below cap
         nssf = PayrollEntry.compute_nssf(5000)
         self.assertAlmostEqual(float(nssf), 300.0, places=2)
 
-    def test_nssf_high_earner_capped_at_tier2(self):
+    def test_nssf_high_earner_capped_at_2160(self):
         from hr.models import PayrollEntry
-        # Gross 500000: tier1=7000*6%=420, tier2=36000*6%=2160 → 2580
+        # Any gross where 6% > 2160 should be capped
         nssf = PayrollEntry.compute_nssf(500000)
-        self.assertAlmostEqual(float(nssf), 2580.0, places=2)
+        self.assertAlmostEqual(float(nssf), 2160.0, places=2)
 
 
 class NHIFBandLookupTest(TestCase):
-    def test_nhif_is_275_percent_of_gross(self):
-        from hr.models import PayrollEntry
-        gross = 50000
-        nhif = PayrollEntry.compute_nhif(gross)
-        self.assertAlmostEqual(float(nhif), gross * 0.0275, places=2)
+    """SHA/SHIF tiered bands — not a flat rate."""
 
-    def test_nhif_for_various_salaries(self):
+    def test_nhif_band_for_50000(self):
         from hr.models import PayrollEntry
-        for gross in [10000, 30000, 100000]:
-            nhif = PayrollEntry.compute_nhif(gross)
-            self.assertAlmostEqual(float(nhif), gross * 0.0275, places=2)
+        # 50000 falls in 49999 band → KES 1100
+        nhif = PayrollEntry.compute_nhif(49999)
+        self.assertEqual(float(nhif), 1100.0)
+
+    def test_nhif_band_for_low_earner(self):
+        from hr.models import PayrollEntry
+        # Gross 5000 → band <=5999 → KES 150
+        nhif = PayrollEntry.compute_nhif(5000)
+        self.assertEqual(float(nhif), 150.0)
+
+    def test_nhif_top_band(self):
+        from hr.models import PayrollEntry
+        # Gross 150000 → above all bands → KES 1700
+        nhif = PayrollEntry.compute_nhif(150000)
+        self.assertEqual(float(nhif), 1700.0)
 
 
 class LeaveBalanceCheckTest(TestCase):
