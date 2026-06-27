@@ -27,9 +27,12 @@ const ROLE_COLORS = {
   site_surveyor: 'bg-orange-100 text-orange-700',
 }
 
+const getDepartments = () => api.get('/auth/departments/', { params: { page_size: 50 } })
+const getBranches    = () => api.get('/auth/branches/',    { params: { page_size: 50 } })
+
 const EMPTY_FORM = {
   first_name: '', last_name: '', email: '', phone: '',
-  role: 'site_engineer', is_active: true,
+  role: 'site_engineer', department: '', branch: '', is_active: true,
 }
 
 function ResetPasswordModal({ user, onClose }) {
@@ -103,7 +106,7 @@ function ResetPasswordModal({ user, onClose }) {
   )
 }
 
-function UserModal({ open, onClose, initial, onSave, saving, isEdit }) {
+function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments, branches }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -148,6 +151,22 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit }) {
                     ))}
                   </optgroup>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
+              <select value={form.department || ''} onChange={e => set('department', e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— None —</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Branch</label>
+              <select value={form.branch || ''} onChange={e => set('branch', e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                <option value="">— None —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name} ({b.location})</option>)}
               </select>
             </div>
             {!isEdit && (
@@ -227,6 +246,16 @@ export default function UsersPage() {
     queryKey: ['users', filterRole],
     queryFn: () => getUsers({ role: filterRole || undefined, page_size: 200 }),
     select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn:  () => getDepartments().then(r => r.data?.results ?? r.data ?? []),
+  })
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn:  () => getBranches().then(r => r.data?.results ?? r.data ?? []),
   })
 
   const saveMut = useMutation({
@@ -385,6 +414,8 @@ export default function UsersPage() {
         onSave={form => saveMut.mutate(form)}
         saving={saveMut.isPending}
         isEdit={!!modal?.user?.id}
+        departments={departments}
+        branches={branches}
       />
 
       {resetUser && (
