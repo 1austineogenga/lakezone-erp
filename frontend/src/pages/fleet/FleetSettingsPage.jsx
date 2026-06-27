@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Cog6ToothIcon, ArrowPathIcon, BugAntIcon } from '@heroicons/react/24/outline'
-import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory, fetchFuelEvents } from '../../api/fleet'
+import { getFleetConfig, saveFleetConfig, forceSync, backfillHistory, fetchHistory, fetchFuelEvents, fetchTrackNTraceAlerts, checkMaintenanceDue } from '../../api/fleet'
 import api from '../../api/client'
 import useAuthStore from '../../store/authStore'
 
@@ -107,6 +107,29 @@ export default function FleetSettingsPage() {
     onError: e => toast.error(e.response?.data?.detail || 'Backfill failed.'),
   })
 
+  const fetchAlertsMut = useMutation({
+    mutationFn: () => fetchTrackNTraceAlerts({ date_from: histFrom, date_to: histTo }),
+    onSuccess: d => {
+      const r = d.data
+      if (r.error) { toast.error(r.error); return }
+      toast.success(`TrackNTrace alerts imported — ${r.alerts_imported} new alerts.`)
+      qc.invalidateQueries({ queryKey: ['fleet-alerts-all'] })
+      qc.invalidateQueries({ queryKey: ['fleet-dashboard'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Alert fetch failed.'),
+  })
+
+  const checkMaintMut = useMutation({
+    mutationFn: checkMaintenanceDue,
+    onSuccess: d => {
+      const { vehicles_checked, alerts_created } = d.data
+      toast.success(`Maintenance check done — ${alerts_created} alert${alerts_created !== 1 ? 's' : ''} created for ${vehicles_checked} vehicles.`)
+      qc.invalidateQueries({ queryKey: ['fleet-alerts-all'] })
+      qc.invalidateQueries({ queryKey: ['fleet-dashboard'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Maintenance check failed.'),
+  })
+
   const fetchFuelEvtMut = useMutation({
     mutationFn: () => fetchFuelEvents({ date_from: histFrom, date_to: histTo }),
     onSuccess: d => {
@@ -168,6 +191,12 @@ export default function FleetSettingsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50 disabled:opacity-60">
             <ArrowPathIcon className={`h-3.5 w-3.5 ${backfillMut.isPending ? 'animate-spin' : ''}`} />
             {backfillMut.isPending ? 'Backfilling…' : 'Backfill History'}
+          </button>
+          <button onClick={() => checkMaintMut.mutate()} disabled={checkMaintMut.isPending}
+            title="Check all vehicles for upcoming service / maintenance due based on odometer and date"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-200 text-orange-700 text-xs font-medium rounded-lg hover:bg-orange-50 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${checkMaintMut.isPending ? 'animate-spin' : ''}`} />
+            {checkMaintMut.isPending ? 'Checking…' : 'Check Maintenance Due'}
           </button>
         </div>
       </div>
@@ -356,6 +385,34 @@ export default function FleetSettingsPage() {
         )}
       </div>
 
+      {/* TrackNTrace alerts sync */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-brand-slate text-sm mb-1">Sync Alerts from TrackNTrace</h3>
+          <p className="text-xs text-gray-400">
+            Pull alert history (speeding, SOS, fuel, geofence, idle, etc.) directly from the TrackNTrace/Trakzee system
+            and store them in the ERP. Uses the same date range as above.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 items-end">
+          <button onClick={() => fetchAlertsMut.mutate()} disabled={fetchAlertsMut.isPending}
+            className="flex items-center gap-1.5 px-4 py-2 bg-orange-700 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${fetchAlertsMut.isPending ? 'animate-spin' : ''}`} />
+            {fetchAlertsMut.isPending ? 'Fetching…' : 'Sync TrackNTrace Alerts'}
+          </button>
+        </div>
+        {fetchAlertsMut.data && (
+          <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5 font-mono">
+            <p>Endpoint: {fetchAlertsMut.data.data.endpoint_used || '—'}</p>
+            <p>Alerts in response: <strong>{fetchAlertsMut.data.data.alerts_in_response ?? 0}</strong></p>
+            <p>Alerts imported: <strong>{fetchAlertsMut.data.data.alerts_imported ?? 0}</strong></p>
+            {fetchAlertsMut.data.data.error && (
+              <p className="text-red-600 break-all">{fetchAlertsMut.data.data.error}</p>
+            )}
+          </div>
+        )}
+      </div>
+
       {existingConfig && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-1">
           <p className="font-semibold">Current saved values</p>
@@ -373,7 +430,10 @@ export default function FleetSettingsPage() {
         <p>• Vehicle Wise: fetches each registered vehicle individually (1-min rate limit respected).</p>
         <p>• Fuel fills (&gt;5L increase) and drains (&gt;5L drop) are auto-detected and logged.</p>
         <p>• Trips are auto-detected from ignition ON → OFF sequences.</p>
-        <p>• Alerts fire for: SOS, speed &gt;100 km/h, low fuel (&lt;10%), offline (&gt;30 min).</p>
+        <p>• Alerts fire for: SOS, speed &gt;100 km/h, low fuel (&lt;15% tank / &lt;30 L), long idle (&gt;30 min), moving without ignition.</p>
+        <p>• Service due alerts trigger when: odometer is within 500 km of next service, or next service date is within 14 days.</p>
+        <p>• Use "Sync TrackNTrace Alerts" to pull alert history directly from the tracking system.</p>
+        <p>• Use "Check Maintenance Due" to scan all vehicles and generate service/maintenance alerts.</p>
         <p>• Run <code>python manage.py fleet_sync</code> as a cron every 2 minutes on the server for background sync.</p>
       </div>
     </div>

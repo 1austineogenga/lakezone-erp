@@ -91,6 +91,7 @@ class VehicleSerializer(serializers.ModelSerializer):
 
 class FuelEventSerializer(serializers.ModelSerializer):
     vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+    vehicle_name = serializers.CharField(source='vehicle.vehicle_name', read_only=True)
 
     class Meta:
         model = FuelEvent

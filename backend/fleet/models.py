@@ -68,7 +68,7 @@ class Vehicle(models.Model):
     last_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     last_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     last_speed = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    last_fuel = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    last_fuel = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     fuel_sensor_unit = models.CharField(max_length=10, default='%', blank=True)
     last_odometer = models.BigIntegerField(default=0)
     last_seen = models.DateTimeField(null=True, blank=True)
@@ -112,7 +112,8 @@ class VehicleLiveData(models.Model):
     ignition_on = models.BooleanField(default=False)
     power_on = models.BooleanField(default=False)
     immobilize_state = models.CharField(max_length=20, blank=True)
-    fuel_level = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    fuel_level = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    fuel_unit = models.CharField(max_length=5, default='L', blank=True)
     battery_percentage = models.IntegerField(null=True, blank=True)
     external_volt = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
@@ -141,9 +142,10 @@ class FuelEvent(models.Model):
     location_name = models.TextField(blank=True)
     latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
-    fuel_before = models.DecimalField(max_digits=6, decimal_places=2)
-    fuel_after = models.DecimalField(max_digits=6, decimal_places=2)
-    fuel_change = models.DecimalField(max_digits=6, decimal_places=2)
+    fuel_before = models.DecimalField(max_digits=8, decimal_places=2)
+    fuel_after = models.DecimalField(max_digits=8, decimal_places=2)
+    fuel_change = models.DecimalField(max_digits=8, decimal_places=2)
+    fuel_unit = models.CharField(max_length=5, default='L', blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -194,6 +196,9 @@ class FleetAlert(models.Model):
         INSPECTION_EXPIRY = 'inspection_expiry', 'Inspection Cert Expiring/Expired'
         SPEED_GOV_EXPIRY = 'speed_governor_expiry', 'Speed Governor Cert Expiring/Expired'
         COMPLIANCE_ISSUE = 'compliance_issue', 'Compliance Issue'
+        SERVICE_DUE = 'service_due', 'Service / Maintenance Due'
+        MAINTENANCE_DUE = 'maintenance_due', 'Maintenance Due'
+        GEOFENCE = 'geofence', 'Geofence Alert'
 
     class Severity(models.TextChoices):
         LOW = 'low', 'Low'

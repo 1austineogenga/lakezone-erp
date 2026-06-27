@@ -11,6 +11,7 @@ import {
 import {
   getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts,
   acknowledgeAlert, updateVehicle, deleteVehicle, updateCompliance,
+  getMaintenance, createMaintenance,
 } from '../../api/fleet'
 import api from '../../api/client'
 
@@ -323,6 +324,13 @@ export default function VehicleDetailPage() {
     enabled: tab === 'alerts',
   })
 
+  const { data: maintenanceRecords = [] } = useQuery({
+    queryKey: ['fleet-maintenance-v', id],
+    queryFn: () => getMaintenance({ vehicle: id }),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: tab === 'maintenance',
+  })
+
   const ackMut = useMutation({
     mutationFn: acknowledgeAlert,
     onSuccess: () => {
@@ -541,7 +549,7 @@ export default function VehicleDetailPage() {
       {/* Tabs */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="flex border-b border-gray-100">
-          {[['fuel', 'Fuel Events'], ['trips', 'Trip History'], ['alerts', 'Alerts']].map(([k, label]) => (
+          {[['fuel', 'Fuel Events'], ['trips', 'Trip History'], ['alerts', 'Alerts'], ['maintenance', 'Maintenance']].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-5 py-3 text-xs font-medium border-b-2 transition-colors
                 ${tab === k ? 'border-brand-red text-brand-red' : 'border-transparent text-gray-500 hover:text-brand-slate'}`}>
@@ -571,10 +579,10 @@ export default function VehicleDetailPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(e.occurred_at)}</td>
-                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_before)} {fuelUnit}</td>
-                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_after)} {fuelUnit}</td>
+                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_before)} {e.fuel_unit || 'L'}</td>
+                        <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_after)} {e.fuel_unit || 'L'}</td>
                         <td className={`px-4 py-3 text-xs font-medium ${e.event_type === 'fill' ? 'text-green-600' : 'text-red-600'}`}>
-                          {e.event_type === 'fill' ? '+' : ''}{fuelDisplay(Math.abs(e.fuel_change))} {fuelUnit}
+                          {e.event_type === 'fill' ? '+' : ''}{fuelDisplay(Math.abs(e.fuel_change))} {e.fuel_unit || 'L'}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400 max-w-[160px] truncate">{e.location_name || '—'}</td>
                       </tr>
@@ -633,6 +641,54 @@ export default function VehicleDetailPage() {
                     )}
                   </div>
                 ))}
+              </div>
+        )}
+      </div>
+
+        {tab === 'maintenance' && (
+          maintenanceRecords.length === 0
+            ? <p className="text-sm text-gray-400 p-8 text-center">No maintenance records. Add via the Maintenance page.</p>
+            : <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      {['Type', 'Date', 'Odometer', 'Description', 'Next Service Date', 'Next Service km', 'Cost'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {maintenanceRecords.map(m => {
+                      const today = new Date()
+                      const nextDate = m.next_service_date ? new Date(m.next_service_date) : null
+                      const daysLeft = nextDate ? Math.round((nextDate - today) / 86400000) : null
+                      const dueSoon = daysLeft !== null && daysLeft <= 14
+                      const overdue = daysLeft !== null && daysLeft < 0
+                      return (
+                        <tr key={m.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium capitalize">{m.maintenance_type}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{m.date}</td>
+                          <td className="px-4 py-3 text-xs">{m.odometer_at_service ? `${(m.odometer_at_service / 1000).toFixed(0)} km` : '—'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate">{m.description}</td>
+                          <td className={`px-4 py-3 text-xs font-medium ${overdue ? 'text-red-600' : dueSoon ? 'text-amber-600' : 'text-gray-600'}`}>
+                            {m.next_service_date || '—'}
+                            {daysLeft !== null && (
+                              <span className="ml-1 text-[10px]">
+                                {overdue ? `(${Math.abs(daysLeft)}d overdue)` : `(${daysLeft}d)`}
+                              </span>
+                            )}
+                          </td>
+                          <td className={`px-4 py-3 text-xs font-medium ${m.next_service_odometer && vehicle.last_odometer && m.next_service_odometer - vehicle.last_odometer < 500000 ? 'text-amber-600' : 'text-gray-600'}`}>
+                            {m.next_service_odometer ? `${(m.next_service_odometer / 1000).toFixed(0)} km` : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{m.cost ? `KES ${Number(m.cost).toLocaleString()}` : '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
         )}
       </div>
