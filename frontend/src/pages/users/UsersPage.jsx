@@ -250,12 +250,14 @@ export default function UsersPage() {
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
-    queryFn:  () => getDepartments().then(r => r.data?.results ?? r.data ?? []),
+    queryFn:  () => getDepartments(),
+    select:   r => r.data?.results ?? r.data ?? [],
   })
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
-    queryFn:  () => getBranches().then(r => r.data?.results ?? r.data ?? []),
+    queryFn:  () => getBranches(),
+    select:   r => r.data?.results ?? r.data ?? [],
   })
 
   const saveMut = useMutation({
