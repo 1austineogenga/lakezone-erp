@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 import uuid
 from django.conf import settings
 from datetime import date
@@ -48,9 +49,10 @@ class StaffRequisition(models.Model):
     project       = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
                                       null=True, blank=True)
 
-    description   = models.TextField(blank=True)
-    date_required = models.DateField()
-    total_amount  = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    description      = models.TextField(blank=True)
+    date_required    = models.DateField()
+    total_amount     = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    rejection_reason = models.TextField(blank=True)
 
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
@@ -90,7 +92,14 @@ class RequisitionItem(models.Model):
                                     null=True, blank=True)
     notes       = models.TextField(blank=True)
 
+    def clean(self):
+        if self.quantity is not None and self.quantity <= 0:
+            raise ValidationError({'quantity': 'Quantity must be greater than 0.'})
+        if self.unit_price is not None and self.unit_price < 0:
+            raise ValidationError({'unit_price': 'Unit price must be >= 0.'})
+
     def save(self, *args, **kwargs):
+        self.full_clean()
         self.total_price = self.quantity * self.unit_price
         super().save(*args, **kwargs)
 

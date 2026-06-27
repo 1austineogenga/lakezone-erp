@@ -7,6 +7,16 @@ class RequisitionItemSerializer(serializers.ModelSerializer):
         model  = RequisitionItem
         fields = ['id', 'description', 'quantity', 'unit', 'unit_price', 'total_price', 'stock_item', 'notes']
 
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Quantity must be greater than 0.')
+        return value
+
+    def validate_unit_price(self, value):
+        if value < 0:
+            raise serializers.ValidationError('Unit price must be >= 0.')
+        return value
+
 
 class RequisitionApprovalSerializer(serializers.ModelSerializer):
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
@@ -29,10 +39,11 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'id', 'reference_number', 'title', 'req_type', 'status', 'priority',
             'requested_by', 'requested_by_name', 'department', 'department_name',
             'project', 'project_name', 'description', 'date_required', 'total_amount',
+            'rejection_reason',
             'created_at', 'updated_at', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
             'items', 'approvals',
         ]
-        read_only_fields = ['reference_number', 'requested_by', 'total_amount', 'status']
+        read_only_fields = ['reference_number', 'requested_by', 'total_amount', 'status', 'rejection_reason']
 
 
 class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
