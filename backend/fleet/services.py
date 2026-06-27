@@ -473,6 +473,16 @@ class FleetSyncService:
                 longitude=new_data.get('longitude'),
                 occurred_at=occurred_at,
             )
+            is_theft = abs(fuel_change) >= self.THEFT_THRESHOLD
+            FleetAlert.objects.create(
+                vehicle=vehicle,
+                alert_type=FleetAlert.AlertType.FUEL_DRAIN,
+                severity=FleetAlert.Severity.CRITICAL if is_theft else FleetAlert.Severity.HIGH,
+                message=f"{vehicle.vehicle_no} {'fuel theft' if is_theft else 'fuel drain'} detected: -{round(abs(fuel_change), 1)} L (from {round(prev_fuel, 1)} to {round(new_fuel, 1)} L)",
+                latitude=new_data.get('latitude'),
+                longitude=new_data.get('longitude'),
+                occurred_at=occurred_at,
+            )
 
     def _detect_trip(self, vehicle, prev_reading, new_data):
         from .models import TripRecord
