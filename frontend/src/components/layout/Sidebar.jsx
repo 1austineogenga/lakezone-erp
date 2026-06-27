@@ -11,6 +11,7 @@ import {
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
+  BellAlertIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -26,6 +27,7 @@ const TOP_LINKS = [
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
   { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
+  { to: '/alerts',       icon: BellAlertIcon,             label: 'Alerts',                   module: null },
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
 

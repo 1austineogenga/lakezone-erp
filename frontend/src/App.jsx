@@ -29,6 +29,7 @@ import FleetPage from './pages/fleet/FleetPage'
 import UsersPage from './pages/users/UsersPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import WorkspacePage from './pages/workspace/WorkspacePage'
+import AlertsPage from './pages/AlertsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/users"                 element={<PrivateRoute module="users"><UsersPage /></PrivateRoute>} />
             <Route path="/profile"            element={<ProfilePage />} />
             <Route path="/workspace"          element={<WorkspacePage />} />
+            <Route path="/alerts"             element={<AlertsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
