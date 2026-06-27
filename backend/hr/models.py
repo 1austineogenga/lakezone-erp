@@ -150,6 +150,7 @@ class Employee(models.Model):
     medical_insurance          = models.BooleanField(default=False)
     medical_insurance_category = models.CharField(max_length=5, blank=True)
     medical_insurance_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    medical_declaration        = models.TextField(blank=True)
 
     photo                     = models.CharField(max_length=500, blank=True)
     notes                     = models.TextField(blank=True)
