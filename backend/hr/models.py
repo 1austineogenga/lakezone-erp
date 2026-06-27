@@ -2,6 +2,7 @@ import uuid
 from datetime import date, time as dtime
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 
 def _ref(prefix, model, field='reference'):
@@ -160,7 +161,12 @@ class Employee(models.Model):
     class Meta:
         ordering = ['last_name', 'first_name']
 
+    def clean(self):
+        if self.date_hired and self.date_hired > date.today():
+            raise ValidationError({'date_hired': 'Date hired cannot be in the future.'})
+
     def save(self, *args, **kwargs):
+        self.full_clean()
         if not self.employee_number:
             prefix = 'EMP' if self.employment_type == 'staff' else 'CAS'
             count = Employee.objects.filter(
@@ -280,6 +286,28 @@ class AttendanceRecord(models.Model):
         unique_together = ['employee', 'date']
         ordering = ['-date', 'employee__last_name']
 
+    def clean(self):
+        if self.time_in and self.time_out and self.time_out < self.time_in:
+            raise ValidationError({'time_out': 'time_out must be on or after time_in.'})
+        # Prevent marking someone as Present (or Late) AND On Leave on the same day
+        if self.status in (self.Status.PRESENT, self.Status.LATE):
+            from .models import LeaveApplication
+            overlapping = LeaveApplication.objects.filter(
+                employee=self.employee,
+                status='approved',
+                start_date__lte=self.date,
+                end_date__gte=self.date,
+            ).exists()
+            if overlapping:
+                raise ValidationError(
+                    f'Cannot mark employee as {self.status} on {self.date}: '
+                    'an approved leave covers this date.'
+                )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def compute_status(self):
         if not self.time_in:
             self.status = self.Status.ABSENT
@@ -379,7 +407,12 @@ class LeaveApplication(models.Model):
     class Meta:
         ordering = ['-applied_at']
 
+    def clean(self):
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError({'end_date': 'end_date must be on or after start_date.'})
+
     def save(self, *args, **kwargs):
+        self.clean()
         if not self.reference:
             self.reference = _ref('LEV', LeaveApplication)
         if self.start_date and self.end_date:
@@ -416,11 +449,18 @@ class PayrollPeriod(models.Model):
     notes        = models.TextField(blank=True)
     created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                      related_name='payroll_periods_created')
+    approved_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name='payroll_periods_approved')
+    approved_at  = models.DateTimeField(null=True, blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ['month', 'year']
         ordering = ['-year', '-month']
+
+    def get_month_display(self):
+        import calendar
+        return calendar.month_name[self.month]
 
     def __str__(self):
         return self.name
@@ -443,6 +483,7 @@ class PayrollEntry(models.Model):
     transport_allowance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     medical_allowance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     other_allowances  = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    daily_rate        = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     gross_pay         = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     paye              = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     nssf_employee     = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -460,35 +501,60 @@ class PayrollEntry(models.Model):
         unique_together = ['period', 'employee']
         ordering = ['employee__last_name']
 
-    # Kenya PAYE tax bands (Finance Act 2023) — monthly gross in KES
+    # Kenya PAYE tax bands (Finance Act 2023/24) — monthly gross in KES
     @staticmethod
     def compute_paye(gross):
         gross = float(gross)
-        tax = 0
+        tax = 0.0
+        # Bands: (width_of_band, rate)
         bands = [(24000, 0.10), (8333, 0.25), (467667, 0.30), (300000, 0.325)]
+        remaining = gross
         for limit, rate in bands:
-            if gross <= 0:
+            if remaining <= 0:
                 break
-            taxable = min(gross, limit)
+            taxable = min(remaining, limit)
             tax += taxable * rate
-            gross -= taxable
-        if gross > 0:
-            tax += gross * 0.35
-        return max(0, tax - 2400)  # personal relief
+            remaining -= taxable
+        if remaining > 0:
+            tax += remaining * 0.35
+        return round(max(0.0, tax - 2400.0), 2)  # personal relief KES 2,400/month
 
     @staticmethod
     def compute_nssf(gross):
+        """NSSF 2023 Act: 6% of gross salary, employee contribution capped at KES 2,160/month."""
         gross = float(gross)
-        tier1_ceiling = 7000
-        tier2_ceiling = 36000
-        rate = 0.06
-        tier1 = min(gross, tier1_ceiling) * rate
-        tier2 = max(0, min(gross, tier1_ceiling + tier2_ceiling) - tier1_ceiling) * rate
-        return round(tier1 + tier2, 2)
+        return round(min(gross * 0.06, 2160.0), 2)
 
     @staticmethod
     def compute_nhif(gross):
-        return round(float(gross) * 0.0275, 2)
+        """SHA/SHIF tiered bands (NHIF 2023 rates)."""
+        gross = float(gross)
+        bands = [
+            (5999,   150.0),
+            (7999,   300.0),
+            (11999,  400.0),
+            (14999,  500.0),
+            (19999,  600.0),
+            (24999,  750.0),
+            (29999,  850.0),
+            (34999,  900.0),
+            (39999,  950.0),
+            (44999, 1000.0),
+            (49999, 1100.0),
+            (59999, 1200.0),
+            (69999, 1300.0),
+            (79999, 1400.0),
+            (89999, 1500.0),
+            (99999, 1600.0),
+        ]
+        for ceiling, amount in bands:
+            if gross <= ceiling:
+                return amount
+        return 1700.0
+
+    def clean(self):
+        if self.basic_salary is not None and self.basic_salary < 0:
+            raise ValidationError({'basic_salary': 'basic_salary must be >= 0.'})
 
     def recalculate(self):
         self.gross_pay = (self.basic_salary + self.house_allowance +
@@ -505,6 +571,7 @@ class PayrollEntry(models.Model):
         self.net_pay = self.gross_pay - self.total_deductions
 
     def save(self, *args, **kwargs):
+        self.clean()
         self.recalculate()
         super().save(*args, **kwargs)
 

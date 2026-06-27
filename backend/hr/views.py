@@ -408,6 +408,12 @@ class LeaveReviewView(APIView):
                 year=app.start_date.year,
                 defaults={'entitled_days': app.leave_type.days_entitled},
             )
+            available = float(balance.entitled_days) + float(balance.carried_forward) - float(balance.taken_days)
+            if float(app.days) > available:
+                return Response(
+                    {'detail': f'Insufficient leave balance. Available: {available:.1f} days, requested: {float(app.days):.1f} days.'},
+                    status=400,
+                )
             balance.taken_days += app.days
             balance.save(update_fields=['taken_days'])
 
