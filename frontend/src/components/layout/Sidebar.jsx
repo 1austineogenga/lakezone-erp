@@ -89,7 +89,7 @@ const MODULES = [
   },
   {
     key: 'hr', label: 'HR', icon: UsersIcon, root: '/hr',
-    sections: [
+    sections: (role) => [
       { heading: null, links: [{ to: '/hr', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
       {
         heading: 'Workforce',
@@ -103,7 +103,7 @@ const MODULES = [
         heading: 'Time & Leave',
         links: [
           { to: '/hr/attendance',       label: 'Attendance',       icon: ClockIcon },
-          { to: '/hr/biometric',        label: 'Biometric',        icon: ClipboardDocumentListIcon },
+          ...(role === 'system_admin' ? [{ to: '/hr/biometric', label: 'Biometric', icon: ClipboardDocumentListIcon }] : []),
           { to: '/hr/leave',            label: 'Leave',            icon: CalendarDaysIcon },
           { to: '/hr/casuals-registry', label: 'Casuals Registry', icon: ClipboardDocumentListIcon },
         ],
