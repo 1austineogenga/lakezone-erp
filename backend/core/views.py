@@ -142,10 +142,14 @@ class UserListCreateView(generics.ListCreateAPIView):
         return UserSerializer
 
     def perform_create(self, serializer):
-        user = serializer.save()
-        password = getattr(user, '_plain_password', None)
+        self._created_user = serializer.save()
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        password = getattr(self._created_user, '_plain_password', None)
         if password:
-            _send_welcome_email(user, password)
+            response.data['generated_password'] = password
+        return response
 
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -168,9 +172,9 @@ class ResetUserPasswordView(APIView):
         new_password = ''.join(secrets.choice(alphabet) for _ in range(12))
         user.set_password(new_password)
         user.save(update_fields=['password'])
-        _send_password_reset_email(user, new_password)
         return Response({
-            'detail': f"Password reset for {user.get_full_name() or user.email}. New credentials sent to {user.email}.",
+            'detail': f"Password reset for {user.get_full_name() or user.email}.",
+            'new_password': new_password,
         })
 
 

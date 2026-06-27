@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 import { ROLE_GROUPS, ALL_ROLES, getPermissions } from '../../utils/permissions'
@@ -33,13 +33,20 @@ const EMPTY_FORM = {
 }
 
 function ResetPasswordModal({ user, onClose }) {
-  const [done, setDone] = useState(false)
+  const [generatedPassword, setGeneratedPassword] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const resetMut = useMutation({
     mutationFn: () => resetPassword(user.id),
-    onSuccess: () => setDone(true),
+    onSuccess: (res) => setGeneratedPassword(res.data.new_password),
     onError: () => toast.error('Failed to reset password.'),
   })
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedPassword)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -49,11 +56,11 @@ function ResetPasswordModal({ user, onClose }) {
           <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
         </div>
         <div className="p-5 space-y-4">
-          {!done ? (
+          {!generatedPassword ? (
             <>
               <p className="text-xs text-gray-600">
-                Reset the password for <strong>{user.full_name || user.email}</strong>.
-                A new password will be generated and sent to their email address.
+                Generate a new system password for <strong>{user.full_name || user.email}</strong>.
+                Share it securely with the user — they should change it after logging in.
               </p>
               <div className="flex gap-2 justify-end">
                 <button onClick={onClose}
@@ -61,17 +68,26 @@ function ResetPasswordModal({ user, onClose }) {
                 <button onClick={() => resetMut.mutate()} disabled={resetMut.isPending}
                   className="flex items-center gap-1.5 px-4 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
                   <KeyIcon className="w-3.5 h-3.5" />
-                  {resetMut.isPending ? 'Resetting…' : 'Reset Password'}
+                  {resetMut.isPending ? 'Generating…' : 'Generate Password'}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-green-700 font-semibold mb-1">Password reset successfully</p>
-                <p className="text-xs text-green-600">
-                  New login credentials have been sent to <strong>{user.email}</strong>.
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs text-green-700 font-medium mb-2">Password reset successfully</p>
+                <p className="text-[10px] text-green-600 mb-3">
+                  Copy this password and share it securely with the user. It will not be shown again.
                 </p>
+                <div className="flex items-center gap-2 bg-white border border-green-200 rounded px-3 py-2">
+                  <code className="flex-1 text-sm font-mono font-bold text-brand-slate tracking-widest">
+                    {generatedPassword}
+                  </code>
+                  <button onClick={copyToClipboard} className="text-green-600 hover:text-green-800 transition-colors">
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                {copied && <p className="text-[10px] text-green-600 mt-1 text-right">Copied!</p>}
               </div>
               <div className="flex justify-end">
                 <button onClick={onClose}
@@ -136,7 +152,7 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit }) {
             </div>
             {!isEdit && (
               <div className="col-span-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
-                <p className="text-xs text-blue-700">A secure password will be auto-generated and emailed to the user.</p>
+                <p className="text-xs text-blue-700">A secure password will be auto-generated. Copy it from the confirmation and share it with the user.</p>
               </div>
             )}
             {isEdit && (
@@ -203,6 +219,7 @@ export default function UsersPage() {
   const [search, setSearch]           = useState('')
   const [filterRole, setFilterRole]   = useState('')
   const [modal, setModal]             = useState(null)
+  const [newUserPassword, setNewUserPassword] = useState(null)
   const [resetUser, setResetUser]     = useState(null)
   const [previewRole, setPreviewRole] = useState('')
 
@@ -219,10 +236,15 @@ export default function UsersPage() {
       }
       return createUser(form)
     },
-    onSuccess: () => {
-      toast.success(modal?.user?.id ? 'User updated' : 'User created')
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['users'] })
-      setModal(null)
+      if (modal?.user?.id) {
+        toast.success('User updated')
+        setModal(null)
+      } else {
+        setModal(null)
+        setNewUserPassword(res.data?.generated_password || null)
+      }
     },
     onError: e => {
       const data = e.response?.data
@@ -367,6 +389,34 @@ export default function UsersPage() {
 
       {resetUser && (
         <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} />
+      )}
+
+      {newUserPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-bold text-brand-slate">User Created</h3>
+              <button onClick={() => setNewUserPassword(null)}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-xs text-green-700 font-medium mb-2">Account created successfully</p>
+                <p className="text-[10px] text-green-600 mb-3">Copy this password and share it with the user. It will not be shown again.</p>
+                <div className="flex items-center gap-2 bg-white border border-green-200 rounded px-3 py-2">
+                  <code className="flex-1 text-sm font-mono font-bold text-brand-slate tracking-widest">{newUserPassword}</code>
+                  <button onClick={() => { navigator.clipboard.writeText(newUserPassword); toast.success('Copied!') }}
+                    className="text-green-600 hover:text-green-800">
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button onClick={() => setNewUserPassword(null)}
+                  className="px-4 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
