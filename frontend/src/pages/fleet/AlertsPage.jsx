@@ -7,19 +7,37 @@ import { getAlerts, acknowledgeAlert, getVehicles } from '../../api/fleet'
 const ALLOWED_TYPES = [
   'fuel_fill',
   'fuel_drain',
+  'low_fuel',
+  'service_due',
+  'maintenance_due',
   'insurance_expiry',
   'inspection_expiry',
   'speed_governor_expiry',
+  'speeding',
+  'sos',
+  'idle_long',
+  'ignition_off_moving',
+  'device_offline',
   'geofence',
+  'compliance_issue',
 ]
 
 const TYPE_LABEL = {
-  fuel_fill:            'Fuel Refill',
-  fuel_drain:           'Fuel Drain / Theft',
-  insurance_expiry:     'Insurance Expiry',
-  inspection_expiry:    'Inspection Expiry',
-  speed_governor_expiry:'Speed Governor Expiry',
-  geofence:             'Geofence',
+  fuel_fill:              'Fuel Refill',
+  fuel_drain:             'Fuel Drain / Theft',
+  low_fuel:               'Low Fuel',
+  service_due:            'Service Due',
+  maintenance_due:        'Maintenance Due',
+  insurance_expiry:       'Insurance Expiry',
+  inspection_expiry:      'Inspection Expiry',
+  speed_governor_expiry:  'Speed Governor Expiry',
+  speeding:               'Overspeeding',
+  sos:                    'SOS Emergency',
+  idle_long:              'Long Idle',
+  ignition_off_moving:    'Moving Without Ignition',
+  device_offline:         'Device Offline',
+  geofence:               'Geofence Alert',
+  compliance_issue:       'Compliance Issue',
 }
 
 const SEV_STYLE = {

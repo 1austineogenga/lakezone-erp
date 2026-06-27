@@ -23,10 +23,10 @@ urlpatterns = [
     path('fetch-history/', views.FetchHistoryView.as_view(), name='fleet-fetch-history'),
     path('fetch-fuel-events/', views.FetchFuelEventsView.as_view(), name='fleet-fetch-fuel-events'),
     path('import-register/', views.FleetRegisterImportView.as_view(), name='fleet-import-register'),
+    path('fetch-alerts/', views.FetchTrackNTraceAlertsView.as_view(), name='fleet-fetch-alerts'),
+    path('check-maintenance/', views.CheckMaintenanceDueView.as_view(), name='fleet-check-maintenance'),
 ]
 
-
-# temporary debug route
 urlpatterns += [
     path('debug/', views.FleetDebugView.as_view(), name='fleet-debug'),
     path('vehicle-details/', views.FetchVehicleDetailsView.as_view(), name='fleet-vehicle-details'),

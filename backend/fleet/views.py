@@ -40,7 +40,8 @@ class FleetDashboardView(APIView):
 
         active_trips = TripRecord.objects.filter(ended_at__isnull=True).count()
         unacknowledged_alerts = FleetAlert.objects.filter(acknowledged=False).count()
-        low_fuel_count = vehicles.filter(last_fuel__lt=10, last_fuel__isnull=False).count()
+        # Low fuel: < 30L or < 15% capacity (compare against absolute 30L for safety)
+        low_fuel_count = vehicles.filter(last_fuel__isnull=False, last_fuel__lt=30).count()
 
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         total_distance_today = TripRecord.objects.filter(
@@ -445,6 +446,38 @@ class BackfillView(APIView):
         except Exception as e:
             logger.exception("Backfill failed")
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class FetchTrackNTraceAlertsView(APIView):
+    """Pull alert history from the TrackNTrace/Trakzee API and store as FleetAlerts."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        date_from = request.data.get('date_from')
+        date_to = request.data.get('date_to')
+        if not date_from or not date_to:
+            return Response({'detail': 'date_from and date_to are required (YYYY-MM-DD).'}, status=400)
+        try:
+            service = FleetSyncService()
+            result = service.fetch_trackntrace_alerts(date_from, date_to)
+            return Response(result)
+        except Exception as e:
+            logger.exception("fetch_trackntrace_alerts failed")
+            return Response({'detail': str(e)}, status=500)
+
+
+class CheckMaintenanceDueView(APIView):
+    """Run maintenance/service due checks for all active vehicles and generate alerts."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            service = FleetSyncService()
+            result = service.check_all_maintenance_due()
+            return Response(result)
+        except Exception as e:
+            logger.exception("check_maintenance_due failed")
+            return Response({'detail': str(e)}, status=500)
 
 
 class FetchVehicleDetailsView(APIView):

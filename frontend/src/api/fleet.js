@@ -31,7 +31,9 @@ export const getFleetConfig        = ()       => api.get('/fleet/config/')
 export const saveFleetConfig       = (data)   => api.post('/fleet/config/', data)
 export const backfillHistory       = ()       => api.post('/fleet/backfill/')
 export const fetchHistory          = (data)   => api.post('/fleet/fetch-history/', data)
-export const fetchFuelEvents       = (data)   => api.post('/fleet/fetch-fuel-events/', data)
+export const fetchFuelEvents           = (data)   => api.post('/fleet/fetch-fuel-events/', data)
+export const fetchTrackNTraceAlerts    = (data)   => api.post('/fleet/fetch-alerts/', data)
+export const checkMaintenanceDue       = ()        => api.post('/fleet/check-maintenance/')
 
 export const updateCompliance     = (vehicleId, data) => api.patch(`/fleet/vehicles/${vehicleId}/compliance/`, data)
 
