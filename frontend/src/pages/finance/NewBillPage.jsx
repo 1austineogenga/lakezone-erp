@@ -20,12 +20,12 @@ export default function NewBillPage() {
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers-list'],
     queryFn:  () => api.get('/procurement/suppliers/'),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
   const { data: projects } = useQuery({
     queryKey: ['projects-list'],
     queryFn:  () => api.get('/projects/'),
-    select:   r => r.data,
+    select:   r => r.data?.results ?? r.data,
   })
 
   const { mutate, isPending } = useMutation({
