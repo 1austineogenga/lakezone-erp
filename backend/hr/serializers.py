@@ -32,6 +32,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Employee
         fields = '__all__'
+        # New fields added: account_name, next_of_kin_*, emergency_contact2_*,
+        # blood_group, allergies, chronic_conditions, disability, disability_details,
+        # medical_insurance, medical_insurance_category, medical_insurance_deduction
 
     def get_full_name(self, obj):
         return obj.full_name

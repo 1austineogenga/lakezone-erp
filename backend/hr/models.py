@@ -110,6 +110,47 @@ class Employee(models.Model):
     emergency_contact_name    = models.CharField(max_length=150, blank=True)
     emergency_contact_phone   = models.CharField(max_length=30, blank=True)
     emergency_contact_relation = models.CharField(max_length=50, blank=True)
+
+    # Next of Kin
+    account_name              = models.CharField(max_length=150, blank=True)
+    next_of_kin_name          = models.CharField(max_length=150, blank=True)
+    next_of_kin_relation      = models.CharField(max_length=50, blank=True)
+    next_of_kin_phone         = models.CharField(max_length=30, blank=True)
+    next_of_kin_alt_phone     = models.CharField(max_length=30, blank=True)
+    next_of_kin_id            = models.CharField(max_length=20, blank=True)
+
+    # Emergency Contact 2
+    emergency_contact2_name     = models.CharField(max_length=150, blank=True)
+    emergency_contact2_phone    = models.CharField(max_length=30, blank=True)
+    emergency_contact2_relation = models.CharField(max_length=50, blank=True)
+
+    # Medical Information
+    class BloodGroup(models.TextChoices):
+        A_POS  = 'A+',  'A+'
+        A_NEG  = 'A-',  'A-'
+        B_POS  = 'B+',  'B+'
+        B_NEG  = 'B-',  'B-'
+        AB_POS = 'AB+', 'AB+'
+        AB_NEG = 'AB-', 'AB-'
+        O_POS  = 'O+',  'O+'
+        O_NEG  = 'O-',  'O-'
+
+    class Disability(models.TextChoices):
+        NONE     = 'none',     'None'
+        VISUAL   = 'visual',   'Visual'
+        HEARING  = 'hearing',  'Hearing'
+        PHYSICAL = 'physical', 'Physical'
+        OTHER    = 'other',    'Other'
+
+    blood_group                = models.CharField(max_length=5, blank=True, choices=BloodGroup.choices)
+    allergies                  = models.TextField(blank=True)
+    chronic_conditions         = models.TextField(blank=True)
+    disability                 = models.CharField(max_length=20, blank=True, choices=Disability.choices, default='none')
+    disability_details         = models.TextField(blank=True)
+    medical_insurance          = models.BooleanField(default=False)
+    medical_insurance_category = models.CharField(max_length=5, blank=True)
+    medical_insurance_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     photo                     = models.CharField(max_length=500, blank=True)
     notes                     = models.TextField(blank=True)
     created_at                = models.DateTimeField(auto_now_add=True)
@@ -141,14 +182,17 @@ class Employee(models.Model):
 
 class EmployeeDocument(models.Model):
     class DocType(models.TextChoices):
-        CONTRACT  = 'contract',  'Employment Contract'
-        ID_COPY   = 'id_copy',   'ID Copy'
+        CONTRACT    = 'contract',    'Employment Contract'
+        ID_COPY     = 'id_copy',     'National ID Copy'
         CERTIFICATE = 'certificate', 'Certificate'
-        NSSF_CARD = 'nssf_card', 'NSSF Card'
-        NHIF_CARD = 'nhif_card', 'SHA/SHIF Card'
-        KRA_CERT  = 'kra_cert',  'KRA Certificate'
-        MEDICAL   = 'medical',   'Medical Certificate'
-        OTHER     = 'other',     'Other'
+        NSSF_CARD   = 'nssf_card',   'NSSF Card'
+        NHIF_CARD   = 'nhif_card',   'SHA/SHIF Card'
+        KRA_CERT    = 'kra_cert',    'KRA Certificate'
+        MEDICAL     = 'medical',     'Medical Certificate'
+        CV          = 'cv',          'CV / Resume'
+        GOOD_CONDUCT = 'good_conduct', 'Certificate of Good Conduct'
+        ACADEMICS   = 'academics',   'Academic Certificates'
+        OTHER       = 'other',       'Other'
 
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     employee    = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='documents')
