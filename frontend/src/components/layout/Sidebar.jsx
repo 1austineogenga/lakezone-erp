@@ -27,7 +27,7 @@ const TOP_LINKS = [
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
   { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
-  { to: '/alerts',       icon: BellAlertIcon,             label: 'Alerts',                   module: null },
+  { to: '/alerts',       icon: BellAlertIcon,             label: 'Alerts',                   module: null, roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'site_manager']) },
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
 
@@ -194,7 +194,7 @@ export default function Sidebar() {
           Operations
         </p>
 
-        {TOP_LINKS.filter(({ module }) => module === null || can(module)).map(({ to, icon: Icon, label, end }) => (
+        {TOP_LINKS.filter(({ module, roles }) => (module === null || can(module)) && (!roles || roles.has(role))).map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
