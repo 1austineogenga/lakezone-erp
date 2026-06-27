@@ -26,8 +26,6 @@ const empty = {
   reason: '', relocation_allowance: '', daily_allowance: '', daily_allowance_days: '',
 }
 
-const LOCATION_PLACEHOLDER = 'Select location…'
-
 export default function TransfersPage() {
   const qc = useQueryClient()
   const [showForm, setShowForm]         = useState(false)
@@ -100,32 +98,24 @@ export default function TransfersPage() {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const f   = k => ({ value: form[k], onChange: e => set(k, e.target.value) })
 
-  const isSite = form.destination_type === 'site'
-
-  const handleProjectSelect = e => {
-    const pid = e.target.value
-    set('project', pid)
-    if (pid) {
-      const proj = projects.find(p => p.id === pid)
-      if (proj) set('to_location', proj.location || '')
+  const handleEmployeeSelect = e => {
+    const eid = e.target.value
+    set('employee', eid)
+    if (eid) {
+      const emp = employees.find(em => em.id === eid)
+      if (emp) set('from_location', emp.branch_name || emp.branch || '')
     } else {
-      set('to_location', '')
+      set('from_location', '')
     }
   }
 
   const handleSubmitForm = e => {
     e.preventDefault()
-    const payload = { ...form, transfer_type: 'temporary' }
-    if (!isSite) {
-      payload.relocation_allowance = 0
-      payload.daily_allowance      = 0
-      payload.daily_allowance_days = 0
-      payload.project              = null
-    }
+    const payload = { ...form, transfer_type: 'temporary', destination_type: 'site' }
     if (!payload.relocation_allowance) payload.relocation_allowance = 0
     if (!payload.daily_allowance)      payload.daily_allowance      = 0
     if (!payload.daily_allowance_days) payload.daily_allowance_days = 0
-    if (!payload.project)              delete payload.project
+    delete payload.project
     createMut.mutate(payload)
   }
 
@@ -155,9 +145,10 @@ export default function TransfersPage() {
           <h3 className="font-semibold text-brand-slate mb-4">New Transfer / Movement Request</h3>
           <form onSubmit={handleSubmitForm} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Employee — auto-fills From Location */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Employee *</label>
-                <select required {...f('employee')}
+                <select required value={form.employee} onChange={handleEmployeeSelect}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                   <option value="">Select employee…</option>
                   {employees.map(e => (
@@ -165,66 +156,32 @@ export default function TransfersPage() {
                   ))}
                 </select>
               </div>
+
+              {/* From Location — auto-filled from employee's branch */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Destination Type *</label>
-                <select required {...f('destination_type')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                  <option value="site">Project Site</option>
-                  <option value="head_office">Head Office</option>
-                  <option value="branch">Branch Office</option>
-                </select>
+                <label className="block text-xs font-medium text-gray-700 mb-1">From Location</label>
+                <input readOnly value={form.from_location} placeholder="Auto-filled from employee record"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600" />
               </div>
 
-              {/* From Location — branches + project sites */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">From Location *</label>
-                <select required {...f('from_location')}
+              {/* Destination — branches + project site locations */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Destination *</label>
+                <select required {...f('to_location')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                  <option value="">{LOCATION_PLACEHOLDER}</option>
+                  <option value="">Select destination…</option>
                   {branches.map(b => (
                     <option key={b.id} value={b.name}>{b.name}{b.location ? ` (${b.location})` : ''}</option>
                   ))}
                   {projectLocations.length > 0 && (
                     <optgroup label="Project Sites">
                       {projectLocations.map(loc => (
-                        <option key={`from-${loc}`} value={loc}>Site — {loc}</option>
+                        <option key={loc} value={loc}>Site — {loc}</option>
                       ))}
                     </optgroup>
                   )}
                 </select>
               </div>
-
-              {/* To Location — project picker (site) or branch/free-text */}
-              {isSite ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Project Site *</label>
-                    <select required value={form.project} onChange={handleProjectSelect}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                      <option value="">Select project…</option>
-                      {projects.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Site Location</label>
-                    <input {...f('to_location')} placeholder="Auto-filled from project — edit if needed"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-red" />
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">To Location *</label>
-                  <select required {...f('to_location')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                    <option value="">{LOCATION_PLACEHOLDER}</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={b.name}>{b.name}{b.location ? ` (${b.location})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Start Date *</label>
