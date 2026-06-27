@@ -6,6 +6,7 @@ urlpatterns = [
     path("unread/",             views.unread_count,                          name="notification-unread-count"),
     path("mark-all/",           views.mark_all_read,                         name="notification-mark-all"),
     path("<str:pk>/read/",      views.mark_read,                             name="notification-mark-read"),
+    path("<str:pk>/",           views.delete_notification,                   name="notification-delete"),
 
     # Compliance alerts
     path("compliance-alerts/",  views.compliance_alerts,                     name="compliance-alerts"),

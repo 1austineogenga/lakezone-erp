@@ -39,6 +39,12 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return obj.full_name
 
+    def validate_date_hired(self, value):
+        from datetime import date
+        if value and value > date.today():
+            raise serializers.ValidationError('date_hired cannot be in the future.')
+        return value
+
 
 class EmployeeListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for dropdowns."""
@@ -83,6 +89,29 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return obj.employee.full_name
+
+    def validate(self, data):
+        time_in  = data.get('time_in')  or (self.instance.time_in  if self.instance else None)
+        time_out = data.get('time_out') or (self.instance.time_out if self.instance else None)
+        if time_in and time_out and time_out < time_in:
+            raise serializers.ValidationError({'time_out': 'time_out must be on or after time_in.'})
+        # Prevent Present/Late status when employee has approved leave on this date
+        att_status = data.get('status') or (self.instance.status if self.instance else None)
+        employee   = data.get('employee') or (self.instance.employee if self.instance else None)
+        att_date   = data.get('date')     or (self.instance.date     if self.instance else None)
+        if att_status in ('present', 'late') and employee and att_date:
+            from .models import LeaveApplication
+            if LeaveApplication.objects.filter(
+                employee=employee,
+                status='approved',
+                start_date__lte=att_date,
+                end_date__gte=att_date,
+            ).exists():
+                raise serializers.ValidationError(
+                    f'Cannot mark employee as {att_status} on {att_date}: '
+                    'an approved leave covers this date.'
+                )
+        return data
 
 
 class DailySheetSerializer(serializers.Serializer):
@@ -143,6 +172,13 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
 
     def get_employee_name(self, obj):
         return obj.employee.full_name
+
+    def validate(self, data):
+        start = data.get('start_date') or (self.instance.start_date if self.instance else None)
+        end   = data.get('end_date')   or (self.instance.end_date   if self.instance else None)
+        if start and end and end < start:
+            raise serializers.ValidationError({'end_date': 'end_date must be on or after start_date.'})
+        return data
 
 
 class LeaveReviewSerializer(serializers.Serializer):

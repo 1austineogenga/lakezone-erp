@@ -7,3 +7,4 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         import auditlog  # noqa — registers signal handlers
+        import core.audit_signals  # noqa — audit log signals for sensitive models

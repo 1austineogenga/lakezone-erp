@@ -1,6 +1,7 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 
 class Branch(models.Model):
@@ -119,3 +120,34 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def has_role(self, *roles):
         return self.role in roles
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
+
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "CREATE", "Create"
+        UPDATE = "UPDATE", "Update"
+        DELETE = "DELETE", "Delete"
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user       = models.ForeignKey(
+        "User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="audit_logs",
+    )
+    action     = models.CharField(max_length=10, choices=Action.choices)
+    model_name = models.CharField(max_length=100)
+    object_id  = models.CharField(max_length=100)
+    timestamp  = models.DateTimeField(default=timezone.now)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    changes    = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["model_name", "object_id"]),
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self):
+        return f"{self.action} {self.model_name}({self.object_id}) by {self.user} @ {self.timestamp}"

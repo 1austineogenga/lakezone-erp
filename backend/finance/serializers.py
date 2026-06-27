@@ -4,7 +4,8 @@ from .models import (Account, Invoice, InvoiceLine, Bill, BillLine, Payment,
                      ProjectBudget, PaymentCertificate, PerformanceBond,
                      Timesheet, TimesheetLine, JournalEntry, JournalLine,
                      QuickBooksConfig, QBSyncLog,
-                     BankTransaction, CreditNote)
+                     BankTransaction, CreditNote,
+                     BankReconciliation, BankReconciliationLine)
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -33,7 +34,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'issue_date', 'due_date', 'period_from', 'period_to',
             'subtotal', 'vat_rate', 'vat_amount', 'retention_rate',
             'retention_amount', 'total_amount', 'amount_paid', 'balance_due',
-            'notes', 'lines', 'created_at',
+            'notes', 'is_reconciled', 'lines', 'created_at',
         ]
         read_only_fields = ['invoice_number', 'vat_amount', 'retention_amount',
                             'total_amount', 'amount_paid', 'balance_due']
@@ -78,7 +79,7 @@ class BillSerializer(serializers.ModelSerializer):
             'supplier', 'supplier_name', 'project', 'project_name',
             'purchase_order', 'issue_date', 'due_date', 'supplier_ref',
             'subtotal', 'vat_amount', 'withholding_tax', 'total_amount',
-            'amount_paid', 'balance_due', 'notes', 'lines', 'created_at',
+            'amount_paid', 'balance_due', 'notes', 'is_reconciled', 'lines', 'created_at',
         ]
         read_only_fields = ['bill_number', 'subtotal', 'vat_amount',
                             'total_amount', 'amount_paid', 'balance_due']
@@ -308,12 +309,13 @@ class JournalLineSerializer(serializers.ModelSerializer):
 
 
 class JournalEntrySerializer(serializers.ModelSerializer):
-    lines           = JournalLineSerializer(many=True, read_only=True)
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
-    posted_by_name  = serializers.CharField(source='posted_by.get_full_name',  read_only=True)
-    total_debits    = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    total_credits   = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    is_balanced     = serializers.BooleanField(read_only=True)
+    lines            = JournalLineSerializer(many=True, read_only=True)
+    created_by_name  = serializers.CharField(source='created_by.get_full_name',  read_only=True)
+    posted_by_name   = serializers.CharField(source='posted_by.get_full_name',   read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+    total_debits     = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    total_credits    = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    is_balanced      = serializers.BooleanField(read_only=True)
 
     class Meta:
         model  = JournalEntry
@@ -321,10 +323,12 @@ class JournalEntrySerializer(serializers.ModelSerializer):
             'id', 'reference', 'entry_type', 'status', 'entry_date', 'period',
             'description', 'project', 'is_reversing', 'reversal_of',
             'created_by', 'created_by_name', 'posted_by', 'posted_by_name', 'posted_at',
+            'approved_by', 'approved_by_name', 'approved_at', 'rejection_reason',
             'total_debits', 'total_credits', 'is_balanced',
             'lines', 'created_at',
         ]
         read_only_fields = ['reference', 'period', 'posted_by', 'posted_at',
+                            'approved_by', 'approved_at',
                             'total_debits', 'total_credits', 'is_balanced']
 
 
@@ -386,3 +390,38 @@ class QBSyncLogSerializer(serializers.ModelSerializer):
         model  = QBSyncLog
         fields = ['id','entity_type','direction','status','records_ok','records_fail',
                   'error_detail','triggered_by_name','created_at']
+
+
+class BankReconciliationLineSerializer(serializers.ModelSerializer):
+    transaction_reference = serializers.CharField(source='transaction.reference', read_only=True)
+    transaction_date      = serializers.DateField(source='transaction.txn_date',  read_only=True)
+    transaction_amount    = serializers.DecimalField(source='transaction.amount',
+                                                     max_digits=15, decimal_places=2, read_only=True)
+
+    class Meta:
+        model  = BankReconciliationLine
+        fields = ['id', 'transaction', 'transaction_reference', 'transaction_date',
+                  'transaction_amount', 'is_cleared', 'notes']
+
+
+class BankReconciliationSerializer(serializers.ModelSerializer):
+    lines             = BankReconciliationLineSerializer(many=True, read_only=True)
+    account_name      = serializers.CharField(source='account.name', read_only=True)
+    reconciled_by_name = serializers.CharField(source='reconciled_by.get_full_name', read_only=True)
+
+    class Meta:
+        model  = BankReconciliation
+        fields = [
+            'id', 'account', 'account_name', 'statement_date',
+            'statement_balance', 'reconciled_balance', 'difference',
+            'status', 'notes',
+            'reconciled_by', 'reconciled_by_name', 'reconciled_at',
+            'lines', 'created_at',
+        ]
+        read_only_fields = ['difference', 'reconciled_by', 'reconciled_at', 'created_at']
+
+    def create(self, validated_data):
+        return BankReconciliation.objects.create(
+            **validated_data,
+            reconciled_by=self.context['request'].user,
+        )

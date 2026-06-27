@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class OpportunityStage(models.TextChoices):
@@ -54,3 +55,27 @@ class TenderOpportunity(models.Model):
 
     def __str__(self):
         return f"{self.opportunity_name} ({self.get_stage_display()})"
+
+
+class ClientInteraction(models.Model):
+    class InteractionType(models.TextChoices):
+        CALL       = "call",       "Call"
+        EMAIL      = "email",      "Email"
+        MEETING    = "meeting",    "Meeting"
+        SITE_VISIT = "site_visit", "Site Visit"
+
+    id               = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    client           = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="interactions")
+    interaction_type = models.CharField(max_length=20, choices=InteractionType.choices)
+    date             = models.DateTimeField(default=timezone.now)
+    notes            = models.TextField(blank=True)
+    created_by       = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="crm_interactions"
+    )
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"{self.client} — {self.interaction_type} on {self.date:%Y-%m-%d}"

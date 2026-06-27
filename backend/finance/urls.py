@@ -20,6 +20,9 @@ from .views import (
     PayrollSummaryView,
     JournalEntryListCreateView, JournalEntryDetailView,
     JournalPostView, JournalReverseView, TrialBalanceView,
+    JournalApproveView, JournalRejectView, JournalSubmitForApprovalView,
+    InvoiceReconcileView, BillReconcileView,
+    BankReconciliationListCreateView, BankReconciliationDetailView, BankReconciliationCloseView,
     QBConfigView, QBConnectView, QBCallbackView, QBDisconnectView, QBSyncView, QBSyncLogListView,
     BalanceSheetView, IncomeStatementView,
 )
@@ -66,9 +69,19 @@ urlpatterns = [
     path('timesheets/<uuid:pk>/submit/',          TimesheetSubmitView.as_view(),              name='timesheet-submit'),
     path('timesheets/<uuid:pk>/review/',          TimesheetReviewView.as_view(),              name='timesheet-review'),
     path('payroll-summary/',                      PayrollSummaryView.as_view(),               name='payroll-summary'),
+    # Invoice / Bill reconciliation
+    path('invoices/<uuid:pk>/reconcile/',         InvoiceReconcileView.as_view(),             name='invoice-reconcile'),
+    path('bills/<uuid:pk>/reconcile/',            BillReconcileView.as_view(),                name='bill-reconcile'),
+    # Bank reconciliation
+    path('bank-reconciliations/',                 BankReconciliationListCreateView.as_view(), name='bank-reconciliation-list'),
+    path('bank-reconciliations/<uuid:pk>/',       BankReconciliationDetailView.as_view(),     name='bank-reconciliation-detail'),
+    path('bank-reconciliations/<uuid:pk>/close/', BankReconciliationCloseView.as_view(),      name='bank-reconciliation-close'),
     # GL Journal
     path('journals/',                             JournalEntryListCreateView.as_view(),       name='journal-list'),
     path('journals/<uuid:pk>/',                   JournalEntryDetailView.as_view(),           name='journal-detail'),
+    path('journals/<uuid:pk>/submit/',            JournalSubmitForApprovalView.as_view(),     name='journal-submit'),
+    path('journals/<uuid:pk>/approve/',           JournalApproveView.as_view(),               name='journal-approve'),
+    path('journals/<uuid:pk>/reject/',            JournalRejectView.as_view(),                name='journal-reject'),
     path('journals/<uuid:pk>/post/',              JournalPostView.as_view(),                  name='journal-post'),
     path('journals/<uuid:pk>/reverse/',           JournalReverseView.as_view(),               name='journal-reverse'),
     path('trial-balance/',                        TrialBalanceView.as_view(),                 name='trial-balance'),
