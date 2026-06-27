@@ -61,8 +61,8 @@ const PERMISSIONS = {
   },
   admin_officer: {
     dashboard: 'full', projects: false, procurement: 'read',
-    requisitions: 'full', inventory: 'read', assets: 'full',
-    crm: false, finance: false, hr: false, fleet: false,
+    requisitions: 'full', inventory: 'write', assets: 'read',
+    crm: 'full', finance: false, hr: false, fleet: false,
     users: false,
   },
   site_manager: {

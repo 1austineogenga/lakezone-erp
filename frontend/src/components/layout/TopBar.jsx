@@ -7,14 +7,33 @@ import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
 
 const TYPE_COLORS = {
-  pr_approved:  'bg-green-100 text-green-700',
-  pr_rejected:  'bg-red-100 text-red-700',
-  pr_submitted: 'bg-amber-100 text-amber-700',
-  po_approved:  'bg-blue-100 text-blue-700',
-  low_stock:    'bg-orange-100 text-orange-700',
-  tender_due:   'bg-purple-100 text-purple-700',
-  ipc_issued:   'bg-teal-100 text-teal-700',
-  general:      'bg-gray-100 text-gray-600',
+  pr_approved:        'bg-green-100 text-green-700',
+  pr_rejected:        'bg-red-100 text-red-700',
+  pr_submitted:       'bg-amber-100 text-amber-700',
+  po_approved:        'bg-blue-100 text-blue-700',
+  low_stock:          'bg-orange-100 text-orange-700',
+  tender_due:         'bg-purple-100 text-purple-700',
+  ipc_issued:         'bg-teal-100 text-teal-700',
+  compliance_expiry:  'bg-red-100 text-red-700',
+  compliance_warning: 'bg-amber-100 text-amber-700',
+  general:            'bg-gray-100 text-gray-600',
+}
+
+// Beep sound for new critical notifications
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 880
+    osc.type = 'sine'
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.4)
+  } catch {}
 }
 
 function timeAgo(dateStr) {
@@ -49,6 +68,8 @@ export default function TopBar({ onToggleSidebar }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const prevUnreadRef = useRef(0)
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => getNotifications().then(r => r.data?.results ?? r.data ?? []),
@@ -56,6 +77,12 @@ export default function TopBar({ onToggleSidebar }) {
   })
 
   const unread = notifications.filter(n => !n.is_read).length
+
+  // Play sound when new notifications arrive
+  useEffect(() => {
+    if (unread > prevUnreadRef.current) playBeep()
+    prevUnreadRef.current = unread
+  }, [unread])
 
   const readMut = useMutation({
     mutationFn: (id) => markRead(id),
