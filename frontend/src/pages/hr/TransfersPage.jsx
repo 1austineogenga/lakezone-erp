@@ -26,6 +26,8 @@ const empty = {
   reason: '', relocation_allowance: '', daily_allowance: '', daily_allowance_days: '',
 }
 
+const LOCATION_PLACEHOLDER = 'Select location…'
+
 export default function TransfersPage() {
   const qc = useQueryClient()
   const [showForm, setShowForm]         = useState(false)
@@ -48,9 +50,17 @@ export default function TransfersPage() {
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects-active'],
-    queryFn:  () => api.get('/projects/'),
+    queryFn:  () => api.get('/projects/', { params: { page_size: 100 } }),
     select:   r => r.data?.results ?? r.data,
   })
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn:  () => api.get('/auth/branches/'),
+    select:   r => r.data?.results ?? r.data,
+  })
+
+  const projectLocations = [...new Set(projects.map(p => p.location).filter(Boolean))]
 
   const createMut = useMutation({
     mutationFn: createTransfer,
@@ -97,7 +107,7 @@ export default function TransfersPage() {
     set('project', pid)
     if (pid) {
       const proj = projects.find(p => p.id === pid)
-      if (proj) set('to_location', proj.project_location)
+      if (proj) set('to_location', proj.location || '')
     } else {
       set('to_location', '')
     }
@@ -105,14 +115,13 @@ export default function TransfersPage() {
 
   const handleSubmitForm = e => {
     e.preventDefault()
-    const payload = { ...form }
+    const payload = { ...form, transfer_type: 'temporary' }
     if (!isSite) {
       payload.relocation_allowance = 0
       payload.daily_allowance      = 0
       payload.daily_allowance_days = 0
       payload.project              = null
     }
-    if (form.transfer_type === 'permanent') payload.end_date = null
     if (!payload.relocation_allowance) payload.relocation_allowance = 0
     if (!payload.daily_allowance)      payload.daily_allowance      = 0
     if (!payload.daily_allowance_days) payload.daily_allowance_days = 0
@@ -157,29 +166,35 @@ export default function TransfersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Transfer Type *</label>
-                <select required {...f('transfer_type')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                  <option value="temporary">Temporary Transfer</option>
-                  <option value="permanent">Permanent Transfer</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Destination Type *</label>
                 <select required {...f('destination_type')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
-                  <option value="site">Site / Field</option>
+                  <option value="site">Project Site</option>
                   <option value="head_office">Head Office</option>
                   <option value="branch">Branch Office</option>
                 </select>
               </div>
+
+              {/* From Location — branches + project sites */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">From Location *</label>
-                <input required {...f('from_location')} placeholder="e.g. Magumu Site"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
+                <select required {...f('from_location')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+                  <option value="">{LOCATION_PLACEHOLDER}</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}{b.location ? ` (${b.location})` : ''}</option>
+                  ))}
+                  {projectLocations.length > 0 && (
+                    <optgroup label="Project Sites">
+                      {projectLocations.map(loc => (
+                        <option key={`from-${loc}`} value={loc}>Site — {loc}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
               </div>
 
-              {/* Site: project dropdown that auto-fills to_location */}
+              {/* To Location — project picker (site) or branch/free-text */}
               {isSite ? (
                 <>
                   <div>
@@ -188,22 +203,26 @@ export default function TransfersPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                       <option value="">Select project…</option>
                       {projects.map(p => (
-                        <option key={p.id} value={p.id}>{p.project_name} — {p.project_location}</option>
+                        <option key={p.id} value={p.id}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>
                       ))}
                     </select>
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Site Location</label>
-                    <input {...f('to_location')} placeholder="Auto-filled from project"
+                    <input {...f('to_location')} placeholder="Auto-filled from project — edit if needed"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-red" />
-                    <p className="text-xs text-gray-400 mt-0.5">Auto-filled; edit if needed</p>
                   </div>
                 </>
               ) : (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">To Location *</label>
-                  <input required {...f('to_location')} placeholder="e.g. Magumu Site"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
+                  <select required {...f('to_location')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+                    <option value="">{LOCATION_PLACEHOLDER}</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.name}>{b.name}{b.location ? ` (${b.location})` : ''}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -212,13 +231,11 @@ export default function TransfersPage() {
                 <input required type="date" {...f('start_date')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
               </div>
-              {form.transfer_type === 'temporary' && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
-                  <input type="date" {...f('end_date')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Expected Return Date</label>
+                <input type="date" {...f('end_date')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
+              </div>
             </div>
 
             <div>
@@ -289,7 +306,7 @@ export default function TransfersPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      {['Employee', 'Type', 'Destination', 'Route', 'Dates', 'Allowances', 'Status', 'Actions'].map(h => (
+                      {['Employee', 'Destination', 'Route', 'Dates', 'Allowances', 'Status', 'Actions'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
                       ))}
                     </tr>
@@ -300,13 +317,6 @@ export default function TransfersPage() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-brand-slate text-xs">{t.employee_name}</p>
                           <p className="text-xs text-gray-400">{t.employee_number}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            t.transfer_type === 'permanent' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            {t.transfer_type}
-                          </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600">
                           <p>{DEST_LABELS[t.destination_type]}</p>
