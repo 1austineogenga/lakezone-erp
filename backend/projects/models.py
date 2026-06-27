@@ -84,16 +84,19 @@ class BOQItem(models.Model):
 class Budget(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
+        ('pending_approval', 'Pending Approval'),
         ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
         ('locked', 'Locked'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='budgets')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='budgets')
     title = models.CharField(max_length=200)
     period_weeks = models.PositiveIntegerField(default=8)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -155,12 +158,14 @@ class IPC(models.Model):
         ('draft', 'Draft'),
         ('submitted', 'Submitted'),
         ('certified', 'Certified'),
+        ('approved', 'Approved'),
         ('paid', 'Paid'),
+        ('rejected', 'Rejected'),
         ('disputed', 'Disputed'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='ipcs')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='ipcs')
     ipc_number = models.PositiveIntegerField()
     period_from = models.DateField()
     period_to = models.DateField()
@@ -174,6 +179,7 @@ class IPC(models.Model):
     payment_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

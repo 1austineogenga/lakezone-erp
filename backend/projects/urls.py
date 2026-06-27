@@ -16,12 +16,20 @@ budget_urls = [
     path('<uuid:budget_pk>/', views.BudgetDetailView.as_view()),
     path('<uuid:budget_pk>/items/', include(budget_item_urls)),
     path('<uuid:budget_pk>/summary/', views.BudgetSummaryView.as_view()),
+    path('<uuid:budget_pk>/submit/', views.BudgetSubmitView.as_view()),
+    path('<uuid:budget_pk>/approve/', views.BudgetApproveView.as_view()),
+    path('<uuid:budget_pk>/reject/', views.BudgetRejectView.as_view()),
 ]
 
 ipc_urls = [
     path('', views.IPCListCreateView.as_view()),
     path('<uuid:ipc_pk>/', views.IPCDetailView.as_view()),
     path('<uuid:ipc_pk>/items/', include(ipc_items_urls)),
+    path('<uuid:ipc_pk>/submit/', views.IPCSubmitView.as_view()),
+    path('<uuid:ipc_pk>/certify/', views.IPCCertifyView.as_view()),
+    path('<uuid:ipc_pk>/approve/', views.IPCApproveView.as_view()),
+    path('<uuid:ipc_pk>/pay/', views.IPCPayView.as_view()),
+    path('<uuid:ipc_pk>/reject/', views.IPCRejectView.as_view()),
 ]
 
 boq_urls = [
@@ -38,6 +46,7 @@ project_urls = [
     path('ipcs/', include(ipc_urls)),
     path('risks/', views.ProjectRiskListCreateView.as_view()),
     path('risks/<uuid:pk>/', views.ProjectRiskDetailView.as_view()),
+    path('risks/<uuid:pk>/update-status/', views.ProjectRiskUpdateStatusView.as_view()),
     path('vehicles/', views.ProjectVehicleListCreateView.as_view()),
     path('vehicles/<uuid:pk>/', views.ProjectVehicleDetailView.as_view()),
     path('personnel/', views.ProjectPersonnelListCreateView.as_view()),

@@ -10,6 +10,16 @@ class BOQItemSerializer(serializers.ModelSerializer):
         model = BOQItem
         fields = '__all__'
 
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than 0.")
+        return value
+
+    def validate_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Rate must be 0 or greater.")
+        return value
+
 
 class BOQBillSerializer(serializers.ModelSerializer):
     items = BOQItemSerializer(many=True, read_only=True)
@@ -54,6 +64,25 @@ class BudgetLineItemSerializer(serializers.ModelSerializer):
         model = BudgetLineItem
         fields = '__all__'
 
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than 0.")
+        return value
+
+    def validate_base_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Base rate must be 0 or greater.")
+        return value
+
+    def validate(self, attrs):
+        # Prevent edits when budget is APPROVED
+        budget = attrs.get('budget') or (self.instance.budget if self.instance else None)
+        if budget and budget.status == 'approved':
+            raise serializers.ValidationError(
+                "Budget line items cannot be edited once the budget is approved."
+            )
+        return attrs
+
 
 class BudgetSerializer(serializers.ModelSerializer):
     rates = BudgetRateSerializer(many=True, read_only=True)
@@ -67,6 +96,21 @@ class IPCItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = IPCItem
         fields = '__all__'
+
+    def validate_quantity_this_ipc(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Quantity must be 0 or greater.")
+        return value
+
+    def validate_quantity_to_date(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Quantity to date must be 0 or greater.")
+        return value
+
+    def validate_rate(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Rate must be 0 or greater.")
+        return value
 
 
 class IPCSerializer(serializers.ModelSerializer):
@@ -115,6 +159,28 @@ class ProjectSerializer(serializers.ModelSerializer):
     def get_open_risks(self, obj):
         return obj.risks.filter(status__in=['open', 'escalated']).count()
 
+    def validate_contract_value(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Contract value must be 0 or greater.")
+        return value
+
+    def validate_latitude(self, value):
+        if value is not None and not (-90 <= value <= 90):
+            raise serializers.ValidationError("Latitude must be between -90 and 90.")
+        return value
+
+    def validate_longitude(self, value):
+        if value is not None and not (-180 <= value <= 180):
+            raise serializers.ValidationError("Longitude must be between -180 and 180.")
+        return value
+
+    def validate(self, attrs):
+        start_date = attrs.get('start_date') or (self.instance.start_date if self.instance else None)
+        end_date = attrs.get('end_date') or (self.instance.end_date if self.instance else None)
+        if start_date and end_date and start_date >= end_date:
+            raise serializers.ValidationError({"end_date": "End date must be after start date."})
+        return attrs
+
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     boqs_count = serializers.SerializerMethodField()
@@ -139,3 +205,25 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_risks_count(self, obj): return obj.risks.count()
     def get_assigned_vehicles_count(self, obj): return obj.assigned_vehicles.count()
     def get_personnel_count(self, obj): return obj.personnel.count()
+
+    def validate_contract_value(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Contract value must be 0 or greater.")
+        return value
+
+    def validate_latitude(self, value):
+        if value is not None and not (-90 <= value <= 90):
+            raise serializers.ValidationError("Latitude must be between -90 and 90.")
+        return value
+
+    def validate_longitude(self, value):
+        if value is not None and not (-180 <= value <= 180):
+            raise serializers.ValidationError("Longitude must be between -180 and 180.")
+        return value
+
+    def validate(self, attrs):
+        start_date = attrs.get('start_date') or (self.instance.start_date if self.instance else None)
+        end_date = attrs.get('end_date') or (self.instance.end_date if self.instance else None)
+        if start_date and end_date and start_date >= end_date:
+            raise serializers.ValidationError({"end_date": "End date must be after start date."})
+        return attrs

@@ -616,3 +616,233 @@ class ProjectCostingView(APIView):
                 'total': float(progress_agg['total_actual'] or 0),
             },
         })
+
+
+# ---------------------------------------------------------------------------
+# IPC Workflow Action Views
+# ---------------------------------------------------------------------------
+
+class IPCSubmitView(APIView):
+    """POST /api/v1/projects/{project_pk}/ipcs/{ipc_pk}/submit/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, ipc_pk):
+        ipc = get_object_or_404(IPC, pk=ipc_pk, project_id=project_pk)
+        if ipc.status != 'draft':
+            return Response(
+                {'detail': f'Cannot submit IPC in status "{ipc.status}". Must be in draft.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ipc.status = 'submitted'
+        ipc.submission_date = timezone.now().date()
+        ipc.save(update_fields=['status', 'submission_date'])
+        return Response({'detail': 'IPC submitted.', 'status': ipc.status})
+
+
+class IPCCertifyView(APIView):
+    """POST /api/v1/projects/{project_pk}/ipcs/{ipc_pk}/certify/
+    Requires QS or Architect role (group membership).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, ipc_pk):
+        allowed_groups = {'QS', 'Architect', 'qs', 'architect', 'quantity_surveyor'}
+        user_groups = set(request.user.groups.values_list('name', flat=True))
+        if not (user_groups & allowed_groups) and not request.user.is_staff:
+            return Response(
+                {'detail': 'Only QS or Architect role can certify an IPC.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        ipc = get_object_or_404(IPC, pk=ipc_pk, project_id=project_pk)
+        if ipc.status != 'submitted':
+            return Response(
+                {'detail': f'Cannot certify IPC in status "{ipc.status}". Must be submitted first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ipc.status = 'certified'
+        ipc.certification_date = timezone.now().date()
+        ipc.save(update_fields=['status', 'certification_date'])
+        return Response({'detail': 'IPC certified.', 'status': ipc.status})
+
+
+class IPCApproveView(APIView):
+    """POST /api/v1/projects/{project_pk}/ipcs/{ipc_pk}/approve/
+    Requires Finance role.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, ipc_pk):
+        allowed_groups = {'Finance', 'finance'}
+        user_groups = set(request.user.groups.values_list('name', flat=True))
+        if not (user_groups & allowed_groups) and not request.user.is_staff:
+            return Response(
+                {'detail': 'Only Finance role can approve an IPC.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        ipc = get_object_or_404(IPC, pk=ipc_pk, project_id=project_pk)
+        if ipc.status != 'certified':
+            return Response(
+                {'detail': f'Cannot approve IPC in status "{ipc.status}". Must be certified first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ipc.status = 'approved'
+        ipc.save(update_fields=['status'])
+        return Response({'detail': 'IPC approved.', 'status': ipc.status})
+
+
+class IPCPayView(APIView):
+    """POST /api/v1/projects/{project_pk}/ipcs/{ipc_pk}/pay/
+    Requires Finance role.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, ipc_pk):
+        allowed_groups = {'Finance', 'finance'}
+        user_groups = set(request.user.groups.values_list('name', flat=True))
+        if not (user_groups & allowed_groups) and not request.user.is_staff:
+            return Response(
+                {'detail': 'Only Finance role can mark an IPC as paid.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        ipc = get_object_or_404(IPC, pk=ipc_pk, project_id=project_pk)
+        if ipc.status != 'approved':
+            return Response(
+                {'detail': f'Cannot mark IPC as paid in status "{ipc.status}". Must be approved first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ipc.status = 'paid'
+        ipc.payment_date = timezone.now().date()
+        ipc.save(update_fields=['status', 'payment_date'])
+        return Response({'detail': 'IPC marked as paid.', 'status': ipc.status})
+
+
+class IPCRejectView(APIView):
+    """POST /api/v1/projects/{project_pk}/ipcs/{ipc_pk}/reject/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, ipc_pk):
+        ipc = get_object_or_404(IPC, pk=ipc_pk, project_id=project_pk)
+        if ipc.status not in ('submitted', 'certified', 'approved'):
+            return Response(
+                {'detail': f'Cannot reject IPC in status "{ipc.status}".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reason = request.data.get('reason', '').strip()
+        if not reason:
+            return Response(
+                {'detail': 'A rejection reason is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ipc.status = 'rejected'
+        ipc.rejection_reason = reason
+        ipc.save(update_fields=['status', 'rejection_reason'])
+        return Response({'detail': 'IPC rejected.', 'status': ipc.status})
+
+
+# ---------------------------------------------------------------------------
+# Budget Approval Workflow Views
+# ---------------------------------------------------------------------------
+
+class BudgetSubmitView(APIView):
+    """POST /api/v1/projects/{project_pk}/budgets/{budget_pk}/submit/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, budget_pk):
+        budget = get_object_or_404(Budget, pk=budget_pk, project_id=project_pk)
+        if budget.status not in ('draft', 'rejected'):
+            return Response(
+                {'detail': f'Cannot submit budget in status "{budget.status}". Must be draft or rejected.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        budget.status = 'pending_approval'
+        budget.rejection_reason = ''
+        budget.save(update_fields=['status', 'rejection_reason'])
+        return Response({'detail': 'Budget submitted for approval.', 'status': budget.status})
+
+
+class BudgetApproveView(APIView):
+    """POST /api/v1/projects/{project_pk}/budgets/{budget_pk}/approve/
+    Locks budget from further editing.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, budget_pk):
+        if not request.user.is_staff:
+            allowed_groups = {'Finance', 'finance', 'Project Manager', 'project_manager'}
+            user_groups = set(request.user.groups.values_list('name', flat=True))
+            if not (user_groups & allowed_groups):
+                return Response(
+                    {'detail': 'Only Finance or Project Manager role can approve a budget.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        budget = get_object_or_404(Budget, pk=budget_pk, project_id=project_pk)
+        if budget.status != 'pending_approval':
+            return Response(
+                {'detail': f'Cannot approve budget in status "{budget.status}". Must be pending approval.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        budget.status = 'approved'
+        budget.save(update_fields=['status'])
+        return Response({'detail': 'Budget approved and locked from further edits.', 'status': budget.status})
+
+
+class BudgetRejectView(APIView):
+    """POST /api/v1/projects/{project_pk}/budgets/{budget_pk}/reject/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, budget_pk):
+        if not request.user.is_staff:
+            allowed_groups = {'Finance', 'finance', 'Project Manager', 'project_manager'}
+            user_groups = set(request.user.groups.values_list('name', flat=True))
+            if not (user_groups & allowed_groups):
+                return Response(
+                    {'detail': 'Only Finance or Project Manager role can reject a budget.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        budget = get_object_or_404(Budget, pk=budget_pk, project_id=project_pk)
+        if budget.status != 'pending_approval':
+            return Response(
+                {'detail': f'Cannot reject budget in status "{budget.status}". Must be pending approval.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reason = request.data.get('reason', '').strip()
+        if not reason:
+            return Response(
+                {'detail': 'A rejection reason is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        budget.status = 'rejected'
+        budget.rejection_reason = reason
+        budget.save(update_fields=['status', 'rejection_reason'])
+        return Response({'detail': 'Budget rejected.', 'status': budget.status})
+
+
+# ---------------------------------------------------------------------------
+# Risk Register Status Update View
+# ---------------------------------------------------------------------------
+
+class ProjectRiskUpdateStatusView(APIView):
+    """POST /api/v1/projects/{project_pk}/risks/{pk}/update-status/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk, pk):
+        risk = get_object_or_404(ProjectRisk, pk=pk, project_id=project_pk)
+        new_status = request.data.get('status', '').strip()
+        valid_statuses = dict(ProjectRisk.STATUS_CHOICES).keys()
+        if not new_status:
+            return Response(
+                {'detail': f'A status is required. Valid choices: {list(valid_statuses)}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if new_status not in valid_statuses:
+            return Response(
+                {'detail': f'Invalid status "{new_status}". Valid choices: {list(valid_statuses)}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        mitigation_notes = request.data.get('mitigation_notes', '').strip()
+        risk.status = new_status
+        if mitigation_notes:
+            risk.notes = (risk.notes + '\n' + mitigation_notes).strip()
+        risk.save(update_fields=['status', 'notes'])
+        serializer = ProjectRiskSerializer(risk)
+        return Response(serializer.data)
