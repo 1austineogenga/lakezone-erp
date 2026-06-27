@@ -4,7 +4,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
-    EmployeeTransfer,
+    EmployeeTransfer, Casual, CasualDailyLog,
 )
 
 
@@ -256,3 +256,41 @@ class EmployeeTransferCreateSerializer(serializers.ModelSerializer):
 class TransferReviewSerializer(serializers.Serializer):
     action       = serializers.ChoiceField(choices=['approved', 'rejected'])
     review_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+# ── Casuals ────────────────────────────────────────────────────────────────────
+
+class CasualDailyLogSerializer(serializers.ModelSerializer):
+    logged_by_name = serializers.CharField(source='logged_by.get_full_name', read_only=True)
+
+    class Meta:
+        model  = CasualDailyLog
+        fields = '__all__'
+        read_only_fields = ['logged_by', 'created_at']
+
+
+class CasualSerializer(serializers.ModelSerializer):
+    created_by_name        = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    foreman_approved_by_name = serializers.CharField(
+        source='foreman_approved_by.get_full_name', read_only=True)
+    hr_approved_by_name    = serializers.CharField(
+        source='hr_approved_by.get_full_name', read_only=True)
+    daily_logs             = CasualDailyLogSerializer(many=True, read_only=True)
+    total_days             = serializers.SerializerMethodField()
+    total_amount           = serializers.SerializerMethodField()
+    status_display         = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model  = Casual
+        fields = '__all__'
+        read_only_fields = [
+            'created_by', 'created_at', 'updated_at',
+            'foreman_approved_by', 'foreman_approved_at',
+            'hr_approved_by', 'hr_approved_at',
+        ]
+
+    def get_total_days(self, obj):
+        return sum(l.days_worked for l in obj.daily_logs.all())
+
+    def get_total_amount(self, obj):
+        return float(obj.daily_rate) * float(self.get_total_days(obj))
