@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { getAssets, createAsset, updateAsset, getAssetDashboard } from '../../api/inventory'
+import usePermissions from '../../hooks/usePermissions'
 
 const CATEGORIES = [
   { value: 'it_equipment',  label: 'IT Equipment' },
@@ -168,6 +169,8 @@ function AssetModal({ open, onClose, initial, onSave, saving }) {
 export default function AssetsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canEdit = canWrite('assets')
   const [search, setSearch] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [filterCat, setFilterCat]   = useState('')
@@ -217,10 +220,12 @@ export default function AssetsPage() {
           <h2 className="font-bold text-brand-slate text-lg">Fixed Assets Register</h2>
           <p className="text-xs text-gray-400 mt-0.5">Department asset inventory — equipment, furniture, tools and more</p>
         </div>
-        <button onClick={() => setModal({ mode: 'add' })}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Add Asset
-        </button>
+        {canEdit && (
+          <button onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Add Asset
+          </button>
+        )}
       </div>
 
       {/* Stat cards */}
@@ -299,8 +304,10 @@ export default function AssetsPage() {
                     <td className="px-4 py-3 text-gray-700">KES {Number(a.purchase_value || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 font-medium text-brand-slate">KES {Number(a.current_value || 0).toLocaleString()}</td>
                     <td className="px-4 py-3">
-                      <button onClick={e => { e.stopPropagation(); setModal({ mode: 'edit', asset: a }) }}
-                        className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50">Edit</button>
+                      {canEdit && (
+                        <button onClick={e => { e.stopPropagation(); setModal({ mode: 'edit', asset: a }) }}
+                          className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50">Edit</button>
+                      )}
                     </td>
                   </tr>
                 ))}
