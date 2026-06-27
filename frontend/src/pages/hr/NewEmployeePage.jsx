@@ -52,6 +52,7 @@ const EMPTY = {
   // Medical
   blood_group: '', allergies: '', chronic_conditions: '',
   disability: 'none', disability_details: '',
+  medical_declaration: '',
   medical_insurance: false, medical_insurance_category: '',
 
   // Compensation
@@ -59,7 +60,7 @@ const EMPTY = {
   medical_allowance: '0', other_allowances: '0',
 
   // Bank
-  bank_name: '', bank_account: '', bank_branch: '',
+  bank_name: '', account_name: '', bank_account: '', bank_branch: '',
 
   // Notes
   notes: '',
@@ -105,6 +106,14 @@ export default function NewEmployeePage() {
     queryKey: ['branches'],
     queryFn: () => api.get('/auth/branches/'),
     select: r => r.data?.results ?? r.data,
+  })
+  const { data: projectLocations } = useQuery({
+    queryKey: ['project-locations'],
+    queryFn: () => api.get('/projects/', { params: { page_size: 100 } }),
+    select: r => {
+      const projects = r.data?.results ?? r.data ?? []
+      return [...new Set(projects.map(p => p.location).filter(Boolean))]
+    },
   })
 
   const createMut = useMutation({
@@ -238,7 +247,14 @@ export default function NewEmployeePage() {
         <Field label="Branch" required>
           <select required {...f('branch')} className={cls}>
             <option value="">Select branch…</option>
-            {branches?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {branches?.map(b => <option key={b.id} value={b.id}>{b.name}{b.location ? ` (${b.location})` : ''}</option>)}
+            {projectLocations?.length > 0 && (
+              <optgroup label="Project Sites">
+                {projectLocations.map(loc => (
+                  <option key={`site-${loc}`} value={`site:${loc}`}>Site — {loc}</option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </Field>
         <Field label="Date Hired" required>
@@ -262,9 +278,6 @@ export default function NewEmployeePage() {
           </Field>
           <Field label="Last Name" required>
             <input required {...f('last_name')} className={cls} />
-          </Field>
-          <Field label="Account Name" required>
-            <input required {...f('account_name')} placeholder="Name on bank account" className={cls} />
           </Field>
           <Field label="Gender" required>
             <select required {...f('gender')} className={cls}>
@@ -394,6 +407,12 @@ export default function NewEmployeePage() {
               <input {...f('disability_details')} placeholder="Please describe…" className={cls} />
             </Field>
           )}
+          <div className="col-span-2 md:col-span-3">
+            <label className="block text-xs text-gray-500 mb-1">Medical Declaration</label>
+            <textarea {...f('medical_declaration')} rows={3}
+              placeholder="Any other medical information the employee wishes to declare (e.g. medications, previous surgeries, special needs)…"
+              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
+          </div>
         </div>
 
         {/* Medical Insurance */}
@@ -466,6 +485,9 @@ export default function NewEmployeePage() {
       <Section title="7. Bank Details">
         <Field label="Bank Name">
           <input {...f('bank_name')} className={cls} />
+        </Field>
+        <Field label="Account Name">
+          <input {...f('account_name')} placeholder="Name as it appears on account" className={cls} />
         </Field>
         <Field label="Account Number">
           <input {...f('bank_account')} className={cls} />
