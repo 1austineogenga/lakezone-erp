@@ -31,3 +31,13 @@ urlpatterns += [
     path('debug/', views.FleetDebugView.as_view(), name='fleet-debug'),
     path('vehicle-details/', views.FetchVehicleDetailsView.as_view(), name='fleet-vehicle-details'),
 ]
+
+
+urlpatterns += [
+    path("fuel-prices/", views.FuelPriceListCreateView.as_view(), name="fleet-fuel-price-list"),
+    path("fuel-prices/current/", views.CurrentFuelPriceView.as_view(), name="fleet-fuel-price-current"),
+    path("fuel-prices/<int:pk>/", views.FuelPriceDetailView.as_view(), name="fleet-fuel-price-detail"),
+    path("geofences/", views.GeofenceListCreateView.as_view(), name="fleet-geofence-list"),
+    path("geofences/<uuid:pk>/", views.GeofenceDetailView.as_view(), name="fleet-geofence-detail"),
+    path("geofence-events/", views.GeofenceEventListView.as_view(), name="fleet-geofence-event-list"),
+]

@@ -3,7 +3,7 @@ from django.utils import timezone
 from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
-    VehicleCompliance, VehicleAssignment,
+    VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
 )
 
 
@@ -111,6 +111,7 @@ class FuelEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = FuelEvent
         fields = '__all__'
+        read_only_fields = ['price_per_litre', 'total_cost']
 
 
 class TripRecordSerializer(serializers.ModelSerializer):
@@ -142,3 +143,24 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class FuelPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FuelPrice
+        fields = '__all__'
+
+
+class GeofenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Geofence
+        fields = '__all__'
+
+
+class GeofenceEventSerializer(serializers.ModelSerializer):
+    vehicle_no = serializers.CharField(source='vehicle.vehicle_no', read_only=True)
+    geofence_name = serializers.CharField(source='geofence.name', read_only=True)
+
+    class Meta:
+        model = GeofenceEvent
+        fields = '__all__'

@@ -357,10 +357,42 @@ class FleetSyncService:
             if prev_reading:
                 self._detect_fuel_events(vehicle, prev_reading, data)
                 self._detect_trip(vehicle, prev_reading, data)
+                self._detect_geofence_events(vehicle, prev_reading, data)
             self._check_alerts(vehicle, data)
             self._check_maintenance_due(vehicle, data)
 
         return snapshot
+
+    def _get_fuel_price_for_event(self, fuel_type, occurred_at, location=None):
+        from .models import FuelPrice
+        # Try to find a price for the specific location first
+        if location:
+            price = FuelPrice.objects.filter(
+                fuel_type=fuel_type, 
+                location__iexact=location, 
+                effective_date__lte=occurred_at.date()
+            ).order_by("-effective_date").first()
+            if price: 
+                return price.price_per_litre
+        
+        # Fallback to Nairobi if no specific location price or location is None
+        price = FuelPrice.objects.filter(
+            fuel_type=fuel_type, 
+            location__iexact="Nairobi", 
+            effective_date__lte=occurred_at.date()
+        ).order_by("-effective_date").first()
+        if price:
+            return price.price_per_litre
+        
+        # Fallback to any location if Nairobi not found
+        price = FuelPrice.objects.filter(
+            fuel_type=fuel_type, 
+            effective_date__lte=occurred_at.date()
+        ).order_by("-effective_date").first()
+        if price:
+            return price.price_per_litre
+            
+        return None
 
     def _to_litres(self, fuel_val, fuel_unit, vehicle):
         """Normalize a fuel reading to litres. Returns (litres, ok) where ok=False if can't convert."""
@@ -404,6 +436,11 @@ class FleetSyncService:
                 occurred_at__gte=cooldown,
             ).exists():
                 return
+            price_per_litre = self._get_fuel_price_for_event(
+                vehicle.fuel_type, occurred_at, new_data.get('location_name')
+            )
+            total_cost = round(fuel_change * price_per_litre, 2) if price_per_litre else None
+
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=FuelEvent.EventType.FILL,
@@ -415,6 +452,8 @@ class FleetSyncService:
                 fuel_after=round(new_fuel_l, 1),
                 fuel_change=round(fuel_change, 1),
                 fuel_unit='L',
+                price_per_litre=price_per_litre,
+                total_cost=total_cost,
             )
             FleetAlert.objects.create(
                 vehicle=vehicle,
@@ -448,6 +487,11 @@ class FleetSyncService:
 
             is_theft = abs_change >= self.THEFT_THRESHOLD_L
             event_type = FuelEvent.EventType.THEFT if is_theft else FuelEvent.EventType.DRAIN
+            price_per_litre = self._get_fuel_price_for_event(
+                vehicle.fuel_type, occurred_at, new_data.get('location_name')
+            )
+            total_cost = round(abs(fuel_change) * price_per_litre, 2) if price_per_litre else None
+
             FuelEvent.objects.create(
                 vehicle=vehicle,
                 event_type=event_type,
@@ -459,6 +503,8 @@ class FleetSyncService:
                 fuel_after=round(new_fuel_l, 1),
                 fuel_change=round(fuel_change, 1),
                 fuel_unit='L',
+                price_per_litre=price_per_litre,
+                total_cost=total_cost,
             )
             FleetAlert.objects.create(
                 vehicle=vehicle,
@@ -624,6 +670,111 @@ class FleetSyncService:
                 data=data,
                 occurred_at=now,
             )
+
+    def _is_point_in_polygon(self, point, polygon):
+        """Determines if a point is inside a polygon using the ray casting algorithm."""
+        x, y = point["lng"], point["lat"]
+        n = len(polygon)
+        inside = False
+
+        p1x, p1y = polygon[0]["lng"], polygon[0]["lat"]
+        for i in range(n + 1):
+            p2x, p2y = polygon[i % n]["lng"], polygon[i % n]["lat"]
+            if y > min(p1y, p2y):
+                if y <= max(p1y, p2y):
+                    if x <= max(p1x, p2x):
+                        if p1y != p2y:
+                            xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or x <= xinters:
+                            inside = not inside
+            p1x, p1y = p2x, p2y
+        return inside
+
+    def _is_point_in_circle(self, point, circle):
+        """Determines if a point is inside a circle."""
+        from math import radians, sin, cos, sqrt, atan2
+
+        R = 6371  # Radius of Earth in kilometers
+        lat1, lon1 = radians(point["lat"]), radians(point["lng"])
+        lat2, lon2 = radians(circle["lat"]), radians(circle["lng"])
+
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+
+        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        distance = R * c * 1000 # Distance in meters
+        return distance <= circle["radius"]
+
+    def _is_point_in_geofence(self, point, geofence):
+        """Checks if a given point is within a geofence."""
+        if not point or not geofence or not geofence.coordinates:
+            return False
+
+        if geofence.geofence_type == "circle":
+            return self._is_point_in_circle(point, geofence.coordinates)
+        elif geofence.geofence_type == "polygon":
+            return self._is_point_in_polygon(point, geofence.coordinates)
+        return False
+
+    def _detect_geofence_events(self, vehicle, prev_data, new_data):
+        from .models import Geofence, GeofenceEvent, FleetAlert
+
+        new_lat = new_data.get("latitude")
+        new_lng = new_data.get("longitude")
+        prev_lat = prev_data.latitude if prev_data else None
+        prev_lng = prev_data.longitude if prev_data else None
+
+        if new_lat is None or new_lng is None:
+            return
+
+        new_point = {"lat": float(new_lat), "lng": float(new_lng)}
+        prev_point = {"lat": float(prev_lat), "lng": float(prev_lng)} if prev_lat and prev_lng else None
+
+        active_geofences = Geofence.objects.filter(is_active=True)
+        occurred_at = new_data.get("device_datetime") or timezone.now()
+
+        for geofence in active_geofences:
+            is_new_in = self._is_point_in_geofence(new_point, geofence)
+            is_prev_in = self._is_point_in_geofence(prev_point, geofence) if prev_point else False
+
+            if is_new_in and not is_prev_in: # Entry event
+                GeofenceEvent.objects.create(
+                    vehicle=vehicle,
+                    geofence=geofence,
+                    event_type="entry",
+                    occurred_at=occurred_at,
+                    latitude=new_lat,
+                    longitude=new_lng,
+                    message=f"{vehicle.vehicle_no} entered geofence {geofence.name}"
+                )
+                self._create_alert_if_not_recent(
+                    vehicle=vehicle,
+                    alert_type=FleetAlert.AlertType.GEOFENCE,
+                    severity=FleetAlert.Severity.MEDIUM,
+                    message=f"{vehicle.vehicle_no} entered geofence {geofence.name}",
+                    data=new_data,
+                    occurred_at=occurred_at,
+                )
+            elif not is_new_in and is_prev_in: # Exit event
+                GeofenceEvent.objects.create(
+                    vehicle=vehicle,
+                    geofence=geofence,
+                    event_type="exit",
+                    occurred_at=occurred_at,
+                    latitude=new_lat,
+                    longitude=new_lng,
+                    message=f"{vehicle.vehicle_no} exited geofence {geofence.name}"
+                )
+                self._create_alert_if_not_recent(
+                    vehicle=vehicle,
+                    alert_type=FleetAlert.AlertType.GEOFENCE,
+                    severity=FleetAlert.Severity.MEDIUM,
+                    message=f"{vehicle.vehicle_no} exited geofence {geofence.name}",
+                    data=new_data,
+                    occurred_at=occurred_at,
+                )
 
     def _check_maintenance_due(self, vehicle, data):
         """Check if service/maintenance is due based on odometer or date."""

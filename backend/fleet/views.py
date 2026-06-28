@@ -11,12 +11,12 @@ from rest_framework.permissions import IsAuthenticated
 from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
-    VehicleCompliance, VehicleAssignment,
+    VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
 )
 from .serializers import (
     FleetAPIConfigSerializer, VehicleSerializer, VehicleLiveDataSerializer,
     FuelEventSerializer, TripRecordSerializer, FleetAlertSerializer,
-    MaintenanceRecordSerializer,
+    MaintenanceRecordSerializer, FuelPriceSerializer, GeofenceSerializer, GeofenceEventSerializer,
 )
 from .services import FleetSyncService
 
@@ -335,6 +335,8 @@ class FuelReportView(APIView):
 
             total_filled = fills.aggregate(total=Sum('fuel_change'))['total'] or 0
             total_drained = abs(drains.aggregate(total=Sum('fuel_change'))['total'] or 0)
+            total_filled_cost = fills.aggregate(total=Sum('total_cost'))['total'] or 0
+            total_drained_cost = abs(drains.aggregate(total=Sum('total_cost'))['total'] or 0)
 
             report.append({
                 'vehicle_no': vehicle.vehicle_no,
@@ -343,7 +345,10 @@ class FuelReportView(APIView):
                 'total_drains': drains.count(),
                 'total_fuel_filled': float(total_filled),
                 'total_fuel_drained': float(total_drained),
+                'total_fuel_filled_cost': float(total_filled_cost),
+                'total_fuel_drained_cost': float(total_drained_cost),
                 'estimated_consumption': float(total_filled) - float(total_drained),
+                'estimated_consumption_cost': float(total_filled_cost) - float(total_drained_cost),
                 'fill_events': FuelEventSerializer(fills, many=True).data,
             })
 
@@ -867,3 +872,81 @@ class FleetRegisterImportView(APIView):
             'errors': errors,
             'total': imported + updated,
         })
+
+
+class FuelPriceListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FuelPriceSerializer
+    queryset = FuelPrice.objects.all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        fuel_type = self.request.query_params.get("fuel_type")
+        location = self.request.query_params.get("location")
+        effective_date_from = self.request.query_params.get("effective_date_from")
+        effective_date_to = self.request.query_params.get("effective_date_to")
+
+        if fuel_type:
+            qs = qs.filter(fuel_type=fuel_type)
+        if location:
+            qs = qs.filter(location__iexact=location)
+        if effective_date_from:
+            qs = qs.filter(effective_date__gte=effective_date_from)
+        if effective_date_to:
+            qs = qs.filter(effective_date__lte=effective_date_to)
+        return qs
+
+
+class FuelPriceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FuelPriceSerializer
+    queryset = FuelPrice.objects.all()
+
+
+class CurrentFuelPriceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        location = request.query_params.get("location", "Nairobi")
+        current_prices = {}
+        for fuel_type, _ in FuelPrice.FUEL_TYPE_CHOICES:
+            price = FuelPrice.objects.filter(
+                fuel_type=fuel_type, location__iexact=location, effective_date__lte=timezone.now().date()
+            ).order_by("-effective_date").first()
+            if price:
+                current_prices[fuel_type] = FuelPriceSerializer(price).data
+        return Response(current_prices)
+
+
+class GeofenceListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GeofenceSerializer
+    queryset = Geofence.objects.all()
+
+
+class GeofenceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GeofenceSerializer
+    queryset = Geofence.objects.all()
+
+
+class GeofenceEventListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GeofenceEventSerializer
+
+    def get_queryset(self):
+        qs = GeofenceEvent.objects.select_related("vehicle", "geofence")
+        vehicle_id = self.request.query_params.get("vehicle")
+        geofence_id = self.request.query_params.get("geofence")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+
+        if vehicle_id:
+            qs = qs.filter(vehicle__id=vehicle_id)
+        if geofence_id:
+            qs = qs.filter(geofence__id=geofence_id)
+        if date_from:
+            qs = qs.filter(occurred_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(occurred_at__date__lte=date_to)
+        return qs
