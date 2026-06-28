@@ -11,7 +11,7 @@ import {
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
-  BellAlertIcon, MapIcon, CurrencyDollarIcon, ChartPieIcon,
+  BellAlertIcon, MapIcon, ChartPieIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
