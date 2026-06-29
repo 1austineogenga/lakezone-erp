@@ -20,7 +20,7 @@ ALL_VIEWER_ROLES     = {
 SITE_STAFF_ROLES     = {'site_engineer', 'site_foreman', 'site_surveyor'}
 FINANCE_ROLES        = {'finance_officer', 'finance_manager', 'system_admin', 'managing_director'}
 SCHEDULE_LOGGER_ROLES = {'site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'}
-SCHEDULE_APPROVER_ROLES = {'admin_officer', 'system_admin', 'managing_director'}
+SCHEDULE_APPROVER_ROLES = {'managing_director', 'system_admin'}
 
 
 def _req_queryset(user):
