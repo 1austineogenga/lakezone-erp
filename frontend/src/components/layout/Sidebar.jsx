@@ -11,7 +11,7 @@ import {
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
-  BellAlertIcon,
+  BellAlertIcon, MapIcon, ChartPieIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -133,7 +133,15 @@ const MODULES = [
         links: [
           { to: '/fleet/alerts', label: 'Alerts',      icon: ExclamationTriangleIcon },
           { to: '/fleet/fuel',   label: 'Fuel Report', icon: BeakerIcon },
+          { to: '/fleet/enhanced-fuel', label: 'Advanced Fuel', icon: ChartPieIcon },
           { to: '/fleet/trips',  label: 'Trip Report', icon: ArrowTrendingUpIcon },
+        ],
+      },
+      {
+        heading: 'Control',
+        links: [
+          { to: '/fleet/geofences', label: 'Geofences', icon: MapIcon },
+          { to: '/fleet/fuel-prices', label: 'Fuel Prices', icon: CurrencyDollarIcon },
         ],
       },
       {

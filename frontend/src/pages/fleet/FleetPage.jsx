@@ -9,6 +9,9 @@ import MaintenancePage         from './MaintenancePage'
 import FleetSettingsPage       from './FleetSettingsPage'
 import MachineWeeklyReportPage from './MachineWeeklyReportPage'
 import MachineDailyReportPage from './MachineDailyReportPage'
+import EnhancedFuelReportPage from './EnhancedFuelReportPage'
+import GeofenceManagementPage from './GeofenceManagementPage'
+import FuelPriceManagementPage from './FuelPriceManagementPage'
 
 export default function FleetPage() {
   return (
@@ -22,6 +25,9 @@ export default function FleetPage() {
       <Route path="trips" element={<TripsReportPage />} />
       <Route path="alerts" element={<AlertsPage />} />
       <Route path="maintenance" element={<MaintenancePage />} />
+      <Route path="enhanced-fuel" element={<EnhancedFuelReportPage />} />
+      <Route path="geofences" element={<GeofenceManagementPage />} />
+      <Route path="fuel-prices" element={<FuelPriceManagementPage />} />
       <Route path="settings" element={<FleetSettingsPage />} />
       <Route path="*" element={<Navigate to="" replace />} />
     </Routes>

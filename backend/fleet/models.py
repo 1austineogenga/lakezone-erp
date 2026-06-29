@@ -145,6 +145,8 @@ class FuelEvent(models.Model):
     fuel_before = models.DecimalField(max_digits=8, decimal_places=2)
     fuel_after = models.DecimalField(max_digits=8, decimal_places=2)
     fuel_change = models.DecimalField(max_digits=8, decimal_places=2)
+    price_per_litre = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     fuel_unit = models.CharField(max_length=5, default='L', blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -305,3 +307,62 @@ class VehicleAssignment(models.Model):
 
     def __str__(self):
         return f"{self.vehicle.vehicle_no} → {self.driver_name}"
+
+
+class FuelPrice(models.Model):
+    FUEL_TYPE_CHOICES = [
+        ('diesel', 'Diesel'),
+        ('petrol', 'Petrol'),
+        ('kerosene', 'Kerosene'),
+    ]
+    fuel_type = models.CharField(max_length=20, choices=FUEL_TYPE_CHOICES)
+    location = models.CharField(max_length=100, default='Nairobi')
+    price_per_litre = models.DecimalField(max_digits=8, decimal_places=2)
+    effective_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('fuel_type', 'location', 'effective_date')
+        ordering = ['-effective_date', 'location', 'fuel_type']
+
+    def __str__(self):
+        return f"{self.get_fuel_type_display()} in {self.location} @ KSh {self.price_per_litre}/L (effective {self.effective_date})"
+
+
+class Geofence(models.Model):
+    GEOFENCE_TYPE_CHOICES = [
+        ("circle", "Circle"),
+        ("polygon", "Polygon"),
+    ]
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    geofence_type = models.CharField(max_length=10, choices=GEOFENCE_TYPE_CHOICES, default="circle")
+    coordinates = models.JSONField() # Stores [{'lat': x, 'lng': y}, ...] for polygon or {'lat': x, 'lng': y, 'radius': r} for circle
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GeofenceEvent(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ("entry", "Entry"),
+        ("exit", "Exit"),
+    ]
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="geofence_events")
+    geofence = models.ForeignKey(Geofence, on_delete=models.CASCADE, related_name="events")
+    event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES)
+    occurred_at = models.DateTimeField()
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+
+    def __str__(self):
+        return f"{self.vehicle.vehicle_no} {self.event_type} {self.geofence.name} @ {self.occurred_at}"

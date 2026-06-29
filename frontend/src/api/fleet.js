@@ -42,3 +42,21 @@ export const importFleetRegister = (file) => {
   fd.append('file', file)
   return api.post('/fleet/import-register/', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
+
+
+// Fuel Prices
+export const getFuelPrices         = (params) => api.get('/fleet/fuel-prices/', { params })
+export const createFuelPrice       = (data)   => api.post('/fleet/fuel-prices/', data)
+export const getCurrentFuelPrices  = (location) => api.get(`/fleet/fuel-prices/current/?location=${location || 'Nairobi'}`)
+export const updateFuelPrice       = (id, d)  => api.patch(`/fleet/fuel-prices/${id}/`, d)
+export const deleteFuelPrice       = (id)     => api.delete(`/fleet/fuel-prices/${id}/`)
+
+// Geofences
+export const getGeofences          = (params) => api.get('/fleet/geofences/', { params })
+export const createGeofence        = (data)   => api.post('/fleet/geofences/', data)
+export const getGeofence           = (id)     => api.get(`/fleet/geofences/${id}/`)
+export const updateGeofence        = (id, d)  => api.patch(`/fleet/geofences/${id}/`, d)
+export const deleteGeofence        = (id)     => api.delete(`/fleet/geofences/${id}/`)
+
+// Geofence Events
+export const getGeofenceEvents     = (params) => api.get('/fleet/geofence-events/', { params })

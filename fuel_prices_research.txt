@@ -1,0 +1,18 @@
+Kenya Fuel Prices (EPRA) - June 2026 Review (Effective June 15 - July 14, 2026)
+---------------------------------------------------------------------------
+Source: EPRA Announcements (June 14, 2026)
+
+Nairobi Prices:
+- Super Petrol (PMS): KSh 214.03 / litre
+- Diesel (AGO): KSh 222.86 / litre
+- Kerosene: KSh 188.09 / litre (approx, based on historical and news snippets)
+
+Mombasa Prices:
+- Super Petrol (PMS): KSh 210.87 / litre
+- Diesel (AGO): KSh 219.58 / litre
+- Kerosene: KSh 188.09 / litre
+
+Implementation Strategy:
+- Since there is no public API, I will create a backend service that can periodically scrape the EPRA website or use a fallback mechanism.
+- For now, I will implement a "FuelPrice" model to store these values and allow manual/scheduled updates.
+- The cost calculations for fuel refills and consumption will use these prices based on the vehicle's fuel type.
