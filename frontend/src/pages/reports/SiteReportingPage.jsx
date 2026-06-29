@@ -10,14 +10,14 @@ import MachineWeeklyReportPage from '../fleet/MachineWeeklyReportPage'
 
 const NAV = [
   { heading: 'Daily Reports', links: [
-    { to: 'machine/daily',   label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
-    { to: 'surveyor/daily',  label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
-    { to: 'foreman/daily',   label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/machine/daily',   label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/surveyor/daily',  label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/foreman/daily',   label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
   ]},
   { heading: 'Weekly Reports', links: [
-    { to: 'machine/weekly',  label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
-    { to: 'surveyor/weekly', label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
-    { to: 'foreman/weekly',  label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/machine/weekly',  label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/surveyor/weekly', label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
+    { to: '/reports/foreman/weekly',  label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
   ]},
 ]
 
@@ -25,10 +25,10 @@ export default function SiteReportingPage() {
   const { role } = usePermissions()
 
   const defaultRoute =
-    role === 'site_foreman' ? 'foreman/daily' :
-    role === 'site_surveyor' ? 'surveyor/daily' :
-    (role === 'equipment_operator' || role === 'driver') ? 'machine/daily' :
-    'foreman/daily'
+    role === 'site_foreman' ? '/reports/foreman/daily' :
+    role === 'site_surveyor' ? '/reports/surveyor/daily' :
+    (role === 'equipment_operator' || role === 'driver') ? '/reports/machine/daily' :
+    '/reports/foreman/daily'
 
   return (
     <div className="flex h-full min-h-0 gap-0">
