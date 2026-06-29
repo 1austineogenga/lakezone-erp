@@ -10,7 +10,7 @@ DEPARTMENTS = [
     'Information Technology',
     'Security and Surveillance',
     'Procurement',
-    'Site Operations',
+    'Operations',
 ]
 
 POSITIONS = [
@@ -25,15 +25,15 @@ POSITIONS = [
     ('Receptionist',             'Administration'),
     ('Cleaner',                  'Administration'),
     ('Chef',                     'Administration'),
-    ('Site Manager',             'Site Operations'),
-    ('Site Engineer',            'Site Operations'),
+    ('Site Manager',             'Operations'),
+    ('Site Engineer',            'Operations'),
     ('Procurement Officer',      'Procurement'),
-    ('Machine Operator',         'Site Operations'),
-    ('Driver',                   'Site Operations'),
-    ('Mechanic',                 'Site Operations'),
-    ('Site Surveyor',            'Site Operations'),
-    ('Welder',                   'Site Operations'),
-    ('Foreman',                  'Site Operations'),
+    ('Machine Operator',         'Operations'),
+    ('Driver',                   'Operations'),
+    ('Mechanic',                 'Operations'),
+    ('Site Surveyor',            'Operations'),
+    ('Welder',                   'Operations'),
+    ('Foreman',                  'Operations'),
     ('Security Officer',         'Security and Surveillance'),
     ('Storekeeper',              'Procurement'),
 ]
