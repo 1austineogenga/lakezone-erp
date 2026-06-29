@@ -11,6 +11,7 @@ DEPARTMENTS = [
     'Security and Surveillance',
     'Procurement',
     'Operations',
+    'Transport and Logistics',
 ]
 
 POSITIONS = [
@@ -40,6 +41,7 @@ POSITIONS = [
 
 BRANCHES = [
     ('Head Office', 'Athi River'),
+    ('Site',        'Various Project Sites'),
 ]
 
 
