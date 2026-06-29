@@ -20,7 +20,7 @@ const STATUS_LABELS = {
 
 const EMPTY_FORM = {
   code: '', name: '', client: '', contract_number: '', contract_value: '',
-  location: '', start_date: '', end_date: '', description: '', status: 'planning',
+  location: '', latitude: '', longitude: '', start_date: '', end_date: '', description: '', status: 'planning',
 }
 
 export default function ProjectsPage() {
@@ -87,6 +87,8 @@ export default function ProjectsPage() {
     e.preventDefault()
     const payload = { ...form }
     if (!payload.contract_value) delete payload.contract_value
+    if (!payload.latitude) delete payload.latitude
+    if (!payload.longitude) delete payload.longitude
     createMut.mutate(payload)
   }
 
@@ -277,6 +279,8 @@ export default function ProjectsPage() {
                   { label: 'Contract No.',   key: 'contract_number',  placeholder: 'Contract reference' },
                   { label: 'Contract Value (KES)', key: 'contract_value', placeholder: '0', type: 'number' },
                   { label: 'Location',       key: 'location',         placeholder: 'Site location' },
+                  { label: 'Latitude',       key: 'latitude',         placeholder: 'e.g. -1.2921', type: 'number' },
+                  { label: 'Longitude',      key: 'longitude',        placeholder: 'e.g. 36.8219', type: 'number' },
                   { label: 'Start Date',     key: 'start_date',       type: 'date' },
                   { label: 'End Date',       key: 'end_date',         type: 'date' },
                 ].map(({ label, key, placeholder, type }) => (

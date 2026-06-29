@@ -25,6 +25,8 @@ function EditProjectModal({ project, onClose }) {
     contract_number: project.contract_number || '',
     contract_value:  project.contract_value || '',
     location:        project.location || '',
+    latitude:        project.latitude || '',
+    longitude:       project.longitude || '',
     status:          project.status || 'active',
     start_date:      project.start_date || '',
     end_date:        project.end_date || '',
@@ -90,6 +92,10 @@ function EditProjectModal({ project, onClose }) {
             {field('Status', 'status', 'select')}
           </div>
           {field('Location', 'location')}
+          <div className="grid grid-cols-2 gap-4">
+            {field('Latitude', 'latitude', 'number')}
+            {field('Longitude', 'longitude', 'number')}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             {field('Start Date', 'start_date', 'date')}
             {field('End Date', 'end_date', 'date')}
