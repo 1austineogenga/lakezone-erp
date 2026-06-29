@@ -193,10 +193,11 @@ class StockTransaction(models.Model):
 
 class Asset(models.Model):
     CATEGORY_CHOICES = [
+        ('machinery', 'Machinery & Plant'),
+        ('vehicles', 'Vehicles (Cars / SUVs / Double Cabs)'),
+        ('trucks_tracks', 'Trucks & Tracks'),
         ('it_equipment', 'IT Equipment'),
         ('furniture', 'Furniture & Fittings'),
-        ('machinery', 'Machinery & Plant'),
-        ('vehicles', 'Vehicles & Transport'),
         ('office_equipment', 'Office Equipment'),
         ('tools', 'Tools & Equipment'),
         ('communication', 'Communication Equipment'),
@@ -211,10 +212,19 @@ class Asset(models.Model):
         ('condemned', 'Condemned'),
     ]
     STATUS_CHOICES = [
+        ('operational', 'Operational'),
+        ('functional', 'Functional'),
+        ('non_operational', 'Non-Operational'),
+        ('undetermined', 'Undetermined'),
         ('active', 'Active'),
         ('under_repair', 'Under Repair'),
         ('disposed', 'Disposed'),
         ('lost', 'Lost'),
+    ]
+    CERT_STATUS_CHOICES = [
+        ('valid', 'Valid'),
+        ('expired', 'Expired'),
+        ('not_in_system', 'Not in System'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -228,10 +238,46 @@ class Asset(models.Model):
     purchase_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     current_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='good')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='operational')
     location = models.CharField(max_length=200, blank=True)
     assigned_to = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
+
+    # Machinery-specific
+    hours_to_next_service = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True)
+
+    # Vehicle / Truck fields
+    registration_plate = models.CharField(max_length=20, blank=True)
+    kms_to_next_service = models.IntegerField(null=True, blank=True)
+    insurance_expiry = models.DateField(null=True, blank=True)
+
+    # Insurance certificate (vehicles & trucks)
+    insurance_cert_number = models.CharField(max_length=50, blank=True)
+    insurance_policy_number = models.CharField(max_length=100, blank=True)
+    insurance_policy_type = models.CharField(max_length=50, blank=True, help_text="e.g. Comprehensive, Third Party")
+    insurance_insurer = models.CharField(max_length=200, blank=True)
+    insurance_chassis_number = models.CharField(max_length=100, blank=True)
+    insurance_commencement_date = models.DateField(null=True, blank=True)
+
+    # Inspection certificate (trucks & tracks)
+    inspection_cert_number = models.CharField(max_length=50, blank=True)
+    inspection_cert_status = models.CharField(max_length=20, choices=CERT_STATUS_CHOICES, blank=True)
+    inspection_cert_issue_date = models.DateField(null=True, blank=True)
+    inspection_cert_expiry = models.DateField(null=True, blank=True)
+    inspection_issuing_authority = models.CharField(max_length=200, blank=True)
+
+    # Speed governor certificate (trucks & tracks)
+    speed_governor_cert_number = models.CharField(max_length=50, blank=True)
+    speed_governor_cert_status = models.CharField(max_length=20, choices=CERT_STATUS_CHOICES, blank=True)
+    speed_governor_device_serial = models.CharField(max_length=100, blank=True)
+    speed_governor_cert_issue_date = models.DateField(null=True, blank=True)
+    speed_governor_cert_expiry = models.DateField(null=True, blank=True)
+    speed_governor_issuing_authority = models.CharField(max_length=200, blank=True)
+
+    # Defects & requirements tracking
+    current_defects = models.TextField(blank=True)
+    requirements = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
