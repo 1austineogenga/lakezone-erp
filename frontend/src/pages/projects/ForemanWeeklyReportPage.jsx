@@ -107,7 +107,7 @@ export default function ForemanWeeklyReportPage() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
 
-  const isSiteForeman = user?.role === 'site_foreman'
+  const isSiteForeman = user?.role === 'site_foreman' || user?.role === 'system_admin'
 
   // ── view state ─────────────────────────────────────────────────────────────
   const [view, setView] = useState('list') // 'list' | 'new' | 'edit'

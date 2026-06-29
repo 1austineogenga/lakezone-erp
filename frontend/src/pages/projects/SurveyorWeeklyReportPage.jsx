@@ -99,7 +99,7 @@ export default function SurveyorWeeklyReportPage() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
 
-  const isSiteSurveyor = user?.role === 'site_surveyor'
+  const isSiteSurveyor = user?.role === 'site_surveyor' || user?.role === 'system_admin'
 
   // ── view state ─────────────────────────────────────────────────────────────
   const [view, setView] = useState('list') // 'list' | 'new' | 'edit'

@@ -227,7 +227,7 @@ export default function MachineDailyReportPage() {
   const { role } = usePermissions()
   const { user } = useAuthStore()
 
-  const canWrite = ['equipment_operator', 'driver'].includes(role)
+  const canWrite = ['equipment_operator', 'driver', 'system_admin'].includes(role)
 
   // ── pre-fill vehicle if opened from vehicle detail ──────────────────────
   const { data: vehicle } = useQuery({
