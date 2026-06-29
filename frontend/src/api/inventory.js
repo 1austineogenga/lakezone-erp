@@ -8,6 +8,7 @@ export const getStockLevels    = (p)     => api.get('/inventory/levels/', { para
 export const getTransactions   = (p)     => api.get('/inventory/transactions/', { params: p })
 export const createTransaction = (d)     => api.post('/inventory/transactions/', d)
 export const getStores         = ()      => api.get('/inventory/stores/')
+export const getLowStockItems  = (p)     => api.get('/inventory/items/low-stock/', { params: p })
 
 // Fixed Assets Register
 export const getAssets           = (p)          => api.get('/inventory/assets/', { params: p })

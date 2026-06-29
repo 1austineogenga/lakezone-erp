@@ -2,164 +2,122 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { getAssets, createAsset, updateAsset, getAssetDashboard } from '../../api/inventory'
-import usePermissions from '../../hooks/usePermissions'
+import {
+  PlusIcon, BuildingOfficeIcon, WrenchScrewdriverIcon,
+  CurrencyDollarIcon, CheckCircleIcon,
+} from '@heroicons/react/24/outline'
+import {
+  getAssets, createAsset, updateAsset, getAssetDashboard,
+} from '../../api/inventory'
+import useAuthStore from '../../store/authStore'
+import api from '../../api/client'
 
-const CATEGORIES = [
-  { value: 'it_equipment',  label: 'IT Equipment' },
-  { value: 'furniture',     label: 'Furniture & Fittings' },
-  { value: 'machinery',     label: 'Machinery & Plant' },
-  { value: 'vehicles',      label: 'Vehicles & Transport' },
-  { value: 'office_equipment', label: 'Office Equipment' },
-  { value: 'tools',         label: 'Tools & Equipment' },
-  { value: 'communication', label: 'Communication Equipment' },
-  { value: 'safety',        label: 'Safety Equipment' },
-  { value: 'other',         label: 'Other' },
+const VIEW_ALL_READONLY = ['managing_director', 'finance_officer', 'finance_manager', 'admin_officer', 'general_manager']
+
+const CATEGORY_OPTIONS = [
+  { value: 'it_equipment', label: 'IT Equipment', color: 'bg-blue-100 text-blue-700' },
+  { value: 'furniture', label: 'Furniture & Fittings', color: 'bg-amber-100 text-amber-700' },
+  { value: 'machinery', label: 'Machinery & Plant', color: 'bg-orange-100 text-orange-700' },
+  { value: 'vehicles', label: 'Vehicles & Transport', color: 'bg-purple-100 text-purple-700' },
+  { value: 'office_equipment', label: 'Office Equipment', color: 'bg-cyan-100 text-cyan-700' },
+  { value: 'tools', label: 'Tools & Equipment', color: 'bg-green-100 text-green-700' },
+  { value: 'communication', label: 'Communication Equip.', color: 'bg-pink-100 text-pink-700' },
+  { value: 'safety', label: 'Safety Equipment', color: 'bg-red-100 text-red-700' },
+  { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-600' },
 ]
 
-const DEPARTMENTS = [
-  'Head Office', 'Projects - MN', 'Projects - NS',
-  'Finance', 'HR', 'Procurement', 'Fleet', 'IT', 'Store',
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active', color: 'bg-green-100 text-green-700' },
+  { value: 'under_repair', label: 'Under Repair', color: 'bg-amber-100 text-amber-700' },
+  { value: 'disposed', label: 'Disposed', color: 'bg-gray-100 text-gray-500' },
+  { value: 'lost', label: 'Lost', color: 'bg-red-100 text-red-700' },
 ]
+const CONDITION_OPTIONS = ['new','good','fair','poor','condemned']
 
-const CONDITIONS = ['new', 'good', 'fair', 'poor', 'condemned']
-const STATUSES   = ['active', 'under_repair', 'disposed', 'lost']
+const emptyAsset = { name: '', category: 'it_equipment', serial_number: '', make_model: '', purchase_date: '', purchase_value: '', current_value: '', condition: 'good', status: 'active', location: '', assigned_to: '', notes: '' }
 
-const CAT_COLORS = {
-  it_equipment: 'bg-blue-100 text-blue-700',
-  furniture: 'bg-amber-100 text-amber-700',
-  machinery: 'bg-red-100 text-red-700',
-  vehicles: 'bg-slate-100 text-slate-700',
-  office_equipment: 'bg-green-100 text-green-700',
-  tools: 'bg-orange-100 text-orange-700',
-  communication: 'bg-purple-100 text-purple-700',
-  safety: 'bg-teal-100 text-teal-700',
-  other: 'bg-gray-100 text-gray-600',
-}
-
-const COND_COLORS = {
-  new: 'bg-green-100 text-green-700',
-  good: 'bg-blue-100 text-blue-700',
-  fair: 'bg-amber-100 text-amber-700',
-  poor: 'bg-orange-100 text-orange-700',
-  condemned: 'bg-red-100 text-red-700',
-}
-
-const STATUS_COLORS = {
-  active: 'bg-green-100 text-green-700',
-  under_repair: 'bg-amber-100 text-amber-700',
-  disposed: 'bg-gray-100 text-gray-600',
-  lost: 'bg-red-100 text-red-700',
-}
-
-const EMPTY_FORM = {
-  name: '', category: 'it_equipment', department: 'Head Office',
-  serial_number: '', make_model: '', purchase_date: '', purchase_value: '',
-  current_value: '', condition: 'good', status: 'active',
-  location: '', assigned_to: '', notes: '',
-}
-
-function AssetModal({ open, onClose, initial, onSave, saving }) {
-  const [form, setForm] = useState(initial || EMPTY_FORM)
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  if (!open) return null
+function StatCard({ icon: Icon, label, value, color = 'blue' }) {
+  const colors = { blue: 'bg-blue-50 text-blue-600', green: 'bg-green-50 text-green-600', amber: 'bg-amber-50 text-amber-600', purple: 'bg-purple-50 text-purple-600' }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-brand-slate">{initial?.id ? 'Edit Asset' : 'Add Asset'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg font-bold">×</button>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+      <div className={`p-2.5 rounded-xl ${colors[color]}`}><Icon className="h-5 w-5" /></div>
+      <div>
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-lg font-bold text-brand-slate">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function AssetModal({ asset, deptName, onClose, onSuccess }) {
+  const isEdit = !!asset
+  const [form, setForm] = useState(isEdit ? {
+    name: asset.name, category: asset.category, serial_number: asset.serial_number || '',
+    make_model: asset.make_model || '', purchase_date: asset.purchase_date || '',
+    purchase_value: asset.purchase_value || '', current_value: asset.current_value || '',
+    condition: asset.condition, status: asset.status, location: asset.location || '',
+    assigned_to: asset.assigned_to || '', notes: asset.notes || '',
+  } : { ...emptyAsset })
+  const qc = useQueryClient()
+  const mut = useMutation({
+    mutationFn: isEdit ? d => updateAsset(asset.id, d) : createAsset,
+    onSuccess: () => {
+      toast.success(isEdit ? 'Asset updated' : 'Asset added')
+      qc.invalidateQueries(['assets'])
+      qc.invalidateQueries(['asset-dashboard'])
+      onSuccess?.()
+      onClose()
+    },
+    onError: e => toast.error(e.response?.data?.detail || JSON.stringify(e.response?.data) || 'Failed'),
+  })
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red'
+  const handleSave = () => {
+    const payload = { ...form }
+    if (!isEdit) payload.department = deptName
+    if (payload.purchase_value === '') delete payload.purchase_value
+    if (payload.current_value === '') delete payload.current_value
+    mut.mutate(payload)
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold text-brand-slate">{isEdit ? 'Edit Asset' : 'Add Asset'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
         </div>
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Asset Name *</label>
-              <input value={form.name} onChange={e => set('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red"
-                placeholder="e.g. Dell Laptop Core i7" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
-              <select value={form.category} onChange={e => set('category', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Department *</label>
-              <select value={form.department} onChange={e => set('department', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
-              <input value={form.serial_number} onChange={e => set('serial_number', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Make / Model</label>
-              <input value={form.make_model} onChange={e => set('make_model', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Date</label>
-              <input type="date" value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Value (KES)</label>
-              <input type="number" value={form.purchase_value} onChange={e => set('purchase_value', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Current Value (KES)</label>
-              <input type="number" value={form.current_value} onChange={e => set('current_value', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Condition</label>
-              <select value={form.condition} onChange={e => set('condition', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                {CONDITIONS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-              <select value={form.status} onChange={e => set('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-              <select value={form.location} onChange={e => set('location', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                <option value="">Select location…</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-              <input value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
-                placeholder="Employee name"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-              <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
+        {deptName && <div className="mb-4 text-xs text-blue-700 bg-blue-50 px-3 py-2 rounded-lg flex items-center gap-1.5"><BuildingOfficeIcon className="h-3.5 w-3.5" />{deptName}</div>}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Name *</label><input required className={inp} value={form.name} onChange={e => setForm(f=>({...f,name:e.target.value}))} /></div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+            <select className={inp} value={form.category} onChange={e => setForm(f=>({...f,category:e.target.value}))}>
+              {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
           </div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+            <select className={inp} value={form.condition} onChange={e => setForm(f=>({...f,condition:e.target.value}))}>
+              {CONDITION_OPTIONS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+            </select>
+          </div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <select className={inp} value={form.status} onChange={e => setForm(f=>({...f,status:e.target.value}))}>
+              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Serial Number</label><input className={inp} value={form.serial_number} onChange={e => setForm(f=>({...f,serial_number:e.target.value}))} /></div>
+          <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Make / Model</label><input className={inp} value={form.make_model} onChange={e => setForm(f=>({...f,make_model:e.target.value}))} /></div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Purchase Date</label><input type="date" className={inp} value={form.purchase_date} onChange={e => setForm(f=>({...f,purchase_date:e.target.value}))} /></div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Purchase Value (KES)</label><input type="number" min="0" step="any" className={inp} value={form.purchase_value} onChange={e => setForm(f=>({...f,purchase_value:e.target.value}))} /></div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Current Value (KES)</label><input type="number" min="0" step="any" className={inp} value={form.current_value} onChange={e => setForm(f=>({...f,current_value:e.target.value}))} /></div>
+          <div><label className="block text-xs font-medium text-gray-500 mb-1">Location</label><input className={inp} value={form.location} onChange={e => setForm(f=>({...f,location:e.target.value}))} /></div>
+          <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Assigned To</label><input className={inp} value={form.assigned_to} onChange={e => setForm(f=>({...f,assigned_to:e.target.value}))} /></div>
+          <div className="col-span-2"><label className="block text-xs font-medium text-gray-500 mb-1">Notes</label><textarea rows={2} className={`${inp} resize-none`} value={form.notes} onChange={e => setForm(f=>({...f,notes:e.target.value}))} /></div>
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={() => onSave(form)} disabled={saving || !form.name}
-            className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-            {saving ? 'Saving…' : 'Save Asset'}
+        <div className="flex gap-3 mt-5">
+          <button onClick={handleSave} disabled={mut.isPending || !form.name}
+            className="flex-1 bg-brand-red text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60">
+            {mut.isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Asset'}
           </button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancel</button>
         </div>
       </div>
     </div>
@@ -168,162 +126,169 @@ function AssetModal({ open, onClose, initial, onSave, saving }) {
 
 export default function AssetsPage() {
   const navigate = useNavigate()
-  const qc = useQueryClient()
-  const { canWrite } = usePermissions()
-  const canEdit = canWrite('assets')
+  const user = useAuthStore(s => s.user)
+  const role = user?.role || ''
+  const canEdit = role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)
+  const canViewAll = role === 'system_admin' || VIEW_ALL_READONLY.includes(role)
+
   const [search, setSearch] = useState('')
-  const [filterDept, setFilterDept] = useState('')
-  const [filterCat, setFilterCat]   = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [modal, setModal] = useState(null) // null | { mode: 'add'|'edit', asset?: {} }
+  const [selectedDept, setSelectedDept] = useState(null) // dept name string for view-all
+  const [showModal, setShowModal] = useState(false)
+  const [editAsset, setEditAsset] = useState(null)
+
+  // Fetch departments for view-all users
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => api.get('/core/departments/').then(r => r.data?.results ?? r.data ?? []),
+    enabled: canViewAll,
+  })
+
+  const assetParams = { page_size: 500 }
+  if (filterCategory) assetParams.category = filterCategory
+  if (filterStatus) assetParams.status = filterStatus
+  if (canViewAll && selectedDept) assetParams.department = selectedDept
 
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['assets', filterDept, filterCat, filterStatus],
-    queryFn: () => getAssets({ department: filterDept || undefined, category: filterCat || undefined, status: filterStatus || undefined, page_size: 500 }),
+    queryKey: ['assets', assetParams],
+    queryFn: () => getAssets(assetParams),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
-  const { data: dash } = useQuery({
+  const { data: dashboard } = useQuery({
     queryKey: ['asset-dashboard'],
-    queryFn: getAssetDashboard,
-    select: r => r.data,
-  })
-
-  const saveMut = useMutation({
-    mutationFn: (form) => modal?.asset?.id ? updateAsset(modal.asset.id, form) : createAsset(form),
-    onSuccess: () => {
-      toast.success(modal?.asset?.id ? 'Asset updated' : 'Asset added')
-      qc.invalidateQueries({ queryKey: ['assets'] })
-      qc.invalidateQueries({ queryKey: ['asset-dashboard'] })
-      setModal(null)
-    },
-    onError: e => toast.error(e.response?.data?.detail || 'Failed to save asset'),
+    queryFn: () => getAssetDashboard().then(r => r.data),
   })
 
   const filtered = assets.filter(a =>
-    !search || a.name?.toLowerCase().includes(search.toLowerCase()) || a.asset_code?.toLowerCase().includes(search.toLowerCase())
+    !search || a.name.toLowerCase().includes(search.toLowerCase()) ||
+    a.asset_code.toLowerCase().includes(search.toLowerCase()) ||
+    (a.assigned_to || '').toLowerCase().includes(search.toLowerCase())
   )
 
-  const statCards = [
-    { label: 'Total Assets', value: dash?.total_assets ?? assets.length, color: 'slate' },
-    { label: 'Total Value', value: `KES ${Number(dash?.total_value ?? 0).toLocaleString()}`, color: 'teal' },
-    { label: 'Active', value: dash?.active_count ?? assets.filter(a => a.status === 'active').length, color: 'green' },
-    { label: 'Under Repair / Disposed', value: (dash?.under_repair_count ?? 0) + (dash?.disposed_count ?? 0), color: 'amber' },
-  ]
-
-  const borderColors = { slate: 'border-l-slate-500 bg-slate-50 text-slate-700', teal: 'border-l-teal-500 bg-teal-50 text-teal-700', green: 'border-l-green-500 bg-green-50 text-green-700', amber: 'border-l-amber-500 bg-amber-50 text-amber-700' }
+  const totalValue = Number(dashboard?.total_current_value || 0)
+  const activeCount = Number(dashboard?.active_count || 0)
+  const repairCount = Number(dashboard?.under_repair_count || 0)
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-brand-slate text-lg">Fixed Assets Register</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Department asset inventory — equipment, furniture, tools and more</p>
+          <h1 className="text-lg font-bold text-brand-slate">Assets</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Fixed assets register</p>
         </div>
         {canEdit && (
-          <button onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-            <PlusIcon className="h-3.5 w-3.5" /> Add Asset
+          <button onClick={() => { setEditAsset(null); setShowModal(true) }}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
+            <PlusIcon className="h-4 w-4" /> Add Asset
           </button>
         )}
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {statCards.map(s => (
-          <div key={s.label} className={`border border-gray-200 border-l-4 ${borderColors[s.color]} rounded-xl p-4`}>
-            <p className="text-xl font-bold">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-          </div>
-        ))}
+      {/* Department context */}
+      {canViewAll ? (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-medium text-gray-500 mr-1">Department:</span>
+          <button onClick={() => setSelectedDept(null)}
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedDept ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+            All
+          </button>
+          {departments.map(d => (
+            <button key={d.id} onClick={() => setSelectedDept(d.name)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selectedDept === d.name ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+              {d.name}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${canEdit ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+          <BuildingOfficeIcon className="h-4 w-4" />
+          <span>{canEdit ? `${user?.department_name} — Your Department` : `Viewing: ${user?.department_name}`}</span>
+          {!canEdit && <span className="ml-auto text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">View only</span>}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={BuildingOfficeIcon} label="Total Assets" value={assets.length} color="blue" />
+        <StatCard icon={CurrencyDollarIcon} label="Current Value" value={`KES ${totalValue.toLocaleString(undefined,{maximumFractionDigits:0})}`} color="green" />
+        <StatCard icon={CheckCircleIcon} label="Active" value={activeCount} color="purple" />
+        <StatCard icon={WrenchScrewdriverIcon} label="Under Repair" value={repairCount} color="amber" />
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-3 items-end">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or code…"
-            className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red w-48" />
+      {/* Filters & Table */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search assets…"
+            className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red w-48" />
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red">
+            <option value="">All Categories</option>
+            {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red">
+            <option value="">All Statuses</option>
+            {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
         </div>
-        {[
-          ['Department', filterDept, setFilterDept, [['', 'All Departments'], ...DEPARTMENTS.map(d => [d, d])]],
-          ['Category', filterCat, setFilterCat, [['', 'All Categories'], ...CATEGORIES.map(c => [c.value, c.label])]],
-          ['Status', filterStatus, setFilterStatus, [['', 'All Statuses'], ...STATUSES.map(s => [s, s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())])]],
-        ].map(([label, val, set, opts]) => (
-          <div key={label}>
-            <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-            <select value={val} onChange={e => set(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
-              {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-        ))}
-      </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-brand-slate text-sm">Assets ({filtered.length})</h3>
-        </div>
         {isLoading ? (
-          <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
+          <div className="p-5 space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-400 p-10 text-center">No assets found. Add your first asset to get started.</p>
+          <div className="text-center py-16 text-gray-400">
+            <BuildingOfficeIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No assets found.</p>
+            {canEdit && <button onClick={() => setShowModal(true)} className="mt-3 text-xs text-brand-red font-medium hover:underline">+ Add your first asset</button>}
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  {['Code', 'Name', 'Category', 'Department', 'Assigned To', 'Condition', 'Status', 'Purchase Value', 'Current Value', ''].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
-                  ))}
-                </tr>
+            <table className="min-w-full text-xs">
+              <thead className="bg-gray-50">
+                <tr>{['Code','Name','Category','Department','Assigned To','Condition','Status','Purchase Value','Current Value',''].map(h => (
+                  <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                ))}</tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map(a => (
-                  <tr key={a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/${a.id}`)}>
-                    <td className="px-4 py-3 font-mono font-semibold text-brand-slate">{a.asset_code}</td>
-                    <td className="px-4 py-3 font-medium text-brand-slate max-w-[160px] truncate">{a.name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${CAT_COLORS[a.category] || 'bg-gray-100 text-gray-600'}`}>
-                        {CATEGORIES.find(c => c.value === a.category)?.label || a.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{a.department}</td>
-                    <td className="px-4 py-3 text-gray-500">{a.assigned_to || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${COND_COLORS[a.condition] || 'bg-gray-100 text-gray-600'}`}>
-                        {a.condition}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[a.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {a.status?.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">KES {Number(a.purchase_value || 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 font-medium text-brand-slate">KES {Number(a.current_value || 0).toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      {canEdit && (
-                        <button onClick={e => { e.stopPropagation(); setModal({ mode: 'edit', asset: a }) }}
-                          className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50">Edit</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map(asset => {
+                  const cat = CATEGORY_OPTIONS.find(c => c.value === asset.category)
+                  const st = STATUS_OPTIONS.find(s => s.value === asset.status)
+                  return (
+                    <tr key={asset.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/${asset.id}`)}>
+                      <td className="px-3 py-2.5 font-mono text-gray-500">{asset.asset_code}</td>
+                      <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
+                      <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span></td>
+                      <td className="px-3 py-2.5 text-gray-500">{asset.department}</td>
+                      <td className="px-3 py-2.5 text-gray-500">{asset.assigned_to || '—'}</td>
+                      <td className="px-3 py-2.5 capitalize text-gray-500">{asset.condition}</td>
+                      <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-600'}`}>{st?.label ?? asset.status}</span></td>
+                      <td className="px-3 py-2.5 text-gray-700">{Number(asset.purchase_value).toLocaleString()}</td>
+                      <td className="px-3 py-2.5 font-medium text-gray-800">{Number(asset.current_value).toLocaleString()}</td>
+                      <td className="px-3 py-2.5">
+                        {canEdit && (
+                          <button onClick={e => { e.stopPropagation(); setEditAsset(asset); setShowModal(true) }}
+                            className="text-xs text-brand-red hover:underline font-medium">Edit</button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <AssetModal
-        open={!!modal}
-        onClose={() => setModal(null)}
-        initial={modal?.asset ? { ...modal.asset, purchase_date: modal.asset.purchase_date || '', purchase_value: modal.asset.purchase_value || '', current_value: modal.asset.current_value || '' } : EMPTY_FORM}
-        onSave={form => saveMut.mutate(form)}
-        saving={saveMut.isPending}
-      />
+      {showModal && (
+        <AssetModal
+          asset={editAsset}
+          deptName={editAsset?.department ?? user?.department_name}
+          onClose={() => { setShowModal(false); setEditAsset(null) }}
+        />
+      )}
     </div>
   )
 }
