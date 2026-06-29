@@ -374,9 +374,17 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="space-y-5">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white; font-size: 11px; }
+          .space-y-5 { gap: 0.75rem; }
+        }
+      `}</style>
+
       {/* Header */}
       <div className="flex items-start gap-4">
-        <button onClick={() => navigate('/fleet/vehicles')} className="text-gray-400 hover:text-brand-slate mt-1">
+        <button onClick={() => navigate('/fleet/vehicles')} className="text-gray-400 hover:text-brand-slate mt-1 no-print">
           <ArrowLeftIcon className="h-4 w-4" />
         </button>
         <div className="flex-1">
@@ -395,8 +403,12 @@ export default function VehicleDetailPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
                 <PencilIcon className="h-3.5 w-3.5" /> Edit
               </button>
+              <button onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 no-print">
+                🖨 Print
+              </button>
               <button onClick={() => setShowDelete(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-brand-red text-xs font-medium rounded-lg hover:bg-red-50">
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-brand-red text-xs font-medium rounded-lg hover:bg-red-50 no-print">
                 <TrashIcon className="h-3.5 w-3.5" /> Delete
               </button>
             </div>

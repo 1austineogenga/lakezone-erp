@@ -86,6 +86,15 @@ class Vehicle(models.Model):
     known_defects = models.TextField(blank=True)
     required_actions = models.TextField(blank=True)
     meter_reading = models.CharField(max_length=50, blank=True)
+    # Source tracking — differentiates live-tracked vehicles from asset-register-only entries
+    SOURCE_CHOICES = [
+        ('live',     'Live (TrackNTrace)'),
+        ('register', 'Asset Register'),
+        ('manual',   'Manually Added'),
+    ]
+    is_live = models.BooleanField(default=True, help_text='Vehicle is actively tracked in TrackNTrace/Trakzee')
+    source  = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='live')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

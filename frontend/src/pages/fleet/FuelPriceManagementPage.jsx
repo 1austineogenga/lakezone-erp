@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { getFuelPrices, createFuelPrice, updateFuelPrice, deleteFuelPrice } from '../../api/fleet'
+import { toast } from 'react-toastify'
+import { PlusIcon, PencilIcon, TrashIcon, ArrowPathIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
+import { getFuelPrices, createFuelPrice, updateFuelPrice, deleteFuelPrice, fetchErcFuelPrices } from '../../api/fleet'
 
 const fmtDt = s => new Date(s).toLocaleDateString()
 
@@ -9,6 +10,7 @@ export default function FuelPriceManagementPage() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [ercResult, setErcResult] = useState(null)
   const [formData, setFormData] = useState({
     fuel_type: 'diesel',
     location: 'Nairobi',
@@ -64,6 +66,20 @@ export default function FuelPriceManagementPage() {
     },
   })
 
+  const ercMut = useMutation({
+    mutationFn: fetchErcFuelPrices,
+    onSuccess: r => {
+      setErcResult(r.data)
+      queryClient.invalidateQueries(['fuel-prices'])
+      if (r.data.scraped_from_erc) {
+        toast.success(`ERC prices fetched — ${r.data.fetched.length} records saved.`)
+      } else {
+        toast.info('Could not auto-fetch from ERC website. Please enter prices manually.')
+      }
+    },
+    onError: () => toast.error('Failed to fetch ERC prices.'),
+  })
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (editingId) {
@@ -99,17 +115,53 @@ export default function FuelPriceManagementPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Fuel Price Management</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Manage fuel prices for cost calculations</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Kenya ERC reviews pump prices on the <strong>14th of every month</strong>
+          </p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
-          <PlusIcon className="h-4 w-4" />
-          Add Price
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => ercMut.mutate()} disabled={ercMut.isPending}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition-colors disabled:opacity-60">
+            <ArrowPathIcon className={`h-3.5 w-3.5 ${ercMut.isPending ? 'animate-spin' : ''}`} />
+            {ercMut.isPending ? 'Fetching ERC…' : 'Fetch ERC Prices'}
+          </button>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+            <PlusIcon className="h-4 w-4" />
+            Add Price
+          </button>
+        </div>
       </div>
+
+      {/* ERC fetch result banner */}
+      {ercResult && (
+        <div className={`rounded-2xl border p-4 flex items-start gap-3 ${ercResult.scraped_from_erc ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+          <InformationCircleIcon className={`h-5 w-5 mt-0.5 shrink-0 ${ercResult.scraped_from_erc ? 'text-green-600' : 'text-amber-600'}`} />
+          <div className="flex-1 min-w-0">
+            {ercResult.scraped_from_erc ? (
+              <p className="text-xs font-semibold text-green-800">ERC prices fetched and saved for {ercResult.effective_date}</p>
+            ) : (
+              <p className="text-xs font-semibold text-amber-800">Could not auto-fetch from ERC website — please enter prices manually below.</p>
+            )}
+            {ercResult.current_prices && Object.keys(ercResult.current_prices).length > 0 && (
+              <div className="mt-2 flex gap-4 flex-wrap">
+                {Object.entries(ercResult.current_prices).map(([ft, p]) => (
+                  <div key={ft} className="text-xs">
+                    <span className="text-gray-500 capitalize">{ft}: </span>
+                    <span className="font-bold text-gray-800">KSh {p.price_per_litre}/L</span>
+                    <span className="text-gray-400 ml-1">({p.effective_date})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-gray-500 mt-1">Next review: {ercResult.next_review}</p>
+          </div>
+          <button onClick={() => setErcResult(null)} className="text-gray-400 hover:text-gray-600 shrink-0 text-xs">✕</button>
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (

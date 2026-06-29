@@ -126,12 +126,12 @@ export default function FuelReportPage() {
           fills.length === 0 ? (
             <p className="text-sm text-gray-400 p-8 text-center">No fill events in this period.</p>
           ) : (
-            <div className="overflow-x-auto max-h-80">
+            <div className="overflow-x-auto max-h-96">
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
                   <tr>
-                    {['Vehicle', 'Date / Time', 'Before', 'After', 'Added'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                    {['Vehicle', 'Date / Time', 'Before (L)', 'After (L)', 'Added (L)', 'Cost (KSh)', 'Location'].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -139,10 +139,16 @@ export default function FuelReportPage() {
                   {fills.map(e => (
                     <tr key={e.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5 font-semibold text-brand-slate">{e.vehicle_no || e.vehicle}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmtDt(e.occurred_at)}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}L</td>
-                      <td className="px-4 py-2.5 font-bold text-green-600">+{fmt(e.fuel_change)}L</td>
+                      <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{fmtDt(e.occurred_at)}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}</td>
+                      <td className="px-4 py-2.5 font-bold text-green-600">+{fmt(e.fuel_change)}</td>
+                      <td className="px-4 py-2.5 text-gray-500">
+                        {e.total_cost ? `KSh ${Number(e.total_cost).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-400 max-w-[180px] truncate" title={e.location_name}>
+                        {e.location_name || '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -155,12 +161,12 @@ export default function FuelReportPage() {
           drains.length === 0 ? (
             <p className="text-sm text-gray-400 p-8 text-center">No drain events in this period.</p>
           ) : (
-            <div className="overflow-x-auto max-h-80">
+            <div className="overflow-x-auto max-h-96">
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
                   <tr>
-                    {['Vehicle', 'Type', 'Date / Time', 'Before', 'After', 'Lost'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                    {['Vehicle', 'Type', 'Date / Time', 'Before (L)', 'After (L)', 'Lost (L)', 'Location'].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -171,13 +177,16 @@ export default function FuelReportPage() {
                       <td className="px-4 py-2.5">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold
                           ${e.event_type === 'theft' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
-                          {e.event_type}
+                          {e.event_type === 'theft' ? 'Possible Theft' : 'Drain'}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmtDt(e.occurred_at)}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}L</td>
-                      <td className="px-4 py-2.5 font-bold text-red-600">{fmt(e.fuel_change)}L</td>
+                      <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{fmtDt(e.occurred_at)}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}</td>
+                      <td className="px-4 py-2.5 font-bold text-red-600">{fmt(Math.abs(e.fuel_change))}</td>
+                      <td className="px-4 py-2.5 text-gray-400 max-w-[180px] truncate" title={e.location_name}>
+                        {e.location_name || '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

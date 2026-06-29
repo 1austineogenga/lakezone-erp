@@ -918,6 +918,181 @@ class CurrentFuelPriceView(APIView):
         return Response(current_prices)
 
 
+class SyncAssetsToFleetView(APIView):
+    """
+    Sync Asset Register vehicles/machines → Fleet Vehicle table.
+    Creates offline (is_live=False) Vehicle records for assets not yet in TrackNTrace,
+    and links existing fleet vehicles to their Asset counterparts.
+    Deduplication key: registration_plate / asset_code → vehicle_no.
+    """
+    permission_classes = [IsAuthenticated]
+
+    ASSET_TYPE_MAP = {
+        'vehicles':      'vehicle',
+        'trucks_tracks': 'truck',
+        'machinery':     'machine',
+    }
+
+    def post(self, request):
+        from inventory.models import Asset
+        import datetime as dt_mod
+
+        today = dt_mod.date.today()
+        created_count = linked_count = skipped_count = 0
+        errors = []
+
+        for asset in Asset.objects.filter(category__in=self.ASSET_TYPE_MAP.keys()):
+            plate = (asset.registration_plate or '').strip()
+            code  = (asset.asset_code or '').strip()
+            vehicle_no = plate or code
+            if not vehicle_no:
+                skipped_count += 1
+                continue
+
+            erp_status = (
+                'OPER'     if asset.status in ('operational', 'active', 'functional') else
+                'NON-OPER' if asset.status in ('non_operational', 'disposed', 'lost') else
+                'IDLE'     if asset.status == 'under_repair' else 'UNKNOWN'
+            )
+
+            defaults = dict(
+                vehicle_name=asset.name,
+                make=asset.make_model or '',
+                vehicle_type=self.ASSET_TYPE_MAP.get(asset.category, ''),
+                chassis_number=asset.insurance_chassis_number or '',
+                erp_code=code,
+                erp_status=erp_status,
+                known_defects=asset.current_defects or '',
+                required_actions=asset.requirements or '',
+                notes=asset.notes or '',
+                is_live=False,
+                source='register',
+            )
+
+            try:
+                vehicle, was_created = Vehicle.objects.get_or_create(
+                    vehicle_no=vehicle_no,
+                    defaults=defaults,
+                )
+            except Exception as e:
+                errors.append(f"{vehicle_no}: {e}")
+                continue
+
+            if was_created:
+                created_count += 1
+                # Seed compliance from asset certificate fields
+                CERT_MAP = [
+                    ('insurance',      'insurance_expiry',           None),
+                    ('inspection',     'inspection_cert_expiry',     'inspection_cert_status'),
+                    ('speed_governor', 'speed_governor_cert_expiry', 'speed_governor_cert_status'),
+                ]
+                for ctype, expiry_field, status_field in CERT_MAP:
+                    expiry    = getattr(asset, expiry_field, None)
+                    raw_stat  = getattr(asset, status_field, None) if status_field else None
+                    if not expiry and not raw_stat:
+                        continue
+                    if expiry:
+                        days = (expiry - today).days
+                        comp_status = 'expired' if days < 0 else ('expiring_soon' if days <= 30 else 'valid')
+                    else:
+                        comp_status = {'expired': 'expired', 'not_in_system': 'not_in_system'}.get(raw_stat, 'unknown')
+                    VehicleCompliance.objects.get_or_create(
+                        vehicle=vehicle, compliance_type=ctype,
+                        defaults={'expiry_date': expiry, 'status': comp_status},
+                    )
+            else:
+                linked_count += 1
+
+        return Response({
+            'created': created_count,
+            'linked':  linked_count,
+            'skipped': skipped_count,
+            'errors':  errors,
+        })
+
+
+class FetchErcFuelPricesView(APIView):
+    """
+    Fetch current Kenya ERC pump prices (reviewed on 14th of every month).
+    Attempts to scrape the ERC website; always returns current stored prices.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        import datetime as dt_mod
+        import re
+        try:
+            import requests as req
+        except ImportError:
+            return Response({'error': 'requests library not available'}, status=500)
+
+        today = dt_mod.date.today()
+        effective_date = today.replace(day=14) if today.day >= 14 else (
+            (today.replace(day=1) - dt_mod.timedelta(days=1)).replace(day=14)
+        )
+
+        fetched = []
+        errors  = []
+        html_content = None
+
+        for url in ['https://www.erc.go.ke/pumpprice/', 'https://www.erc.go.ke/petroleum/fuel-prices/']:
+            try:
+                resp = req.get(url, timeout=15, headers={'User-Agent': 'Mozilla/5.0'})
+                if resp.status_code == 200:
+                    html_content = resp.text
+                    break
+            except Exception as e:
+                errors.append(str(e))
+
+        if html_content:
+            price_map = {}
+            for fuel, pattern in [
+                ('diesel',   r'[Dd]iesel[^0-9]*?(\d{2,3}(?:\.\d{1,2})?)'),
+                ('petrol',   r'(?:[Ss]uper\s+)?[Pp]etrol[^0-9]*?(\d{2,3}(?:\.\d{1,2})?)'),
+                ('kerosene', r'[Kk]erosene[^0-9]*?(\d{2,3}(?:\.\d{1,2})?)'),
+            ]:
+                m = re.search(pattern, html_content)
+                if m:
+                    price = float(m.group(1))
+                    if 100 <= price <= 400:  # sanity: Kenya prices ~150-250 KSh/L
+                        price_map[fuel] = price
+
+            for fuel_type, price in price_map.items():
+                for location in ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret']:
+                    obj, created = FuelPrice.objects.update_or_create(
+                        fuel_type=fuel_type, location=location, effective_date=effective_date,
+                        defaults={'price_per_litre': price},
+                    )
+                    fetched.append({'fuel_type': fuel_type, 'price': price, 'location': location, 'created': created})
+
+        # Current prices from DB regardless of scrape success
+        current_prices = {}
+        for fuel_type, _ in FuelPrice.FUEL_TYPE_CHOICES:
+            price = FuelPrice.objects.filter(
+                fuel_type=fuel_type, effective_date__lte=today
+            ).order_by('-effective_date').first()
+            if price:
+                current_prices[fuel_type] = {
+                    'price_per_litre': str(price.price_per_litre),
+                    'effective_date':  str(price.effective_date),
+                    'location':        price.location,
+                }
+
+        # Next review: 14th of next month
+        nm = effective_date.replace(month=effective_date.month % 12 + 1) if effective_date.month < 12 \
+             else effective_date.replace(year=effective_date.year + 1, month=1, day=14)
+
+        return Response({
+            'scraped_from_erc': len(fetched) > 0,
+            'fetched':          fetched,
+            'errors':           errors,
+            'current_prices':   current_prices,
+            'effective_date':   str(effective_date),
+            'next_review':      str(nm),
+            'note': 'Kenya ERC reviews fuel prices on the 14th of every month.',
+        })
+
+
 class GeofenceListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GeofenceSerializer
