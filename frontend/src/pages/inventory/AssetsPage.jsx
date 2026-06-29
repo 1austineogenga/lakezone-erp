@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
@@ -454,7 +455,7 @@ function CertBlock({ title, certNo, policyNo, policyType, insurer, commencement,
   )
 }
 
-function AssetCard({ asset, canEdit, onEdit }) {
+function AssetCard({ asset, canEdit, onEdit, onClick }) {
   const cat = CATEGORY_OPTIONS.find(c => c.value === asset.category)
   const st = STATUS_OPTIONS.find(s => s.value === asset.status)
   const isTruck = asset.category === 'trucks_tracks'
@@ -462,7 +463,7 @@ function AssetCard({ asset, canEdit, onEdit }) {
   const isMachine = asset.category === 'machinery'
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <div className="px-4 py-3 border-b border-gray-100 flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -474,7 +475,7 @@ function AssetCard({ asset, canEdit, onEdit }) {
           {asset.registration_plate && <p className="text-xs text-gray-500 font-mono mt-0.5">{asset.registration_plate}</p>}
         </div>
         {canEdit && (
-          <button onClick={() => onEdit(asset)}
+          <button onClick={e => { e.stopPropagation(); onEdit(asset) }}
             className="flex-shrink-0 text-xs text-brand-red border border-red-200 px-2.5 py-1 rounded-lg hover:bg-red-50 font-medium">Edit</button>
         )}
       </div>
@@ -557,6 +558,7 @@ function AssetCard({ asset, canEdit, onEdit }) {
 }
 
 export default function AssetsPage() {
+  const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
   const canEdit = role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)
@@ -694,6 +696,7 @@ export default function AssetsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(asset => (
             <AssetCard key={asset.id} asset={asset} canEdit={canEdit}
+              onClick={() => navigate(`/assets/${asset.id}`)}
               onEdit={a => { setEditAsset(a); setShowModal(true) }} />
           ))}
         </div>
@@ -712,7 +715,7 @@ export default function AssetsPage() {
                 const cat = CATEGORY_OPTIONS.find(c => c.value === asset.category)
                 const st = STATUS_OPTIONS.find(s => s.value === asset.status)
                 return (
-                  <tr key={asset.id} className="hover:bg-gray-50">
+                  <tr key={asset.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/${asset.id}`)}>
                     <td className="px-3 py-2.5 font-mono text-gray-400">{asset.asset_code}</td>
                     <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
                     <td className="px-3 py-2.5 font-mono text-gray-500">{asset.registration_plate || '—'}</td>
@@ -722,7 +725,7 @@ export default function AssetsPage() {
                     <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2.5">{canEdit && <button onClick={() => { setEditAsset(asset); setShowModal(true) }} className="text-xs text-brand-red hover:underline font-medium">Edit</button>}</td>
+                    <td className="px-3 py-2.5">{canEdit && <button onClick={e => { e.stopPropagation(); setEditAsset(asset); setShowModal(true) }} className="text-xs text-brand-red hover:underline font-medium">Edit</button>}</td>
                   </tr>
                 )
               })}
