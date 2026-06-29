@@ -1,18 +1,34 @@
 from django.db.models import Sum, Count
-from rest_framework import generics
+from rest_framework import generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from core.permissions import IsStorekeeper
 from .models import Store, StockItem, StockLevel, StockTransaction, Asset, AssetMaintenanceLog
 from .serializers import (
-    StoreSerializer,
-    StockItemSerializer,
-    StockLevelSerializer,
-    StockTransactionSerializer,
-    AssetSerializer,
-    AssetMaintenanceLogSerializer,
+    StoreSerializer, StockItemSerializer, StockLevelSerializer,
+    StockTransactionSerializer, AssetSerializer, AssetMaintenanceLogSerializer,
 )
 
+# ── Role sets ─────────────────────────────────────────────────────────────────
+
+VIEW_ALL_READONLY_ROLES = {
+    'managing_director', 'finance_officer', 'finance_manager',
+    'admin_officer', 'general_manager',
+}
+EDIT_ALL_ROLES = {'system_admin'}
+
+
+def _can_edit(user):
+    """True if the user may add/edit items (in their own dept, or all for system_admin)."""
+    return user.role in EDIT_ALL_ROLES or user.role not in VIEW_ALL_READONLY_ROLES
+
+
+def _user_dept_name(user):
+    return user.department.name if user.department else None
+
+
+# ── Store ─────────────────────────────────────────────────────────────────────
 
 class StoreListCreateView(generics.ListCreateAPIView):
     queryset = Store.objects.filter(is_active=True)
@@ -20,90 +36,202 @@ class StoreListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsStorekeeper]
 
 
+# ── Stock Items ───────────────────────────────────────────────────────────────
+
 class StockItemListCreateView(generics.ListCreateAPIView):
-    queryset = StockItem.objects.filter(is_active=True).prefetch_related("stock_levels")
     serializer_class = StockItemSerializer
-    permission_classes = [IsStorekeeper]
-    filterset_fields = ["category", "valuation_method"]
-    search_fields = ["item_code", "name"]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
+        if role in EDIT_ALL_ROLES or role in VIEW_ALL_READONLY_ROLES:
+            dept_id = self.request.query_params.get('department')
+            if dept_id:
+                qs = qs.filter(department_id=dept_id)
+        else:
+            qs = qs.filter(department=user.department)
+        return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to add stock items.')
+        if user.role not in EDIT_ALL_ROLES:
+            serializer.save(department=user.department)
+        else:
+            serializer.save()
 
 
 class StockItemDetailView(generics.RetrieveUpdateAPIView):
-    queryset = StockItem.objects.all().prefetch_related("stock_levels")
     serializer_class = StockItemSerializer
-    permission_classes = [IsStorekeeper]
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        return StockItem.objects.all().prefetch_related('stock_levels').select_related('department')
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to edit stock items.')
+        item = self.get_object()
+        if user.role not in EDIT_ALL_ROLES and item.department != user.department:
+            raise PermissionDenied("You can only edit your own department's stock items.")
+        return super().update(request, *args, **kwargs)
+
+
+# ── Stock Levels ──────────────────────────────────────────────────────────────
 
 class StockLevelListView(generics.ListAPIView):
-    queryset = StockLevel.objects.select_related("item", "store").all()
     serializer_class = StockLevelSerializer
-    filterset_fields = ["store", "item"]
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['store', 'item']
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        qs = StockLevel.objects.select_related('item', 'store', 'item__department').all()
+        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+            qs = qs.filter(item__department=user.department)
+        return qs
 
 
 class LowStockItemsView(generics.ListAPIView):
-    """Returns stock items where current stock across all stores is at or below reorder level."""
     serializer_class = StockItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        from django.db.models import Sum
-        from django.db.models import OuterRef, Subquery
-        items = StockItem.objects.filter(is_active=True).prefetch_related("stock_levels")
-        low = []
-        for item in items:
-            current = item.current_stock()
-            if float(current) <= float(item.reorder_level):
-                low.append(item.pk)
-        return StockItem.objects.filter(pk__in=low).prefetch_related("stock_levels")
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        items = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
+        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+            items = items.filter(department=user.department)
+        low_pks = [it.pk for it in items if float(it.current_stock()) <= float(it.reorder_level)]
+        return StockItem.objects.filter(pk__in=low_pks).prefetch_related('stock_levels')
 
+
+# ── Stock Transactions ────────────────────────────────────────────────────────
 
 class StockTransactionListCreateView(generics.ListCreateAPIView):
-    queryset = StockTransaction.objects.select_related(
-        "item", "store", "project", "processed_by"
-    )
     serializer_class = StockTransactionSerializer
-    permission_classes = [IsStorekeeper]
-    filterset_fields = ["transaction_type", "store", "project", "item"]
-    search_fields = ["reference_number"]
-    ordering_fields = ["transaction_date"]
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['transaction_type', 'store', 'project', 'item']
+    search_fields = ['reference_number']
+    ordering_fields = ['transaction_date']
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        qs = StockTransaction.objects.select_related(
+            'item', 'store', 'project', 'processed_by', 'item__department'
+        )
+        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+            qs = qs.filter(item__department=user.department)
+        return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to record stock movements.')
+        item = serializer.validated_data.get('item')
+        if user.role not in EDIT_ALL_ROLES and item and item.department != user.department:
+            raise PermissionDenied("You can only record movements for your own department's items.")
+        serializer.save(processed_by=user)
 
 
 class StockTransactionDetailView(generics.RetrieveAPIView):
     queryset = StockTransaction.objects.all()
     serializer_class = StockTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
-# ---------------------------------------------------------------------------
-# Fixed Assets Register Views
-# ---------------------------------------------------------------------------
+# ── Fixed Assets ──────────────────────────────────────────────────────────────
 
 class AssetListCreateView(generics.ListCreateAPIView):
     serializer_class = AssetSerializer
-    filterset_fields = ['department', 'category', 'status', 'condition']
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['category', 'status', 'condition']
     search_fields = ['name', 'asset_code', 'serial_number', 'assigned_to']
 
     def get_queryset(self):
-        return Asset.objects.prefetch_related('maintenance_logs').all()
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        qs = Asset.objects.prefetch_related('maintenance_logs').all()
+        if role in EDIT_ALL_ROLES or role in VIEW_ALL_READONLY_ROLES:
+            dept_name = self.request.query_params.get('department')
+            if dept_name:
+                qs = qs.filter(department=dept_name)
+        else:
+            dept_name = _user_dept_name(user)
+            qs = qs.filter(department=dept_name) if dept_name else qs.none()
+        return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to add assets.')
+        if user.role not in EDIT_ALL_ROLES:
+            dept_name = _user_dept_name(user)
+            if not dept_name:
+                raise PermissionDenied('Your account is not linked to a department.')
+            serializer.save(department=dept_name)
+        else:
+            serializer.save()
 
 
 class AssetDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Asset.objects.prefetch_related('maintenance_logs').all()
     serializer_class = AssetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to edit assets.')
+        asset = self.get_object()
+        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+            raise PermissionDenied("You can only edit your own department's assets.")
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to delete assets.')
+        asset = self.get_object()
+        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+            raise PermissionDenied("You can only delete your own department's assets.")
+        return super().destroy(request, *args, **kwargs)
 
 
 class AssetMaintenanceListCreateView(generics.ListCreateAPIView):
     serializer_class = AssetMaintenanceLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return AssetMaintenanceLog.objects.filter(asset_id=self.kwargs['asset_pk'])
 
     def perform_create(self, serializer):
+        user = self.request.user
+        if not _can_edit(user):
+            raise PermissionDenied('You do not have permission to add maintenance logs.')
         asset = Asset.objects.get(pk=self.kwargs['asset_pk'])
+        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+            raise PermissionDenied("You can only log maintenance for your own department's assets.")
         serializer.save(asset=asset)
 
 
 class AssetDashboardView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
+        user = request.user
+        role = getattr(user, 'role', None)
         qs = Asset.objects.all()
+        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+            dept_name = _user_dept_name(user)
+            qs = qs.filter(department=dept_name) if dept_name else qs.none()
+
         total_assets = qs.count()
         total_purchase_value = qs.aggregate(v=Sum('purchase_value'))['v'] or 0
         total_current_value = qs.aggregate(v=Sum('current_value'))['v'] or 0
@@ -111,16 +239,9 @@ class AssetDashboardView(APIView):
         under_repair_count = qs.filter(status='under_repair').count()
         disposed_count = qs.filter(status='disposed').count()
         lost_count = qs.filter(status='lost').count()
-
-        by_department = list(
-            qs.values('department').annotate(count=Count('id'), value=Sum('current_value')).order_by('department')
-        )
-        by_category = list(
-            qs.values('category').annotate(count=Count('id'), value=Sum('current_value')).order_by('category')
-        )
-        by_condition = list(
-            qs.values('condition').annotate(count=Count('id')).order_by('condition')
-        )
+        by_department = list(qs.values('department').annotate(count=Count('id'), value=Sum('current_value')).order_by('department'))
+        by_category = list(qs.values('category').annotate(count=Count('id'), value=Sum('current_value')).order_by('category'))
+        by_condition = list(qs.values('condition').annotate(count=Count('id')).order_by('condition'))
 
         return Response({
             'total_assets': total_assets,

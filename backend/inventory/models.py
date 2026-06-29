@@ -53,6 +53,10 @@ class StockItem(models.Model):
     )
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    department = models.ForeignKey(
+        'core.Department', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='stock_items',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
