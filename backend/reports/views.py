@@ -13,9 +13,9 @@ from .serializers import (
 )
 
 # Roles allowed to write (create/edit) each report type
-FOREMAN_WRITE = {'site_foreman'}
-SURVEYOR_WRITE = {'site_surveyor'}
-MACHINE_WRITE = {'equipment_operator', 'driver'}
+FOREMAN_WRITE = {'site_foreman', 'system_admin'}
+SURVEYOR_WRITE = {'site_surveyor', 'system_admin'}
+MACHINE_WRITE = {'equipment_operator', 'driver', 'system_admin'}
 
 # Roles allowed to read all reports
 READ_ALL = {
@@ -33,6 +33,8 @@ def _can_read(user):
 
 def _check_editable(report, user):
     """Raise PermissionDenied if the report is locked."""
+    if user.role == 'system_admin':
+        return
     if not report.is_editable:
         raise PermissionDenied('This report is locked for editing after midnight of its submission day.')
     if report.submitted_by_id != user.id:

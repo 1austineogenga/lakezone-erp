@@ -150,7 +150,7 @@ export default function ForemanDailyReportPage() {
   const { role } = usePermissions()
   const { user } = useAuthStore()
 
-  const isForeman = role === 'site_foreman'
+  const isForeman = role === 'site_foreman' || role === 'system_admin'
 
   // filters
   const [dateFilter,    setDateFilter]    = useState('')

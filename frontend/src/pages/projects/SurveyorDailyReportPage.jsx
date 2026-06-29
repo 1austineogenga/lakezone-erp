@@ -172,7 +172,7 @@ export default function SurveyorDailyReportPage() {
   const { role } = usePermissions()
   const { user } = useAuthStore()
 
-  const isSurveyor = role === 'site_surveyor'
+  const isSurveyor = role === 'site_surveyor' || role === 'system_admin'
 
   // filters
   const [dateFilter,    setDateFilter]    = useState('')

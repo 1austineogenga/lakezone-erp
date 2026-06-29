@@ -23,7 +23,7 @@ const MAINT_ITEMS = [
   'General servicing',
 ]
 
-const WRITE_ROLES = ['equipment_operator', 'driver']
+const WRITE_ROLES = ['equipment_operator', 'driver', 'system_admin']
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const initHours = () => {
