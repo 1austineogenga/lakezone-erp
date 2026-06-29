@@ -187,10 +187,18 @@ class ResetUserPasswordView(APIView):
 class BranchListCreateView(generics.ListCreateAPIView):
     queryset = Branch.objects.filter(is_active=True)
     serializer_class = BranchSerializer
-    permission_classes = [IsManagement]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsManagement()]
 
 
 class DepartmentListCreateView(generics.ListCreateAPIView):
     queryset = Department.objects.select_related("branch").filter(is_active=True)
     serializer_class = DepartmentSerializer
-    permission_classes = [IsManagement]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsManagement()]
