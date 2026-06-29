@@ -127,7 +127,7 @@ const PERMISSIONS = {
   },
   surveillance_officer: {
     dashboard: 'read', projects: false, procurement: false,
-    requisitions: 'create', inventory: false, assets: false,
+    requisitions: 'create', inventory: 'read', assets: 'read',
     crm: false, finance: false, hr: false, fleet: 'read',
     users: false,
   },

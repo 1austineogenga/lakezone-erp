@@ -15,6 +15,7 @@ from .serializers import (
 VIEW_ALL_READONLY_ROLES = {
     'managing_director', 'finance_officer', 'finance_manager',
     'admin_officer', 'general_manager',
+    'surveillance_officer', 'head_of_security',
 }
 EDIT_ALL_ROLES = {'system_admin'}
 
