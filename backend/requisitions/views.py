@@ -2,80 +2,39 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
-from .models import StaffRequisition, RequisitionApproval
+from django.db import models as db_models
+from .models import StaffRequisition, RequisitionApproval, MaintenanceSchedule, FuelPaymentRecord
 from .serializers import (
-    StaffRequisitionSerializer, StaffRequisitionCreateSerializer,
-    ApprovalActionSerializer,
+    StaffRequisitionSerializer, StaffRequisitionListSerializer,
+    StaffRequisitionCreateSerializer, ApprovalActionSerializer,
+    MaintenanceScheduleSerializer, MaintenanceScheduleCreateSerializer,
+    FuelPaymentRecordSerializer, ScheduleApproveSerializer,
 )
 
-MD_THRESHOLD      = 1_000_000
-FINANCE_THRESHOLD = 200_000
-
-ROLE_STAGE_MAP = {
-    'department_manager': StaffRequisition.Status.DEPT_REVIEW,
-    'hod':                StaffRequisition.Status.DEPT_REVIEW,
-    'finance_officer':    StaffRequisition.Status.FINANCE,
-    'finance_manager':    StaffRequisition.Status.FINANCE,
-    'managing_director':  StaffRequisition.Status.MD_REVIEW,
+# ── Role sets ──────────────────────────────────────────────────────────────────
+APPROVER_ROLES       = {'managing_director', 'system_admin'}
+ALL_VIEWER_ROLES     = {
+    'managing_director', 'general_manager', 'admin_officer',
+    'finance_officer', 'finance_manager', 'system_admin', 'procurement_officer',
 }
-
-# Roles authorised to act at each approval stage
-STAGE_ALLOWED_ROLES = {
-    StaffRequisition.Status.SUBMITTED:   {'department_manager', 'hod', 'admin', 'superuser', 'system_admin'},
-    StaffRequisition.Status.DEPT_REVIEW: {'finance_officer', 'finance_manager', 'admin', 'superuser', 'system_admin'},
-    StaffRequisition.Status.FINANCE:     {'managing_director', 'general_manager', 'admin', 'superuser', 'system_admin'},
-    StaffRequisition.Status.MD_REVIEW:   {'managing_director', 'general_manager', 'admin', 'superuser', 'system_admin'},
-}
+SITE_STAFF_ROLES     = {'site_engineer', 'site_foreman', 'site_surveyor'}
+FINANCE_ROLES        = {'finance_officer', 'finance_manager', 'system_admin', 'managing_director'}
+SCHEDULE_LOGGER_ROLES = {'site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'}
+SCHEDULE_APPROVER_ROLES = {'admin_officer', 'system_admin', 'managing_director'}
 
 
-def next_stage(req):
-    amount = req.total_amount
-    if req.status == StaffRequisition.Status.SUBMITTED:
-        return StaffRequisition.Status.DEPT_REVIEW
-    if req.status == StaffRequisition.Status.DEPT_REVIEW:
-        if amount >= FINANCE_THRESHOLD:
-            return StaffRequisition.Status.FINANCE
-        if amount >= MD_THRESHOLD:
-            return StaffRequisition.Status.MD_REVIEW
-        return StaffRequisition.Status.APPROVED
-    if req.status == StaffRequisition.Status.FINANCE:
-        if amount >= MD_THRESHOLD:
-            return StaffRequisition.Status.MD_REVIEW
-        return StaffRequisition.Status.APPROVED
-    if req.status == StaffRequisition.Status.MD_REVIEW:
-        return StaffRequisition.Status.APPROVED
-    return req.status
-
-
-def _check_budget(req):
-    """Return (ok, error_message). Checks project budget remaining vs requisition total."""
-    if not req.project_id:
-        return True, None
-    from projects.models import Budget, BudgetLineItem
-    from django.db.models import Sum
-    approved_budgets = Budget.objects.filter(project=req.project, status='approved')
-    if not approved_budgets.exists():
-        return True, None  # No approved budget — nothing to check against
-
-    total_budget = BudgetLineItem.objects.filter(
-        budget__in=approved_budgets
-    ).aggregate(total=Sum('amount'))['total'] or 0
-
-    already_committed = StaffRequisition.objects.filter(
-        project=req.project,
-        status__in=[
-            StaffRequisition.Status.APPROVED,
-            StaffRequisition.Status.FULFILLED,
-        ],
-    ).exclude(pk=req.pk).aggregate(total=Sum('total_amount'))['total'] or 0
-
-    remaining = float(total_budget) - float(already_committed)
-    if float(req.total_amount) > remaining:
-        return False, (
-            f'Requisition total ({req.total_amount}) exceeds remaining project '
-            f'budget ({remaining:.2f}). Cannot approve.'
+def _req_queryset(user):
+    role = getattr(user, 'role', None)
+    if role in ALL_VIEWER_ROLES:
+        return StaffRequisition.objects.all()
+    if role == 'site_manager':
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        site_staff_ids = User.objects.filter(role__in=SITE_STAFF_ROLES).values_list('id', flat=True)
+        return StaffRequisition.objects.filter(
+            db_models.Q(requested_by=user) | db_models.Q(requested_by_id__in=site_staff_ids)
         )
-    return True, None
+    return StaffRequisition.objects.filter(requested_by=user)
 
 
 class RequisitionListCreateView(generics.ListCreateAPIView):
@@ -84,24 +43,16 @@ class RequisitionListCreateView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return StaffRequisitionCreateSerializer
-        return StaffRequisitionSerializer
+        return StaffRequisitionListSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        role = getattr(user, 'role', None)
-        privileged = {
-            'department_manager', 'hod', 'finance_officer', 'finance_manager',
-            'managing_director', 'admin', 'superuser',
-        }
-        if role in privileged:
-            qs = StaffRequisition.objects.all()
-        else:
-            qs = StaffRequisition.objects.filter(requested_by=user)
-
-        status_filter = self.request.query_params.get('status')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        return qs
+        qs = _req_queryset(self.request.user)
+        params = self.request.query_params
+        if params.get('status'):
+            qs = qs.filter(status=params['status'])
+        if params.get('req_type'):
+            qs = qs.filter(req_type=params['req_type'])
+        return qs.select_related('requested_by', 'project').prefetch_related('maintenance_schedule')
 
     def perform_create(self, serializer):
         serializer.save()
@@ -112,45 +63,42 @@ class RequisitionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = StaffRequisitionSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        role = getattr(user, 'role', None)
-        privileged = {
-            'department_manager', 'hod', 'finance_officer', 'finance_manager',
-            'managing_director', 'admin', 'superuser',
-        }
-        if role in privileged:
-            return StaffRequisition.objects.all()
-        return StaffRequisition.objects.filter(requested_by=user)
+        return _req_queryset(self.request.user).select_related(
+            'requested_by', 'project', 'department',
+        ).prefetch_related(
+            'items', 'approvals__approved_by',
+            'maintenance_schedule', 'fuel_payment',
+        )
 
 
 class RequisitionApproveView(APIView):
+    """Only the MD (managing_director) or system_admin can approve requisitions."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in APPROVER_ROLES:
+            return Response(
+                {'detail': 'Only the Managing Director can approve requisitions.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         try:
-            req = StaffRequisition.objects.get(pk=pk)
+            req = _req_queryset(request.user).get(pk=pk)
         except StaffRequisition.DoesNotExist:
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Role-based authorization for the current stage
-        user_role = getattr(request.user, 'role', None)
-        allowed_roles = STAGE_ALLOWED_ROLES.get(req.status, set())
-        if user_role not in allowed_roles:
+        if req.status not in {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.MD_REVIEW,
+                               StaffRequisition.Status.DEPT_REVIEW, StaffRequisition.Status.FINANCE}:
             return Response(
-                {'detail': f'Your role ({user_role}) is not authorised to act at stage {req.status}.'},
-                status=status.HTTP_403_FORBIDDEN,
+                {'detail': f'Cannot act on a requisition with status: {req.status}.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = ApprovalActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         action   = serializer.validated_data['action']
         comments = serializer.validated_data.get('comments', '')
-
-        # Budget check before approving
-        if action == RequisitionApproval.Action.APPROVED:
-            ok, err = _check_budget(req)
-            if not ok:
-                return Response({'detail': err}, status=status.HTTP_400_BAD_REQUEST)
 
         RequisitionApproval.objects.create(
             requisition=req,
@@ -161,7 +109,7 @@ class RequisitionApproveView(APIView):
         )
 
         if action == RequisitionApproval.Action.APPROVED:
-            req.status = next_stage(req)
+            req.status = StaffRequisition.Status.APPROVED
         elif action == RequisitionApproval.Action.REJECTED:
             req.status = StaffRequisition.Status.REJECTED
             req.rejection_reason = comments
@@ -173,23 +121,16 @@ class RequisitionApproveView(APIView):
 
 
 class RequisitionRecallView(APIView):
-    """Allow the original requester to withdraw a SUBMITTED or DEPT_REVIEW requisition."""
+    """Original requester can withdraw a submitted requisition back to draft."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
-            req = StaffRequisition.objects.get(pk=pk)
+            req = StaffRequisition.objects.get(pk=pk, requested_by=request.user)
         except StaffRequisition.DoesNotExist:
-            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Not found or not your requisition.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if req.requested_by != request.user:
-            return Response(
-                {'detail': 'Only the original requester can recall this requisition.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        recallable = {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.DEPT_REVIEW}
-        if req.status not in recallable:
+        if req.status not in {StaffRequisition.Status.SUBMITTED}:
             return Response(
                 {'detail': f'Cannot recall a requisition in status: {req.status}.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -204,26 +145,223 @@ class RequisitionFulfillView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in ALL_VIEWER_ROLES:
+            return Response({'detail': 'Not authorised.'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             req = StaffRequisition.objects.get(pk=pk, status=StaffRequisition.Status.APPROVED)
         except StaffRequisition.DoesNotExist:
             return Response({'detail': 'Not found or not approved.'}, status=status.HTTP_404_NOT_FOUND)
 
-        req.status           = StaffRequisition.Status.FULFILLED
-        req.fulfilled_by     = request.user
-        req.fulfilled_at     = timezone.now()
+        req.status            = StaffRequisition.Status.FULFILLED
+        req.fulfilled_by      = request.user
+        req.fulfilled_at      = timezone.now()
         req.fulfillment_notes = request.data.get('notes', '')
         req.save(update_fields=['status', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes'])
         return Response(StaffRequisitionSerializer(req).data)
 
 
-class MyPendingApprovalsView(generics.ListAPIView):
+class PendingApprovalsView(generics.ListAPIView):
+    """List all requisitions awaiting MD approval."""
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class   = StaffRequisitionSerializer
+    serializer_class   = StaffRequisitionListSerializer
 
     def get_queryset(self):
-        role = getattr(self.request.user, 'role', None)
-        stage = ROLE_STAGE_MAP.get(role)
-        if not stage:
+        user_role = getattr(self.request.user, 'role', None)
+        if user_role not in APPROVER_ROLES:
             return StaffRequisition.objects.none()
-        return StaffRequisition.objects.filter(status=stage)
+        return StaffRequisition.objects.filter(
+            status=StaffRequisition.Status.SUBMITTED
+        ).select_related('requested_by', 'project')
+
+
+# ── Maintenance Schedule ───────────────────────────────────────────────────────
+
+class MaintenanceScheduleListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return MaintenanceScheduleCreateSerializer if self.request.method == 'POST' else MaintenanceScheduleSerializer
+
+    def get_queryset(self):
+        user_role = getattr(self.request.user, 'role', None)
+        qs = MaintenanceSchedule.objects.select_related(
+            'requisition', 'logged_by', 'approved_by'
+        )
+        if user_role in ALL_VIEWER_ROLES | {'site_manager'}:
+            return qs
+        # Regular users: only schedules from their own requisitions
+        return qs.filter(requisition__requested_by=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in SCHEDULE_LOGGER_ROLES:
+            return Response(
+                {'detail': 'Only site managers or admin can log a maintenance schedule.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().create(request, *args, **kwargs)
+
+
+class MaintenanceScheduleDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class   = MaintenanceScheduleSerializer
+
+    def get_queryset(self):
+        user_role = getattr(self.request.user, 'role', None)
+        qs = MaintenanceSchedule.objects.select_related(
+            'requisition', 'logged_by', 'approved_by'
+        )
+        if user_role in ALL_VIEWER_ROLES | {'site_manager'}:
+            return qs
+        return qs.filter(requisition__requested_by=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        user_role = getattr(request.user, 'role', None)
+        schedule  = self.get_object()
+        if user_role not in SCHEDULE_LOGGER_ROLES:
+            return Response({'detail': 'Not authorised.'}, status=status.HTTP_403_FORBIDDEN)
+        if schedule.status in {'approved', 'completed', 'cancelled'}:
+            return Response(
+                {'detail': 'Cannot edit a schedule that is approved, completed, or cancelled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().update(request, *args, **kwargs)
+
+
+class MaintenanceScheduleApproveView(APIView):
+    """Admin approves (or cancels) a maintenance schedule, triggering a finance claim."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in SCHEDULE_APPROVER_ROLES:
+            return Response(
+                {'detail': 'Only admin can approve maintenance schedules.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            schedule = MaintenanceSchedule.objects.select_related('requisition').get(pk=pk)
+        except MaintenanceSchedule.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ScheduleApproveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        action   = serializer.validated_data['action']
+        comments = serializer.validated_data.get('comments', '')
+
+        if action == 'cancelled':
+            schedule.status        = MaintenanceSchedule.Status.CANCELLED
+            schedule.admin_comments = comments
+            schedule.save(update_fields=['status', 'admin_comments'])
+            return Response(MaintenanceScheduleSerializer(schedule).data)
+
+        # Approve: create finance expense claim
+        schedule.status        = MaintenanceSchedule.Status.APPROVED
+        schedule.admin_comments = comments
+        schedule.approved_by   = request.user
+        schedule.approved_at   = timezone.now()
+
+        if schedule.payment_amount and not schedule.expense_claim_id:
+            try:
+                from finance.models import ExpenseClaim, ExpenseClaimItem
+                req = schedule.requisition
+                claim = ExpenseClaim.objects.create(
+                    title=f'Maintenance: {req.title}',
+                    submitted_by=req.requested_by,
+                    project=req.project,
+                    total_amount=schedule.payment_amount,
+                    notes=(
+                        f'Auto-created from maintenance schedule for {req.reference_number}. '
+                        f'Assigned to: {schedule.assigned_to or "TBD"}. '
+                        f'Payment details: {schedule.payment_details or "N/A"}'
+                    ),
+                    status='submitted',
+                    requisition=req,
+                )
+                ExpenseClaimItem.objects.create(
+                    claim=claim,
+                    date=timezone.localdate(),
+                    description=schedule.work_description or req.title,
+                    amount=schedule.payment_amount,
+                    category='overhead',
+                    receipt_ref=req.reference_number,
+                )
+                schedule.expense_claim = claim
+            except Exception:
+                pass  # Finance claim creation is best-effort
+
+        schedule.save(update_fields=['status', 'admin_comments', 'approved_by', 'approved_at', 'expense_claim'])
+        return Response(MaintenanceScheduleSerializer(schedule).data)
+
+
+# ── Fuel Payment ───────────────────────────────────────────────────────────────
+
+class FuelPaymentView(APIView):
+    """Finance records payment for an approved fuel requisition."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in FINANCE_ROLES:
+            return Response(
+                {'detail': 'Only finance can record fuel payments.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            req = StaffRequisition.objects.get(pk=pk, req_type=StaffRequisition.ReqType.FUEL)
+        except StaffRequisition.DoesNotExist:
+            return Response({'detail': 'Not found or not a fuel requisition.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if req.status not in {StaffRequisition.Status.APPROVED, StaffRequisition.Status.FULFILLED}:
+            return Response({'detail': 'Fuel requisition must be approved first.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if hasattr(req, 'fuel_payment'):
+            return Response({'detail': 'Payment already recorded for this requisition.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = FuelPaymentRecordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # Create expense claim in finance
+        expense_claim = None
+        try:
+            from finance.models import ExpenseClaim, ExpenseClaimItem
+            claim = ExpenseClaim.objects.create(
+                title=f'Fuel: {req.title}',
+                submitted_by=req.requested_by,
+                project=req.project,
+                total_amount=data['amount_paid'],
+                notes=(
+                    f'Fuel payment for {req.reference_number}. '
+                    f'Mode: {data["payment_mode"]}. '
+                    f'Ref: {data.get("payment_ref", "N/A")}'
+                ),
+                status='submitted',
+                requisition=req,
+            )
+            ExpenseClaimItem.objects.create(
+                claim=claim,
+                date=timezone.localdate(),
+                description=req.title,
+                amount=data['amount_paid'],
+                category='overhead',
+                receipt_ref=data.get('payment_ref', req.reference_number),
+            )
+            expense_claim = claim
+        except Exception:
+            pass
+
+        record = FuelPaymentRecord.objects.create(
+            requisition=req,
+            payment_mode=data['payment_mode'],
+            amount_paid=data['amount_paid'],
+            payment_ref=data.get('payment_ref', ''),
+            notes=data.get('notes', ''),
+            expense_claim=expense_claim,
+            created_by=request.user,
+        )
+        return Response(FuelPaymentRecordSerializer(record).data, status=status.HTTP_201_CREATED)

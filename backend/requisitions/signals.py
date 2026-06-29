@@ -6,15 +6,20 @@ from django.utils import timezone
 @receiver(post_save, sender='requisitions.StaffRequisition')
 def create_expense_claim_on_approval(sender, instance, created, **kwargs):
     """
-    When a StaffRequisition transitions to 'approved', automatically create
-    a corresponding ExpenseClaim (and its items) in the finance module.
+    When a non-fuel StaffRequisition transitions to 'approved', automatically
+    create a corresponding ExpenseClaim in the finance module.
+    Fuel requisitions are handled separately via FuelPaymentView.
+    Repair/maintenance requisitions are handled via MaintenanceSchedule approval.
     """
     if instance.status != 'approved':
         return
 
+    # Fuel and repair/maintenance have dedicated payment flows
+    if instance.req_type in ('fuel', 'repair_maintenance'):
+        return
+
     from finance.models import ExpenseClaim, ExpenseClaimItem
 
-    # Avoid duplicates: if an ExpenseClaim is already linked to this requisition, skip.
     if ExpenseClaim.objects.filter(requisition=instance).exists():
         return
 
@@ -23,7 +28,7 @@ def create_expense_claim_on_approval(sender, instance, created, **kwargs):
         submitted_by=instance.requested_by,
         project=instance.project,
         total_amount=instance.total_amount,
-        notes=f"Auto-created from requisition {instance.reference_number}",
+        notes=f'Auto-created from requisition {instance.reference_number}',
         status='submitted',
         requisition=instance,
     )
