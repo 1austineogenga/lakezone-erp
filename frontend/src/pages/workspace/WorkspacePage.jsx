@@ -25,7 +25,7 @@ const submitLeave      = (id)   => api.post(`/hr/leave-applications/${id}/submit
 const getMyAdvances    = (emp)  => api.get('/hr/advances/', { params: { employee: emp, page_size: 50 } })
 const createAdvance    = (d)    => api.post('/hr/advances/', d)
 const getMyPayslips    = (emp)  => api.get('/hr/payroll/entries/', { params: { employee: emp, page_size: 50 } })
-const getMyReqs        = ()     => api.get('/requisitions/', { params: { page_size: 50 } })
+// Requisitions removed from workspace — use /requisitions for the full module
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'
 
@@ -49,7 +49,6 @@ const TABS = [
   { id: 'profile',       label: 'My Profile',      icon: UserCircleIcon },
   { id: 'leave',         label: 'Leave',           icon: CalendarDaysIcon },
   { id: 'advance',       label: 'Salary Advance',  icon: CurrencyDollarIcon },
-  { id: 'requisitions',  label: 'Requisitions',    icon: ClipboardDocumentListIcon },
   { id: 'payslips',      label: 'Payslips',        icon: DocumentTextIcon },
 ]
 
@@ -111,20 +110,17 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
 
   const pendingLeave    = leaves.filter(l => l.status === 'submitted').length
   const pendingAdvance  = advances.filter(a => a.status === 'pending').length
-  const openReqs        = reqs.filter(r => !['approved', 'rejected', 'cancelled'].includes(r.status)).length
   const totalLeaveLeft  = leaveBalances.reduce((s, b) => s + Number(b.balance || 0), 0)
 
   const quickActions = [
-    { label: 'Apply for Leave',    icon: CalendarDaysIcon,        color: 'text-green-600 bg-green-50',  tab: 'leave' },
-    { label: 'Request Advance',    icon: CurrencyDollarIcon,      color: 'text-blue-600 bg-blue-50',    tab: 'advance' },
-    { label: 'New Requisition',    icon: ClipboardDocumentListIcon, color: 'text-amber-600 bg-amber-50', action: () => navigate('/requisitions/new') },
-    { label: 'View Payslips',      icon: DocumentTextIcon,        color: 'text-purple-600 bg-purple-50', tab: 'payslips' },
+    { label: 'Apply for Leave',    icon: CalendarDaysIcon,   color: 'text-green-600 bg-green-50',  tab: 'leave' },
+    { label: 'Request Advance',    icon: CurrencyDollarIcon, color: 'text-blue-600 bg-blue-50',    tab: 'advance' },
+    { label: 'View Payslips',      icon: DocumentTextIcon,   color: 'text-purple-600 bg-purple-50', tab: 'payslips' },
   ]
 
   const recentActivity = [
     ...leaves.slice(0, 3).map(l => ({ type: 'Leave', label: `${l.leave_type_name || 'Leave'} — ${l.start_date}`, status: l.status, date: l.created_at })),
     ...advances.slice(0, 3).map(a => ({ type: 'Advance', label: `${fmt(a.amount)} advance`, status: a.status, date: a.created_at })),
-    ...reqs.slice(0, 3).map(r => ({ type: 'Requisition', label: r.reference_number || r.rq_number || 'Requisition', status: r.status, date: r.created_at })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8)
 
   return (
@@ -156,7 +152,6 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
           { label: 'Leave Days Left', value: totalLeaveLeft, icon: CalendarDaysIcon, color: 'text-green-600 bg-green-50', tab: 'leave' },
           { label: 'Pending Leaves',  value: pendingLeave,   icon: ClockIcon,        color: 'text-amber-600 bg-amber-50', tab: 'leave' },
           { label: 'Pending Advances',value: pendingAdvance, icon: CurrencyDollarIcon,color:'text-blue-600 bg-blue-50',   tab: 'advance' },
-          { label: 'Open Reqs',       value: openReqs,       icon: ClipboardDocumentListIcon, color: 'text-purple-600 bg-purple-50', tab: 'requisitions' },
         ].map(({ label, value, icon: Icon, color, tab: t }) => (
           <button key={label} onClick={() => setTab(t)}
             className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
@@ -828,11 +823,6 @@ export default function WorkspacePage() {
     queryFn: () => getMyAdvances(employeeId).then(r => r.data?.results ?? r.data ?? []),
     enabled: !!employeeId,
   })
-  const { data: reqs = [] } = useQuery({
-    queryKey: ['my-reqs'],
-    queryFn: () => getMyReqs().then(r => r.data?.results ?? r.data ?? []),
-  })
-
   const currentUser = user || authUser
 
   return (
@@ -840,7 +830,7 @@ export default function WorkspacePage() {
       {/* Header */}
       <div>
         <h2 className="font-bold text-brand-slate text-lg">My Workspace</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Manage your profile, leave, advances, requisitions and payslips</p>
+        <p className="text-xs text-gray-400 mt-0.5">Manage your profile, leave, advances and payslips</p>
       </div>
 
       {/* Tab bar */}
@@ -857,11 +847,10 @@ export default function WorkspacePage() {
       </div>
 
       {/* Tab content */}
-      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={reqs} setTab={setTab} />}
+      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
-      {tab === 'requisitions'  && <RequisitionsTab />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
     </div>
   )

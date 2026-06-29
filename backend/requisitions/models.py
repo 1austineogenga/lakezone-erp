@@ -15,19 +15,25 @@ def generate_ref():
 
 class StaffRequisition(models.Model):
     class ReqType(models.TextChoices):
-        STORE_ITEM        = 'store_item',         'Store Item'
-        EXTERNAL_PURCHASE = 'external_purchase',  'External Purchase'
-        SERVICE           = 'service',            'Service Request'
+        FUEL               = 'fuel',               'Fuel Requisition'
+        MATERIALS          = 'materials',           'Materials Requisition'
+        REPAIR_MAINTENANCE = 'repair_maintenance',  'Repair & Maintenance'
+        GENERAL_PURCHASE   = 'general_purchase',    'General Purchase'
+        # Legacy types retained for backward compatibility
+        STORE_ITEM         = 'store_item',          'Store Item'
+        EXTERNAL_PURCHASE  = 'external_purchase',   'External Purchase'
+        SERVICE            = 'service',             'Service Request'
 
     class Status(models.TextChoices):
-        DRAFT       = 'draft',       'Draft'
-        SUBMITTED   = 'submitted',   'Submitted'
+        DRAFT     = 'draft',       'Draft'
+        SUBMITTED = 'submitted',   'Submitted'
+        APPROVED  = 'approved',    'Approved'
+        REJECTED  = 'rejected',    'Rejected'
+        FULFILLED = 'fulfilled',   'Fulfilled'
+        # Legacy statuses retained for backward compatibility
         DEPT_REVIEW = 'dept_review', 'Department Review'
         FINANCE     = 'finance',     'Finance Review'
         MD_REVIEW   = 'md_review',   'MD Review'
-        APPROVED    = 'approved',    'Approved'
-        REJECTED    = 'rejected',    'Rejected'
-        FULFILLED   = 'fulfilled',   'Fulfilled'
 
     class Priority(models.TextChoices):
         LOW    = 'low',    'Low'
@@ -57,9 +63,9 @@ class StaffRequisition(models.Model):
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
 
-    fulfilled_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                                         null=True, blank=True, related_name='requisitions_fulfilled')
-    fulfilled_at     = models.DateTimeField(null=True, blank=True)
+    fulfilled_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                          null=True, blank=True, related_name='requisitions_fulfilled')
+    fulfilled_at      = models.DateTimeField(null=True, blank=True)
     fulfillment_notes = models.TextField(blank=True)
 
     class Meta:
@@ -126,3 +132,67 @@ class RequisitionApproval(models.Model):
 
     def __str__(self):
         return f'{self.requisition.reference_number} — {self.stage} — {self.action}'
+
+
+class MaintenanceSchedule(models.Model):
+    """Logged by site manager or admin after a repair/maintenance requisition is submitted."""
+
+    class Status(models.TextChoices):
+        LOGGED           = 'logged',           'Logged'
+        PENDING_APPROVAL = 'pending_approval', 'Pending Admin Approval'
+        APPROVED         = 'approved',         'Approved'
+        IN_PROGRESS      = 'in_progress',      'In Progress'
+        COMPLETED        = 'completed',        'Completed'
+        CANCELLED        = 'cancelled',        'Cancelled'
+
+    id               = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    requisition      = models.OneToOneField(StaffRequisition, on_delete=models.CASCADE,
+                                            related_name='maintenance_schedule')
+    assigned_to      = models.CharField(max_length=255, blank=True)
+    work_description = models.TextField(blank=True)
+    notes            = models.TextField(blank=True)
+    scheduled_date   = models.DateField(null=True, blank=True)
+    payment_amount   = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    payment_details  = models.TextField(blank=True)
+    status           = models.CharField(max_length=20, choices=Status.choices, default=Status.LOGGED)
+
+    logged_by        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                         related_name='maintenance_schedules_logged')
+    admin_comments   = models.TextField(blank=True)
+    approved_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                         null=True, blank=True,
+                                         related_name='maintenance_schedules_approved')
+    approved_at      = models.DateTimeField(null=True, blank=True)
+    expense_claim    = models.ForeignKey('finance.ExpenseClaim', on_delete=models.SET_NULL,
+                                         null=True, blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    updated_at       = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Schedule for {self.requisition.reference_number}'
+
+
+class FuelPaymentRecord(models.Model):
+    """Finance records how a fuel requisition was paid."""
+
+    class PaymentMode(models.TextChoices):
+        FINANCE_RAISED = 'finance_raised', 'Payment Raised by Finance'
+        MD_PAID        = 'md_paid',        'MD Paid Directly (Record Update)'
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    requisition  = models.OneToOneField(StaffRequisition, on_delete=models.CASCADE,
+                                        related_name='fuel_payment')
+    payment_mode = models.CharField(max_length=20, choices=PaymentMode.choices)
+    amount_paid  = models.DecimalField(max_digits=15, decimal_places=2)
+    payment_ref  = models.CharField(max_length=100, blank=True)
+    notes        = models.TextField(blank=True)
+    expense_claim = models.ForeignKey('finance.ExpenseClaim', on_delete=models.SET_NULL,
+                                      null=True, blank=True)
+    created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Fuel payment for {self.requisition.reference_number}'
