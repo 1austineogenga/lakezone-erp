@@ -13,6 +13,7 @@ import ProcurementPage from './pages/procurement/ProcurementPage'
 import NewPRPage from './pages/procurement/NewPRPage'
 import PRDetailPage from './pages/procurement/PRDetailPage'
 import PODetailPage from './pages/procurement/PODetailPage'
+import NewPOPage from './pages/procurement/NewPOPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import StockItemDetailPage from './pages/inventory/StockItemDetailPage'
 import AssetsPage from './pages/inventory/AssetsPage'
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/procurement"           element={<PrivateRoute module="procurement"><ProcurementPage /></PrivateRoute>} />
             <Route path="/procurement/new-pr"    element={<PrivateRoute module="procurement"><NewPRPage /></PrivateRoute>} />
             <Route path="/procurement/pr/:id"    element={<PrivateRoute module="procurement"><PRDetailPage /></PrivateRoute>} />
+            <Route path="/procurement/new-po"    element={<PrivateRoute module="procurement"><NewPOPage /></PrivateRoute>} />
             <Route path="/procurement/po/:id"    element={<PrivateRoute module="procurement"><PODetailPage /></PrivateRoute>} />
             <Route path="/inventory"             element={<PrivateRoute module="inventory"><InventoryPage /></PrivateRoute>} />
             <Route path="/inventory/:id"         element={<PrivateRoute module="inventory"><StockItemDetailPage /></PrivateRoute>} />
