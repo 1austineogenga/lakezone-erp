@@ -49,6 +49,51 @@ const CERT_STATUS_OPTIONS = [
 
 const CONDITION_OPTIONS = ['new', 'good', 'fair', 'poor', 'condemned']
 
+// Department → allowed categories + default. Partial name match (case-insensitive).
+const DEPT_CATEGORY_MAP = [
+  {
+    match: ['transport', 'logistics'],
+    categories: ['machinery', 'vehicles', 'trucks_tracks'],
+    default: 'machinery',
+  },
+  {
+    match: ['information technology', 'it department', 'it '],
+    categories: ['it_equipment', 'communication', 'other'],
+    default: 'it_equipment',
+  },
+  {
+    match: ['administration', 'admin'],
+    categories: ['furniture', 'office_equipment', 'safety', 'tools', 'other'],
+    default: 'office_equipment',
+  },
+  {
+    match: ['site operations', 'site'],
+    categories: ['machinery', 'tools', 'safety', 'other'],
+    default: 'machinery',
+  },
+  {
+    match: ['finance', 'hr', 'human resource', 'procurement'],
+    categories: ['it_equipment', 'furniture', 'office_equipment', 'other'],
+    default: 'it_equipment',
+  },
+  {
+    match: ['security'],
+    categories: ['safety', 'communication', 'other'],
+    default: 'safety',
+  },
+]
+
+function getDeptCategories(deptName) {
+  if (!deptName) return { categories: CATEGORY_OPTIONS, default: 'machinery' }
+  const lower = deptName.toLowerCase()
+  const rule = DEPT_CATEGORY_MAP.find(r => r.match.some(m => lower.includes(m)))
+  if (!rule) return { categories: CATEGORY_OPTIONS, default: 'other' }
+  return {
+    categories: CATEGORY_OPTIONS.filter(c => rule.categories.includes(c.value)),
+    default: rule.default,
+  }
+}
+
 const EMPTY = {
   name: '', category: 'machinery', serial_number: '', make_model: '',
   purchase_date: '', purchase_value: '', current_value: '',
@@ -98,8 +143,12 @@ function StatCard({ icon: Icon, label, value, color = 'blue' }) {
   )
 }
 
-function AssetModal({ asset, deptName, onClose }) {
+function AssetModal({ asset, deptName, isAdmin, onClose }) {
   const isEdit = !!asset
+  const { categories: availableCategories, default: defaultCategory } = isAdmin
+    ? { categories: CATEGORY_OPTIONS, default: 'machinery' }
+    : getDeptCategories(deptName)
+
   const [form, setForm] = useState(isEdit ? {
     ...EMPTY,
     name: asset.name, category: asset.category,
@@ -130,7 +179,7 @@ function AssetModal({ asset, deptName, onClose }) {
     speed_governor_cert_issue_date: asset.speed_governor_cert_issue_date || '',
     speed_governor_cert_expiry: asset.speed_governor_cert_expiry || '',
     speed_governor_issuing_authority: asset.speed_governor_issuing_authority || '',
-  } : { ...EMPTY })
+  } : { ...EMPTY, category: defaultCategory })
 
   const qc = useQueryClient()
   const mut = useMutation({
@@ -190,7 +239,7 @@ function AssetModal({ asset, deptName, onClose }) {
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Category *</label>
                 <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
-                  {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  {availableCategories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </div>
               <div>
@@ -738,6 +787,7 @@ export default function AssetsPage() {
         <AssetModal
           asset={editAsset}
           deptName={editAsset?.department ?? ownDeptName}
+          isAdmin={role === 'system_admin'}
           onClose={() => { setShowModal(false); setEditAsset(null) }}
         />
       )}
