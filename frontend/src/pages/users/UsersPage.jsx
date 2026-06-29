@@ -27,8 +27,8 @@ const ROLE_COLORS = {
   site_surveyor: 'bg-orange-100 text-orange-700',
 }
 
-const getDepartments = () => api.get('/auth/departments/', { params: { page_size: 50 } })
-const getBranches    = () => api.get('/auth/branches/',    { params: { page_size: 50 } })
+const getDepartments = () => api.get('/core/departments/', { params: { page_size: 50 } })
+const getBranches    = () => api.get('/core/branches/',    { params: { page_size: 50 } })
 
 const EMPTY_FORM = {
   first_name: '', last_name: '', email: '', phone: '',
