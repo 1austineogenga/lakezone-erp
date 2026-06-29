@@ -54,44 +54,80 @@ def unread_count(request):
 
 # ── Compliance Alerts ──────────────────────────────────────────────────────────
 
+def _alert_level(days_left):
+    if days_left < 0:
+        return 'expired'
+    if days_left <= 3:
+        return 'critical'
+    if days_left <= 7:
+        return 'warning'
+    return 'ok'
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def compliance_alerts(request):
-    """Return all vehicle compliance records with expiry info for the Alerts page."""
-    from fleet.models import VehicleCompliance
-    from fleet.serializers import VehicleComplianceSerializer
-    from datetime import date, timedelta
+    """Return all compliance records (fleet + assets) with expiry info."""
+    from datetime import date
 
     today = date.today()
-    warn_date = today + timedelta(days=30)
-
-    records = VehicleCompliance.objects.select_related('vehicle').filter(
-        expiry_date__isnull=False
-    ).exclude(status='not_applicable').order_by('expiry_date')
-
     result = []
-    for rec in records:
-        days_left = (rec.expiry_date - today).days
-        if days_left < 0:
-            alert_level = 'expired'
-        elif days_left <= 7:
-            alert_level = 'critical'
-        elif days_left <= 30:
-            alert_level = 'warning'
-        else:
-            alert_level = 'ok'
 
-        result.append({
-            'id':             str(rec.id),
-            'vehicle_no':     rec.vehicle.vehicle_no,
-            'vehicle_name':   rec.vehicle.vehicle_name or rec.vehicle.vehicle_no,
-            'compliance_type': rec.compliance_type,
-            'expiry_date':    str(rec.expiry_date),
-            'days_left':      days_left,
-            'alert_level':    alert_level,
-            'notes':          rec.notes,
-        })
+    # ── Fleet vehicle compliance ──────────────────────────────────────────────
+    try:
+        from fleet.models import VehicleCompliance
+        records = VehicleCompliance.objects.select_related('vehicle').filter(
+            expiry_date__isnull=False
+        ).exclude(status='not_applicable').order_by('expiry_date')
 
+        for rec in records:
+            days_left = (rec.expiry_date - today).days
+            result.append({
+                'id':               f'fleet-{rec.id}',
+                'source':           'fleet',
+                'asset_name':       rec.vehicle.vehicle_name or rec.vehicle.vehicle_no,
+                'asset_ref':        rec.vehicle.vehicle_no,
+                'compliance_type':  rec.compliance_type,
+                'expiry_date':      str(rec.expiry_date),
+                'days_left':        days_left,
+                'alert_level':      _alert_level(days_left),
+                'notes':            rec.notes,
+            })
+    except Exception:
+        pass
+
+    # ── Asset certificates ────────────────────────────────────────────────────
+    try:
+        from inventory.models import Asset
+
+        CERT_FIELDS = [
+            ('insurance',      'insurance_expiry',           'Insurance Certificate'),
+            ('inspection',     'inspection_cert_expiry',     'Inspection Certificate'),
+            ('speed_governor', 'speed_governor_cert_expiry', 'Speed Governor Certificate'),
+        ]
+
+        for asset in Asset.objects.all():
+            for cert_key, field, label in CERT_FIELDS:
+                expiry = getattr(asset, field, None)
+                if not expiry:
+                    continue
+                days_left = (expiry - today).days
+                result.append({
+                    'id':               f'asset-{asset.id}-{cert_key}',
+                    'source':           'asset',
+                    'asset_name':       asset.name,
+                    'asset_ref':        asset.asset_code,
+                    'compliance_type':  cert_key,
+                    'compliance_label': label,
+                    'expiry_date':      str(expiry),
+                    'days_left':        days_left,
+                    'alert_level':      _alert_level(days_left),
+                    'notes':            None,
+                })
+    except Exception:
+        pass
+
+    result.sort(key=lambda x: x['days_left'])
     return Response(result)
 
 

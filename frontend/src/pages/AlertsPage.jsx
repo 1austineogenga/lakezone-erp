@@ -5,7 +5,8 @@ import {
   ExclamationTriangleIcon, CheckCircleIcon, XMarkIcon,
   PlusIcon, ChevronDownIcon, ChevronUpIcon, CalendarDaysIcon,
   UserCircleIcon, ShieldExclamationIcon, BeakerIcon, CheckIcon,
-  BellSlashIcon, ClockIcon,
+  BellSlashIcon, ClockIcon, TruckIcon, WrenchScrewdriverIcon,
+  CubeIcon, BoltIcon,
 } from '@heroicons/react/24/outline'
 
 const getComplianceAlerts = () => api.get('/notifications/compliance-alerts/')
@@ -16,6 +17,7 @@ const createAction        = (d) => api.post('/notifications/actions/', d)
 const updateAction        = (id, d) => api.patch(`/notifications/actions/${id}/`, d)
 const addComment          = (d) => api.post('/notifications/actions/comments/', d)
 const getUsers            = () => api.get('/auth/users/', { params: { page_size: 200 } })
+const getLowStock         = () => api.get('/inventory/stock-levels/', { params: { page_size: 500 } })
 
 const ALERT_TYPE_LABELS = {
   sos:                   'SOS Emergency',
@@ -30,6 +32,12 @@ const ALERT_TYPE_LABELS = {
   inspection_expiry:     'Inspection Certificate',
   speed_governor_expiry: 'Speed Governor',
   compliance_issue:      'Compliance Issue',
+}
+
+const COMPLIANCE_TYPE_LABELS = {
+  insurance:      'Insurance Certificate',
+  inspection:     'Inspection Certificate',
+  speed_governor: 'Speed Governor Certificate',
 }
 
 const SEV_BADGE = {
@@ -50,12 +58,6 @@ const COMPLIANCE_STYLES = {
   critical: { bg: 'bg-orange-50', border: 'border-l-orange-500', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500', label: 'CRITICAL' },
   warning:  { bg: 'bg-amber-50',  border: 'border-l-amber-500',  badge: 'bg-amber-100 text-amber-700',   dot: 'bg-amber-400',  label: 'DUE SOON' },
   ok:       { bg: 'bg-green-50',  border: 'border-l-green-500',  badge: 'bg-green-100 text-green-700',   dot: 'bg-green-500',  label: 'VALID' },
-}
-
-const COMPLIANCE_TYPE_LABELS = {
-  insurance:      'Insurance',
-  inspection:     'Inspection Certificate',
-  speed_governor: 'Speed Governor',
 }
 
 const STATUS_COLORS = {
@@ -79,6 +81,22 @@ function timeAgo(dt) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   return `${Math.floor(diff / 86400)}d ago`
+}
+
+function SummaryCard({ icon: Icon, label, value, sub, bg, color, onClick, active }) {
+  return (
+    <button onClick={onClick}
+      className={`${bg} rounded-2xl p-4 text-left w-full transition-all
+        ${onClick ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}
+        ${active ? 'ring-2 ring-offset-1 ring-current opacity-100' : ''}`}>
+      <div className="flex items-start justify-between mb-2">
+        <Icon className={`h-5 w-5 ${color} opacity-70`} />
+        <span className={`text-2xl font-bold ${color}`}>{value}</span>
+      </div>
+      <p className="text-xs font-semibold text-gray-700">{label}</p>
+      {sub && <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>}
+    </button>
+  )
 }
 
 export default function AlertsPage() {
@@ -112,6 +130,12 @@ export default function AlertsPage() {
     queryFn:  () => getActions(filterStatus ? { status: filterStatus } : {}).then(r => r.data?.results ?? r.data ?? []),
   })
 
+  const { data: stockLevels = [] } = useQuery({
+    queryKey: ['stock-levels-alerts'],
+    queryFn:  () => getLowStock().then(r => r.data?.results ?? r.data ?? []),
+    refetchInterval: 5 * 60 * 1000,
+  })
+
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
     queryFn:  () => getUsers().then(r => r.data?.results ?? r.data ?? []),
@@ -137,14 +161,18 @@ export default function AlertsPage() {
     onSuccess: () => qc.invalidateQueries(['scheduled-actions']),
   })
 
+  // Compliance stats — only expired / critical / warning (≤7 days) are actionable
   const expiredCount  = complianceAlerts.filter(a => a.alert_level === 'expired').length
   const criticalCount = complianceAlerts.filter(a => a.alert_level === 'critical').length
   const warningCount  = complianceAlerts.filter(a => a.alert_level === 'warning').length
+  const compUrgent    = expiredCount + criticalCount + warningCount
+
   const fuelAlerts    = fleetAlerts.filter(a => ['low_fuel','fuel_fill','fuel_drain'].includes(a.alert_type))
   const safetyAlerts  = fleetAlerts.filter(a => ['sos','speeding','ignition_off_moving','idle_long','device_offline'].includes(a.alert_type))
   const unAckedFuel   = fuelAlerts.filter(a => !a.acknowledged).length
   const unAckedSafety = safetyAlerts.filter(a => !a.acknowledged).length
   const overdueCount  = actions.filter(a => a.is_overdue).length
+  const lowStockCount = stockLevels.filter(s => s.is_below_reorder).length
 
   const f = k => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) })
   const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red'
@@ -203,34 +231,83 @@ export default function AlertsPage() {
   }
 
   const TABS = [
-    { key: 'compliance', label: 'Compliance', icon: ShieldExclamationIcon, badge: expiredCount + criticalCount },
-    { key: 'fuel',       label: 'Fuel',       icon: BeakerIcon,            badge: unAckedFuel },
-    { key: 'safety',     label: 'Safety & Ops', icon: ExclamationTriangleIcon, badge: unAckedSafety },
-    { key: 'actions',    label: 'Scheduled Actions', icon: CalendarDaysIcon, badge: overdueCount },
+    { key: 'compliance', label: 'Compliance',        icon: ShieldExclamationIcon,    badge: compUrgent },
+    { key: 'fuel',       label: 'Fuel',               icon: BeakerIcon,               badge: unAckedFuel },
+    { key: 'safety',     label: 'Safety & Ops',       icon: ExclamationTriangleIcon,  badge: unAckedSafety },
+    { key: 'stock',      label: 'Low Stock',           icon: CubeIcon,                 badge: lowStockCount },
+    { key: 'actions',    label: 'Scheduled Actions',  icon: CalendarDaysIcon,         badge: overdueCount },
   ]
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-bold text-brand-slate">Alerts & Actions</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Fleet compliance, fuel, safety alerts and scheduled action tracking</p>
+        <h1 className="text-lg font-bold text-brand-slate">System Alerts</h1>
+        <p className="text-xs text-gray-400 mt-0.5">Compliance, fuel, safety, inventory and scheduled action alerts</p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          { label: 'Expired Docs',    value: expiredCount,  bg: 'bg-red-100',    color: 'text-red-600' },
-          { label: 'Critical Expiry', value: criticalCount, bg: 'bg-orange-100', color: 'text-orange-600' },
-          { label: 'Due Soon',        value: warningCount,  bg: 'bg-amber-100',  color: 'text-amber-600' },
-          { label: 'Fuel Alerts',     value: unAckedFuel,   bg: 'bg-blue-100',   color: 'text-blue-600' },
-          { label: 'Safety Alerts',   value: unAckedSafety, bg: 'bg-slate-100',  color: 'text-slate-600' },
-        ].map(({ label, value, bg, color }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            <p className="text-xs font-medium text-gray-600 mt-0.5">{label}</p>
-          </div>
-        ))}
+      {/* Dashboard summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <SummaryCard
+          icon={ShieldExclamationIcon}
+          label="Expired Documents"
+          value={expiredCount}
+          sub="Compliance"
+          bg="bg-red-50"
+          color="text-red-600"
+          onClick={() => { setTab('compliance'); setFilterAlert('expired') }}
+          active={tab === 'compliance' && filterAlert === 'expired'}
+        />
+        <SummaryCard
+          icon={ExclamationTriangleIcon}
+          label="Expiring ≤ 3 Days"
+          value={criticalCount}
+          sub="Compliance"
+          bg="bg-orange-50"
+          color="text-orange-600"
+          onClick={() => { setTab('compliance'); setFilterAlert('critical') }}
+          active={tab === 'compliance' && filterAlert === 'critical'}
+        />
+        <SummaryCard
+          icon={ClockIcon}
+          label="Due Within 7 Days"
+          value={warningCount}
+          sub="Compliance"
+          bg="bg-amber-50"
+          color="text-amber-600"
+          onClick={() => { setTab('compliance'); setFilterAlert('warning') }}
+          active={tab === 'compliance' && filterAlert === 'warning'}
+        />
+        <SummaryCard
+          icon={BeakerIcon}
+          label="Fuel Alerts"
+          value={unAckedFuel}
+          sub="Unacknowledged"
+          bg="bg-blue-50"
+          color="text-blue-600"
+          onClick={() => setTab('fuel')}
+          active={tab === 'fuel'}
+        />
+        <SummaryCard
+          icon={BoltIcon}
+          label="Safety Alerts"
+          value={unAckedSafety}
+          sub="Unacknowledged"
+          bg="bg-slate-50"
+          color="text-slate-600"
+          onClick={() => setTab('safety')}
+          active={tab === 'safety'}
+        />
+        <SummaryCard
+          icon={CubeIcon}
+          label="Low Stock Items"
+          value={lowStockCount}
+          sub="Below reorder level"
+          bg="bg-purple-50"
+          color="text-purple-600"
+          onClick={() => setTab('stock')}
+          active={tab === 'stock'}
+        />
       </div>
 
       {/* Tabs */}
@@ -256,6 +333,27 @@ export default function AlertsPage() {
       {/* ── Compliance ── */}
       {tab === 'compliance' && (
         <div className="space-y-4">
+          {/* Compliance sub-cards */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: 'insurance',      label: 'Insurance',            icon: ShieldExclamationIcon },
+              { key: 'inspection',     label: 'Inspection',           icon: WrenchScrewdriverIcon },
+              { key: 'speed_governor', label: 'Speed Governor',       icon: TruckIcon },
+            ].map(({ key, label, icon: Icon }) => {
+              const count = complianceAlerts.filter(a => a.compliance_type === key && a.alert_level !== 'ok').length
+              return (
+                <div key={key} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="h-4 w-4 text-gray-400" />
+                    <p className="text-xs font-semibold text-gray-600">{label}</p>
+                  </div>
+                  <p className={`text-xl font-bold ${count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
+                  <p className="text-[10px] text-gray-400">{count === 0 ? 'All valid' : 'Action required'}</p>
+                </div>
+              )
+            })}
+          </div>
+
           <div className="flex items-center gap-2 flex-wrap">
             {['', 'expired', 'critical', 'warning', 'ok'].map(level => (
               <button key={level} onClick={() => setFilterAlert(level)}
@@ -263,7 +361,7 @@ export default function AlertsPage() {
                   ${filterAlert === level
                     ? 'bg-brand-red text-white border-brand-red'
                     : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
-                {level === '' ? 'All' : level}
+                {level === '' ? 'All Alerts' : level === 'ok' ? 'Valid' : level}
               </button>
             ))}
           </div>
@@ -279,22 +377,32 @@ export default function AlertsPage() {
             return shown.length === 0 ? (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
                 <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-                <p className="text-sm font-medium text-gray-500">All compliance documents are valid</p>
+                <p className="text-sm font-medium text-gray-500">
+                  {filterAlert === 'ok' ? 'No valid certificates to show' : 'All compliance documents are up to date'}
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
                 {shown.map(alert => {
                   const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
+                  const typeLabel = alert.compliance_label || COMPLIANCE_TYPE_LABELS[alert.compliance_type] || alert.compliance_type
                   return (
                     <div key={alert.id} className={`${s.bg} border border-l-4 ${s.border} border-gray-100 rounded-2xl px-5 py-4 flex items-center gap-4`}>
                       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-bold text-brand-slate text-sm">{alert.vehicle_name}</span>
-                          <span className="text-xs text-gray-400 font-mono">{alert.vehicle_no}</span>
+                          <span className="font-bold text-brand-slate text-sm">{alert.asset_name}</span>
+                          <span className="text-xs text-gray-400 font-mono">{alert.asset_ref}</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
                           <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
-                            {COMPLIANCE_TYPE_LABELS[alert.compliance_type] || alert.compliance_type}
+                            {typeLabel}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                            alert.source === 'fleet'
+                              ? 'bg-blue-50 text-blue-600 border-blue-200'
+                              : 'bg-purple-50 text-purple-600 border-purple-200'
+                          }`}>
+                            {alert.source === 'fleet' ? 'Fleet' : 'Asset Register'}
                           </span>
                         </div>
                         <p className="text-xs text-gray-600">
@@ -346,6 +454,51 @@ export default function AlertsPage() {
           {fleetLoading
             ? <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse h-16" />)}</div>
             : renderFleetAlerts(safetyAlerts)}
+        </div>
+      )}
+
+      {/* ── Low Stock ── */}
+      {tab === 'stock' && (
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500">Stock items currently at or below their reorder level.</p>
+          {stockLevels.length === 0 ? (
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
+              <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
+              <p className="text-sm font-medium text-gray-500">All stock levels are adequate</p>
+            </div>
+          ) : (() => {
+            const low = stockLevels.filter(s => s.is_below_reorder)
+            if (low.length === 0) return (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
+                <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
+                <p className="text-sm font-medium text-gray-500">All stock levels are adequate</p>
+              </div>
+            )
+            return (
+              <div className="space-y-2">
+                {low.map(s => (
+                  <div key={s.id} className="bg-red-50 border border-l-4 border-l-red-500 border-red-100 rounded-2xl px-5 py-4 flex items-center gap-4">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0 bg-red-500" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-bold text-brand-slate text-sm">{s.item_name}</span>
+                        <span className="text-xs text-gray-400 font-mono">{s.item_code}</span>
+                        <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">LOW STOCK</span>
+                        {s.store_name && (
+                          <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
+                            {s.store_name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        On hand: <span className="font-semibold text-red-600">{s.quantity_on_hand}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -477,7 +630,7 @@ export default function AlertsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {action.status === 'pending'     && (
+                      {action.status === 'pending' && (
                         <button onClick={() => statusMut.mutate({ id: action.id, status: 'in_progress' })}
                           className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 font-medium">
                           Start
