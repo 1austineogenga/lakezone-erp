@@ -1,11 +1,11 @@
 import uuid
+import zoneinfo
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-import pytz
 
 User = get_user_model()
-NAIROBI = pytz.timezone('Africa/Nairobi')
+NAIROBI = zoneinfo.ZoneInfo('Africa/Nairobi')
 
 
 def _is_editable(submitted_at):
@@ -13,7 +13,6 @@ def _is_editable(submitted_at):
         return False
     now = timezone.now().astimezone(NAIROBI)
     submitted_local = submitted_at.astimezone(NAIROBI)
-    # Editable until end of submission day (23:59:59 Nairobi time)
     cutoff = submitted_local.replace(hour=23, minute=59, second=59, microsecond=999999)
     return now <= cutoff
 
