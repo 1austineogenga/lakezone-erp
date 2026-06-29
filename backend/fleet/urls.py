@@ -34,6 +34,11 @@ urlpatterns += [
 
 
 urlpatterns += [
+    path("sync-assets/",    views.SyncAssetsToFleetView.as_view(),    name="fleet-sync-assets"),
+    path("fetch-erc-prices/", views.FetchErcFuelPricesView.as_view(), name="fleet-fetch-erc-prices"),
+]
+
+urlpatterns += [
     path("fuel-prices/", views.FuelPriceListCreateView.as_view(), name="fleet-fuel-price-list"),
     path("fuel-prices/current/", views.CurrentFuelPriceView.as_view(), name="fleet-fuel-price-current"),
     path("fuel-prices/<int:pk>/", views.FuelPriceDetailView.as_view(), name="fleet-fuel-price-detail"),

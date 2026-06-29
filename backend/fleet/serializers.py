@@ -89,18 +89,6 @@ class VehicleSerializer(serializers.ModelSerializer):
         return None
 
     def validate(self, attrs):
-        from rest_framework.exceptions import ValidationError as DRFValidationError
-        project = attrs.get("project")
-        if project is not None:
-            instance = self.instance  # None on create
-            qs = Vehicle.objects.filter(project=project, is_active=True)
-            if instance:
-                qs = qs.exclude(pk=instance.pk)
-            if qs.exists():
-                conflicting = qs.values_list("vehicle_no", flat=True)
-                raise DRFValidationError(
-                    {"project": f"Vehicle(s) {list(conflicting)} are already actively assigned to this project."}
-                )
         return attrs
 
 

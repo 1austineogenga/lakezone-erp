@@ -51,6 +51,10 @@ export const getCurrentFuelPrices  = (location) => api.get(`/fleet/fuel-prices/c
 export const updateFuelPrice       = (id, d)  => api.patch(`/fleet/fuel-prices/${id}/`, d)
 export const deleteFuelPrice       = (id)     => api.delete(`/fleet/fuel-prices/${id}/`)
 
+// Asset Register sync & ERC prices
+export const syncAssetsToFleet  = ()     => api.post('/fleet/sync-assets/')
+export const fetchErcFuelPrices = ()     => api.post('/fleet/fetch-erc-prices/')
+
 // Geofences
 export const getGeofences          = (params) => api.get('/fleet/geofences/', { params })
 export const createGeofence        = (data)   => api.post('/fleet/geofences/', data)
