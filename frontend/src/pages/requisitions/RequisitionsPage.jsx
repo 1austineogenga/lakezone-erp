@@ -309,7 +309,7 @@ export default function RequisitionsPage() {
   const canApprove        = ['managing_director', 'system_admin'].includes(role)
   const canSeeFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
   const canLogSchedule    = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
-  const canApproveSchedule = ['admin_officer', 'system_admin', 'managing_director'].includes(role)
+  const canApproveSchedule = ['managing_director', 'system_admin'].includes(role)
 
   const [tab, setTab]           = useState('all')
   const [statusFilter, setStatus] = useState('')
