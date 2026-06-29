@@ -108,6 +108,24 @@ class AssetSerializer(serializers.ModelSerializer):
             'purchase_date', 'purchase_value', 'current_value',
             'condition', 'condition_display', 'status', 'status_display',
             'location', 'assigned_to', 'notes',
+            # machinery
+            'hours_to_next_service',
+            # vehicles & trucks
+            'registration_plate', 'kms_to_next_service',
+            # insurance certificate
+            'insurance_expiry', 'insurance_cert_number', 'insurance_policy_number',
+            'insurance_policy_type', 'insurance_insurer', 'insurance_chassis_number',
+            'insurance_commencement_date',
+            # inspection certificate (trucks & tracks)
+            'inspection_cert_number', 'inspection_cert_status',
+            'inspection_cert_issue_date', 'inspection_cert_expiry',
+            'inspection_issuing_authority',
+            # speed governor certificate (trucks & tracks)
+            'speed_governor_cert_number', 'speed_governor_cert_status',
+            'speed_governor_device_serial', 'speed_governor_cert_issue_date',
+            'speed_governor_cert_expiry', 'speed_governor_issuing_authority',
+            # defects & requirements
+            'current_defects', 'requirements',
             'maintenance_count', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'asset_code', 'created_at', 'updated_at']
