@@ -15,6 +15,7 @@ import {
   getMaintenance, createMaintenance,
 } from '../../api/fleet'
 import api from '../../api/client'
+import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
 const STATUS_LABEL = { MOVING: 'Moving', IDLE: 'Idling', STOP: 'Stopped', INACTIVE: 'Offline' }
@@ -244,6 +245,7 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
 }
 
 function ComplianceRow({ vehicleId, item, onUpdated }) {
+  const { canWrite } = usePermissions()
   const [editing, setEditing] = useState(false)
   const [expiryDate, setExpiryDate] = useState(item.expiry_date || '')
   const [statusOverride, setStatusOverride] = useState(item.status || 'unknown')
@@ -282,10 +284,12 @@ function ComplianceRow({ vehicleId, item, onUpdated }) {
           {!editing && (
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusCls}`}>{statusLabel}</span>
           )}
-          <button onClick={() => setEditing(e => !e)}
-            className="text-gray-400 hover:text-brand-red transition-colors">
-            {editing ? <XMarkIcon className="w-3.5 h-3.5" /> : <PencilIcon className="w-3.5 h-3.5" />}
-          </button>
+          {canWrite('fleet') && (
+            <button onClick={() => setEditing(e => !e)}
+              className="text-gray-400 hover:text-brand-red transition-colors">
+              {editing ? <XMarkIcon className="w-3.5 h-3.5" /> : <PencilIcon className="w-3.5 h-3.5" />}
+            </button>
+          )}
         </div>
       </div>
       {editing && (
@@ -363,6 +367,7 @@ export default function VehicleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
   const [tab, setTab] = useState('fuel')
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
@@ -486,18 +491,22 @@ export default function VehicleDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="font-bold text-brand-slate text-lg">{vehicle.vehicle_no}</h2>
             <div className="ml-auto flex items-center gap-2 flex-wrap">
-<button onClick={() => setShowEdit(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
-                <PencilIcon className="h-3.5 w-3.5" /> Edit
-              </button>
+              {canWrite('fleet') && (
+                <button onClick={() => setShowEdit(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
+                  <PencilIcon className="h-3.5 w-3.5" /> Edit
+                </button>
+              )}
               <button onClick={() => window.print()}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 no-print">
                 🖨 Print
               </button>
-              <button onClick={() => setShowDelete(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-brand-red text-xs font-medium rounded-lg hover:bg-red-50 no-print">
-                <TrashIcon className="h-3.5 w-3.5" /> Delete
-              </button>
+              {canWrite('fleet') && (
+                <button onClick={() => setShowDelete(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-brand-red text-xs font-medium rounded-lg hover:bg-red-50 no-print">
+                  <TrashIcon className="h-3.5 w-3.5" /> Delete
+                </button>
+              )}
             </div>
             {vehicle.last_status && (
               <>
@@ -580,7 +589,7 @@ export default function VehicleDetailPage() {
           ) : (
             <p className="text-xs text-gray-600">No compliance records yet.</p>
           )}
-          <AddComplianceForm vehicleId={id} onAdded={refreshVehicle} />
+          {canWrite('fleet') && <AddComplianceForm vehicleId={id} onAdded={refreshVehicle} />}
         </div>
 
         <div className="space-y-4">
@@ -614,10 +623,12 @@ export default function VehicleDetailPage() {
           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-brand-slate">Vehicle Details</h3>
-              <button onClick={() => setShowEdit(true)}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-red transition-colors">
-                <PencilIcon className="h-3 w-3" /> Edit
-              </button>
+              {canWrite('fleet') && (
+                <button onClick={() => setShowEdit(true)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-red transition-colors">
+                  <PencilIcon className="h-3 w-3" /> Edit
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs">
               {[
@@ -632,10 +643,12 @@ export default function VehicleDetailPage() {
                   <div className="text-xs text-gray-500 font-medium">{label}</div>
                   {val
                     ? <div className="text-sm font-semibold text-brand-slate">{val}</div>
-                    : <button onClick={() => setShowEdit(true)}
-                        className="text-xs text-gray-400 hover:text-brand-red transition-colors underline underline-offset-2">
-                        + add
-                      </button>
+                    : canWrite('fleet')
+                      ? <button onClick={() => setShowEdit(true)}
+                          className="text-xs text-gray-400 hover:text-brand-red transition-colors underline underline-offset-2">
+                          + add
+                        </button>
+                      : <div className="text-sm text-gray-400">—</div>
                   }
                 </div>
               ))}

@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig } from '../../api/fleet'
 import api from '../../api/client'
+import usePermissions from '../../hooks/usePermissions'
 
 // ── Icon: live GPS tracked ──────────────────────────────────────────────────
 function LiveIcon() {
@@ -91,6 +92,7 @@ const EMPTY = {
 export default function VehiclesPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
   const [search, setSearch]           = useState('')
   const [catFilter, setCatFilter]     = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -235,10 +237,12 @@ export default function VehiclesPage() {
             <PrinterIcon className="h-3.5 w-3.5" /> Print
           </button>
 
-          <button onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
-            <PlusIcon className="h-3.5 w-3.5" /> Add Vehicle
-          </button>
+          {canWrite('fleet') && (
+            <button onClick={() => setShowForm(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
+              <PlusIcon className="h-3.5 w-3.5" /> Add Vehicle
+            </button>
+          )}
         </div>
       </div>
 
@@ -294,7 +298,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* ── Add Vehicle Form ──────────────────────────────────────────────── */}
-      {showForm && (
+      {showForm && canWrite('fleet') && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <h3 className="font-semibold text-brand-slate text-sm mb-4">Add Vehicle / Machine</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

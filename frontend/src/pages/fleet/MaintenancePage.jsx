@@ -6,6 +6,7 @@ import {
   CalendarDaysIcon, CurrencyDollarIcon, UserIcon,
 } from '@heroicons/react/24/outline'
 import { getMaintenance, createMaintenance, getVehicles } from '../../api/fleet'
+import usePermissions from '../../hooks/usePermissions'
 
 const MAINT_TYPES = ['service', 'repair', 'inspection', 'tyre', 'oil', 'other']
 
@@ -26,6 +27,7 @@ const EMPTY = {
 
 export default function MaintenancePage() {
   const qc = useQueryClient()
+  const { canWrite } = usePermissions()
   const [showForm, setShowForm]         = useState(false)
   const [form, setForm]                 = useState(EMPTY)
   const [vehicleFilter, setVehicleFilter] = useState('')
@@ -76,10 +78,12 @@ export default function MaintenancePage() {
           <h2 className="text-lg font-bold text-brand-slate">Maintenance</h2>
           <p className="text-xs text-gray-600 mt-0.5">Service history &amp; schedules</p>
         </div>
-        <button onClick={() => setShowForm(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
-          <PlusIcon className="h-3.5 w-3.5" /> Log Service
-        </button>
+        {canWrite('fleet') && (
+          <button onClick={() => setShowForm(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
+            <PlusIcon className="h-3.5 w-3.5" /> Log Service
+          </button>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -124,7 +128,7 @@ export default function MaintenancePage() {
       </div>
 
       {/* Add Form */}
-      {showForm && (
+      {showForm && canWrite('fleet') && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-brand-slate text-sm">Log Maintenance</h3>
