@@ -189,6 +189,33 @@ class ResetUserPasswordView(APIView):
         })
 
 
+class ResetAllPasswordsView(APIView):
+    """Reset passwords for all active users and return credentials list. System admin only."""
+    permission_classes = [IsSystemAdmin]
+
+    def post(self, request):
+        alphabet = string.ascii_letters + string.digits + '!@#$%'
+        role_filter = request.data.get('role')
+        qs = User.objects.filter(is_active=True).order_by('role', 'first_name')
+        if role_filter:
+            qs = qs.filter(role=role_filter)
+
+        results = []
+        for user in qs:
+            pwd = ''.join(secrets.choice(alphabet) for _ in range(12))
+            user.set_password(pwd)
+            user.must_change_password = True
+            user.save(update_fields=['password', 'must_change_password'])
+            results.append({
+                'full_name': user.get_full_name() or user.email,
+                'email': user.email,
+                'role': user.get_role_display(),
+                'password': pwd,
+            })
+
+        return Response({'count': len(results), 'credentials': results})
+
+
 class BranchListCreateView(generics.ListCreateAPIView):
     queryset = Branch.objects.filter(is_active=True)
     serializer_class = BranchSerializer

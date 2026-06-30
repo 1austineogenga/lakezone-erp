@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon, ArrowDownTrayIcon, PrinterIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 import { ROLE_GROUPS, ALL_ROLES, getPermissions } from '../../utils/permissions'
+import { resetAllPasswords } from '../../api/auth'
 
 const getUsers      = (p) => api.get('/auth/users/', { params: p })
 const createUser    = (d) => api.post('/auth/users/', d)
@@ -241,6 +242,9 @@ export default function UsersPage() {
   const [newUserPassword, setNewUserPassword] = useState(null)
   const [resetUser, setResetUser]     = useState(null)
   const [previewRole, setPreviewRole] = useState('')
+  const [credentials, setCredentials] = useState(null)
+  const [resetAllLoading, setResetAllLoading] = useState(false)
+  const credRef = useRef(null)
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', filterRole],
@@ -302,10 +306,33 @@ export default function UsersPage() {
           <p className="text-xs text-gray-600 mt-0.5">Manage system users and their role-based access</p>
         </div>
         {canEdit && (
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={async () => {
+                  if (!window.confirm('This will reset passwords for ALL active users and force them to change on next login. Continue?')) return
+                  setResetAllLoading(true)
+                  try {
+                    const { data } = await resetAllPasswords()
+                    setCredentials(data.credentials)
+                    toast.success(`${data.count} user passwords reset`)
+                  } catch {
+                    toast.error('Failed to reset passwords')
+                  } finally {
+                    setResetAllLoading(false)
+                  }
+                }}
+                disabled={resetAllLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                <ShieldExclamationIcon className="h-3.5 w-3.5" />
+                {resetAllLoading ? 'Resetting…' : 'Reset All Passwords'}
+              </button>
+            )}
           <button onClick={() => setModal({ mode: 'add' })}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
             <PlusIcon className="h-3.5 w-3.5" /> Add User
           </button>
+          </div>
         )}
       </div>
 
@@ -448,6 +475,104 @@ export default function UsersPage() {
                 <button onClick={() => setNewUserPassword(null)}
                   className="px-4 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">Done</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Credentials Modal ── */}
+      {credentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-brand-slate text-base">Pilot Login Credentials</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{credentials.length} users reset · All will be prompted to change password on first login</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const rows = credentials.map(c => `${c.full_name}\t${c.email}\t${c.role}\t${c.password}`).join('\n')
+                    const blob = new Blob([`Name\tEmail\tRole\tTemporary Password\n${rows}`], { type: 'text/plain' })
+                    const a = document.createElement('a')
+                    a.href = URL.createObjectURL(blob)
+                    a.download = 'lakezone-erp-pilot-credentials.txt'
+                    a.click()
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:opacity-90">
+                  <ArrowDownTrayIcon className="h-3.5 w-3.5" /> Download
+                </button>
+                <button
+                  onClick={() => {
+                    const w = window.open('', '_blank')
+                    w.document.write(`
+                      <html><head><title>Lake Zone ERP — Pilot Credentials</title>
+                      <style>
+                        body { font-family: Arial, sans-serif; padding: 24px; }
+                        h1 { font-size: 16px; color: #1a2332; margin-bottom: 4px; }
+                        p { font-size: 11px; color: #666; margin-bottom: 16px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                        th { background: #1a2332; color: white; padding: 8px 12px; text-align: left; }
+                        td { padding: 7px 12px; border-bottom: 1px solid #eee; }
+                        tr:nth-child(even) td { background: #f9f9f9; }
+                        .pwd { font-family: monospace; font-weight: bold; letter-spacing: 1px; }
+                        .note { margin-top: 16px; font-size: 10px; color: #999; }
+                      </style></head><body>
+                      <h1>Lake Zone Enterprises ERP — Pilot Login Credentials</h1>
+                      <p>Login URL: https://erp.lakezone.ke &nbsp;|&nbsp; All users must change password on first login</p>
+                      <table>
+                        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Temporary Password</th></tr></thead>
+                        <tbody>
+                          ${credentials.map((c, i) => `<tr><td>${i+1}</td><td>${c.full_name}</td><td>${c.email}</td><td>${c.role}</td><td class="pwd">${c.password}</td></tr>`).join('')}
+                        </tbody>
+                      </table>
+                      <p class="note">Generated ${new Date().toLocaleString()} · Lake Zone Enterprises ERP</p>
+                      </body></html>`)
+                    w.document.close()
+                    w.print()
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-white text-xs font-medium rounded-lg hover:opacity-90">
+                  <PrinterIcon className="h-3.5 w-3.5" /> Print
+                </button>
+                <button onClick={() => setCredentials(null)} className="text-gray-400 hover:text-gray-700 ml-1">
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-gray-50">
+                  <tr>
+                    {['#', 'Name', 'Email', 'Role', 'Temporary Password'].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-600 border-b border-gray-100">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {credentials.map((c, i) => (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-800">{c.full_name}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{c.email}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{c.role}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono font-bold text-brand-slate tracking-widest">{c.password}</code>
+                          <button onClick={() => { navigator.clipboard.writeText(c.password); toast.success('Copied!') }}
+                            className="text-gray-400 hover:text-brand-red shrink-0">
+                            <ClipboardDocumentIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-6 py-3 border-t border-gray-100 bg-amber-50 rounded-b-2xl">
+              <p className="text-[10px] text-amber-700">⚠ Store these credentials securely. This list will not be shown again after closing.</p>
             </div>
           </div>
         </div>
