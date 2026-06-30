@@ -5,7 +5,7 @@ import { toast } from 'react-toastify'
 import {
   TruckIcon, PlusIcon, MagnifyingGlassIcon, ArrowUpTrayIcon,
   MapPinIcon, BeakerIcon, ClockIcon, XMarkIcon, ArrowPathIcon,
-  SignalIcon, SignalSlashIcon, WrenchScrewdriverIcon,
+  SignalIcon, SignalSlashIcon, WrenchScrewdriverIcon, PrinterIcon,
 } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig, syncAssetsToFleet } from '../../api/fleet'
 import api from '../../api/client'
@@ -115,6 +115,66 @@ export default function VehiclesPage() {
   const liveCount    = vehicles.filter(v => v.is_live).length
   const offlineCount = vehicles.filter(v => !v.is_live).length
 
+  const handlePrint = () => {
+    const rows = filtered.map(v => `
+      <tr>
+        <td>${v.vehicle_no || '—'}</td>
+        <td>${v.vehicle_name || '—'}</td>
+        <td>${[v.make, v.model_name].filter(Boolean).join(' ') || '—'}</td>
+        <td>${v.vehicle_type || '—'}</td>
+        <td>${v.year || '—'}</td>
+        <td>${v.last_location || v.current_site || '—'}</td>
+        <td>${v.is_live
+          ? (STATUS_LABEL[v.last_status] || v.last_status || 'Unknown')
+          : (v.erp_status === 'OPER' ? 'Operational' : v.erp_status === 'NON-OPER' ? 'Non-Operational' : v.erp_status || '—')
+        }</td>
+        <td>${v.source === 'live' ? 'Live Tracked' : v.source === 'register' ? 'Asset Register' : 'Manual'}</td>
+      </tr>`).join('')
+
+    const win = window.open('', '_blank')
+    win.document.write(`<!DOCTYPE html><html><head>
+      <title>Lakezone Fleet Register</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; color: #111; }
+        h2 { font-size: 15px; margin-bottom: 2px; }
+        p.sub { font-size: 10px; color: #666; margin-bottom: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1e293b; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
+        td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+        tr:nth-child(even) td { background: #f9fafb; }
+        @media print { body { margin: 10px; } }
+      </style>
+    </head><body>
+      <h2>Lakezone Enterprises Ltd — Fleet Register</h2>
+      <p class="sub">Printed: ${new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })} &nbsp;|&nbsp; ${filtered.length} vehicles shown</p>
+      <table>
+        <thead><tr>
+          <th>#</th><th>Reg No.</th><th>Name / Description</th><th>Make &amp; Model</th>
+          <th>Type</th><th>Year</th><th>Location</th><th>Status</th><th>Source</th>
+        </tr></thead>
+        <tbody>${filtered.map((v, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td><b>${v.vehicle_no || '—'}</b></td>
+            <td>${v.vehicle_name || '—'}</td>
+            <td>${[v.make, v.model_name].filter(Boolean).join(' ') || '—'}</td>
+            <td>${v.vehicle_type || '—'}</td>
+            <td>${v.year || '—'}</td>
+            <td>${v.last_location || v.current_site || '—'}</td>
+            <td>${v.is_live
+              ? (STATUS_LABEL[v.last_status] || v.last_status || 'Unknown')
+              : (v.erp_status === 'OPER' ? 'Operational' : v.erp_status === 'NON-OPER' ? 'Non-Operational' : v.erp_status || '—')
+            }</td>
+            <td>${v.source === 'live' ? 'Live' : v.source === 'register' ? 'Register' : 'Manual'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
   const filtered = vehicles.filter(v => {
     const matchSearch = !search ||
       v.vehicle_no?.toLowerCase().includes(search.toLowerCase()) ||
@@ -153,6 +213,10 @@ export default function VehiclesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-gray-400 hover:text-gray-700 transition-colors">
+            <PrinterIcon className="h-3.5 w-3.5" /> Print
+          </button>
           <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition-colors disabled:opacity-60">
             <ArrowPathIcon className={`h-3.5 w-3.5 ${syncMut.isPending ? 'animate-spin' : ''}`} />
