@@ -9,7 +9,7 @@ import {
 } from '../../api/hr'
 import { PlusIcon, TrashIcon, ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
-import { usePermissions } from '../../hooks/usePermissions'
+import usePermissions from '../../hooks/usePermissions'
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
 const TYPE_COLORS = { staff: 'bg-indigo-100 text-indigo-700', casual: 'bg-purple-100 text-purple-700' }
