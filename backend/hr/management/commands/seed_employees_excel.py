@@ -1,180 +1,82 @@
 """
-Seed employees from HR_EMS_Final.xlsx.
-Usage: python manage.py seed_employees_excel --file /path/to/HR_EMS_Final.xlsx
+Seed employees from HR_EMS_Final.xlsx (data embedded).
+Usage: python manage.py seed_employees_excel
 """
-import openpyxl
+import json
 from datetime import datetime, date
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import Department, Branch
 from hr.models import Employee, Position
+
+EMPLOYEES = [{"Employee ID": "LZ002", "First Name": "Evans", "Surname": "Ochella", "Last Name": "Adungo", "Phone Number": "757540660", "Job Title": "Foreman", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Eric Muthee", "Date of Employment": "22/1/2024", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1988-10-08", "Gender": "Male", "Marital Status": "Married", "National ID": "25966429", "KRA PIN": "A007569818J", "SHA": "CR5695951387073-8", "NSSF": "20035253882", "Next of Kin Name": "Beatrice Adung'o", "Relationship": "Wife", "Next of Kin Phone": "707642147", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ003", "First Name": "Harrison", "Surname": "Njuguna", "Last Name": "Njau", "Phone Number": "713523722", "Job Title": "Shovel Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "21/5/2024", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "30/10/1979", "Gender": "Male", "Marital Status": "Married", "National ID": "22243524", "KRA PIN": "A005911969G", "SHA": "CR9433771852065-1", "NSSF": "970949928", "Next of Kin Name": "Agatah Kromo", "Relationship": "Wife", "Next of Kin Phone": "714865660", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ004", "First Name": "Melvin", "Surname": "Bruke", "Last Name": "Otieno", "Phone Number": null, "Job Title": "Office Attendant", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Elijah Wafula", "Date of Employment": null, "Employment Status": "Terminated", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Female", "Marital Status": "Single", "National ID": "39048095", "KRA PIN": "A017893321W", "SHA": "CR6842706508975-6", "NSSF": "2038433588", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ005", "First Name": "John", "Surname": "Waikwa", "Last Name": "Maina", "Phone Number": "706528649", "Job Title": "Backhoe Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2024-01-11", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1997-05-05", "Gender": "Male", "Marital Status": "Single", "National ID": "33724265", "KRA PIN": "A011122727Y", "SHA": "CR3906382794334-9", "NSSF": "2055166254", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ006", "First Name": "Patrick", "Surname": "Mbii", "Last Name": "Kitheka", "Phone Number": "759524468", "Job Title": "Roller/Mixer Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "1/12.2024", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1997-02-11", "Gender": "Male", "Marital Status": "Married", "National ID": "36572820", "KRA PIN": "A017983609E", "SHA": "CR0964447350590-8", "NSSF": "2044773208", "Next of Kin Name": "Zipporah Kitheka", "Relationship": "Mother", "Next of Kin Phone": "708547946", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ007", "First Name": "Brian", "Surname": "Omondi", "Last Name": "Ouma", "Phone Number": "707703398", "Job Title": "Cook", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Linda Murei", "Date of Employment": "2024-11-11", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "25/11/1993", "Gender": "Male", "Marital Status": "Married", "National ID": "30720208", "KRA PIN": "A010682114E", "SHA": "CR1324160765550-3", "NSSF": "2055815262", "Next of Kin Name": "Geoffrey Ouma", "Relationship": "Brother", "Next of Kin Phone": "798907623", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ008", "First Name": "Bonface", "Surname": "Kioko", "Last Name": "Mukui", "Phone Number": "70712200", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "14/2/2025", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1991-01-01", "Gender": "Male", "Marital Status": "Married", "National ID": "28907231", "KRA PIN": "A006024496V", "SHA": "CR1026529681166-6", "NSSF": "200522311X", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ009", "First Name": "Philemon", "Surname": "Kiplagat", "Last Name": "Kibet", "Phone Number": "724532925", "Job Title": "Surveyor", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Eric Muthee", "Date of Employment": null, "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1994-02-05", "Gender": "Male", "Marital Status": "Married", "National ID": "34265754", "KRA PIN": "A010604057P", "SHA": "CR0519282127386-4", "NSSF": "2054803089", "Next of Kin Name": "Nelson Kibet", "Relationship": "Brother", "Next of Kin Phone": "729583356", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ010", "First Name": "Mohamed", "Surname": "Ali", "Last Name": "Njeru", "Phone Number": "781309985", "Job Title": "Site Manager", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Eric Muthee", "Date of Employment": "21/9/2023", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1990-12-01", "Gender": "Male", "Marital Status": "Married", "National ID": "28300140", "KRA PIN": "A006316942V", "SHA": "CR1020447627205", "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ011", "First Name": "Ramadhan", "Surname": "Maina", "Last Name": "Njeru", "Phone Number": "722796288", "Job Title": "Senior Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2025-01-08", "Employment Status": "Resigned", "Work Location": "On Site", "Date of Birth": "1979-10-08", "Gender": "Male", "Marital Status": "Married", "National ID": "21880164", "KRA PIN": "A003209485D", "SHA": "CR0291282877520-4", "NSSF": "2000195237", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ012", "First Name": "George", "Surname": "Achimba", "Last Name": "Nyakueba", "Phone Number": "112746488", "Job Title": "Paver Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "13/5/2025", "Employment Status": "Terminated", "Work Location": "On Site", "Date of Birth": "22/5/1989", "Gender": "Male", "Marital Status": "Married", "National ID": "27396745", "KRA PIN": "A006516408U", "SHA": "CR9704723794870-8", "NSSF": "757563910", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ013", "First Name": "Mepukori", "Surname": null, "Last Name": "Masaa", "Phone Number": null, "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": null, "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ014", "First Name": "Samwuel", "Surname": "Maina", "Last Name": "Mwangi", "Phone Number": "723502455", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "29/9/2025", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "30/6/1980", "Gender": "Male", "Marital Status": "Married", "National ID": "22237102", "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ015", "First Name": "Alex", "Surname": "Benard", "Last Name": "Mutua", "Phone Number": "726320181", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "17/12/2024", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1995-09-03", "Gender": "Male", "Marital Status": "Married", "National ID": "32383099", "KRA PIN": "A008893115V", "SHA": "CR2955954788649-6", "NSSF": "201968755X", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ016", "First Name": "Juma", "Surname": "Njuguna", "Last Name": "Amina", "Phone Number": "727116411", "Job Title": "Facility Manager", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "17/12/2025", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "1977-05-03", "Gender": "Male", "Marital Status": "Married", "National ID": "22068066", "KRA PIN": null, "SHA": null, "NSSF": "CR3764407716175-7", "Next of Kin Name": "Monicah Wangari Runo", "Relationship": "Wife", "Next of Kin Phone": "727260737", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ017", "First Name": "Jacob", "Surname": null, "Last Name": "Adika", "Phone Number": null, "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": null, "Employment Status": "Terminated", "Work Location": "On Site", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "27678595", "KRA PIN": "A007005457R", "SHA": "CR7048001686086-2", "NSSF": "2034795909", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ018", "First Name": "Caleb", "Surname": "Ojwang", "Last Name": "Oluoch", "Phone Number": "791476033", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-12-01", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1994-06-01", "Gender": "Male", "Marital Status": "Married", "National ID": "32427021", "KRA PIN": "A012467079F", "SHA": "CR5911116915741-9", "NSSF": "2010820461", "Next of Kin Name": "Joy Ojwang", "Relationship": "Daughter", "Next of Kin Phone": "708396997", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ019", "First Name": "John", "Surname": "Irungu", "Last Name": "Muchiri", "Phone Number": "720217473", "Job Title": "Mechanic", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-02-01", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "19/1/1970", "Gender": "Male", "Marital Status": "Married", "National ID": "10176342", "KRA PIN": "A002438600M", "SHA": "CR4546838860964-7", "NSSF": "053411919", "Next of Kin Name": "Joseph Muchiri", "Relationship": "Brother", "Next of Kin Phone": "722800485", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ020", "First Name": "Partrick", "Surname": "Njiru", "Last Name": "Munene", "Phone Number": "703195198", "Job Title": "Water Bowser Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-02-01", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "23/7/1987", "Gender": "Male", "Marital Status": "Married", "National ID": "25437349", "KRA PIN": "A014699754S", "SHA": "CR4700276525990-4", "NSSF": "713011912", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ021", "First Name": "Eric", "Surname": "Muthee", "Last Name": "Mbugua", "Phone Number": "700020466", "Job Title": "Site Engineer", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": null, "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "28/1/1992", "Gender": "Male", "Marital Status": "Married", "National ID": "28580900", "KRA PIN": "A008804471E", "SHA": "CR2592339344848-4", "NSSF": "393455912", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ022", "First Name": "Freedom", "Surname": "Ouma", "Last Name": "Onyando", "Phone Number": "799183044", "Job Title": "Surveyor", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-01-02", "Employment Status": "Resigned", "Work Location": "On Site", "Date of Birth": "1995-01-06", "Gender": "Male", "Marital Status": "Married", "National ID": "34175171", "KRA PIN": "A011444233G", "SHA": "CR9511049026561-6", "NSSF": "2036841804", "Next of Kin Name": null, "Relationship": "", "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ023", "First Name": "Elijah", "Surname": null, "Last Name": "Wafula", "Phone Number": "700616350", "Job Title": "HR Manager", "Department": "HR", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-02-02", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "27/7/1999", "Gender": "Male", "Marital Status": "Single", "National ID": "36687692", "KRA PIN": "A011388013J", "SHA": "CR0113832557572-0", "NSSF": "2039452819", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ024", "First Name": "Samuel", "Surname": "Ndururi", "Last Name": "Karigi", "Phone Number": "799036801", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-01-02", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1999-04-04", "Gender": "Male", "Marital Status": "Single", "National ID": "37847254", "KRA PIN": "A016668700Z", "SHA": "CR9694588038357-1", "NSSF": "203847106X", "Next of Kin Name": "John Karigi", "Relationship": "Father", "Next of Kin Phone": "724865950", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ025", "First Name": "Anderson", "Surname": "Kipkoech", "Last Name": "Kirui", "Phone Number": null, "Job Title": "Excavator Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": null, "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "36227702", "KRA PIN": "A013571709L", "SHA": "5457105095002-1", "NSSF": "2043359427", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ026", "First Name": "Salmon", "Surname": "O.", "Last Name": "Okello", "Phone Number": "715582080", "Job Title": "Foreman", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Eric Muthee", "Date of Employment": "2026-01-02", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "1966-05-05", "Gender": "Male", "Marital Status": "Married", "National ID": "8997137", "KRA PIN": "A001561716F", "SHA": "CR5866435193620-7", "NSSF": "129782920", "Next of Kin Name": "Prisca Akinyi", "Relationship": "Wife", "Next of Kin Phone": "706655565", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ027", "First Name": "Christopher", "Surname": "Oduor", "Last Name": "Okello", "Phone Number": "717625586", "Job Title": "Welder", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-02-26", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "27/7/1992", "Gender": "Male", "Marital Status": "Married", "National ID": "32246139", "KRA PIN": "A009651150P", "SHA": "CR3271499111835-0", "NSSF": "2010567757", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ028", "First Name": "Stephen", "Surname": "Mukuria", "Last Name": "Ng'ang'a", "Phone Number": "723584815", "Job Title": "Excavator Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-03-23", "Employment Status": "Terminated", "Work Location": "On Site", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "27909332", "KRA PIN": "A009130898W", "SHA": "CR2292193825455-0", "NSSF": "911118918", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ029", "First Name": "Ogenga", "Surname": "Onyango", "Last Name": "Austine", "Phone Number": "713356338", "Job Title": "I.T & Systems", "Department": "I.T", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-03-30", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "31087715", "KRA PIN": "A007947508J", "SHA": "CR8864947964721-0", "NSSF": "2028245628", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ030", "First Name": "Harrison", "Surname": "Njora", "Last Name": "Mwangi", "Phone Number": "703369822", "Job Title": "Accountant", "Department": "Finance & Accounts", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-04-02", "Employment Status": "Resigned", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "28952579", "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ031", "First Name": "Emmanuel", "Surname": "Mutua", "Last Name": "Mwanzia", "Phone Number": "727769313", "Job Title": "Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-04-15", "Employment Status": "Terminated", "Work Location": "On Site", "Date of Birth": null, "Gender": "Male", "Marital Status": "Married", "National ID": "28116193", "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ032", "First Name": "Solomon", "Surname": "Wanyama", "Last Name": "Wafula", "Phone Number": "722637825", "Job Title": "Low Loader Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-04-15", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "24/07/1987", "Gender": "Male", "Marital Status": "Married", "National ID": "25647636", "KRA PIN": "A005450299Y", "SHA": "CR8552180839604-6", "NSSF": "95966291X", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ033", "First Name": "Ileen", "Surname": null, "Last Name": "Jemeli", "Phone Number": "717010429", "Job Title": "Cleaner", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Linda Murei", "Date of Employment": "20/4/2026", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "2004-06-12", "Gender": "Female", "Marital Status": "Single", "National ID": "42307137", "KRA PIN": "A022754851F", "SHA": "CR4006617235838-2", "NSSF": "2065518824", "Next of Kin Name": "James Rotich", "Relationship": "Father", "Next of Kin Phone": "714558814", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ034", "First Name": "Abiero", "Surname": "Moses", "Last Name": "Malaki", "Phone Number": "798140219", "Job Title": "Grader Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-05-06", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "28/11/1994", "Gender": "Male", "Marital Status": "Married", "National ID": "35354366", "KRA PIN": "A013270417Y", "SHA": "CR5613359220489-2", "NSSF": "2026473179", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ035", "First Name": "Harun", "Surname": "Muriithi", "Last Name": "Maina", "Phone Number": "757613976", "Job Title": "Grader Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-05-06", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1994-03-09", "Gender": "Male", "Marital Status": "Married", "National ID": "32216016", "KRA PIN": "A010105791N", "SHA": "CR1825299721796-5", "NSSF": "2065305772", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ036", "First Name": "Perminers", "Surname": "Mwangi", "Last Name": "Wandu", "Phone Number": "702552424", "Job Title": "Driver - KDN 111A", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-05-11", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "1980-10-02", "Gender": "Male", "Marital Status": "Married", "National ID": "22258969", "KRA PIN": "A003009349S", "SHA": "CR1328145769664-5", "NSSF": "206543248X", "Next of Kin Name": "Jacinta Mumbi", "Relationship": "Wife", "Next of Kin Phone": "722427413", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ037", "First Name": "Francis", "Surname": "Njoroge", "Last Name": "Kiarie", "Phone Number": "712065645", "Job Title": "Excavator Operator", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-05-27", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "20/9/1986", "Gender": "Male", "Marital Status": "Married", "National ID": "24817236", "KRA PIN": "A006608556K", "SHA": "CR8944223994426-0", "NSSF": "904239918", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ038", "First Name": "Kennedy", "Surname": "Ouma", "Last Name": "Obunga", "Phone Number": "702447780", "Job Title": "Project Accountant", "Department": "Finance & Accounts", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-02-06", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "20/4/1993", "Gender": "Male", "Marital Status": "Married", "National ID": "30658777", "KRA PIN": "A013264934Z", "SHA": "CR5718106502512-9", "NSSF": "2030552493", "Next of Kin Name": "Mumbe Philip", "Relationship": "Wife", "Next of Kin Phone": "758561688", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ039", "First Name": "Houghton", "Surname": "Kirimi", "Last Name": "Kithinji", "Phone Number": "716640164", "Job Title": "Security Officer", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-02-06", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "13/11/1986", "Gender": "Male", "Marital Status": "Married", "National ID": "26527247", "KRA PIN": "A004908101T", "SHA": null, "NSSF": "2065499148", "Next of Kin Name": "Martin Kiura", "Relationship": "Cousin", "Next of Kin Phone": "769149794", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ040", "First Name": "Linda", "Surname": "Jepleting", "Last Name": "Murei", "Phone Number": "716708145", "Job Title": "Admin Officer", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Alphan Iragwa", "Date of Employment": "2026-08-06", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": "1990-10-08", "Gender": "Female", "Marital Status": "Single", "National ID": "28070152", "KRA PIN": "A005674914V", "SHA": "CR6763709501053-8", "NSSF": null, "Next of Kin Name": "Nancy Jerop", "Relationship": "Sister", "Next of Kin Phone": "723936982", "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ041", "First Name": "Owens", "Surname": "Mbirua", "Last Name": "Njoroge", "Phone Number": "768788141", "Job Title": "Office Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "2026-09-06", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Male", "Marital Status": null, "National ID": "37981474", "KRA PIN": "A015572806Q", "SHA": "CR0992854786887-5", "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ042", "First Name": "Bob", "Surname": "Kerama", "Last Name": "Marube", "Phone Number": "710783519", "Job Title": "Tipper Driver", "Department": "Operations", "Employment Type": "Fixed Term", "Reports To": "Mohammed Ali", "Date of Employment": "18/6/2026", "Employment Status": "Active", "Work Location": "On Site", "Date of Birth": "29/12/1989", "Gender": "Male", "Marital Status": null, "National ID": "27881702", "KRA PIN": "A007770261W", "SHA": null, "NSSF": "2000818488", "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ043", "First Name": "Martin", "Surname": null, "Last Name": "Mwenda", "Phone Number": "792156177", "Job Title": "Security Guard", "Department": "Admin", "Employment Type": "Fixed Term", "Reports To": "Houghton Kithinji", "Date of Employment": "22/6/2026", "Employment Status": "Active", "Work Location": "Head Office", "Date of Birth": null, "Gender": "Male", "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ044", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ045", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ046", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ047", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ048", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ049", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ050", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ051", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ052", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ053", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ054", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ055", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}, {"Employee ID": "LZ056", "First Name": null, "Surname": null, "Last Name": null, "Phone Number": null, "Job Title": null, "Department": null, "Employment Type": null, "Reports To": null, "Date of Employment": null, "Employment Status": null, "Work Location": null, "Date of Birth": null, "Gender": null, "Marital Status": null, "National ID": null, "KRA PIN": null, "SHA": null, "NSSF": null, "Next of Kin Name": null, "Relationship": null, "Next of Kin Phone": null, "Emergency Contact 1 Name": null, "Emergency Contact 1 Phone": null, "Emergency Contact 1 Relationship": null, "Emergency Contact 2 Name": null, "Emergency Contact 2 Phone": null}]
 
 
 def _parse_date(val):
     if not val:
         return None
-    if isinstance(val, (date, datetime)):
-        return val.date() if isinstance(val, datetime) else val
     s = str(val).strip()
-    for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y'):
+    for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%-d/%-m/%Y'):
         try:
             return datetime.strptime(s, fmt).date()
         except ValueError:
             pass
     return None
 
+def _s(v):
+    return (v or '').strip()
 
-def _str(val):
-    if val is None:
-        return ''
-    return str(val).strip()
-
-
-EMPLOYMENT_TYPE_MAP = {
-    'fixed term': 'staff',
-    'permanent': 'staff',
-    'staff': 'staff',
-    'casual': 'casual',
-}
-
-GENDER_MAP = {
-    'male': 'male',
-    'm': 'male',
-    'female': 'female',
-    'f': 'female',
-}
-
-MARITAL_MAP = {
-    'single': 'single',
-    'married': 'married',
-    'divorced': 'divorced',
-    'widowed': 'widowed',
-}
+EMPLOYMENT_TYPE_MAP = {'fixed term': 'staff', 'permanent': 'staff', 'staff': 'staff', 'casual': 'casual'}
+GENDER_MAP = {'male': 'male', 'm': 'male', 'female': 'female', 'f': 'female'}
+MARITAL_MAP = {'single': 'single', 'married': 'married', 'divorced': 'divorced', 'widowed': 'widowed'}
 
 
 class Command(BaseCommand):
-    help = 'Seed employee data from HR_EMS_Final.xlsx'
+    help = 'Seed employee data from HR_EMS_Final.xlsx (data embedded)'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--file',
-            default='/root/.claude/uploads/e1b9f1ea-5b0e-545a-86a9-059994014d7e/7ebdb3ef-HR_EMS_Final.xlsx',
-            help='Path to the Excel file',
-        )
-        parser.add_argument('--dry-run', action='store_true', help='Print what would be created without saving')
+        parser.add_argument('--dry-run', action='store_true')
 
     def handle(self, *args, **options):
-        path = options['file']
         dry_run = options['dry_run']
-
-        try:
-            wb = openpyxl.load_workbook(path)
-        except FileNotFoundError:
-            raise CommandError(f'File not found: {path}')
-
-        ws = wb.active
-        rows = list(ws.iter_rows(values_only=True))
-        headers = [str(h).strip() if h else '' for h in rows[0]]
-
-        # Column index map
-        def col(name):
-            try:
-                return headers.index(name)
-            except ValueError:
-                return None
-
-        idx = {
-            'employee_id':    col('Employee ID'),
-            'first_name':     col('First Name'),
-            'surname':        col('Surname'),
-            'last_name':      col('Last Name'),
-            'phone':          col('Phone Number'),
-            'job_title':      col('Job Title'),
-            'department':     col('Department'),
-            'emp_type':       col('Employment Type'),
-            'reports_to':     col('Reports To'),
-            'date_hired':     col('Date of Employment'),
-            'emp_status':     col('Employment Status'),
-            'work_location':  col('Work Location'),
-            'dob':            col('Date of Birth'),
-            'gender':         col('Gender'),
-            'marital':        col('Marital Status'),
-            'national_id':    col('National ID'),
-            'kra_pin':        col('KRA PIN'),
-            'sha':            col('SHA'),
-            'nssf':           col('NSSF'),
-            'nok_name':       col('Next of Kin Name'),
-            'nok_rel':        col('Relationship'),
-            'nok_phone':      col('Next of Kin Phone'),
-            'ec1_name':       col('Emergency Contact 1 Name'),
-            'ec1_phone':      col('Emergency Contact 1 Phone'),
-            'ec1_rel':        col('Emergency Contact 1 Relationship'),
-            'ec2_name':       col('Emergency Contact 2 Name'),
-            'ec2_phone':      col('Emergency Contact 2 Phone'),
-        }
-
-        # Pre-load lookup caches
         dept_cache = {d.name.lower(): d for d in Department.objects.all()}
         pos_cache  = {p.title.lower(): p for p in Position.objects.all()}
-        branch_cache = {b.name.lower(): b for b in Branch.objects.all()}
 
-        created = 0
-        skipped = 0
-        errors = []
-
-        def get(row, key):
-            i = idx.get(key)
-            return _str(row[i]) if i is not None and i < len(row) else ''
+        created = skipped = 0
 
         with transaction.atomic():
-            for row_num, row in enumerate(rows[1:], start=2):
-                emp_number = get(row, 'employee_id')
-                first_name = get(row, 'first_name')
-                middle_name = get(row, 'surname')
-                last_name = get(row, 'last_name')
+            for row in EMPLOYEES:
+                emp_number = _s(row.get('Employee ID'))
+                first_name = _s(row.get('First Name'))
+                middle_name = _s(row.get('Surname'))
+                last_name = _s(row.get('Last Name'))
 
                 if not first_name and not last_name:
-                    self.stdout.write(f'  Row {row_num}: empty name — skipping')
                     skipped += 1
                     continue
 
-                # Skip if employee_number already exists
                 if emp_number and Employee.objects.filter(employee_number=emp_number).exists():
-                    self.stdout.write(f'  Row {row_num}: {emp_number} already exists — skipping')
+                    self.stdout.write(f'  Skip (exists): {emp_number} {first_name} {last_name}')
                     skipped += 1
                     continue
 
-                dept_name = get(row, 'department')
+                dept_name = _s(row.get('Department'))
                 department = dept_cache.get(dept_name.lower()) if dept_name else None
 
-                job_title = get(row, 'job_title')
+                job_title = _s(row.get('Job Title'))
                 position = pos_cache.get(job_title.lower()) if job_title else None
 
-                emp_type_raw = get(row, 'emp_type').lower()
-                employment_type = EMPLOYMENT_TYPE_MAP.get(emp_type_raw, 'staff')
+                employment_type = EMPLOYMENT_TYPE_MAP.get(_s(row.get('Employment Type', '')).lower(), 'staff')
+                gender = GENDER_MAP.get(_s(row.get('Gender', '')).lower(), 'male')
+                marital_status = MARITAL_MAP.get(_s(row.get('Marital Status', '')).lower(), 'single')
 
-                gender_raw = get(row, 'gender').lower()
-                gender = GENDER_MAP.get(gender_raw, 'male')
-
-                marital_raw = get(row, 'marital').lower()
-                marital_status = MARITAL_MAP.get(marital_raw, 'single')
-
-                date_hired = _parse_date(get(row, 'date_hired'))
-                if not date_hired:
-                    date_hired = date.today()
-
-                phone = get(row, 'phone')
-                if phone and not phone.startswith('+'):
-                    phone = phone  # store as-is
-
-                emp_status = get(row, 'emp_status')
+                date_hired = _parse_date(_s(row.get('Date of Employment'))) or date.today()
+                phone = _s(row.get('Phone Number')) or '000'
+                emp_status = _s(row.get('Employment Status'))
                 is_active = emp_status.lower() not in ('inactive', 'terminated', 'resigned') if emp_status else True
 
                 if dry_run:
-                    self.stdout.write(
-                        f'  [DRY RUN] Would create: {emp_number} {first_name} {last_name} '
-                        f'({dept_name} / {job_title})'
-                    )
+                    self.stdout.write(f'  [DRY RUN] {emp_number} {first_name} {last_name} ({dept_name}/{job_title})')
                     created += 1
                     continue
 
@@ -183,36 +85,31 @@ class Command(BaseCommand):
                     first_name=first_name,
                     middle_name=middle_name,
                     last_name=last_name,
-                    phone=phone or '000',
+                    phone=phone,
                     gender=gender,
                     marital_status=marital_status,
-                    date_of_birth=_parse_date(get(row, 'dob')),
+                    date_of_birth=_parse_date(_s(row.get('Date of Birth'))),
                     date_hired=date_hired,
                     employment_type=employment_type,
                     department=department,
                     position=position,
-                    national_id=get(row, 'national_id'),
-                    kra_pin=get(row, 'kra_pin'),
-                    nssf_number=get(row, 'nssf'),
-                    nhif_number=get(row, 'sha'),
-                    work_location=get(row, 'work_location'),
+                    national_id=_s(row.get('National ID')),
+                    kra_pin=_s(row.get('KRA PIN')),
+                    nssf_number=_s(row.get('NSSF')),
+                    nhif_number=_s(row.get('SHA')),
+                    work_location=_s(row.get('Work Location')),
                     is_active=is_active,
-                    next_of_kin_name=get(row, 'nok_name'),
-                    next_of_kin_relation=get(row, 'nok_rel'),
-                    next_of_kin_phone=get(row, 'nok_phone'),
-                    emergency_contact_name=get(row, 'ec1_name'),
-                    emergency_contact_phone=get(row, 'ec1_phone'),
-                    emergency_contact_relation=get(row, 'ec1_rel'),
-                    emergency_contact2_name=get(row, 'ec2_name'),
-                    emergency_contact2_phone=get(row, 'ec2_phone'),
+                    next_of_kin_name=_s(row.get('Next of Kin Name')),
+                    next_of_kin_relation=_s(row.get('Relationship')),
+                    next_of_kin_phone=_s(row.get('Next of Kin Phone')),
+                    emergency_contact_name=_s(row.get('Emergency Contact 1 Name')),
+                    emergency_contact_phone=_s(row.get('Emergency Contact 1 Phone')),
+                    emergency_contact_relation=_s(row.get('Emergency Contact 1 Relationship')),
+                    emergency_contact2_name=_s(row.get('Emergency Contact 2 Name')),
+                    emergency_contact2_phone=_s(row.get('Emergency Contact 2 Phone')),
                 )
                 emp.save()
                 created += 1
                 self.stdout.write(f'  Created: {emp_number} {first_name} {last_name}')
 
-        self.stdout.write(self.style.SUCCESS(
-            f'\nDone. Created: {created}, Skipped: {skipped}'
-        ))
-        if errors:
-            for e in errors:
-                self.stdout.write(self.style.ERROR(f'  ERROR: {e}'))
+        self.stdout.write(self.style.SUCCESS(f'Done. Created: {created}, Skipped: {skipped}'))
