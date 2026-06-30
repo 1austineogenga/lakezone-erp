@@ -192,13 +192,13 @@ export default function DashboardPage() {
 
       {/* ── KPI Cards ── */}
       {projLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+          {Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
           <KpiCard icon={FolderIcon}               label="Active Projects"  value={activeProjects.length}              bg="bg-red-50"     color="text-red-600"     sub={`${projectList.length} total`}         onClick={nav('projects',    '/projects?status=active')} />
-          <KpiCard icon={BanknotesIcon}             label="Contract Value"   value={`KES ${fmtK(totalContractValue)}`}  bg="bg-teal-50"    color="text-teal-600"    sub="Active projects"                       onClick={nav('projects',    '/projects')} />
+
           <KpiCard icon={TruckIcon}                 label="Fleet Online"     value={`${onlineVehicles}/${vehicles.length}`} bg="bg-blue-50" color="text-blue-600"  sub="last 10 min"                           onClick={nav('fleet',       '/fleet')} />
           <KpiCard icon={MapPinIcon}                label="Moving Now"       value={movingVehicles}                     bg="bg-green-50"   color="text-green-600"   sub="live GPS"                              onClick={nav('fleet',       '/fleet/vehicles')} />
           <KpiCard icon={ClipboardDocumentListIcon} label="Pending PRs"      value={pendingPRs}                         bg="bg-amber-50"   color="text-amber-600"   sub={`${approvedPRs} approved`}             onClick={nav('procurement', '/procurement')} />
