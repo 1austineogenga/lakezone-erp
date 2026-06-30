@@ -165,7 +165,8 @@ class Employee(models.Model):
         ordering = ['last_name', 'first_name']
 
     def clean(self):
-        if self.date_hired and self.date_hired > date.today():
+        # Only validate on creation, not on updates (imported records may have future dates)
+        if not self.pk and self.date_hired and self.date_hired > date.today():
             raise ValidationError({'date_hired': 'Date hired cannot be in the future.'})
 
     def save(self, *args, **kwargs):

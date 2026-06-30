@@ -9,6 +9,7 @@ import {
 } from '../../api/hr'
 import { PlusIcon, TrashIcon, ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
+import { usePermissions } from '../../hooks/usePermissions'
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
 const TYPE_COLORS = { staff: 'bg-indigo-100 text-indigo-700', casual: 'bg-purple-100 text-purple-700' }
@@ -19,6 +20,8 @@ export default function EmployeeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { user, canWrite } = usePermissions()
+  const canEdit = user?.role === 'system_admin' || user?.role === 'hr_manager'
   const [tab, setTab] = useState('profile')
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState({})
@@ -63,9 +66,18 @@ export default function EmployeeDetailPage() {
     enabled: tab === 'leave',
   })
 
+  const { data: users } = useQuery({
+    queryKey: ['users-list'],
+    queryFn: () => api.get('/auth/users/', { params: { page_size: 200 } }),
+    select: r => r.data?.results ?? r.data,
+    enabled: editing,
+  })
+
   useEffect(() => {
     if (emp && editing) {
       setEditData({
+        employee_number:            emp.employee_number || '',
+        reports_to:                 emp.reports_to || '',
         first_name:                 emp.first_name || '',
         last_name:                  emp.last_name || '',
         middle_name:                emp.middle_name || '',
@@ -145,6 +157,7 @@ export default function EmployeeDetailPage() {
     if (!payload.department) delete payload.department
     if (!payload.position) delete payload.position
     if (!payload.branch) delete payload.branch
+    if (!payload.reports_to) delete payload.reports_to
     updateMut.mutate(payload)
   }
 
@@ -187,12 +200,12 @@ export default function EmployeeDetailPage() {
                     <XMarkIcon className="h-3.5 w-3.5" /> Cancel
                   </button>
                 </>
-              ) : (
+              ) : canEdit ? (
                 <button onClick={() => setEditing(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg hover:bg-gray-50">
                   <PencilIcon className="h-3.5 w-3.5" /> Edit Employee
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -301,6 +314,7 @@ export default function EmployeeDetailPage() {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h3 className="font-semibold text-brand-slate text-sm mb-4">Employment</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Field label="Employee Number"><input {...ef('employee_number')} placeholder="e.g. LZ001" className={cls} /></Field>
               <Field label="Department">
                 <select {...ef('department')} className={cls}>
                   <option value="">— None —</option>
@@ -317,6 +331,16 @@ export default function EmployeeDetailPage() {
                 <select {...ef('branch')} className={cls}>
                   <option value="">— None —</option>
                   {branches?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Reports To">
+                <select {...ef('reports_to')} className={cls}>
+                  <option value="">— None —</option>
+                  {users?.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.first_name} {u.last_name}{u.role ? ` (${u.role.replace(/_/g, ' ')})` : ''}
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field label="Date Hired *"><input required type="date" {...ef('date_hired')} className={cls} /></Field>
