@@ -22,8 +22,8 @@ export default function FleetSettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
         <Cog6ToothIcon className="h-10 w-10 text-gray-300" />
-        <p className="text-sm font-medium text-gray-500">Access Restricted</p>
-        <p className="text-xs text-gray-400">Fleet API settings are only accessible to System Administrators.</p>
+        <p className="text-sm font-medium text-gray-600">Access Restricted</p>
+        <p className="text-xs text-gray-600">Fleet API settings are only accessible to System Administrators.</p>
       </div>
     )
   }
@@ -172,7 +172,7 @@ export default function FleetSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Fleet Settings</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Tracking API credentials and sync configuration</p>
+          <p className="text-xs text-gray-600 mt-0.5">Tracking API credentials and sync configuration</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
@@ -206,7 +206,7 @@ export default function FleetSettingsPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-1 flex items-center gap-2">
             <Cog6ToothIcon className="h-4 w-4 text-gray-400" /> API Configuration
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             Supports <strong>Token Based</strong> (Trakzee-style, recommended) and <strong>Vehicle Wise</strong> GET endpoints.
           </p>
         </div>
@@ -226,7 +226,7 @@ export default function FleetSettingsPage() {
             <input type="number" value={form.project_id} onChange={e => field('project_id', Number(e.target.value))}
               placeholder="37"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            <p className="text-[10px] text-gray-400 mt-0.5">From your Trakzee account (default: 37)</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">From your Trakzee account (default: 37)</p>
           </div>
 
           <div className="md:col-span-2">
@@ -255,7 +255,7 @@ export default function FleetSettingsPage() {
             <input value={form.company_name} onChange={e => field('company_name', e.target.value)}
               placeholder="e.g. LAKE ZONE ENTERPRISES LTD"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            <p className="text-[10px] text-gray-400 mt-0.5">Exact company name as registered in Trakzee — used to filter vehicles in the API request.</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">Exact company name as registered in Trakzee — used to filter vehicles in the API request.</p>
           </div>
         </div>
 
@@ -320,7 +320,7 @@ export default function FleetSettingsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
         <div>
           <h3 className="font-semibold text-brand-slate text-sm mb-1">Import Trip History</h3>
-          <p className="text-xs text-gray-400">Fetch up to 3 months of trip records directly from the TrackNTrace API.</p>
+          <p className="text-xs text-gray-600">Fetch up to 3 months of trip records directly from the TrackNTrace API.</p>
         </div>
         <div className="flex flex-wrap gap-4 items-end">
           {[['From', histFrom, setHistFrom], ['To', histTo, setHistTo]].map(([label, val, set]) => (
@@ -343,7 +343,7 @@ export default function FleetSettingsPage() {
             <p>Trips imported: <strong>{fetchHistMut.data.data.trips_imported ?? 0}</strong></p>
             {fetchHistMut.data.data.error && <p className="text-red-600 break-all">{fetchHistMut.data.data.error}</p>}
             {fetchHistMut.data.data.raw_response && (
-              <p className="text-gray-500 break-all">Raw: {JSON.stringify(fetchHistMut.data.data.raw_response)}</p>
+              <p className="text-gray-600 break-all">Raw: {JSON.stringify(fetchHistMut.data.data.raw_response)}</p>
             )}
           </div>
         )}
@@ -353,7 +353,7 @@ export default function FleetSettingsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
         <div>
           <h3 className="font-semibold text-brand-slate text-sm mb-1">Import Fuel Events from API</h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             Fetch pre-processed fuel fill/drain events directly from Trakzee — values in litres, same source as Fleet Express app.
             Uses the same date range as the trip history above.
           </p>
@@ -389,7 +389,7 @@ export default function FleetSettingsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
         <div>
           <h3 className="font-semibold text-brand-slate text-sm mb-1">Sync Alerts from TrackNTrace</h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             Pull alert history (speeding, SOS, fuel, geofence, idle, etc.) directly from the TrackNTrace/Trakzee system
             and store them in the ERP. Uses the same date range as above.
           </p>

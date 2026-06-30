@@ -80,7 +80,7 @@ export default function NewPRPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-brand-slate">New Purchase Requisition</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Fill in the details and line items below</p>
+          <p className="text-sm text-gray-600 mt-0.5">Fill in the details and line items below</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function NewPRPage() {
           <h3 className="font-semibold text-brand-slate">Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Department *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Department *</label>
               <input
                 required
                 className={inp}
@@ -100,7 +100,7 @@ export default function NewPRPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Project (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Project (optional)</label>
               <select
                 className={inp}
                 value={form.project}
@@ -113,7 +113,7 @@ export default function NewPRPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Required By Date *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Required By Date *</label>
               <input
                 required
                 type="date"
@@ -140,11 +140,11 @@ export default function NewPRPage() {
 
           {/* Header row */}
           <div className="hidden sm:grid grid-cols-12 gap-2 mb-2 px-1">
-            <span className="col-span-4 text-xs font-medium text-gray-400">Description</span>
-            <span className="col-span-1 text-xs font-medium text-gray-400">Unit</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Qty</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Unit Rate (KES)</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Amount</span>
+            <span className="col-span-4 text-xs font-medium text-gray-600">Description</span>
+            <span className="col-span-1 text-xs font-medium text-gray-600">Unit</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Qty</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Unit Rate (KES)</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Amount</span>
             <span className="col-span-1" />
           </div>
 
@@ -205,7 +205,7 @@ export default function NewPRPage() {
           {total > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
               <div className="text-sm">
-                <span className="text-gray-500 mr-3">Estimated Total:</span>
+                <span className="text-gray-600 mr-3">Estimated Total:</span>
                 <span className="font-bold text-brand-slate">KES {total.toLocaleString()}</span>
               </div>
             </div>

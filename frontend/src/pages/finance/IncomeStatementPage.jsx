@@ -16,13 +16,13 @@ const PRESETS = [
 ]
 
 function AccountTable({ rows }) {
-  if (!rows.length) return <p className="px-4 py-3 text-gray-400 italic text-xs">No entries</p>
+  if (!rows.length) return <p className="px-4 py-3 text-gray-600 italic text-xs">No entries</p>
   return (
     <table className="w-full text-sm">
       <tbody>
         {rows.map((r, i) => (
           <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-4 py-2 text-gray-400 w-20 font-mono text-xs">{r.code}</td>
+            <td className="px-4 py-2 text-gray-600 w-20 font-mono text-xs">{r.code}</td>
             <td className="px-2 py-2 text-gray-700">{r.name}</td>
             <td className="px-4 py-2 text-right font-medium text-gray-800">KES {fmt(r.amount)}</td>
           </tr>
@@ -58,7 +58,7 @@ export default function IncomeStatementPage() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Income Statement</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Profit & Loss for a selected period</p>
+          <p className="text-sm text-gray-600 mt-0.5">Profit & Loss for a selected period</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {PRESETS.map(p => (
@@ -76,7 +76,7 @@ export default function IncomeStatementPage() {
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <input type="date" value={from} onChange={e => setFrom(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
-        <span className="text-gray-400 text-sm">to</span>
+        <span className="text-gray-600 text-sm">to</span>
         <input type="date" value={to} onChange={e => setTo(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
         <button onClick={() => apply()}
@@ -87,13 +87,13 @@ export default function IncomeStatementPage() {
 
       {/* Company banner */}
       <div className="text-center mb-6">
-        <p className="text-xs text-gray-500 uppercase tracking-widest">Lake Zone Enterprises Ltd</p>
+        <p className="text-xs text-gray-600 uppercase tracking-widest">Lake Zone Enterprises Ltd</p>
         <p className="text-base font-semibold text-gray-700 mt-0.5">
           {fmtDate(applied.from)} — {fmtDate(applied.to)}
         </p>
       </div>
 
-      {isLoading && <p className="text-center text-gray-400 py-10">Loading…</p>}
+      {isLoading && <p className="text-center text-gray-600 py-10">Loading…</p>}
       {isError   && <p className="text-center text-red-500 py-10">Failed to load income statement.</p>}
 
       {data && (
@@ -132,20 +132,20 @@ export default function IncomeStatementPage() {
           {/* Summary cards */}
           <div className="mt-6 grid grid-cols-3 gap-4">
             <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Total Revenue</p>
+              <p className="text-xs text-gray-600 uppercase tracking-wide">Total Revenue</p>
               <p className="text-lg font-bold text-green-600 mt-1">KES {fmt(totalRevenue)}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Total Expenses</p>
+              <p className="text-xs text-gray-600 uppercase tracking-wide">Total Expenses</p>
               <p className="text-lg font-bold text-red-600 mt-1">KES {fmt(totalExpenses)}</p>
             </div>
             <div className={`border rounded-lg p-4 text-center ${isProfit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">{isProfit ? 'Net Profit' : 'Net Loss'}</p>
+              <p className="text-xs text-gray-600 uppercase tracking-wide">{isProfit ? 'Net Profit' : 'Net Loss'}</p>
               <p className={`text-lg font-bold mt-1 ${isProfit ? 'text-green-700' : 'text-red-700'}`}>
                 KES {fmt(Math.abs(netIncome))}
               </p>
               {totalRevenue > 0 && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-600 mt-0.5">
                   {((Math.abs(netIncome) / totalRevenue) * 100).toFixed(1)}% margin
                 </p>
               )}

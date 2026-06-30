@@ -64,7 +64,7 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-2xl font-bold text-brand-slate mb-1">Welcome back</h1>
-          <p className="text-sm text-gray-500 mb-8">Sign in to your ERP account</p>
+          <p className="text-sm text-gray-600 mb-8">Sign in to your ERP account</p>
 
           {error && (
             <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">

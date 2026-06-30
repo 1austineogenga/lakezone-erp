@@ -233,7 +233,7 @@ export default function VehiclesPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Vehicles & Machinery</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {totalCount} total · {liveCount} GPS-tracked · {warnCount > 0 && <span className="text-red-500 font-medium">{warnCount} compliance issues</span>}
           </p>
         </div>
@@ -265,7 +265,7 @@ export default function VehiclesPage() {
           <button key={label} onClick={() => setStatusFilter(f => f === filter ? '' : filter)}
             className={`${bg} rounded-xl px-4 py-2 text-left transition-all border ${statusFilter===filter ? 'border-brand-red shadow-sm' : 'border-transparent'}`}>
             <p className={`text-lg font-bold leading-none ${color}`}>{val}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">{label}</p>
           </button>
         ))}
       </div>
@@ -287,7 +287,7 @@ export default function VehiclesPage() {
         </div>
         {/* Sort + Search */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1 text-xs text-gray-400">
+          <div className="flex items-center gap-1 text-xs text-gray-600">
             <ChevronUpDownIcon className="h-3.5 w-3.5" />
             <select value={sortKey} onChange={e => setSortKey(e.target.value)}
               className="border-0 bg-transparent text-xs text-gray-600 focus:outline-none">
@@ -324,14 +324,14 @@ export default function VehiclesPage() {
               { label: 'Site / Location', key: 'current_site', placeholder: 'e.g. Njambini' },
             ].map(({ label, key, placeholder, type }) => (
               <div key={key}>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                 <input type={type || 'text'} value={form[key]} onChange={e => field(key, e.target.value)}
                   placeholder={placeholder}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
               </div>
             ))}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Fuel Type</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Fuel Type</label>
               <select value={form.fuel_type} onChange={e => field('fuel_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 {['diesel','petrol','electric','hybrid'].map(t => (
@@ -340,7 +340,7 @@ export default function VehiclesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">ERP Status</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">ERP Status</label>
               <select value={form.erp_status} onChange={e => field('erp_status', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 <option value="OPER">Operational</option>
@@ -350,7 +350,7 @@ export default function VehiclesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Project</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Project</label>
               <select value={form.project} onChange={e => field('project', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 <option value="">— Unassigned —</option>
@@ -381,7 +381,7 @@ export default function VehiclesPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
           <TruckIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-400">No vehicles match your filters.</p>
+          <p className="text-sm font-medium text-gray-600">No vehicles match your filters.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -397,14 +397,14 @@ export default function VehiclesPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500 w-6">#</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500 w-24">Reg / ID</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Description</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Make & Model</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Location</th>
-                    <th className="px-4 py-2 text-center font-semibold text-gray-500">GPS</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Status</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Compliance</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600 w-6">#</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600 w-24">Reg / ID</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600">Description</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600">Make & Model</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600">Location</th>
+                    <th className="px-4 py-2 text-center font-semibold text-gray-600">GPS</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-600">Compliance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -417,7 +417,7 @@ export default function VehiclesPage() {
                         onClick={() => navigate(`/fleet/vehicles/${v.id}`)}
                         className={`cursor-pointer transition-colors hover:bg-gray-50 ${hasWarn ? 'bg-red-50/30' : ''}`}>
                         {/* # */}
-                        <td className="px-4 py-3 text-gray-400">{v.asset_no || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600">{v.asset_no || '—'}</td>
                         {/* Reg */}
                         <td className="px-4 py-3">
                           <span className="font-bold text-brand-slate">{v.vehicle_no}</span>
@@ -426,7 +426,7 @@ export default function VehiclesPage() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-gray-800">{v.vehicle_name || '—'}</p>
                           {v.chassis_number && v.chassis_number !== 'N/A' && (
-                            <p className="text-[10px] text-gray-400 mt-0.5">{v.chassis_number}</p>
+                            <p className="text-[10px] text-gray-600 mt-0.5">{v.chassis_number}</p>
                           )}
                         </td>
                         {/* Make & Model */}
@@ -440,31 +440,31 @@ export default function VehiclesPage() {
                               <MapPinIcon className="h-3 w-3 text-gray-400 shrink-0" />
                               <span className="truncate max-w-[140px]">{location}</span>
                             </span>
-                          ) : <span className="text-gray-400">—</span>}
+                          ) : <span className="text-gray-600">—</span>}
                         </td>
                         {/* GPS */}
                         <td className="px-4 py-3 text-center">
                           {v.is_live ? (
                             <div className="flex flex-col items-center gap-0.5">
                               <LiveIcon />
-                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_CLS[v.last_status||'']||'bg-gray-100 text-gray-400'}`}>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_CLS[v.last_status||'']||'bg-gray-100 text-gray-600'}`}>
                                 {STATUS_LABEL[v.last_status] || 'Unknown'}
                               </span>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-0.5">
                               <OfflineIcon />
-                              <span className="text-[9px] text-gray-400">Untracked</span>
+                              <span className="text-[9px] text-gray-600">Untracked</span>
                             </div>
                           )}
                         </td>
                         {/* Status */}
                         <td className="px-4 py-3">
                           {v.erp_status ? (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${ERP_CLS[v.erp_status]||'bg-gray-100 text-gray-400'}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${ERP_CLS[v.erp_status]||'bg-gray-100 text-gray-600'}`}>
                               {ERP_LABEL[v.erp_status]||v.erp_status}
                             </span>
-                          ) : <span className="text-gray-400 text-[10px]">—</span>}
+                          ) : <span className="text-gray-600 text-[10px]">—</span>}
                         </td>
                         {/* Compliance */}
                         <td className="px-4 py-3">

@@ -89,21 +89,21 @@ export default function PayrollPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Payroll Period</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name (optional)</label>
+              <label className="block text-xs text-gray-600 mb-1">Name (optional)</label>
               <input {...f('name')} placeholder="Auto-filled from month/year" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Month *</label>
+              <label className="block text-xs text-gray-600 mb-1">Month *</label>
               <select required {...f('month')} className={cls}>
                 {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Year *</label>
+              <label className="block text-xs text-gray-600 mb-1">Year *</label>
               <input required type="number" {...f('year')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Payment Date</label>
+              <label className="block text-xs text-gray-600 mb-1">Payment Date</label>
               <input type="date" {...f('payment_date')} className={cls} />
             </div>
           </div>
@@ -120,14 +120,14 @@ export default function PayrollPage() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !periods || periods.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No payroll periods yet.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No payroll periods yet.</p>
             : <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Period', 'Entries', 'Payment Date', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -140,7 +140,7 @@ export default function PayrollPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-sm">{p.entry_count}</td>
-                      <td className="px-4 py-3 text-gray-500 text-sm">{p.payment_date || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-sm">{p.payment_date || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status]}`}>
                           {p.status}

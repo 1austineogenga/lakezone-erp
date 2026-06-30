@@ -127,7 +127,7 @@ export default function EmployeeDetailPage() {
     onSuccess: () => { toast.success('Deleted.'); qc.invalidateQueries(['employee-docs', id]) },
   })
 
-  if (isLoading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+  if (isLoading) return <div className="text-sm text-gray-600 py-8 text-center">Loading…</div>
   if (!emp) return null
 
   const gross = ['basic_salary', 'house_allowance', 'transport_allowance', 'medical_allowance', 'other_allowances']
@@ -171,7 +171,7 @@ export default function EmployeeDetailPage() {
                   {emp.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 {emp.employee_number} · {emp.position_title || 'No position'} · {emp.department_name || 'No department'}
               </p>
             </div>
@@ -427,7 +427,7 @@ export default function EmployeeDetailPage() {
               </div>
               {!editing ? (
                 <p className="text-2xl font-bold text-brand-slate">
-                  {fmt(emp.daily_rate)} <span className="text-sm font-normal text-gray-500">/ day</span>
+                  {fmt(emp.daily_rate)} <span className="text-sm font-normal text-gray-600">/ day</span>
                 </p>
               ) : (
                 <div className="mt-2 max-w-xs">
@@ -461,24 +461,24 @@ export default function EmployeeDetailPage() {
               className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Type *</label>
+                  <label className="block text-xs text-gray-600 mb-1">Type *</label>
                   <select required value={docForm.doc_type}
                     onChange={e => setDocForm(f => ({ ...f, doc_type: e.target.value }))} className={cls}>
                     {DOC_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Title *</label>
+                  <label className="block text-xs text-gray-600 mb-1">Title *</label>
                   <input required value={docForm.title}
                     onChange={e => setDocForm(f => ({ ...f, title: e.target.value }))} className={cls} />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">File Reference / URL</label>
+                  <label className="block text-xs text-gray-600 mb-1">File Reference / URL</label>
                   <input value={docForm.file_ref}
                     onChange={e => setDocForm(f => ({ ...f, file_ref: e.target.value }))} className={cls} />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                  <label className="block text-xs text-gray-600 mb-1">Notes</label>
                   <input value={docForm.notes}
                     onChange={e => setDocForm(f => ({ ...f, notes: e.target.value }))} className={cls} />
                 </div>
@@ -495,26 +495,26 @@ export default function EmployeeDetailPage() {
           )}
           <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
             {!docs || docs.length === 0
-              ? <p className="text-sm text-gray-400 p-6 text-center">No documents uploaded.</p>
+              ? <p className="text-sm text-gray-600 p-6 text-center">No documents uploaded.</p>
               : <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Type', 'Title', 'File Ref', 'Uploaded', ''].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {docs.map(d => (
                       <tr key={d.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 text-xs uppercase text-gray-500">{d.doc_type.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2.5 text-xs uppercase text-gray-600">{d.doc_type.replace(/_/g, ' ')}</td>
                         <td className="px-4 py-2.5 font-medium">{d.title}</td>
                         <td className="px-4 py-2.5 text-xs text-brand-red">
                           {d.file_ref
                             ? <a href={d.file_ref} target="_blank" rel="noreferrer" className="hover:underline">{d.file_ref.slice(0, 40)}</a>
                             : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-gray-400">{d.uploaded_at?.slice(0, 10)}</td>
+                        <td className="px-4 py-2.5 text-xs text-gray-600">{d.uploaded_at?.slice(0, 10)}</td>
                         <td className="px-4 py-2.5">
                           <button onClick={() => docDeleteMut.mutate(d.id)}
                             className="text-gray-500 hover:text-red-500">
@@ -538,12 +538,12 @@ export default function EmployeeDetailPage() {
               <h3 className="font-semibold text-brand-slate text-sm">Leave Balances — {new Date().getFullYear()}</h3>
             </div>
             {!leaveBalances || leaveBalances.length === 0
-              ? <p className="text-sm text-gray-400 p-6 text-center">No leave balances configured.</p>
+              ? <p className="text-sm text-gray-600 p-6 text-center">No leave balances configured.</p>
               : <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Leave Type', 'Entitled', 'Carried Fwd', 'Taken', 'Balance'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -577,14 +577,14 @@ const InfoCard = ({ title, children }) => (
 
 const Row = ({ label, value }) => (
   <div className="flex justify-between text-sm gap-4">
-    <span className="text-gray-500 shrink-0">{label}</span>
+    <span className="text-gray-600 shrink-0">{label}</span>
     <span className="text-gray-800 font-medium text-right">{value}</span>
   </div>
 )
 
 const Field = ({ label, children }) => (
   <div>
-    <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className="block text-xs text-gray-600 mb-1">{label}</label>
     {children}
   </div>
 )

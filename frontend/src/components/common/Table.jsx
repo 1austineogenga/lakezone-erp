@@ -14,7 +14,7 @@ export default function Table({ columns, data, onRowClick }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {data?.length === 0 && (
-              <tr><td colSpan={columns.length} className="text-center py-10 text-gray-400">No records found</td></tr>
+              <tr><td colSpan={columns.length} className="text-center py-10 text-gray-600">No records found</td></tr>
             )}
             {data?.map((row, i) => (
               <tr

@@ -160,7 +160,7 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
             </div>
             <div>
               <p className="text-xl font-bold text-brand-slate">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-xs text-gray-600">{label}</p>
             </div>
           </button>
         ))}
@@ -189,17 +189,17 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
           <h3 className="font-semibold text-brand-slate text-sm">Recent Activity</h3>
         </div>
         {recentActivity.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No recent activity.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No recent activity.</p>
         ) : (
           <div className="divide-y divide-gray-50">
             {recentActivity.map((item, i) => (
               <div key={i} className="flex items-center gap-3 px-5 py-3">
-                <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded font-medium shrink-0">{item.type}</span>
+                <span className="text-xs text-gray-600 bg-gray-50 px-2 py-0.5 rounded font-medium shrink-0">{item.type}</span>
                 <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{item.label}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${STATUS_COLORS[item.status] || 'bg-gray-100 text-gray-600'}`}>
                   {item.status}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0 hidden sm:block">
+                <span className="text-xs text-gray-600 shrink-0 hidden sm:block">
                   {item.date ? new Date(item.date).toLocaleDateString() : ''}
                 </span>
               </div>
@@ -271,7 +271,7 @@ function ProfileTab({ user, refetch }) {
               onChange={e => e.target.files[0] && photoMut.mutate(e.target.files[0])} />
           </div>
           {photoMut.isPending && <p className="text-xs text-amber-600">Uploading…</p>}
-          <p className="text-xs text-gray-400 text-center">Click camera to change photo</p>
+          <p className="text-xs text-gray-600 text-center">Click camera to change photo</p>
         </div>
         <div className="flex-1 grid grid-cols-2 gap-3">
           {[
@@ -282,7 +282,7 @@ function ProfileTab({ user, refetch }) {
             { label: 'Date Joined', value: user?.date_joined ? new Date(user.date_joined).toLocaleDateString() : '—' },
           ].map(({ label, value }) => (
             <div key={label} className="bg-gray-50 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+              <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">{label}</p>
               <p className="text-sm font-medium text-brand-slate capitalize">{value}</p>
             </div>
           ))}
@@ -417,7 +417,7 @@ function LeaveTab() {
             {balances.filter(b => !b.leave_type_name?.toLowerCase().includes('annual')).map(b => (
               <div key={b.id} className="text-center">
                 <p className="text-sm font-bold text-gray-700">{Number(b.balance ?? 0)}</p>
-                <p className="text-[10px] text-gray-500">{b.leave_type_name}</p>
+                <p className="text-[10px] text-gray-600">{b.leave_type_name}</p>
               </div>
             ))}
           </div>
@@ -503,20 +503,20 @@ function LeaveTab() {
         {isLoading
           ? <div className="p-6 space-y-2">{[...Array(3)].map((_,i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
           : leaves.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No leave applications yet.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No leave applications yet.</p>
             : (
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     {['Ref', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Comments'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {leaves.map(l => (
                     <tr key={l.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{l.reference}</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-gray-600">{l.reference}</td>
                       <td className="px-4 py-3 font-medium text-brand-slate">{l.leave_type_name || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{l.start_date}</td>
                       <td className="px-4 py-3 text-gray-600">{l.end_date}</td>
@@ -526,7 +526,7 @@ function LeaveTab() {
                           {LEAVE_STATUS_LABELS[l.status] || l.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-400 max-w-[160px] truncate italic">
+                      <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate italic">
                         {l.review_notes || '—'}
                       </td>
                     </tr>
@@ -581,7 +581,7 @@ function AdvanceTab({ employeeId }) {
           { label: 'Deducted', value: fmt(totalDeducted), color: 'text-blue-600 bg-blue-50' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">{label}</p>
+            <p className="text-xs text-gray-600 mb-1">{label}</p>
             <p className={`text-lg font-bold ${color.split(' ')[0]}`}>{value}</p>
           </div>
         ))}
@@ -631,19 +631,19 @@ function AdvanceTab({ employeeId }) {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading ? <div className="p-6 space-y-2">{[...Array(3)].map((_,i)=><div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
-        : advances.length === 0 ? <p className="text-sm text-gray-400 p-8 text-center">No advance requests yet.</p>
+        : advances.length === 0 ? <p className="text-sm text-gray-600 p-8 text-center">No advance requests yet.</p>
         : (
           <table className="w-full text-xs">
             <thead><tr className="bg-gray-50 border-b border-gray-100">
-              {['Amount','Repayment','Reason','Requested','Status'].map(h=><th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>)}
+              {['Amount','Repayment','Reason','Requested','Status'].map(h=><th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-gray-50">
               {advances.map(a=>(
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-brand-slate">{fmt(a.amount)}</td>
                   <td className="px-4 py-3 text-gray-600">{a.repayment_months} mo.</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{a.reason}</td>
-                  <td className="px-4 py-3 text-gray-500">{a.created_at?new Date(a.created_at).toLocaleDateString():'—'}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">{a.reason}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.created_at?new Date(a.created_at).toLocaleDateString():'—'}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[a.status]||'bg-gray-100 text-gray-600'}`}>{a.status}</span></td>
                 </tr>
               ))}
@@ -676,7 +676,7 @@ function RequisitionsTab() {
         {Object.entries(stats).map(([k,v])=>(
           <div key={k} className="bg-white border border-gray-200 rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-brand-slate">{v}</p>
-            <p className="text-xs text-gray-500 capitalize">{k}</p>
+            <p className="text-xs text-gray-600 capitalize">{k}</p>
           </div>
         ))}
       </div>
@@ -691,18 +691,18 @@ function RequisitionsTab() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading ? <div className="p-6 space-y-2">{[...Array(4)].map((_,i)=><div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
-        : reqs.length === 0 ? <p className="text-sm text-gray-400 p-8 text-center">No requisitions yet.</p>
+        : reqs.length === 0 ? <p className="text-sm text-gray-600 p-8 text-center">No requisitions yet.</p>
         : (
           <table className="w-full text-xs">
             <thead><tr className="bg-gray-50 border-b border-gray-100">
-              {['Reference','Description','Date','Status',''].map(h=><th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>)}
+              {['Reference','Description','Date','Status',''].map(h=><th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-gray-50">
               {reqs.map(r=>(
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-brand-slate">{r.reference_number||r.rq_number||'—'}</td>
                   <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{r.description||r.title||'—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.created_at?new Date(r.created_at).toLocaleDateString():'—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.created_at?new Date(r.created_at).toLocaleDateString():'—'}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[r.status]||'bg-gray-100 text-gray-600'}`}>{r.status}</span></td>
                   <td className="px-4 py-3">
                     <button onClick={() => navigate(`/requisitions/${r.id}`)}
@@ -735,15 +735,15 @@ function PayslipsTab({ employeeId, user }) {
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">Payslips Available</p>
+          <p className="text-xs text-gray-600 mb-1">Payslips Available</p>
           <p className="text-2xl font-bold text-brand-slate">{payslips.length}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">YTD Net Pay</p>
+          <p className="text-xs text-gray-600 mb-1">YTD Net Pay</p>
           <p className="text-xl font-bold text-green-600">{fmt(totalNet)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">YTD PAYE Deducted</p>
+          <p className="text-xs text-gray-600 mb-1">YTD PAYE Deducted</p>
           <p className="text-xl font-bold text-red-600">{fmt(totalPAYE)}</p>
         </div>
       </div>
@@ -753,13 +753,13 @@ function PayslipsTab({ employeeId, user }) {
           <h3 className="font-semibold text-brand-slate text-sm">Payslip History</h3>
         </div>
         {isLoading ? <div className="p-6 space-y-2">{[...Array(4)].map((_,i)=><div key={i} className="h-8 bg-gray-100 rounded animate-pulse"/>)}</div>
-        : !employeeId ? <p className="text-sm text-gray-400 p-8 text-center">No employee record linked to your account.</p>
-        : payslips.length === 0 ? <p className="text-sm text-gray-400 p-8 text-center">No payslips available yet.</p>
+        : !employeeId ? <p className="text-sm text-gray-600 p-8 text-center">No employee record linked to your account.</p>
+        : payslips.length === 0 ? <p className="text-sm text-gray-600 p-8 text-center">No payslips available yet.</p>
         : (
           <table className="w-full text-xs">
             <thead><tr className="bg-gray-50 border-b border-gray-100">
               {['Period','Gross Pay','PAYE','NSSF','NHIF','Deductions','Net Pay','Status',''].map(h=>(
-                <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">{h}</th>
+                <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
               ))}
             </tr></thead>
             <tbody className="divide-y divide-gray-50">
@@ -830,7 +830,7 @@ export default function WorkspacePage() {
       {/* Header */}
       <div>
         <h2 className="font-bold text-brand-slate text-lg">My Workspace</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Manage your profile, leave, advances and payslips</p>
+        <p className="text-xs text-gray-600 mt-0.5">Manage your profile, leave, advances and payslips</p>
       </div>
 
       {/* Tab bar */}

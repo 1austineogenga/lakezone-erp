@@ -89,7 +89,7 @@ export default function AttendancePage() {
               ].map(s => (
                 <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
                   <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                  <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -100,18 +100,18 @@ export default function AttendancePage() {
               <h3 className="font-semibold text-brand-slate text-sm">
                 Attendance Sheet — {date}
               </h3>
-              <span className="text-xs text-gray-400">{dailySheet?.length || 0} employees</span>
+              <span className="text-xs text-gray-600">{dailySheet?.length || 0} employees</span>
             </div>
             {loadingDaily
-              ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+              ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
               : !dailySheet || dailySheet.length === 0
-                ? <p className="text-sm text-gray-400 p-8 text-center">No attendance data. Add employees first.</p>
+                ? <p className="text-sm text-gray-600 p-8 text-center">No attendance data. Add employees first.</p>
                 : <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
                           {['Employee', 'Type', 'Time In', 'Time Out', 'Status', 'Source', 'Quick Mark'].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -120,7 +120,7 @@ export default function AttendancePage() {
                           <tr key={rec.employee_id} className="hover:bg-gray-50">
                             <td className="px-4 py-3">
                               <p className="font-medium text-brand-slate text-xs">{rec.employee_number}</p>
-                              <p className="text-xs text-gray-500">{rec.full_name}</p>
+                              <p className="text-xs text-gray-600">{rec.full_name}</p>
                             </td>
                             <td className="px-4 py-3">
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium
@@ -135,7 +135,7 @@ export default function AttendancePage() {
                                 {rec.status?.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-400 capitalize">{rec.source || '—'}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600 capitalize">{rec.source || '—'}</td>
                             <td className="px-4 py-3">
                               <div className="flex gap-1">
                                 <button title="Mark Present" onClick={() => markStatus(rec.employee_id, 'present')}
@@ -182,20 +182,20 @@ function BiometricLog() {
       <div className="flex items-center gap-3">
         <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
-        <span className="text-xs text-gray-500">Showing biometric-sourced records only</span>
+        <span className="text-xs text-gray-600">Showing biometric-sourced records only</span>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100">
           <h3 className="font-semibold text-brand-slate text-sm">Biometric Attendance Log — {dateFilter}</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !records || records.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No biometric records for this date.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No biometric records for this date.</p>
             : <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>{['Employee', 'Device', 'Time In', 'Time Out', 'Status', 'Late Mins'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -203,9 +203,9 @@ function BiometricLog() {
                     <tr key={r.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <p className="font-medium text-brand-slate text-xs">{r.employee_number}</p>
-                        <p className="text-xs text-gray-500">{r.full_name}</p>
+                        <p className="text-xs text-gray-600">{r.full_name}</p>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{r.device_name || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{r.device_name || '—'}</td>
                       <td className="px-4 py-3 font-mono text-xs">{r.time_in || '—'}</td>
                       <td className="px-4 py-3 font-mono text-xs">{r.time_out || '—'}</td>
                       <td className="px-4 py-3">

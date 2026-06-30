@@ -74,19 +74,19 @@ export default function BudgetVsActualPage() {
       {rows.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Budgeted</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Budgeted</p>
             <p className="text-xl font-bold text-brand-slate">{fmt(totals.budgeted)}</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Actual Cost</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Actual Cost</p>
             <p className="text-xl font-bold text-gray-700">{fmt(totals.actual)}</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Variance</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Variance</p>
             <p className={`text-xl font-bold ${totals.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {totals.variance >= 0 ? '+' : ''}{fmt(totals.variance)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               {totals.variance >= 0 ? 'Under budget' : 'Over budget'}
             </p>
           </div>
@@ -99,7 +99,7 @@ export default function BudgetVsActualPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Budget Line</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Project *</label>
+              <label className="block text-xs text-gray-600 mb-1">Project *</label>
               <select required value={form.project} onChange={e => setForm({...form, project: e.target.value})}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                 <option value="">Select project…</option>
@@ -107,19 +107,19 @@ export default function BudgetVsActualPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Cost Code *</label>
+              <label className="block text-xs text-gray-600 mb-1">Cost Code *</label>
               <select required value={form.cost_code} onChange={e => setForm({...form, cost_code: e.target.value})}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                 {Object.entries(COST_CODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Description</label>
+              <label className="block text-xs text-gray-600 mb-1">Description</label>
               <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Budgeted Amount (KES) *</label>
+              <label className="block text-xs text-gray-600 mb-1">Budgeted Amount (KES) *</label>
               <input required type="number" min="0" step="0.01" value={form.budgeted_amount}
                 onChange={e => setForm({...form, budgeted_amount: e.target.value})}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
@@ -144,15 +144,15 @@ export default function BudgetVsActualPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Budget vs Actual by Cost Code</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : rows.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No budget lines. Add budget lines above to compare against actuals.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No budget lines. Add budget lines above to compare against actuals.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Project', 'Cost Code', 'Description', 'Budgeted', 'Actual', 'Variance', '%', ''].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -168,7 +168,7 @@ export default function BudgetVsActualPage() {
                               {COST_CODE_LABELS[row.cost_code] || row.cost_code}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{row.description || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">{row.description || '—'}</td>
                           <td className="px-4 py-3 font-medium text-brand-slate">{fmt(row.budgeted)}</td>
                           <td className="px-4 py-3 text-gray-700">{fmt(row.actual)}</td>
                           <td className={`px-4 py-3 font-semibold ${overBudget ? 'text-red-600' : 'text-green-600'}`}>

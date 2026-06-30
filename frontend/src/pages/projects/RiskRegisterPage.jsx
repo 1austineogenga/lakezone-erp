@@ -78,7 +78,7 @@ export default function RiskRegisterPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Risk Register</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{risks.length} risks tracked</p>
+          <p className="text-xs text-gray-600 mt-0.5">{risks.length} risks tracked</p>
         </div>
         {canEdit && (
           <button onClick={() => setShowModal(true)}
@@ -105,14 +105,14 @@ export default function RiskRegisterPage() {
       {/* Risk Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {risks.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No risks identified yet. Add the first one.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No risks identified yet. Add the first one.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Impact', 'Risk Description', 'Expected Impact', 'Owner', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -127,7 +127,7 @@ export default function RiskRegisterPage() {
                     <td className="px-4 py-3 max-w-[240px]">
                       <p className="font-medium text-brand-slate leading-snug line-clamp-2">{risk.risk_description}</p>
                       {risk.budget_treatment && (
-                        <p className="text-gray-400 mt-0.5 text-[10px] line-clamp-1">Treatment: {risk.budget_treatment}</p>
+                        <p className="text-gray-600 mt-0.5 text-[10px] line-clamp-1">Treatment: {risk.budget_treatment}</p>
                       )}
                     </td>
                     <td className="px-4 py-3 max-w-[200px] text-gray-600 line-clamp-2">{risk.expected_impact}</td>

@@ -74,7 +74,7 @@ export default function MaintenancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Maintenance</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Service history &amp; schedules</p>
+          <p className="text-xs text-gray-600 mt-0.5">Service history &amp; schedules</p>
         </div>
         <button onClick={() => setShowForm(v => !v)}
           className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
@@ -87,17 +87,17 @@ export default function MaintenancePage() {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-blue-50 rounded-2xl p-4">
             <p className="text-2xl font-bold text-blue-600">{filtered.length}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Records</p>
+            <p className="text-xs text-gray-600 mt-0.5">Records</p>
           </div>
           <div className="bg-emerald-50 rounded-2xl p-4">
             <p className="text-2xl font-bold text-emerald-600">KES {totalCost.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Total Cost</p>
+            <p className="text-xs text-gray-600 mt-0.5">Total Cost</p>
           </div>
           <div className="bg-amber-50 rounded-2xl p-4">
             <p className="text-2xl font-bold text-amber-600">
               {filtered.filter(r => r.next_service_odometer).length}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">With Next Service</p>
+            <p className="text-xs text-gray-600 mt-0.5">With Next Service</p>
           </div>
         </div>
       )}
@@ -134,7 +134,7 @@ export default function MaintenancePage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Vehicle *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle *</label>
               <select value={form.vehicle} onChange={e => field('vehicle', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 <option value="">Select…</option>
@@ -142,7 +142,7 @@ export default function MaintenancePage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Type *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
               <select value={form.maintenance_type} onChange={e => field('maintenance_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 {MAINT_TYPES.map(t => (
@@ -151,39 +151,39 @@ export default function MaintenancePage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
               <input type="date" value={form.date} onChange={e => field('date', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Cost (KES)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Cost (KES)</label>
               <input type="number" value={form.cost} onChange={e => field('cost', e.target.value)} placeholder="0"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Odometer at Service (km)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Odometer at Service (km)</label>
               <input type="number" value={form.odometer_at_service} onChange={e => field('odometer_at_service', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Next Service (km)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Next Service (km)</label>
               <input type="number" value={form.next_service_odometer} onChange={e => field('next_service_odometer', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Performed By</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Performed By</label>
               <input value={form.performed_by} onChange={e => field('performed_by', e.target.value)}
                 placeholder="Mechanic / garage"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <input value={form.description} onChange={e => field('description', e.target.value)}
                 placeholder="Brief description"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div className="col-span-2 md:col-span-1">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
               <textarea value={form.notes} onChange={e => field('notes', e.target.value)} rows={2}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
             </div>
@@ -204,11 +204,11 @@ export default function MaintenancePage() {
 
       {/* Timeline */}
       {isLoading ? (
-        <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+        <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
           <WrenchScrewdriverIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-400">No records found.</p>
+          <p className="text-sm font-medium text-gray-600">No records found.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -222,10 +222,10 @@ export default function MaintenancePage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-bold text-brand-slate">{r.vehicle_no || r.vehicle}</p>
-                  {r.description && <p className="text-xs text-gray-500 truncate">{r.description}</p>}
+                  {r.description && <p className="text-xs text-gray-600 truncate">{r.description}</p>}
                 </div>
-                {r.notes && <p className="text-xs text-gray-400 mt-1">{r.notes}</p>}
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 flex-wrap">
+                {r.notes && <p className="text-xs text-gray-600 mt-1">{r.notes}</p>}
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-600 flex-wrap">
                   {r.date && (
                     <span className="flex items-center gap-1">
                       <CalendarDaysIcon className="h-3.5 w-3.5" /> {r.date}

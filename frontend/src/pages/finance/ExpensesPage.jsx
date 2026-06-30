@@ -67,14 +67,14 @@ export default function ExpensesPage() {
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading
-          ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+          ? <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
           : !data?.length
-            ? <div className="p-12 text-center text-gray-400 text-sm">No expense claims found.</div>
+            ? <div className="p-12 text-center text-gray-600 text-sm">No expense claims found.</div>
             : <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Reference', 'Title', 'Submitted By', 'Project', 'Status', 'Amount', 'Date', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -95,15 +95,15 @@ export default function ExpensesPage() {
                           <p className="text-[10px] text-purple-600 font-mono">{claim.requisition_reference}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{claim.submitted_by_name}</td>
-                      <td className="px-4 py-3 text-gray-500 truncate max-w-[100px]">{claim.project_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{claim.submitted_by_name}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate max-w-[100px]">{claim.project_name || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[claim.status]}`}>
                           {claim.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-medium">KES {Number(claim.total_amount).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-500">{new Date(claim.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-gray-600">{new Date(claim.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {claim.status === 'draft' && (
@@ -118,7 +118,7 @@ export default function ExpensesPage() {
                                 className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium">
                                 <CheckIcon className="h-3.5 w-3.5" /> Approve
                               </button>
-                              <span className="text-gray-400">|</span>
+                              <span className="text-gray-600">|</span>
                               <button onClick={() => reviewMutation.mutate({ id: claim.id, action: 'rejected' })}
                                 className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium">
                                 <XMarkIcon className="h-3.5 w-3.5" /> Reject

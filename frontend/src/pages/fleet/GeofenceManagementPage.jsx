@@ -82,7 +82,7 @@ export default function GeofenceManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Geofence Management</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Create and manage vehicle geofences</p>
+          <p className="text-xs text-gray-600 mt-0.5">Create and manage vehicle geofences</p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
@@ -146,7 +146,7 @@ export default function GeofenceManagementPage() {
             {geofences.length === 0 ? (
               <div className="p-10 text-center">
                 <MapIcon className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">No geofences defined yet</p>
+                <p className="text-sm text-gray-600">No geofences defined yet</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -156,7 +156,7 @@ export default function GeofenceManagementPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-brand-slate">{g.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{g.description || 'No description'}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{g.description || 'No description'}</p>
                         <div className="flex gap-2 mt-2">
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                             {g.geofence_type === 'circle' ? '⭕ Circle' : '🔺 Polygon'}
@@ -189,11 +189,11 @@ export default function GeofenceManagementPage() {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-brand-slate text-sm">Recent Events</h3>
-              <p className="text-xs text-gray-400 mt-0.5">{selectedGeofence.name}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{selectedGeofence.name}</p>
             </div>
             {events.length === 0 ? (
               <div className="p-5 text-center">
-                <p className="text-xs text-gray-400">No events yet</p>
+                <p className="text-xs text-gray-600">No events yet</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
@@ -205,7 +205,7 @@ export default function GeofenceManagementPage() {
                       </span>
                     </div>
                     <p className="text-xs font-semibold text-brand-slate">{e.vehicle_no}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{fmtDt(e.occurred_at)}</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{fmtDt(e.occurred_at)}</p>
                   </div>
                 ))}
               </div>

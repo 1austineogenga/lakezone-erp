@@ -41,14 +41,14 @@ export default function InvoicesPage() {
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading
-          ? <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+          ? <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
           : !data?.length
-            ? <div className="p-12 text-center text-gray-400 text-sm">No invoices found.</div>
+            ? <div className="p-12 text-center text-gray-600 text-sm">No invoices found.</div>
             : <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Invoice #', 'Type', 'Client', 'Project', 'Status', 'Total', 'Balance Due', 'Due Date', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -56,9 +56,9 @@ export default function InvoicesPage() {
                   {data.map(inv => (
                     <tr key={inv.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{inv.invoice_number}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs capitalize">{inv.invoice_type.replace('_', ' ')}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs capitalize">{inv.invoice_type.replace('_', ' ')}</td>
                       <td className="px-4 py-3 font-medium truncate max-w-[120px]">{inv.client_name}</td>
-                      <td className="px-4 py-3 text-gray-500 truncate max-w-[100px]">{inv.project_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate max-w-[100px]">{inv.project_name || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[inv.status]}`}>
                           {inv.status}
@@ -68,7 +68,7 @@ export default function InvoicesPage() {
                       <td className={`px-4 py-3 font-medium ${Number(inv.balance_due) > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         KES {Number(inv.balance_due).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{inv.due_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{inv.due_date}</td>
                       <td className="px-4 py-3">
                         <Link to={`/finance/invoices/${inv.id}`} className="text-brand-red hover:underline text-xs font-medium">View</Link>
                       </td>

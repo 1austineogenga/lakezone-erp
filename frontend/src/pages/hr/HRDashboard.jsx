@@ -13,7 +13,7 @@ const StatCard = ({ label, value, sub, subColor = 'text-gray-400', icon: Icon, i
   const inner = (
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{label}</p>
         <div className={`p-2 rounded-lg ${iconBg}`}><Icon className="h-4 w-4" /></div>
       </div>
       <p className="text-2xl font-bold text-brand-slate">{value}</p>
@@ -30,7 +30,7 @@ export default function HRDashboard() {
     select: r => r.data?.results ?? r.data,
   })
 
-  if (isLoading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+  if (isLoading) return <div className="text-sm text-gray-600 py-8 text-center">Loading…</div>
   if (!data) return null
 
   return (
@@ -108,7 +108,7 @@ export default function HRDashboard() {
                 <tr key={emp.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5">
                     <p className="font-medium text-brand-slate text-xs">{emp.employee_number}</p>
-                    <p className="text-xs text-gray-500">{emp.full_name}</p>
+                    <p className="text-xs text-gray-600">{emp.full_name}</p>
                   </td>
                   <td className="px-4 py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium
@@ -116,8 +116,8 @@ export default function HRDashboard() {
                       {emp.employment_type}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{emp.department_name || '—'}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{emp.date_hired}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-600">{emp.department_name || '—'}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-600">{emp.date_hired}</td>
                 </tr>
               ))}
             </tbody>

@@ -66,7 +66,7 @@ export default function EmployeesPage() {
 
       {/* Summary chips */}
       <div className="flex gap-3">
-        <span className="text-xs text-gray-500">{filtered.length} employees shown</span>
+        <span className="text-xs text-gray-600">{filtered.length} employees shown</span>
         <span className="text-xs text-indigo-600 font-medium">{filtered.filter(e => e.employment_type === 'staff').length} staff</span>
         <span className="text-xs text-purple-600 font-medium">{filtered.filter(e => e.employment_type === 'casual').length} casuals</span>
       </div>
@@ -74,15 +74,15 @@ export default function EmployeesPage() {
       {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : filtered.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No employees found.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No employees found.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['#', 'Name', 'Type', 'Department', 'Position', 'Phone', 'Date Hired', 'Status'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -107,8 +107,8 @@ export default function EmployeesPage() {
                         </td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{emp.department_name || '—'}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{emp.position_title || '—'}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{emp.phone || '—'}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{emp.date_hired}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{emp.phone || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{emp.date_hired}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium
                             ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

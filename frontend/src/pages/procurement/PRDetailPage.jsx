@@ -103,7 +103,7 @@ function ConvertToPOModal({ pr, onClose, onSuccess }) {
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Supplier *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Supplier *</label>
             <select required className={inp} value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })}>
               <option value="">— Select supplier —</option>
               {suppliers.filter(s => s.status === 'active').map(s => (
@@ -112,18 +112,18 @@ function ConvertToPOModal({ pr, onClose, onSuccess }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Delivery Date *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Delivery Date *</label>
             <input required type="date" className={inp} value={form.delivery_date} onChange={e => setForm({ ...form, delivery_date: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Delivery Address *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Delivery Address *</label>
             <input required className={inp} placeholder="e.g. Site A, Nairobi" value={form.delivery_address} onChange={e => setForm({ ...form, delivery_address: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
             <textarea rows={2} className={inp} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             {pr.line_items?.length ?? 0} line item(s) will be copied from this PR.
           </p>
           <div className="flex gap-3 pt-2">
@@ -204,9 +204,9 @@ export default function PRDetailPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-5">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <p className="text-xs font-mono text-gray-400 mb-1">Purchase Requisition</p>
+            <p className="text-xs font-mono text-gray-600 mb-1">Purchase Requisition</p>
             <h1 className="text-xl font-bold text-brand-slate">{pr.pr_number}</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               Requested by <span className="font-medium text-gray-700">{pr.requested_by_name || '—'}</span>
               {' · '}
               {pr.created_at ? new Date(pr.created_at).toLocaleDateString() : '—'}
@@ -281,7 +281,7 @@ export default function PRDetailPage() {
           { label: 'Est. Total (KES)', value: total > 0 ? total.toLocaleString() : '—', bold: true },
         ].map(card => (
           <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">{card.label}</p>
+            <p className="text-xs text-gray-600 mb-1">{card.label}</p>
             <p className={`text-sm ${card.bold ? 'font-bold text-brand-slate' : 'font-medium text-gray-800'}`}>{card.value}</p>
           </div>
         ))}
@@ -299,23 +299,23 @@ export default function PRDetailPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {['Description', 'Unit', 'Qty', 'Unit Rate (KES)', 'Amount (KES)', 'Notes'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {!pr.line_items?.length ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No line items</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-600">No line items</td></tr>
                 ) : pr.line_items.map(item => {
                   const amount = Number(item.quantity) * Number(item.estimated_unit_rate)
                   return (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5 text-gray-800">{item.description}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{item.unit}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{item.unit}</td>
                       <td className="px-4 py-2.5 text-gray-700">{Number(item.quantity).toLocaleString()}</td>
                       <td className="px-4 py-2.5 text-gray-700">{Number(item.estimated_unit_rate).toLocaleString()}</td>
                       <td className="px-4 py-2.5 font-medium text-gray-800">{amount.toLocaleString()}</td>
-                      <td className="px-4 py-2.5 text-gray-400 italic">{item.notes || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600 italic">{item.notes || '—'}</td>
                     </tr>
                   )
                 })}
@@ -323,7 +323,7 @@ export default function PRDetailPage() {
               {total > 0 && (
                 <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
-                    <td colSpan={5} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Total Estimated Value</td>
+                    <td colSpan={5} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600">Total Estimated Value</td>
                     <td className="px-4 py-2.5 font-bold text-brand-slate">KES {total.toLocaleString()}</td>
                   </tr>
                 </tfoot>
@@ -345,10 +345,10 @@ export default function PRDetailPage() {
                       <span className={`font-semibold ${a.action === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
                         {a.action.charAt(0).toUpperCase() + a.action.slice(1)}
                       </span>
-                      <span className="text-gray-400">· {a.approved_by_name || '—'}</span>
+                      <span className="text-gray-600">· {a.approved_by_name || '—'}</span>
                     </div>
-                    <p className="text-gray-400 capitalize">{a.stage?.replace(/_/g, ' ')}</p>
-                    <p className="text-gray-400">{a.timestamp ? new Date(a.timestamp).toLocaleString() : ''}</p>
+                    <p className="text-gray-600 capitalize">{a.stage?.replace(/_/g, ' ')}</p>
+                    <p className="text-gray-600">{a.timestamp ? new Date(a.timestamp).toLocaleString() : ''}</p>
                     {a.comment && <p className="text-gray-600 mt-1 italic">"{a.comment}"</p>}
                   </div>
                 ))}

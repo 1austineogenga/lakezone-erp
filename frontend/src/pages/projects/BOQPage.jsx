@@ -33,16 +33,16 @@ function BillRow({ bill }) {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Item #', 'Description', 'Unit', 'Qty', 'Rate', 'Amount'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {bill.items.map(item => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 text-gray-500">{item.item_number}</td>
+                    <td className="px-3 py-2 text-gray-600">{item.item_number}</td>
                     <td className="px-3 py-2 text-gray-700">{item.description}</td>
-                    <td className="px-3 py-2 text-gray-500">{item.unit}</td>
+                    <td className="px-3 py-2 text-gray-600">{item.unit}</td>
                     <td className="px-3 py-2 text-gray-700">{Number(item.quantity || 0).toLocaleString()}</td>
                     <td className="px-3 py-2 text-gray-700">{fmt(item.rate)}</td>
                     <td className="px-3 py-2 font-medium text-brand-slate">{fmt(item.amount)}</td>
@@ -109,7 +109,7 @@ export default function BOQPage({ projectName }) {
       <div className="text-center mb-6">
         <DocumentArrowUpIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
         <h3 className="font-semibold text-brand-slate">Import BOQ</h3>
-        <p className="text-xs text-gray-400 mt-1">Upload an Excel (.xlsx) file to import the Bill of Quantities.</p>
+        <p className="text-xs text-gray-600 mt-1">Upload an Excel (.xlsx) file to import the Bill of Quantities.</p>
       </div>
       <form onSubmit={handleImport} className="space-y-4">
         <div>
@@ -130,7 +130,7 @@ export default function BOQPage({ projectName }) {
           >
             {file
               ? <p className="text-sm font-medium text-brand-slate">{file.name}</p>
-              : <p className="text-sm text-gray-400">Click to select file</p>}
+              : <p className="text-sm text-gray-600">Click to select file</p>}
             <input
               ref={fileRef}
               type="file"
@@ -172,7 +172,7 @@ export default function BOQPage({ projectName }) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-bold text-brand-slate text-lg">Bill of Quantities</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Import from Excel to get started</p>
+            <p className="text-xs text-gray-600 mt-0.5">Import from Excel to get started</p>
           </div>
         </div>
         {UploadForm}
@@ -185,7 +185,7 @@ export default function BOQPage({ projectName }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Bill of Quantities</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{activeBoq.title || 'BOQ'} · {activeBoq.bills?.length || 0} bills</p>
+          <p className="text-xs text-gray-600 mt-0.5">{activeBoq.title || 'BOQ'} · {activeBoq.bills?.length || 0} bills</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => printBOQ(activeBoq, projectName)}
@@ -207,15 +207,15 @@ export default function BOQPage({ projectName }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-50 border border-gray-200 border-l-4 border-l-slate-500 rounded-xl p-4">
           <p className="text-2xl font-bold text-slate-700">{fmt(activeBoq.sub_total)}</p>
-          <p className="text-xs text-gray-500 mt-1">Sub Total</p>
+          <p className="text-xs text-gray-600 mt-1">Sub Total</p>
         </div>
         <div className="bg-blue-50 border border-gray-200 border-l-4 border-l-blue-500 rounded-xl p-4">
           <p className="text-2xl font-bold text-blue-700">{fmt(Number(activeBoq.sub_total || 0) * 1.1)}</p>
-          <p className="text-xs text-gray-500 mt-1">+ 10% VoP</p>
+          <p className="text-xs text-gray-600 mt-1">+ 10% VoP</p>
         </div>
         <div className="bg-green-50 border border-gray-200 border-l-4 border-l-green-500 rounded-xl p-4">
           <p className="text-2xl font-bold text-green-700">{fmt(grandTotal)}</p>
-          <p className="text-xs text-gray-500 mt-1">Grand Total (+ 10% Contingency)</p>
+          <p className="text-xs text-gray-600 mt-1">Grand Total (+ 10% Contingency)</p>
         </div>
       </div>
 
@@ -225,7 +225,7 @@ export default function BOQPage({ projectName }) {
           <h3 className="font-semibold text-brand-slate text-sm">Bills</h3>
         </div>
         {(activeBoq.bills || []).length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No bills in this BOQ.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No bills in this BOQ.</p>
         ) : (
           <div>
             {(activeBoq.bills || []).map(bill => (

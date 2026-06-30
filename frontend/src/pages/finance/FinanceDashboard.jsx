@@ -11,7 +11,7 @@ const fmt = (n) => `KES ${Number(n || 0).toLocaleString()}`
 const StatCard = ({ label, value, sub, subColor = 'text-gray-400', icon: Icon, iconColor }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-5">
     <div className="flex items-start justify-between mb-3">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{label}</p>
       <div className={`p-2 rounded-lg bg-opacity-10 ${iconColor}`}>
         <Icon className="h-4 w-4" />
       </div>
@@ -36,7 +36,7 @@ export default function FinanceDashboard() {
     select:   r => r.data,
   })
 
-  if (isLoading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+  if (isLoading) return <div className="text-sm text-gray-600 py-8 text-center">Loading…</div>
   if (!data) return null
 
   const { ar, ap, recent_invoices, recent_bills, retention_held } = data
@@ -114,14 +114,14 @@ export default function FinanceDashboard() {
             <Link to="/finance/invoices" className="text-xs text-brand-red hover:underline">View all</Link>
           </div>
           {recent_invoices.length === 0
-            ? <p className="text-sm text-gray-400 p-5">No invoices yet.</p>
+            ? <p className="text-sm text-gray-600 p-5">No invoices yet.</p>
             : <table className="min-w-full text-sm">
                 <tbody className="divide-y divide-gray-50">
                   {recent_invoices.map(inv => (
                     <tr key={inv.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5">
                         <p className="font-mono text-xs text-brand-slate font-medium">{inv.invoice_number}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-[140px]">{inv.client_name}</p>
+                        <p className="text-xs text-gray-600 truncate max-w-[140px]">{inv.client_name}</p>
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <p className="text-xs font-medium">{fmt(inv.total_amount)}</p>
@@ -143,14 +143,14 @@ export default function FinanceDashboard() {
             <Link to="/finance/bills" className="text-xs text-brand-red hover:underline">View all</Link>
           </div>
           {recent_bills.length === 0
-            ? <p className="text-sm text-gray-400 p-5">No bills yet.</p>
+            ? <p className="text-sm text-gray-600 p-5">No bills yet.</p>
             : <table className="min-w-full text-sm">
                 <tbody className="divide-y divide-gray-50">
                   {recent_bills.map(bill => (
                     <tr key={bill.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5">
                         <p className="font-mono text-xs text-brand-slate font-medium">{bill.bill_number}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-[140px]">{bill.supplier_name}</p>
+                        <p className="text-xs text-gray-600 truncate max-w-[140px]">{bill.supplier_name}</p>
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <p className="text-xs font-medium">{fmt(bill.total_amount)}</p>

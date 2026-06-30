@@ -97,53 +97,53 @@ export default function PaymentCertificatesPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Payment Certificate / IPC</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Project</label>
+              <label className="block text-xs text-gray-600 mb-1">Project</label>
               <select {...f('project')} className={cls}>
                 <option value="">No specific project</option>
                 {projects?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Related Invoice (AR)</label>
+              <label className="block text-xs text-gray-600 mb-1">Related Invoice (AR)</label>
               <select {...f('invoice')} className={cls}>
                 <option value="">Not linked</option>
                 {invoices?.map(i => <option key={i.id} value={i.id}>{i.invoice_number}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Certified By *</label>
+              <label className="block text-xs text-gray-600 mb-1">Certified By *</label>
               <input required {...f('certified_by')} placeholder="Architect / QS name" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Certificate Date *</label>
+              <label className="block text-xs text-gray-600 mb-1">Certificate Date *</label>
               <input required type="date" {...f('certificate_date')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Period From</label>
+              <label className="block text-xs text-gray-600 mb-1">Period From</label>
               <input type="date" {...f('period_from')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Period To</label>
+              <label className="block text-xs text-gray-600 mb-1">Period To</label>
               <input type="date" {...f('period_to')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Contract Value (KES)</label>
+              <label className="block text-xs text-gray-600 mb-1">Contract Value (KES)</label>
               <input type="number" min="0" step="0.01" {...f('contract_value')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Work Done to Date (KES) *</label>
+              <label className="block text-xs text-gray-600 mb-1">Work Done to Date (KES) *</label>
               <input required type="number" min="0" step="0.01" {...f('work_done_to_date')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Previously Certified (KES)</label>
+              <label className="block text-xs text-gray-600 mb-1">Previously Certified (KES)</label>
               <input type="number" min="0" step="0.01" {...f('previous_certified')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Retention Held (KES)</label>
+              <label className="block text-xs text-gray-600 mb-1">Retention Held (KES)</label>
               <input type="number" min="0" step="0.01" {...f('retention_held')} className={cls} />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
               <input {...f('notes')} className={cls} />
             </div>
           </div>
@@ -166,15 +166,15 @@ export default function PaymentCertificatesPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Payment Certificates / Interim Payment Certificates (IPC)</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !certs || certs.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No payment certificates yet.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No payment certificates yet.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Certificate #', 'Project', 'Certified By', 'Date', 'Certified Amount', 'Retention', 'Net Payment', 'Status', 'Actions'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -184,7 +184,7 @@ export default function PaymentCertificatesPage() {
                         <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{c.certificate_number}</td>
                         <td className="px-4 py-3 text-gray-700 text-xs">{c.project_name || '—'}</td>
                         <td className="px-4 py-3 text-gray-700 text-xs">{c.certified_by}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{c.certificate_date}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{c.certificate_date}</td>
                         <td className="px-4 py-3 font-medium">{fmt(c.certified_amount)}</td>
                         <td className="px-4 py-3 text-orange-600">{c.retention_held > 0 ? fmt(c.retention_held) : '—'}</td>
                         <td className="px-4 py-3 font-bold text-brand-slate">{fmt(c.net_payment_due)}</td>

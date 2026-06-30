@@ -147,7 +147,7 @@ export default function QuickBooksPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: BRAND_SLATE }}>QuickBooks Online</h1>
-          <p className="text-sm text-gray-500">Sync your Lakezone ERP data with QuickBooks</p>
+          <p className="text-sm text-gray-600">Sync your Lakezone ERP data with QuickBooks</p>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export default function QuickBooksPage() {
           <h2 className="font-semibold text-gray-800">Configuration</h2>
         </div>
         {configLoading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <p className="text-sm text-gray-600">Loading...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -285,7 +285,7 @@ export default function QuickBooksPage() {
                 <div key={key} className="border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
                   <div>
                     <p className="font-medium text-sm text-gray-800">{label}</p>
-                    <p className="text-xs text-gray-500 mb-1">{desc}</p>
+                    <p className="text-xs text-gray-600 mb-1">{desc}</p>
                   </div>
                   {/* Push / Pull toggle — hidden for pull-only entities */}
                   {!pullOnly && <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
@@ -334,7 +334,7 @@ export default function QuickBooksPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h2 className="font-semibold text-gray-800 mb-3">Sync History</h2>
         {!logsData || logsData.length === 0 ? (
-          <p className="text-sm text-gray-400">No sync logs yet.</p>
+          <p className="text-sm text-gray-600">No sync logs yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -361,8 +361,8 @@ export default function QuickBooksPage() {
                     </td>
                     <td className="py-2 pr-4 text-green-600 font-medium">{log.records_ok}</td>
                     <td className="py-2 pr-4 text-red-500 font-medium">{log.records_fail}</td>
-                    <td className="py-2 pr-4 text-gray-500">{log.triggered_by_name || '—'}</td>
-                    <td className="py-2 text-gray-400 whitespace-nowrap">{fmtDate(log.created_at)}</td>
+                    <td className="py-2 pr-4 text-gray-600">{log.triggered_by_name || '—'}</td>
+                    <td className="py-2 text-gray-600 whitespace-nowrap">{fmtDate(log.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -376,7 +376,7 @@ export default function QuickBooksPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
             <h3 className="text-lg font-bold mb-1" style={{ color: BRAND_SLATE }}>Complete QuickBooks Connection</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
               QuickBooks opened in a new tab. After authorizing, paste the <code>code</code> and <code>realmId</code> from the redirect URL below.
             </p>
             <div className="space-y-3">
@@ -424,7 +424,7 @@ export default function QuickBooksPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-bold mb-2 text-gray-800">Disconnect QuickBooks?</h3>
-            <p className="text-sm text-gray-500 mb-5">This will revoke your OAuth tokens. You will need to reconnect to sync again.</p>
+            <p className="text-sm text-gray-600 mb-5">This will revoke your OAuth tokens. You will need to reconnect to sync again.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => disconnectMut.mutate()}

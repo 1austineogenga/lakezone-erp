@@ -84,20 +84,20 @@ export default function PerformanceBondsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Active Bonds</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Active Bonds</p>
           <p className="text-xl font-bold text-green-600">{active}</p>
         </div>
         <div className={`rounded-xl border p-4 ${expiring > 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Expiring Soon (30 days)</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Expiring Soon (30 days)</p>
           <div className="flex items-center gap-2">
             {expiring > 0 && <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />}
             <p className={`text-xl font-bold ${expiring > 0 ? 'text-yellow-700' : 'text-brand-slate'}`}>{expiring}</p>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Bond Value</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Bond Value</p>
           <p className="text-xl font-bold text-brand-slate">{fmt(totalVal)}</p>
-          <p className="text-xs text-gray-400 mt-1">Active + expiring bonds</p>
+          <p className="text-xs text-gray-600 mt-1">Active + expiring bonds</p>
         </div>
       </div>
 
@@ -122,44 +122,44 @@ export default function PerformanceBondsPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Performance Bond / Guarantee</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bond Type *</label>
+              <label className="block text-xs text-gray-600 mb-1">Bond Type *</label>
               <select required {...f('bond_type')} className={cls}>
                 {Object.entries(BOND_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Reference / Bond No.</label>
+              <label className="block text-xs text-gray-600 mb-1">Reference / Bond No.</label>
               <input {...f('reference')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Project</label>
+              <label className="block text-xs text-gray-600 mb-1">Project</label>
               <select {...f('project')} className={cls}>
                 <option value="">No specific project</option>
                 {projects?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Issuing Bank *</label>
+              <label className="block text-xs text-gray-600 mb-1">Issuing Bank *</label>
               <input required {...f('issuing_bank')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Beneficiary *</label>
+              <label className="block text-xs text-gray-600 mb-1">Beneficiary *</label>
               <input required {...f('beneficiary')} placeholder="Client / Employer" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bond Amount (KES) *</label>
+              <label className="block text-xs text-gray-600 mb-1">Bond Amount (KES) *</label>
               <input required type="number" min="0" step="0.01" {...f('amount')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Issue Date *</label>
+              <label className="block text-xs text-gray-600 mb-1">Issue Date *</label>
               <input required type="date" {...f('issue_date')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Expiry Date *</label>
+              <label className="block text-xs text-gray-600 mb-1">Expiry Date *</label>
               <input required type="date" {...f('expiry_date')} className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
               <input {...f('notes')} className={cls} />
             </div>
           </div>
@@ -182,15 +182,15 @@ export default function PerformanceBondsPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Bond Register</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !bonds || bonds.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No bonds registered yet.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No bonds registered yet.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Type', 'Project', 'Issuing Bank', 'Beneficiary', 'Amount', 'Issue Date', 'Expiry', 'Days Left', 'Status', 'Actions'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -203,12 +203,12 @@ export default function PerformanceBondsPage() {
                             <span>{BOND_TYPE_LABELS[b.bond_type] || b.bond_type}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{b.project_name || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{b.project_name || '—'}</td>
                         <td className="px-4 py-3 text-gray-700">{b.issuing_bank}</td>
                         <td className="px-4 py-3 text-gray-700 text-xs">{b.beneficiary}</td>
                         <td className="px-4 py-3 font-semibold text-brand-slate">{fmt(b.amount)}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{b.issue_date}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{b.expiry_date}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{b.issue_date}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{b.expiry_date}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs font-medium ${b.days_to_expiry < 0 ? 'text-red-600' : b.days_to_expiry <= 30 ? 'text-yellow-700' : 'text-gray-600'}`}>
                             {b.days_to_expiry < 0 ? `${Math.abs(b.days_to_expiry)}d ago` : `${b.days_to_expiry}d`}

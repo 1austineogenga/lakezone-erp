@@ -77,7 +77,7 @@ const Section = ({ title, children }) => (
 
 const Field = ({ label, required, span, children }) => (
   <div className={span ? `col-span-${span}` : ''}>
-    <label className="block text-xs text-gray-500 mb-1">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+    <label className="block text-xs text-gray-600 mb-1">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
     {children}
   </div>
 )
@@ -408,7 +408,7 @@ export default function NewEmployeePage() {
             </Field>
           )}
           <div className="col-span-2 md:col-span-3">
-            <label className="block text-xs text-gray-500 mb-1">Medical Declaration</label>
+            <label className="block text-xs text-gray-600 mb-1">Medical Declaration</label>
             <textarea {...f('medical_declaration')} rows={3}
               placeholder="Any other medical information the employee wishes to declare (e.g. medications, previous surgeries, special needs)…"
               className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
@@ -436,7 +436,7 @@ export default function NewEmployeePage() {
           {form.medical_insurance && (
             <div className="space-y-3">
               <div className="max-w-xs">
-                <label className="block text-xs text-gray-500 mb-1">Family Category<span className="text-red-500 ml-0.5">*</span></label>
+                <label className="block text-xs text-gray-600 mb-1">Family Category<span className="text-red-500 ml-0.5">*</span></label>
                 <select required {...f('medical_insurance_category')} className={cls}>
                   <option value="">Select category…</option>
                   <option value="M">M (Member only)</option>
@@ -517,7 +517,7 @@ export default function NewEmployeePage() {
               className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
               {photo ? 'Change Photo' : 'Upload Photo'}
             </button>
-            <p className="mt-1 text-xs text-gray-400">JPG or PNG, max 2 MB</p>
+            <p className="mt-1 text-xs text-gray-600">JPG or PNG, max 2 MB</p>
             <input ref={photoRef} type="file" accept="image/jpeg,image/png"
               onChange={handlePhotoChange} className="hidden" />
           </div>
@@ -531,14 +531,14 @@ export default function NewEmployeePage() {
           {documents.map((doc, i) => (
             <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-2 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Document Type</label>
+                <label className="block text-xs text-gray-600 mb-1">Document Type</label>
                 <select value={doc.doc_type} onChange={e => updateDoc(i, 'doc_type', e.target.value)} className={cls}>
                   <option value="">Select type…</option>
                   {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">File</label>
+                <label className="block text-xs text-gray-600 mb-1">File</label>
                 <input type="file"
                   accept=".pdf,.doc,.docx,image/jpeg,image/png"
                   onChange={e => handleDocFile(i, e.target.files[0])}
@@ -546,7 +546,7 @@ export default function NewEmployeePage() {
                 {doc.file && <p className="text-xs text-green-600 mt-1 truncate">{doc.file.name}</p>}
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                <label className="block text-xs text-gray-600 mb-1">Notes</label>
                 <input value={doc.notes} onChange={e => updateDoc(i, 'notes', e.target.value)}
                   placeholder="Optional note…" className={cls} />
               </div>

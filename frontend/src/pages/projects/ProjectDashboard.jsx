@@ -208,7 +208,7 @@ export default function ProjectDashboard({ dashData: prefetched }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Project Dashboard</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Overview of project financials and progress</p>
+          <p className="text-xs text-gray-600 mt-0.5">Overview of project financials and progress</p>
         </div>
         {canEdit && (
           <button
@@ -226,7 +226,7 @@ export default function ProjectDashboard({ dashData: prefetched }) {
         {statCards.map(s => (
           <div key={s.label} className={`${s.bg} border border-gray-200 border-l-4 ${s.border} rounded-xl p-4`}>
             <p className={`text-xl font-bold ${s.text}`}>{s.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -254,19 +254,19 @@ export default function ProjectDashboard({ dashData: prefetched }) {
           <div className="flex flex-wrap gap-3">
             <div className="flex-1 min-w-[100px] bg-red-50 border border-red-100 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-red-600">{riskSummary.open_count ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Open</p>
+              <p className="text-xs text-gray-600 mt-1">Open</p>
             </div>
             <div className="flex-1 min-w-[100px] bg-orange-50 border border-orange-100 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-orange-600">{riskSummary.high_count ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-1">High Impact</p>
+              <p className="text-xs text-gray-600 mt-1">High Impact</p>
             </div>
             <div className="flex-1 min-w-[100px] bg-red-50 border border-red-100 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-red-800">{riskSummary.critical_count ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Critical</p>
+              <p className="text-xs text-gray-600 mt-1">Critical</p>
             </div>
             <div className="flex-1 min-w-[100px] bg-green-50 border border-green-100 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-green-600">{riskSummary.mitigated_count ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Mitigated</p>
+              <p className="text-xs text-gray-600 mt-1">Mitigated</p>
             </div>
           </div>
 
@@ -274,11 +274,11 @@ export default function ProjectDashboard({ dashData: prefetched }) {
           {data?.latest_progress && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs font-semibold text-brand-slate mb-2">Latest Progress — Week {data.latest_progress.week_no}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 Actual Spend: <span className="font-medium text-brand-slate">KES {Number(data.latest_progress.total_actual || 0).toLocaleString()}</span>
               </p>
               {data.latest_progress.progress_notes && (
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">{data.latest_progress.progress_notes}</p>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">{data.latest_progress.progress_notes}</p>
               )}
             </div>
           )}
@@ -289,17 +289,17 @@ export default function ProjectDashboard({ dashData: prefetched }) {
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-brand-slate text-sm">Recent IPCs</h3>
-          <span className="text-xs text-gray-400">{ipcSummary.ipc_count ?? 0} total</span>
+          <span className="text-xs text-gray-600">{ipcSummary.ipc_count ?? 0} total</span>
         </div>
         {recentIPCs.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No IPCs submitted yet.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No IPCs submitted yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   {['IPC #', 'Period', 'Chainage', 'Claimed', 'Certified', 'Paid', 'Status'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>

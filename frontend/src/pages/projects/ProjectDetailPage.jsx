@@ -25,7 +25,7 @@ export default function ProjectDetailPage() {
   const boq = boqData?.data?.results ?? []
   const costing = costData?.data ?? {}
 
-  if (!project) return <p className="text-gray-400 text-sm p-6">Loading…</p>
+  if (!project) return <p className="text-gray-600 text-sm p-6">Loading…</p>
 
   return (
     <div>
@@ -48,7 +48,7 @@ export default function ProjectDetailPage() {
           { label: 'Actual Cost',     value: costing.actual_total ? `KES ${Number(costing.actual_total).toLocaleString()}` : '—' },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">{c.label}</p>
+            <p className="text-xs text-gray-600 mb-1">{c.label}</p>
             <div className="font-semibold text-gray-800">{c.value}</div>
           </div>
         ))}

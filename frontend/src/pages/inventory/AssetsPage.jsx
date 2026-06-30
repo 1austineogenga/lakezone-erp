@@ -136,7 +136,7 @@ function StatCard({ icon: Icon, label, value, color = 'blue' }) {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
       <div className={`p-2.5 rounded-xl ${colors[color]}`}><Icon className="h-5 w-5" /></div>
       <div>
-        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-xs text-gray-600">{label}</p>
         <p className="text-lg font-bold text-brand-slate">{value}</p>
       </div>
     </div>
@@ -233,53 +233,53 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Basic Information</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
                 <input required className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. CAT Excavator, Toyota Hilux KDW 277S" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Category *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
                 <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
                   {availableCategories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Make / Model</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Make / Model</label>
                 <input className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)} placeholder="e.g. CAT 320D, Toyota Hilux 2.8" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Serial Number</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
                 <input className={inp} value={form.serial_number} onChange={e => set('serial_number', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Location / Site</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Location / Site</label>
                 <input className={inp} value={form.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Njambini Site, Head Office" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Assigned To</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
                 <input className={inp} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Condition</label>
                 <select className={inp} value={form.condition} onChange={e => set('condition', e.target.value)}>
                   {CONDITION_OPTIONS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                 <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
                   {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Purchase Date</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Date</label>
                 <input type="date" className={inp} value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Purchase Value (KES)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Value (KES)</label>
                 <input type="number" min="0" className={inp} value={form.purchase_value} onChange={e => set('purchase_value', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Current Value (KES)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Current Value (KES)</label>
                 <input type="number" min="0" className={inp} value={form.current_value} onChange={e => set('current_value', e.target.value)} />
               </div>
             </div>
@@ -293,7 +293,7 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Hours to Next Service</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Hours to Next Service</label>
                   <input type="number" min="0" step="0.1" className={inp} value={form.hours_to_next_service}
                     onChange={e => set('hours_to_next_service', e.target.value)} placeholder="e.g. 250" />
                 </div>
@@ -309,15 +309,15 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Registration Plate *</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Registration Plate *</label>
                   <input className={inp} value={form.registration_plate} onChange={e => set('registration_plate', e.target.value.toUpperCase())} placeholder="e.g. KDW 277S" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Chassis Number</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Chassis Number</label>
                   <input className={inp} value={form.insurance_chassis_number} onChange={e => set('insurance_chassis_number', e.target.value.toUpperCase())} placeholder="e.g. ACVDSCJR3K4124443" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">KMs to Next Service</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">KMs to Next Service</label>
                   <input type="number" min="0" className={inp} value={form.kms_to_next_service} onChange={e => set('kms_to_next_service', e.target.value)} placeholder="e.g. 5000" />
                 </div>
               </div>
@@ -332,27 +332,27 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Certificate No.</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Certificate No.</label>
                   <input className={inp} value={form.insurance_cert_number} onChange={e => set('insurance_cert_number', e.target.value)} placeholder="e.g. C32524396" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Policy No.</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Policy No.</label>
                   <input className={inp} value={form.insurance_policy_number} onChange={e => set('insurance_policy_number', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Policy Type</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Policy Type</label>
                   <input className={inp} value={form.insurance_policy_type} onChange={e => set('insurance_policy_type', e.target.value)} placeholder="e.g. Comprehensive, Third Party" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Insurer</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Insurer</label>
                   <input className={inp} value={form.insurance_insurer} onChange={e => set('insurance_insurer', e.target.value)} placeholder="e.g. Old Mutual General Insurance" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Commencement Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Commencement Date</label>
                   <input type="date" className={inp} value={form.insurance_commencement_date} onChange={e => set('insurance_commencement_date', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Expiry Date</label>
                   <input type="date" className={inp} value={form.insurance_expiry} onChange={e => set('insurance_expiry', e.target.value)} />
                 </div>
               </div>
@@ -367,26 +367,26 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Certificate No.</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Certificate No.</label>
                   <input className={inp} value={form.inspection_cert_number} onChange={e => set('inspection_cert_number', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                   <select className={inp} value={form.inspection_cert_status} onChange={e => set('inspection_cert_status', e.target.value)}>
                     {CERT_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Issuing Authority</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Issuing Authority</label>
                   <input className={inp} value={form.inspection_issuing_authority} onChange={e => set('inspection_issuing_authority', e.target.value)} placeholder="e.g. NTSA" />
                 </div>
                 <div />
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Issue Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Issue Date</label>
                   <input type="date" className={inp} value={form.inspection_cert_issue_date} onChange={e => set('inspection_cert_issue_date', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Expiry Date</label>
                   <input type="date" className={inp} value={form.inspection_cert_expiry} onChange={e => set('inspection_cert_expiry', e.target.value)} />
                 </div>
               </div>
@@ -401,29 +401,29 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Certificate No.</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Certificate No.</label>
                   <input className={inp} value={form.speed_governor_cert_number} onChange={e => set('speed_governor_cert_number', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                   <select className={inp} value={form.speed_governor_cert_status} onChange={e => set('speed_governor_cert_status', e.target.value)}>
                     {CERT_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Device Serial No.</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Device Serial No.</label>
                   <input className={inp} value={form.speed_governor_device_serial} onChange={e => set('speed_governor_device_serial', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Issuing Authority</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Issuing Authority</label>
                   <input className={inp} value={form.speed_governor_issuing_authority} onChange={e => set('speed_governor_issuing_authority', e.target.value)} placeholder="e.g. NTSA" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Issue Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Issue Date</label>
                   <input type="date" className={inp} value={form.speed_governor_cert_issue_date} onChange={e => set('speed_governor_cert_issue_date', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Expiry Date</label>
                   <input type="date" className={inp} value={form.speed_governor_cert_expiry} onChange={e => set('speed_governor_cert_expiry', e.target.value)} />
                 </div>
               </div>
@@ -437,17 +437,17 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Current Defects</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Current Defects</label>
                 <textarea rows={3} className={`${inp} resize-none`} value={form.current_defects}
                   onChange={e => set('current_defects', e.target.value)} placeholder="List known defects, one per line…" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Requirements / Parts Needed</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Requirements / Parts Needed</label>
                 <textarea rows={3} className={`${inp} resize-none`} value={form.requirements}
                   onChange={e => set('requirements', e.target.value)} placeholder="List required parts, services or actions…" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Additional Notes</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Additional Notes</label>
                 <textarea rows={2} className={`${inp} resize-none`} value={form.notes} onChange={e => set('notes', e.target.value)} />
               </div>
             </div>
@@ -469,7 +469,7 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
 function Row({ label, value }) {
   return (
     <>
-      <span className="text-gray-400">{label}</span>
+      <span className="text-gray-600">{label}</span>
       <span className="text-gray-700 font-medium">{value}</span>
     </>
   )
@@ -490,15 +490,15 @@ function CertBlock({ title, certNo, policyNo, policyType, insurer, commencement,
         {!days && status && <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${badge}`}>{status.replace('_', ' ')}</span>}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-gray-600">
-        {certNo && <><span className="text-gray-400">Cert No.</span><span className="font-mono">{certNo}</span></>}
-        {policyNo && <><span className="text-gray-400">Policy No.</span><span className="font-mono">{policyNo}</span></>}
-        {policyType && <><span className="text-gray-400">Type</span><span>{policyType}</span></>}
-        {insurer && <><span className="text-gray-400">Insurer</span><span>{insurer}</span></>}
-        {deviceSerial && <><span className="text-gray-400">Device Serial</span><span className="font-mono">{deviceSerial}</span></>}
-        {authority && <><span className="text-gray-400">Authority</span><span>{authority}</span></>}
-        {commencement && <><span className="text-gray-400">From</span><span>{commencement}</span></>}
-        {issued && <><span className="text-gray-400">Issued</span><span>{issued}</span></>}
-        {expiry && <><span className="text-gray-400">Expires</span><span className="font-semibold">{expiry}</span></>}
+        {certNo && <><span className="text-gray-600">Cert No.</span><span className="font-mono">{certNo}</span></>}
+        {policyNo && <><span className="text-gray-600">Policy No.</span><span className="font-mono">{policyNo}</span></>}
+        {policyType && <><span className="text-gray-600">Type</span><span>{policyType}</span></>}
+        {insurer && <><span className="text-gray-600">Insurer</span><span>{insurer}</span></>}
+        {deviceSerial && <><span className="text-gray-600">Device Serial</span><span className="font-mono">{deviceSerial}</span></>}
+        {authority && <><span className="text-gray-600">Authority</span><span>{authority}</span></>}
+        {commencement && <><span className="text-gray-600">From</span><span>{commencement}</span></>}
+        {issued && <><span className="text-gray-600">Issued</span><span>{issued}</span></>}
+        {expiry && <><span className="text-gray-600">Expires</span><span className="font-semibold">{expiry}</span></>}
       </div>
     </div>
   )
@@ -516,12 +516,12 @@ function AssetCard({ asset, canEdit, onEdit, onClick }) {
       <div className="px-4 py-3 border-b border-gray-100 flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs text-gray-400">{asset.asset_code}</span>
+            <span className="font-mono text-xs text-gray-600">{asset.asset_code}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-500'}`}>{st?.label ?? asset.status}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-600'}`}>{st?.label ?? asset.status}</span>
           </div>
           <p className="font-bold text-brand-slate mt-0.5">{asset.name}</p>
-          {asset.registration_plate && <p className="text-xs text-gray-500 font-mono mt-0.5">{asset.registration_plate}</p>}
+          {asset.registration_plate && <p className="text-xs text-gray-600 font-mono mt-0.5">{asset.registration_plate}</p>}
         </div>
         {canEdit && (
           <button onClick={e => { e.stopPropagation(); onEdit(asset) }}
@@ -600,7 +600,7 @@ function AssetCard({ asset, canEdit, onEdit, onClick }) {
             <p className="text-amber-600 whitespace-pre-line">{asset.requirements}</p>
           </div>
         )}
-        {asset.notes && <p className="text-xs text-gray-400 italic">{asset.notes}</p>}
+        {asset.notes && <p className="text-xs text-gray-600 italic">{asset.notes}</p>}
       </div>
     </div>
   )
@@ -663,7 +663,7 @@ export default function AssetsPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-lg font-bold text-brand-slate">Assets</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Fixed assets register — machines, vehicles & trucks</p>
+          <p className="text-xs text-gray-600 mt-0.5">Fixed assets register — machines, vehicles & trucks</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setViewMode(v => v === 'cards' ? 'table' : 'cards')}
@@ -681,7 +681,7 @@ export default function AssetsPage() {
 
       {canViewAll ? (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-medium text-gray-500">Dept:</span>
+          <span className="text-xs font-medium text-gray-600">Dept:</span>
           <button onClick={() => setSelectedDept(null)}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedDept ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
             All
@@ -724,7 +724,7 @@ export default function AssetsPage() {
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <span className="ml-auto text-xs text-gray-400">{filtered.length} asset{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-xs text-gray-600">{filtered.length} asset{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
       {isLoading ? (
@@ -732,7 +732,7 @@ export default function AssetsPage() {
           {[1, 2, 3].map(i => <div key={i} className="h-48 bg-gray-100 rounded-2xl animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-16 text-gray-600 bg-white rounded-2xl border border-gray-100">
           <BuildingOfficeIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
           <p className="text-sm">No assets found.</p>
           {canEdit && (
@@ -755,7 +755,7 @@ export default function AssetsPage() {
             <thead className="bg-gray-50">
               <tr>
                 {['Code', 'Name', 'Plate', 'Category', 'Dept', 'Status', 'Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry', ''].map(h => (
-                  <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -765,15 +765,15 @@ export default function AssetsPage() {
                 const st = STATUS_OPTIONS.find(s => s.value === asset.status)
                 return (
                   <tr key={asset.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/${asset.id}`)}>
-                    <td className="px-3 py-2.5 font-mono text-gray-400">{asset.asset_code}</td>
+                    <td className="px-3 py-2.5 font-mono text-gray-600">{asset.asset_code}</td>
                     <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
-                    <td className="px-3 py-2.5 font-mono text-gray-500">{asset.registration_plate || '—'}</td>
+                    <td className="px-3 py-2.5 font-mono text-gray-600">{asset.registration_plate || '—'}</td>
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span></td>
-                    <td className="px-3 py-2.5 text-gray-500">{asset.department}</td>
-                    <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-500'}`}>{st?.label ?? asset.status}</span></td>
-                    <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-400">—</span>}</td>
-                    <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-400">—</span>}</td>
-                    <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-400">—</span>}</td>
+                    <td className="px-3 py-2.5 text-gray-600">{asset.department}</td>
+                    <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-600'}`}>{st?.label ?? asset.status}</span></td>
+                    <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-600">—</span>}</td>
+                    <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
+                    <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
                     <td className="px-3 py-2.5">{canEdit && <button onClick={e => { e.stopPropagation(); setEditAsset(asset); setShowModal(true) }} className="text-xs text-brand-red hover:underline font-medium">Edit</button>}</td>
                   </tr>
                 )

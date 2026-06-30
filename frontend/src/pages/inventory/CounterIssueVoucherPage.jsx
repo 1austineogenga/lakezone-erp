@@ -8,7 +8,7 @@ const inputCls = 'border border-gray-200 rounded px-1.5 py-1 text-xs w-full focu
 function Field({ label, value, onChange, type = 'text', className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30" />
     </div>
@@ -18,7 +18,7 @@ function Field({ label, value, onChange, type = 'text', className = '' }) {
 function Textarea({ label, value, onChange, rows = 2 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30 resize-none" />
     </div>
@@ -88,7 +88,7 @@ export default function CounterIssueVoucherPage() {
           <table className="min-w-full text-xs border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500 w-32">Item</th>
+                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600 w-32">Item</th>
                 {items.map((item, i) => (
                   <th key={i} className="border border-gray-200 p-1">
                     <input value={item.description} onChange={e => setItemField(i, 'description', e.target.value)}
@@ -126,7 +126,7 @@ export default function CounterIssueVoucherPage() {
             <thead>
               <tr className="bg-gray-50">
                 {['Role', 'Name', 'Designation', 'Signature', 'Date'].map(h => (
-                  <th key={h} className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>

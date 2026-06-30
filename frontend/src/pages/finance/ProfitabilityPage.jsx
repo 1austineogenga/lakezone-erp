@@ -22,9 +22,9 @@ export default function ProfitabilityPage() {
     select:   r => r.data,
   })
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (isLoading) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
   if (!data?.length) return (
-    <div className="p-12 text-center text-gray-400 text-sm">
+    <div className="p-12 text-center text-gray-600 text-sm">
       No projects found. Contract profitability will appear here once projects have invoices and bills.
     </div>
   )
@@ -52,7 +52,7 @@ export default function ProfitabilityPage() {
             color: totalMargin >= 0 ? 'text-green-600' : 'text-red-600' },
         ].map(card => (
           <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{card.label}</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">{card.label}</p>
             <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
@@ -74,7 +74,7 @@ export default function ProfitabilityPage() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <p className="text-xs text-gray-400 mt-1">Green ≥15% · Amber 0–14% · Red &lt;0%</p>
+        <p className="text-xs text-gray-600 mt-1">Green ≥15% · Amber 0–14% · Red &lt;0%</p>
       </div>
 
       {/* Detailed table */}
@@ -87,7 +87,7 @@ export default function ProfitabilityPage() {
             <thead className="bg-gray-50">
               <tr>
                 {['Project', 'Status', 'Contract Value', 'Invoiced', 'Received', 'Costs', 'Gross Margin', 'Margin %'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>

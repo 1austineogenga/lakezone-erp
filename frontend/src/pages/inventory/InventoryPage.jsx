@@ -160,20 +160,20 @@ function AddItemModal({ onClose, editItem, stores }) {
           {/* Opening stock — only when adding new */}
           {!editItem && (
             <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
-              <p className="text-xs font-semibold text-gray-600">Opening Stock <span className="font-normal text-gray-400">(optional)</span></p>
+              <p className="text-xs font-semibold text-gray-600">Opening Stock <span className="font-normal text-gray-600">(optional)</span></p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                  <label className="block text-xs text-gray-600 mb-1">Quantity</label>
                   <input type="number" min="0" step="any" className={inp} value={openingQty} onChange={e => setOpeningQty(e.target.value)} placeholder="0" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Unit Cost (KES)</label>
+                  <label className="block text-xs text-gray-600 mb-1">Unit Cost (KES)</label>
                   <input type="number" min="0" step="any" className={inp} value={openingCost} onChange={e => setOpeningCost(e.target.value)} placeholder="0" />
                 </div>
               </div>
               {stores.length > 1 && (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Store</label>
+                  <label className="block text-xs text-gray-600 mb-1">Store</label>
                   <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
                     {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -403,7 +403,7 @@ export default function InventoryPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-lg font-bold text-brand-slate">Inventory</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {user?.department_name ? `${user.department_name} · ` : ''}Stock management & transactions
           </p>
         </div>
@@ -424,9 +424,9 @@ export default function InventoryPage() {
             <DocumentTextIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Total Items</p>
+            <p className="text-xs text-gray-600">Total Items</p>
             <p className="text-lg font-bold text-brand-slate">{items.length}</p>
-            <p className="text-xs text-gray-400">in catalog</p>
+            <p className="text-xs text-gray-600">in catalog</p>
           </div>
         </div>
 
@@ -436,11 +436,11 @@ export default function InventoryPage() {
             <ArrowsRightLeftIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Total Stock Value</p>
+            <p className="text-xs text-gray-600">Total Stock Value</p>
             <p className="text-lg font-bold text-brand-slate">
               KES {totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
-            <p className="text-xs text-gray-400">estimated value</p>
+            <p className="text-xs text-gray-600">estimated value</p>
           </div>
         </div>
 
@@ -450,9 +450,9 @@ export default function InventoryPage() {
             <ArrowUpTrayIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Issues This Month</p>
+            <p className="text-xs text-gray-600">Issues This Month</p>
             <p className="text-lg font-bold text-brand-slate">{issuesThisMonth}</p>
-            <p className="text-xs text-gray-400">transactions</p>
+            <p className="text-xs text-gray-600">transactions</p>
           </div>
         </div>
 
@@ -462,9 +462,9 @@ export default function InventoryPage() {
             <ExclamationTriangleIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Low Stock</p>
+            <p className="text-xs text-gray-600">Low Stock</p>
             <p className={`text-lg font-bold ${lowStock.length > 0 ? 'text-red-600' : 'text-brand-slate'}`}>{lowStock.length}</p>
-            <p className="text-xs text-gray-400">items at/below reorder</p>
+            <p className="text-xs text-gray-600">items at/below reorder</p>
           </div>
         </div>
       </div>
@@ -524,7 +524,7 @@ export default function InventoryPage() {
               {loadingItems ? (
                 <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-9 bg-gray-100 rounded-lg animate-pulse" />)}</div>
               ) : filteredItems.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-600">
                   <DocumentTextIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">No items found.</p>
                 </div>
@@ -534,7 +534,7 @@ export default function InventoryPage() {
                     <thead>
                       <tr className="bg-gray-50">
                         {['Code', 'Name', 'Category', 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
-                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -553,13 +553,13 @@ export default function InventoryPage() {
                               </Link>
                             </td>
                             <td className="px-3 py-2.5 font-medium text-gray-800">{item.name}</td>
-                            <td className="px-3 py-2.5 text-gray-500">{CATEGORY_LABELS[item.category] ?? item.category}</td>
-                            <td className="px-3 py-2.5 text-gray-500">{item.unit}</td>
+                            <td className="px-3 py-2.5 text-gray-600">{CATEGORY_LABELS[item.category] ?? item.category}</td>
+                            <td className="px-3 py-2.5 text-gray-600">{item.unit}</td>
                             <td className={`px-3 py-2.5 font-semibold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-700'}`}>
                               {stock.toLocaleString()}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-500">{reorder.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-gray-500">
+                            <td className="px-3 py-2.5 text-gray-600">{reorder.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-gray-600">
                               {wac > 0 ? `KES ${wac.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—'}
                             </td>
                             <td className="px-3 py-2.5 text-gray-700">
@@ -633,7 +633,7 @@ export default function InventoryPage() {
                   {issueForm.item && (() => {
                     const sel = items.find(i => String(i.id) === String(issueForm.item))
                     return sel ? (
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-xs text-gray-600">
                         Current stock: <span className="font-semibold text-gray-700">{Number(sel.current_stock).toLocaleString()} {sel.unit}</span>
                       </p>
                     ) : null
@@ -674,7 +674,7 @@ export default function InventoryPage() {
                 {/* Divider */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 border-b border-gray-100" />
-                  <span className="text-xs text-gray-400 font-medium">— OR —</span>
+                  <span className="text-xs text-gray-600 font-medium">— OR —</span>
                   <div className="flex-1 border-b border-gray-100" />
                 </div>
 
@@ -860,7 +860,7 @@ export default function InventoryPage() {
 
               {/* Table */}
               {filteredHistory.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-600">
                   <DocumentTextIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">No transactions found.</p>
                 </div>
@@ -870,14 +870,14 @@ export default function InventoryPage() {
                     <thead>
                       <tr className="bg-gray-50">
                         {['Date', 'Type', 'Item', 'Qty', 'Issued To / Source', 'Recorded By', 'Notes', 'Ref'].map(h => (
-                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {filteredHistory.map(tx => (
                         <tr key={tx.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                          <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
                             {new Date(tx.transaction_date).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </td>
                           <td className="px-3 py-2.5">
@@ -887,15 +887,15 @@ export default function InventoryPage() {
                           </td>
                           <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{tx.item_name}</td>
                           <td className="px-3 py-2.5 font-semibold text-gray-700">{Number(tx.quantity).toLocaleString()}</td>
-                          <td className="px-3 py-2.5 text-gray-500">{tx.issued_to_display || tx.issued_to_name || '—'}</td>
-                          <td className="px-3 py-2.5 text-gray-500">{tx.processed_by_name || '—'}</td>
-                          <td className="px-3 py-2.5 text-gray-400 max-w-[180px] truncate" title={tx.notes}>{tx.notes || '—'}</td>
-                          <td className="px-3 py-2.5 font-mono text-gray-400 whitespace-nowrap">{tx.reference_number || '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-600">{tx.issued_to_display || tx.issued_to_name || '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-600">{tx.processed_by_name || '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-600 max-w-[180px] truncate" title={tx.notes}>{tx.notes || '—'}</td>
+                          <td className="px-3 py-2.5 font-mono text-gray-600 whitespace-nowrap">{tx.reference_number || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <p className="mt-3 text-xs text-gray-400">{filteredHistory.length} transaction{filteredHistory.length !== 1 ? 's' : ''}</p>
+                  <p className="mt-3 text-xs text-gray-600">{filteredHistory.length} transaction{filteredHistory.length !== 1 ? 's' : ''}</p>
                 </div>
               )}
             </div>
@@ -905,14 +905,14 @@ export default function InventoryPage() {
           {tab === 'lowstock' && (
             <div>
               {lowStock.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-600">
                   <ExclamationTriangleIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm font-medium">All stock levels are healthy.</p>
                   <p className="text-xs mt-1">No items are at or below their reorder level.</p>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-gray-400 mb-4">{lowStock.length} item{lowStock.length !== 1 ? 's' : ''} require restocking</p>
+                  <p className="text-xs text-gray-600 mb-4">{lowStock.length} item{lowStock.length !== 1 ? 's' : ''} require restocking</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {lowStock.map(item => {
                       const stock = Number(item.current_stock)
@@ -925,7 +925,7 @@ export default function InventoryPage() {
                           <div className="flex items-start justify-between mb-2 gap-2">
                             <div>
                               <p className="font-semibold text-sm text-gray-800 leading-tight">{item.name}</p>
-                              <p className="text-xs text-gray-400 mt-0.5">{item.item_code} · {item.unit}</p>
+                              <p className="text-xs text-gray-600 mt-0.5">{item.item_code} · {item.unit}</p>
                             </div>
                             <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${isOut ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                               {isOut ? 'Out of Stock' : 'Low Stock'}
@@ -933,7 +933,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="flex items-center gap-2 text-xs mb-2">
                             <span className="text-gray-600">Stock: <strong className={isOut ? 'text-red-600' : 'text-amber-600'}>{stock.toLocaleString()}</strong></span>
-                            <span className="text-gray-400">/ reorder: {reorder.toLocaleString()}</span>
+                            <span className="text-gray-600">/ reorder: {reorder.toLocaleString()}</span>
                           </div>
                           <div className="h-1.5 bg-white rounded-full overflow-hidden">
                             <div

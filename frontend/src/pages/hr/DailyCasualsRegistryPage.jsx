@@ -6,7 +6,7 @@ import { printDailyCasualsRegistry } from '../../utils/print'
 function Field({ label, value, onChange, type = 'text', className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30" />
     </div>
@@ -16,7 +16,7 @@ function Field({ label, value, onChange, type = 'text', className = '' }) {
 function Textarea({ label, value, onChange, rows = 2 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30 resize-none" />
     </div>
@@ -92,19 +92,19 @@ export default function DailyCasualsRegistryPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50">
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200 w-10">No.</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">Name</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">Phone No.</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">ID No.</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">Time In</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">Time Out</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200 min-w-[100px]">Signature</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200 w-10">No.</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">Name</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">Phone No.</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">ID No.</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">Time In</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">Time Out</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200 min-w-[100px]">Signature</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, i) => (
                 <tr key={i} className="border-b border-gray-100 last:border-0">
-                  <td className="px-2 py-1 text-center text-gray-500 font-medium w-10">{row.no}</td>
+                  <td className="px-2 py-1 text-center text-gray-600 font-medium w-10">{row.no}</td>
                   <td className="px-2 py-1"><input value={row.name}      onChange={e => setRow(i, 'name', e.target.value)}      className={inputCls} /></td>
                   <td className="px-2 py-1"><input value={row.phone}     onChange={e => setRow(i, 'phone', e.target.value)}     className={inputCls} /></td>
                   <td className="px-2 py-1"><input value={row.id_no}     onChange={e => setRow(i, 'id_no', e.target.value)}     className={inputCls} /></td>

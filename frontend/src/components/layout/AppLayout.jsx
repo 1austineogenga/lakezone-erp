@@ -52,10 +52,10 @@ export default function AppLayout() {
             </div>
             <div className="bg-brand-red h-full w-1" />
             <div className="flex-1 bg-white h-full flex items-center px-4 overflow-hidden">
-              <p className="text-xs text-gray-400 truncate">
+              <p className="text-xs text-gray-600 truncate">
                 © {new Date().getFullYear()} <span className="text-brand-slate font-medium">Lake Zone Enterprises Ltd</span>
-                <span className="mx-2 text-gray-400 hidden sm:inline">|</span>
-                <span className="text-gray-400 hidden sm:inline">Enterprise Resource Planning System</span>
+                <span className="mx-2 text-gray-600 hidden sm:inline">|</span>
+                <span className="text-gray-600 hidden sm:inline">Enterprise Resource Planning System</span>
               </p>
             </div>
           </div>

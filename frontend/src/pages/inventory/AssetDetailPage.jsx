@@ -61,7 +61,7 @@ function Field({ label, value, mono = false }) {
   if (value === null || value === undefined || value === '') return null
   return (
     <div>
-      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">{label}</p>
       <p className={`text-xs font-medium text-gray-800 ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   )
@@ -121,7 +121,7 @@ export default function AssetDetailPage() {
 
   if (isError || !asset) {
     return (
-      <div className="text-center py-20 text-gray-400">
+      <div className="text-center py-20 text-gray-600">
         <p className="text-sm">Asset not found.</p>
         <button onClick={() => navigate('/assets')} className="mt-3 text-xs text-brand-red font-medium hover:underline">← Back to Assets</button>
       </div>
@@ -160,7 +160,7 @@ export default function AssetDetailPage() {
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="font-mono text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-lg">{asset.asset_code}</span>
+                <span className="font-mono text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg">{asset.asset_code}</span>
                 <span className="text-xs bg-brand-slate text-white px-2.5 py-1 rounded-lg font-medium">
                   {CATEGORY_LABELS[asset.category] ?? asset.category}
                 </span>
@@ -176,10 +176,10 @@ export default function AssetDetailPage() {
               </div>
               <h1 className="text-2xl font-bold text-brand-slate">{asset.name}</h1>
               {asset.registration_plate && (
-                <p className="text-base font-mono text-gray-500 mt-1">{asset.registration_plate}</p>
+                <p className="text-base font-mono text-gray-600 mt-1">{asset.registration_plate}</p>
               )}
             </div>
-            <div className="text-right text-xs text-gray-400 space-y-1">
+            <div className="text-right text-xs text-gray-600 space-y-1">
               <p>Department: <span className="font-semibold text-gray-700">{asset.department}</span></p>
               {asset.assigned_to && <p>Assigned to: <span className="font-semibold text-gray-700">{asset.assigned_to}</span></p>}
               {asset.location && <p>Location: <span className="font-semibold text-gray-700">{asset.location}</span></p>}
@@ -282,7 +282,7 @@ export default function AssetDetailPage() {
         )}
 
         {/* Print footer */}
-        <div className="hidden print:block text-center text-[10px] text-gray-400 mt-8 pt-4 border-t border-gray-200">
+        <div className="hidden print:block text-center text-[10px] text-gray-600 mt-8 pt-4 border-t border-gray-200">
           Lake Zone Enterprises Ltd — Enterprise Resource Planning System · {new Date().toLocaleString()}
         </div>
       </div>

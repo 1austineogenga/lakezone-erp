@@ -118,7 +118,7 @@ export default function FuelPriceManagementPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Fuel Price Management</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             Kenya ERC reviews pump prices on the <strong>14th of every month</strong>
           </p>
         </div>
@@ -150,14 +150,14 @@ export default function FuelPriceManagementPage() {
               <div className="mt-2 flex gap-4 flex-wrap">
                 {Object.entries(ercResult.current_prices).map(([ft, p]) => (
                   <div key={ft} className="text-xs">
-                    <span className="text-gray-500 capitalize">{ft}: </span>
+                    <span className="text-gray-600 capitalize">{ft}: </span>
                     <span className="font-bold text-gray-800">KSh {p.price_per_litre}/L</span>
-                    <span className="text-gray-400 ml-1">({p.effective_date})</span>
+                    <span className="text-gray-600 ml-1">({p.effective_date})</span>
                   </div>
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-gray-500 mt-1">Next review: {ercResult.next_review}</p>
+            <p className="text-[10px] text-gray-600 mt-1">Next review: {ercResult.next_review}</p>
           </div>
           <button onClick={() => setErcResult(null)} className="text-gray-400 hover:text-gray-600 shrink-0 text-xs">✕</button>
         </div>
@@ -219,7 +219,7 @@ export default function FuelPriceManagementPage() {
       {/* Filters */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-wrap gap-3 items-end">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Fuel Type</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Fuel Type</label>
           <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Types</option>
@@ -227,7 +227,7 @@ export default function FuelPriceManagementPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Location</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
           <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Locations</option>
@@ -243,7 +243,7 @@ export default function FuelPriceManagementPage() {
         </div>
         {prices.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-sm text-gray-400">No fuel prices found</p>
+            <p className="text-sm text-gray-600">No fuel prices found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -263,7 +263,7 @@ export default function FuelPriceManagementPage() {
                     </td>
                     <td className="px-5 py-3 text-gray-600">{p.location}</td>
                     <td className="px-5 py-3 font-bold text-green-600">KSh {p.price_per_litre}</td>
-                    <td className="px-5 py-3 text-gray-500">{fmtDt(p.effective_date)}</td>
+                    <td className="px-5 py-3 text-gray-600">{fmtDt(p.effective_date)}</td>
                     <td className="px-5 py-3 flex gap-2">
                       <button onClick={() => handleEdit(p)}
                         className="p-2 text-gray-400 hover:text-brand-red transition-colors">

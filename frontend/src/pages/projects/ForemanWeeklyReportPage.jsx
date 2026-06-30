@@ -50,7 +50,7 @@ const isLocked = (report) => {
 function Field({ label, value, onChange, type = 'text', className = '', disabled = false }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input
         type={type}
         value={value}
@@ -65,7 +65,7 @@ function Field({ label, value, onChange, type = 'text', className = '', disabled
 function Textarea({ label, value, onChange, rows = 3, disabled = false }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea
         rows={rows}
         value={value}
@@ -306,16 +306,16 @@ export default function ForemanWeeklyReportPage() {
             <h3 className="text-xs font-bold text-brand-slate">Submitted Reports</h3>
           </div>
           {listLoading ? (
-            <div className="p-8 text-center text-xs text-gray-400">Loading...</div>
+            <div className="p-8 text-center text-xs text-gray-600">Loading...</div>
           ) : reports.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-400">No reports found.</div>
+            <div className="p-8 text-center text-xs text-gray-600">No reports found.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     {['Week No.', 'Project', 'Period', 'Submitted By', 'Status', ''].map(col => (
-                      <th key={col} className="text-left text-[10px] font-semibold text-gray-500 px-3 py-2">{col}</th>
+                      <th key={col} className="text-left text-[10px] font-semibold text-gray-600 px-3 py-2">{col}</th>
                     ))}
                   </tr>
                 </thead>
@@ -324,10 +324,10 @@ export default function ForemanWeeklyReportPage() {
                     <tr key={r.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-2 font-medium text-brand-slate">{r.week_no ?? '—'}</td>
                       <td className="px-3 py-2">{r.project_name ?? '—'}</td>
-                      <td className="px-3 py-2 text-gray-500">
+                      <td className="px-3 py-2 text-gray-600">
                         {r.from_date && r.to_date ? `${r.from_date} – ${r.to_date}` : r.period ?? '—'}
                       </td>
-                      <td className="px-3 py-2 text-gray-500">{r.prepared_by ?? r.submitted_by ?? '—'}</td>
+                      <td className="px-3 py-2 text-gray-600">{r.prepared_by ?? r.submitted_by ?? '—'}</td>
                       <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
                       <td className="px-3 py-2">
                         <button
@@ -363,7 +363,7 @@ export default function ForemanWeeklyReportPage() {
             {view === 'new' ? 'New Foreman Weekly Report' : 'Foreman Weekly Report'}
           </h1>
           {formLocked && (
-            <span className="ml-1 px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-500 text-[10px] rounded font-semibold">
+            <span className="ml-1 px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] rounded font-semibold">
               Locked
             </span>
           )}
@@ -403,11 +403,11 @@ export default function ForemanWeeklyReportPage() {
           <table className="min-w-full text-xs border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-500 w-36">Category</th>
+                <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-600 w-36">Category</th>
                 {DAYS.map(d => (
-                  <th key={d} className="border border-gray-200 px-2 py-2 font-semibold text-gray-500 text-center w-14">{d}</th>
+                  <th key={d} className="border border-gray-200 px-2 py-2 font-semibold text-gray-600 text-center w-14">{d}</th>
                 ))}
-                <th className="border border-gray-200 px-2 py-2 font-semibold text-gray-500 text-center w-16">Total</th>
+                <th className="border border-gray-200 px-2 py-2 font-semibold text-gray-600 text-center w-16">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -437,7 +437,7 @@ export default function ForemanWeeklyReportPage() {
               ))}
               {/* Column totals row */}
               <tr className="bg-gray-50">
-                <td className="border border-gray-200 px-3 py-1.5 font-semibold text-gray-500 text-xs">Daily Total</td>
+                <td className="border border-gray-200 px-3 py-1.5 font-semibold text-gray-600 text-xs">Daily Total</td>
                 {DAYS.map(d => {
                   const sum = LABOUR_CATS.reduce((acc, cat) => acc + (parseFloat(labour[cat][d]) || 0), 0)
                   return (
@@ -462,7 +462,7 @@ export default function ForemanWeeklyReportPage() {
             <thead>
               <tr className="bg-gray-50">
                 {['No.', 'Location / Section', 'Description', 'Unit', 'Weekly Target', 'Weekly Achieved', 'Remarks'].map(col => (
-                  <th key={col} className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500">{col}</th>
+                  <th key={col} className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600">{col}</th>
                 ))}
               </tr>
             </thead>

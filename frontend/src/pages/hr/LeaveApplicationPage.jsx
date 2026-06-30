@@ -12,7 +12,7 @@ const inputCls = 'border border-gray-200 rounded px-1.5 py-1 text-xs w-full focu
 function Field({ label, value, onChange, type = 'text', className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30" />
     </div>
@@ -22,7 +22,7 @@ function Field({ label, value, onChange, type = 'text', className = '' }) {
 function Textarea({ label, value, onChange, rows = 2 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30 resize-none" />
     </div>
@@ -79,7 +79,7 @@ export default function LeaveApplicationPage() {
   const [hodSig, setHodSig] = useState({ name: '', signature: '' })
   const [hrSig, setHrSig] = useState({ name: '', signature: '' })
 
-  if (!leave) return <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+  if (!leave) return <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
 
   const handlePrint = () => printLeaveApplication(leave || {}, user || {})
 
@@ -114,7 +114,7 @@ export default function LeaveApplicationPage() {
             ['Date', new Date().toLocaleDateString()],
           ].map(([label, value]) => (
             <div key={label}>
-              <p className="text-[10px] font-medium text-gray-500 mb-1">{label}</p>
+              <p className="text-[10px] font-medium text-gray-600 mb-1">{label}</p>
               <p className="text-xs font-semibold text-brand-slate bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">{value || '—'}</p>
             </div>
           ))}
@@ -122,7 +122,7 @@ export default function LeaveApplicationPage() {
 
         {/* Leave type checkboxes (read-only) */}
         <div className="mt-3">
-          <p className="text-[10px] font-medium text-gray-500 mb-1">Leave Type</p>
+          <p className="text-[10px] font-medium text-gray-600 mb-1">Leave Type</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
             {leaveTypes.map(lt => {
               const isChecked = lt.name === leave?.leave_type_name || lt.id === leave?.leave_type
@@ -147,7 +147,7 @@ export default function LeaveApplicationPage() {
             ['Time From', '___'],
           ].map(([label, value]) => (
             <div key={label}>
-              <p className="text-[10px] font-medium text-gray-500 mb-1">{label}</p>
+              <p className="text-[10px] font-medium text-gray-600 mb-1">{label}</p>
               <p className="text-xs font-semibold text-brand-slate bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">{value || '—'}</p>
             </div>
           ))}
@@ -155,18 +155,18 @@ export default function LeaveApplicationPage() {
 
         {/* Reason (read-only) */}
         <div className="mt-3">
-          <p className="text-[10px] font-medium text-gray-500 mb-1">Reason</p>
+          <p className="text-[10px] font-medium text-gray-600 mb-1">Reason</p>
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs min-h-[48px]">{leave?.reason || '—'}</div>
         </div>
       </Section>
 
       {/* Section B */}
       <Section title="B. Leave Coverage">
-        <p className="text-xs text-gray-500 mb-3">The following key duties will be performed by the covering staff during the leave period:</p>
+        <p className="text-xs text-gray-600 mb-3">The following key duties will be performed by the covering staff during the leave period:</p>
         <div className="space-y-2">
           {coverageLines.map((line, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 w-4">{i + 1}.</span>
+              <span className="text-xs text-gray-600 w-4">{i + 1}.</span>
               <input value={line} onChange={e => setCoverageLines(p => p.map((v, j) => j === i ? e.target.value : v))}
                 className={inputCls} />
             </div>
@@ -182,7 +182,7 @@ export default function LeaveApplicationPage() {
 
       {/* Section C */}
       <Section title="C. Acknowledgment & Acceptance">
-        <p className="text-xs text-gray-500 mb-3">I, the above-listed duties during the period of leave…</p>
+        <p className="text-xs text-gray-600 mb-3">I, the above-listed duties during the period of leave…</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Signature" value={ackSig.signature} onChange={v => setAckSig(p => ({ ...p, signature: v }))} />
           <Field label="ID No." value={ackSig.id_no} onChange={v => setAckSig(p => ({ ...p, id_no: v }))} />
@@ -195,16 +195,16 @@ export default function LeaveApplicationPage() {
           <table className="min-w-full text-xs border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500 w-8">#</th>
-                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500">Item</th>
-                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500">Days / Details</th>
-                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-500">Date</th>
+                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600 w-8">#</th>
+                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600">Item</th>
+                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600">Days / Details</th>
+                <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-600">Date</th>
               </tr>
             </thead>
             <tbody>
               {OFFICE_LABELS.map((label, i) => (
                 <tr key={i}>
-                  <td className="border border-gray-200 px-2 py-1.5 text-gray-400">{i + 1}</td>
+                  <td className="border border-gray-200 px-2 py-1.5 text-gray-600">{i + 1}</td>
                   <td className="border border-gray-200 px-2 py-1.5 text-brand-slate">{label}</td>
                   <td className="border border-gray-200 p-1">
                     <input
@@ -226,12 +226,12 @@ export default function LeaveApplicationPage() {
         {/* Signatures */}
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <p className="text-[10px] font-bold text-gray-500 uppercase">HOD / Supervisor</p>
+            <p className="text-[10px] font-bold text-gray-600 uppercase">HOD / Supervisor</p>
             <Field label="Name" value={hodSig.name} onChange={v => setHodSig(p => ({ ...p, name: v }))} />
             <Field label="Signature" value={hodSig.signature} onChange={v => setHodSig(p => ({ ...p, signature: v }))} />
           </div>
           <div className="space-y-2">
-            <p className="text-[10px] font-bold text-gray-500 uppercase">HR Department</p>
+            <p className="text-[10px] font-bold text-gray-600 uppercase">HR Department</p>
             <Field label="Name" value={hrSig.name} onChange={v => setHrSig(p => ({ ...p, name: v }))} />
             <Field label="Signature" value={hrSig.signature} onChange={v => setHrSig(p => ({ ...p, signature: v }))} />
           </div>

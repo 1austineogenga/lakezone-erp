@@ -38,7 +38,7 @@ function StatCard({ icon: Icon, label, value, color, bg, sub }) {
       </div>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-gray-600">{label}</p>
-      {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+      {sub && <p className="text-[10px] text-gray-600">{sub}</p>}
     </div>
   )
 }
@@ -106,7 +106,7 @@ export default function FleetDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Fleet Overview</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Live · refreshes every 2 min</p>
+          <p className="text-xs text-gray-600 mt-0.5">Live · refreshes every 2 min</p>
         </div>
         <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
           className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity">
@@ -137,7 +137,7 @@ export default function FleetDashboard() {
           {live.length === 0 ? (
             <div className="p-12 text-center">
               <TruckIcon className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No live data.</p>
+              <p className="text-sm text-gray-600">No live data.</p>
               <button onClick={() => syncMut.mutate()} className="mt-2 text-xs text-brand-red hover:underline">Force sync</button>
             </div>
           ) : (
@@ -149,19 +149,19 @@ export default function FleetDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-brand-slate">{v.vehicle_no}</p>
-                      {v.vehicle_name && <p className="text-xs text-gray-400 truncate">{v.vehicle_name}</p>}
+                      {v.vehicle_name && <p className="text-xs text-gray-600 truncate">{v.vehicle_name}</p>}
                     </div>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{v.last_location || '—'}</p>
+                    <p className="text-xs text-gray-600 truncate mt-0.5">{v.last_location || '—'}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[v.last_status] || 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[v.last_status] || 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABEL[v.last_status] || '—'}
                     </span>
                     <div className="text-right text-xs w-20">
                       <p className="text-gray-600 font-medium">{v.last_speed != null ? `${Number(v.last_speed).toFixed(0)} km/h` : '—'}</p>
-                      <p className="text-gray-400">{v.last_fuel != null ? `⛽ ${Number(v.last_fuel).toFixed(0)}L` : '—'}</p>
+                      <p className="text-gray-600">{v.last_fuel != null ? `⛽ ${Number(v.last_fuel).toFixed(0)}L` : '—'}</p>
                     </div>
-                    <p className="text-[10px] text-gray-400 w-14 text-right">{fmtTime(v.last_seen_minutes_ago)}</p>
+                    <p className="text-[10px] text-gray-600 w-14 text-right">{fmtTime(v.last_seen_minutes_ago)}</p>
                   </div>
                 </div>
               ))}
@@ -179,8 +179,8 @@ export default function FleetDashboard() {
           {alerts.length === 0 ? (
             <div className="p-10 text-center">
               <CheckCircleIcon className="h-10 w-10 text-green-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">All clear</p>
-              <p className="text-xs text-gray-400 mt-0.5">No active alerts</p>
+              <p className="text-sm font-medium text-gray-600">All clear</p>
+              <p className="text-xs text-gray-600 mt-0.5">No active alerts</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
@@ -193,7 +193,7 @@ export default function FleetDashboard() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-600">{a.message}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{new Date(a.occurred_at).toLocaleString()}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">{new Date(a.occurred_at).toLocaleString()}</p>
                 </div>
               ))}
             </div>

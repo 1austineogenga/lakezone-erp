@@ -29,7 +29,7 @@ export default function CashFlowPage() {
     select:   r => r.data,
   })
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (isLoading) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
   if (!data) return null
 
   const totalInflows  = data.reduce((s, m) => s + m.inflows, 0)
@@ -41,15 +41,15 @@ export default function CashFlowPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Receipts (12m)</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Receipts (12m)</p>
           <p className="text-xl font-bold text-green-600">KES {totalInflows.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Payments (12m)</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Payments (12m)</p>
           <p className="text-xl font-bold text-red-600">KES {totalOutflows.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net Cash Position</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Net Cash Position</p>
           <p className={`text-xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             KES {netPosition.toLocaleString()}
           </p>
@@ -106,7 +106,7 @@ export default function CashFlowPage() {
             <Bar dataKey="expected_outflows" name="Expected Payments"  fill="#fca5a5" radius={[3,3,0,0]} />
           </BarChart>
         </ResponsiveContainer>
-        <p className="text-xs text-gray-400 mt-2">Based on outstanding invoice / bill due dates</p>
+        <p className="text-xs text-gray-600 mt-2">Based on outstanding invoice / bill due dates</p>
       </div>
     </div>
   )

@@ -60,7 +60,7 @@ function RecordMovementModal({ item, stores, onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl border border-gray-200 w-full max-w-lg p-6 shadow-xl">
         <h2 className="font-bold text-brand-slate text-lg mb-1">Record Movement</h2>
-        <p className="text-xs text-gray-500 mb-5">Item: <strong>{item.item_code} — {item.name}</strong></p>
+        <p className="text-xs text-gray-600 mb-5">Item: <strong>{item.item_code} — {item.name}</strong></p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -152,7 +152,7 @@ export default function StockItemDetailPage() {
     select:   r => r.data?.results ?? r.data ?? [],
   })
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (isLoading) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
   if (!item) return null
 
   const current = parseFloat(item.current_stock) || 0
@@ -184,7 +184,7 @@ export default function StockItemDetailPage() {
           <div>
             <p className="font-mono text-xs text-brand-slate font-medium mb-0.5">{item.item_code}</p>
             <h1 className="font-bold text-brand-slate text-lg">{item.name}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-600 mt-0.5">
               {CATEGORY_LABELS[item.category] ?? item.category} · {item.unit}
             </p>
           </div>
@@ -193,21 +193,21 @@ export default function StockItemDetailPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className={`border-l-4 border-l-${stockColor}-500 bg-${stockColor}-50 rounded-xl p-4`}>
-            <p className="text-xs text-gray-500 mb-0.5">Current Stock</p>
+            <p className="text-xs text-gray-600 mb-0.5">Current Stock</p>
             <p className="font-bold text-brand-slate text-lg">{current.toLocaleString()}</p>
-            <p className="text-xs text-gray-400">{item.unit}</p>
+            <p className="text-xs text-gray-600">{item.unit}</p>
           </div>
           <div className="border-l-4 border-l-blue-500 bg-blue-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-0.5">Reorder Level</p>
+            <p className="text-xs text-gray-600 mb-0.5">Reorder Level</p>
             <p className="font-bold text-brand-slate text-lg">{reorder.toLocaleString()}</p>
-            <p className="text-xs text-gray-400">{item.unit}</p>
+            <p className="text-xs text-gray-600">{item.unit}</p>
           </div>
           <div className="border-l-4 border-l-purple-500 bg-purple-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-0.5">Unit Cost (WAC)</p>
+            <p className="text-xs text-gray-600 mb-0.5">Unit Cost (WAC)</p>
             <p className="font-bold text-brand-slate text-lg">{wac ? `KES ${wac.toLocaleString()}` : '—'}</p>
           </div>
           <div className="border-l-4 border-l-green-500 bg-green-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-0.5">Total Value</p>
+            <p className="text-xs text-gray-600 mb-0.5">Total Value</p>
             <p className="font-bold text-brand-slate text-lg">{totalVal ? `KES ${totalVal.toLocaleString()}` : '—'}</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function StockItemDetailPage() {
 
         {item.description && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400 mb-1">Description</p>
+            <p className="text-xs text-gray-600 mb-1">Description</p>
             <p className="text-sm text-gray-700">{item.description}</p>
           </div>
         )}
@@ -246,20 +246,20 @@ export default function StockItemDetailPage() {
         </div>
 
         {!transactions.length ? (
-          <div className="p-10 text-center text-gray-400 text-sm">No movements recorded for this item.</div>
+          <div className="p-10 text-center text-gray-600 text-sm">No movements recorded for this item.</div>
         ) : (
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Date', 'Type', 'Store', 'Quantity', 'Unit Cost', 'Reference', 'Notes', 'Recorded By'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {transactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-xs text-gray-600">
                     {tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3">
@@ -273,8 +273,8 @@ export default function StockItemDetailPage() {
                     {tx.unit_cost ? `KES ${Number(tx.unit_cost).toLocaleString()}` : '—'}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-brand-slate">{tx.reference_number}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">{tx.notes || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{tx.processed_by_name}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{tx.notes || '—'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600">{tx.processed_by_name}</td>
                 </tr>
               ))}
             </tbody>
