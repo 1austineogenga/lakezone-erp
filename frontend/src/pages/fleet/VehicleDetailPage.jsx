@@ -5,7 +5,7 @@ import { toast } from 'react-toastify'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   ArrowLeftIcon, ArrowPathIcon, MapPinIcon, BoltIcon,
-  BeakerIcon, ExclamationTriangleIcon, DocumentTextIcon,
+  BeakerIcon, ExclamationTriangleIcon,
   PencilIcon, TrashIcon, CheckIcon, XMarkIcon,
 } from '@heroicons/react/24/outline'
 import {
@@ -391,15 +391,7 @@ export default function VehicleDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="font-bold text-brand-slate text-lg">{vehicle.vehicle_no}</h2>
             <div className="ml-auto flex items-center gap-2 flex-wrap">
-              <button onClick={() => navigate(`/fleet/vehicles/${id}/weekly-report`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-                <DocumentTextIcon className="h-3.5 w-3.5" /> Weekly Report
-              </button>
-              <button onClick={() => navigate(`/fleet/vehicles/${id}/daily-report`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-                <DocumentTextIcon className="h-3.5 w-3.5" /> Daily Report
-              </button>
-              <button onClick={() => setShowEdit(true)}
+<button onClick={() => setShowEdit(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90">
                 <PencilIcon className="h-3.5 w-3.5" /> Edit
               </button>
