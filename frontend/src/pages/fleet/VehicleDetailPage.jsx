@@ -128,7 +128,6 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
     { label: 'Year',          key: 'year', type: 'number' },
     { label: 'Tank (litres)', key: 'fuel_capacity', type: 'number' },
     { label: 'Vehicle Type',  key: 'vehicle_type' },
-    { label: 'ERP Code',      key: 'erp_code' },
     { label: 'Chassis No.',   key: 'chassis_number' },
     { label: 'Yr Manufacture',key: 'year_manufacture', type: 'number' },
     { label: 'Yr Acquired',   key: 'year_acquired', type: 'number' },
@@ -188,16 +187,6 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
                 {['diesel','petrol','electric','hybrid'].map(t => (
                   <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">ERP Status</label>
-              <select value={form.erp_status} onChange={e => field('erp_status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                <option value="">— Unknown —</option>
-                {[['OPER','Operational'],['NON-OPER','Non-Operational'],['IDLE','Idle'],['UNKNOWN','Unknown']].map(([v,l]) => (
-                  <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
@@ -632,11 +621,9 @@ export default function VehicleDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs">
               {[
-                ['ERP Status',    vehicle.erp_status],
                 ['Priority',      vehicle.priority_flag],
                 ['Current Site',  vehicle.current_site],
                 ['Meter Reading', vehicle.meter_reading],
-                ['ERP Code',      vehicle.erp_code],
                 ['Year Mfg',      vehicle.year_manufacture],
                 ['Year Acquired', vehicle.year_acquired],
                 ['Chassis No.',   vehicle.chassis_number],
