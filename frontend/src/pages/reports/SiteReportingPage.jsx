@@ -1,6 +1,5 @@
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import usePermissions from '../../hooks/usePermissions'
-import useAuthStore from '../../store/authStore'
 import ForemanDailyReportPage from '../projects/ForemanDailyReportPage'
 import ForemanWeeklyReportPage from '../projects/ForemanWeeklyReportPage'
 import SurveyorDailyReportPage from '../projects/SurveyorDailyReportPage'
@@ -9,12 +8,12 @@ import MachineDailyReportPage from '../fleet/MachineDailyReportPage'
 import MachineWeeklyReportPage from '../fleet/MachineWeeklyReportPage'
 
 const NAV = [
-  { heading: 'Daily Reports', links: [
+  { key: 'daily', heading: 'Daily Reports', paths: ['/reports/machine/daily', '/reports/surveyor/daily', '/reports/foreman/daily'], links: [
     { to: '/reports/machine/daily',   label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
     { to: '/reports/surveyor/daily',  label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
     { to: '/reports/foreman/daily',   label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
   ]},
-  { heading: 'Weekly Reports', links: [
+  { key: 'weekly', heading: 'Weekly Reports', paths: ['/reports/machine/weekly', '/reports/surveyor/weekly', '/reports/foreman/weekly'], links: [
     { to: '/reports/machine/weekly',  label: 'Machine Reports',   roles: ['equipment_operator','driver','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
     { to: '/reports/surveyor/weekly', label: 'Surveyor Reports',  roles: ['site_surveyor','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
     { to: '/reports/foreman/weekly',  label: 'Foreman Reports',   roles: ['site_foreman','site_manager','site_engineer','admin_officer','hr_manager','finance_officer','finance_manager','managing_director','general_manager','system_admin','fleet_manager'] },
@@ -23,6 +22,7 @@ const NAV = [
 
 export default function SiteReportingPage() {
   const { role } = usePermissions()
+  const location = useLocation()
 
   const defaultRoute =
     role === 'site_foreman' ? '/reports/foreman/daily' :
@@ -30,29 +30,57 @@ export default function SiteReportingPage() {
     (role === 'equipment_operator' || role === 'driver') ? '/reports/machine/daily' :
     '/reports/foreman/daily'
 
+  const activeSection = NAV.find(s => s.paths.some(p => location.pathname.startsWith(p))) ?? NAV[0]
+
+  // Default sub-link for each section (first accessible link)
+  const defaultSub = (section) =>
+    section.links.find(l => l.roles.includes(role))?.to ?? section.links[0].to
+
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Horizontal tab bar */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-3 shrink-0">
-        {NAV.map(section => (
-          <div key={section.heading} className="flex items-center gap-1 mb-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-2 whitespace-nowrap">
-              {section.heading}
-            </span>
-            {section.links.filter(l => l.roles.includes(role)).map(link => (
-              <NavLink key={link.to} to={link.to}
-                className={({ isActive }) =>
-                  `px-3 py-1.5 text-xs font-medium rounded-t-md border-b-2 transition-colors whitespace-nowrap ${
+      {/* Primary tabs — Daily / Weekly */}
+      <div className="bg-white border-b border-gray-200 px-5 shrink-0">
+        <div className="flex gap-1">
+          {NAV.map(section => {
+            const isActive = section.key === activeSection.key
+            return (
+              <NavLink
+                key={section.key}
+                to={defaultSub(section)}
+                className={() =>
+                  `px-5 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'border-brand-red text-brand-red bg-brand-red/5'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}>
-                {link.label}
+                      ? 'border-brand-red text-brand-red'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`
+                }
+              >
+                {section.heading}
               </NavLink>
-            ))}
-            <div className="border-b border-gray-100 flex-1 self-end mb-0 pb-0" />
-          </div>
-        ))}
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Secondary tabs — report type */}
+      <div className="bg-gray-50 border-b border-gray-200 px-5 shrink-0">
+        <div className="flex gap-1">
+          {activeSection.links.filter(l => l.roles.includes(role)).map(link => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `px-4 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'border-brand-red text-brand-red bg-white'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white'
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
