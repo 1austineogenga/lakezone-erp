@@ -29,7 +29,10 @@ const DOC_TYPES = [
 const EMPTY = {
   // Employment Details
   employment_type: 'staff',
+  employee_number: '',
   department: '', position: '', branch: '',
+  work_location: '',
+  reports_to: '',
   date_hired: '', contract_end_date: '',
 
   // Personal Information
@@ -105,6 +108,11 @@ export default function NewEmployeePage() {
   const { data: branches } = useQuery({
     queryKey: ['branches'],
     queryFn: () => api.get('/auth/branches/'),
+    select: r => r.data?.results ?? r.data,
+  })
+  const { data: users } = useQuery({
+    queryKey: ['users-list'],
+    queryFn: () => api.get('/auth/users/', { params: { page_size: 200 } }),
     select: r => r.data?.results ?? r.data,
   })
   const { data: projectLocations } = useQuery({
@@ -201,7 +209,7 @@ export default function NewEmployeePage() {
       payload.medical_insurance_deduction = 0
     }
     // Remove empty optional FK/date fields
-    ;['department', 'position', 'branch', 'contract_end_date', 'date_of_birth'].forEach(k => {
+    ;['department', 'position', 'branch', 'contract_end_date', 'date_of_birth', 'reports_to'].forEach(k => {
       if (!payload[k]) delete payload[k]
     })
     // Remove empty optional string fields that might cause issues
@@ -232,6 +240,9 @@ export default function NewEmployeePage() {
 
       {/* 1. Employment Details */}
       <Section title="1. Employment Details">
+        <Field label="Employee Number">
+          <input {...f('employee_number')} placeholder="e.g. LZ001" className={cls} />
+        </Field>
         <Field label="Department" required>
           <select required {...f('department')} className={cls}>
             <option value="">Select department…</option>
@@ -255,6 +266,19 @@ export default function NewEmployeePage() {
                 ))}
               </optgroup>
             )}
+          </select>
+        </Field>
+        <Field label="Work Location">
+          <input {...f('work_location')} placeholder="e.g. On Site, Head Office" className={cls} />
+        </Field>
+        <Field label="Reports To">
+          <select {...f('reports_to')} className={cls}>
+            <option value="">Select user…</option>
+            {users?.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.first_name} {u.last_name}{u.role ? ` (${u.role.replace(/_/g, ' ')})` : ''}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Date Hired" required>
