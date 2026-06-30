@@ -12,6 +12,12 @@ class ItemCategory(models.TextChoices):
     FUEL = "fuel", "Fuel & Lubricants"
     PPE_SAFETY = "ppe_safety", "PPE & Safety"
     OFFICE_CONSUMABLES = "office_consumables", "Office Consumables"
+    STATIONERY = "stationery", "Stationery"
+    CLEANING = "cleaning", "Cleaning Supplies"
+    KITCHEN = "kitchen", "Kitchen / Canteen"
+    ELECTRONICS = "electronics", "Electronics"
+    TOOLS = "tools", "Tools & Equipment"
+    UNIFORMS = "uniforms", "Uniforms & Clothing"
     OTHER = "other", "Other"
 
 
