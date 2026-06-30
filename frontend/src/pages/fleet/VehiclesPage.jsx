@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
-  TruckIcon, PlusIcon, MagnifyingGlassIcon, ArrowPathIcon,
+  TruckIcon, PlusIcon, MagnifyingGlassIcon,
   MapPinIcon, WrenchScrewdriverIcon, ExclamationTriangleIcon,
   SignalIcon, PrinterIcon, ChevronUpDownIcon,
 } from '@heroicons/react/24/outline'
-import { getVehicles, createVehicle, getFleetConfig, syncAssetsToFleet } from '../../api/fleet'
+import { getVehicles, createVehicle, getFleetConfig } from '../../api/fleet'
 import api from '../../api/client'
 
 // ── Icon: live GPS tracked ──────────────────────────────────────────────────
@@ -127,15 +127,7 @@ export default function VehiclesPage() {
     onError: e => toast.error(e.response?.data?.vehicle_no?.[0] || 'Failed to add vehicle.'),
   })
 
-  const syncMut = useMutation({
-    mutationFn: syncAssetsToFleet,
-    onSuccess: r => {
-      const d = r.data
-      toast.success(`Sync complete — ${d.enriched ?? 0} GPS vehicles enriched, ${d.created} new offline records${d.errors?.length ? `, ${d.errors.length} errors` : ''}.`)
-      qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
-    },
-    onError: () => toast.error('Sync failed.'),
-  })
+
 
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -242,11 +234,7 @@ export default function VehiclesPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-gray-400 transition-colors">
             <PrinterIcon className="h-3.5 w-3.5" /> Print
           </button>
-          <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition-colors disabled:opacity-60">
-            <ArrowPathIcon className={`h-3.5 w-3.5 ${syncMut.isPending ? 'animate-spin' : ''}`} />
-            {syncMut.isPending ? 'Syncing…' : 'Sync from Assets'}
-          </button>
+
           <button onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
             <PlusIcon className="h-3.5 w-3.5" /> Add Vehicle
