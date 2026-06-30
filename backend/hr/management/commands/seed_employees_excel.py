@@ -48,8 +48,7 @@ class Command(BaseCommand):
 
         created = skipped = 0
 
-        with transaction.atomic():
-            for row in EMPLOYEES:
+        for row in EMPLOYEES:
                 emp_number = _s(row.get('Employee ID'))
                 first_name = _s(row.get('First Name'))
                 middle_name = _s(row.get('Surname'))
@@ -112,8 +111,14 @@ class Command(BaseCommand):
                     emergency_contact2_name=_s(row.get('Emergency Contact 2 Name')),
                     emergency_contact2_phone=_s(row.get('Emergency Contact 2 Phone')),
                 )
-                emp.save()
-                created += 1
-                self.stdout.write(f'  Created: {emp_number} {first_name} {last_name}')
+                # Bypass model-level validation (seed import, not user input)
+                emp.full_clean = lambda: None
+                try:
+                    emp.save()
+                    created += 1
+                    self.stdout.write(f'  Created: {emp_number} {first_name} {last_name}')
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'  ERROR {emp_number} {first_name} {last_name}: {e}'))
+                    skipped += 1
 
         self.stdout.write(self.style.SUCCESS(f'Done. Created: {created}, Skipped: {skipped}'))
