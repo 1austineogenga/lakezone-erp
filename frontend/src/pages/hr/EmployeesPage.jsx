@@ -22,6 +22,7 @@ export default function EmployeesPage() {
       ...(typeFilter && { employment_type: typeFilter }),
       ...(deptFilter && { department: deptFilter }),
       is_active: 'true',
+      page_size: 500,
     }),
     select: r => Array.isArray(r.data) ? r.data : (r.data.results ?? []),
   })
