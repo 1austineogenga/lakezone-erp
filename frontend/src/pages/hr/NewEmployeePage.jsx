@@ -31,7 +31,6 @@ const EMPTY = {
   employment_type: 'staff',
   employee_number: '',
   department: '', position: '', branch: '',
-  work_location: '',
   reports_to: '',
   date_hired: '', contract_end_date: '',
 
@@ -267,9 +266,6 @@ export default function NewEmployeePage() {
               </optgroup>
             )}
           </select>
-        </Field>
-        <Field label="Work Location">
-          <input {...f('work_location')} placeholder="e.g. On Site, Head Office" className={cls} />
         </Field>
         <Field label="Reports To">
           <select {...f('reports_to')} className={cls}>
