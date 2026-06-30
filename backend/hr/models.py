@@ -94,6 +94,9 @@ class Employee(models.Model):
                                                    null=True, blank=True, related_name='employees')
     manager                   = models.ForeignKey('self', on_delete=models.SET_NULL,
                                                    null=True, blank=True, related_name='direct_reports')
+    reports_to                = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                                   null=True, blank=True, related_name='subordinate_employees')
+    work_location             = models.CharField(max_length=100, blank=True)
     date_hired                = models.DateField()
     contract_end_date         = models.DateField(null=True, blank=True)
     is_active                 = models.BooleanField(default=True)
