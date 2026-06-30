@@ -22,11 +22,17 @@ const getSystemUsers = () => api.get('/auth/users/?page_size=200')
 const today = new Date().toISOString().slice(0, 10)
 
 const CATEGORY_LABELS = {
+  office_consumables: 'Office Consumables',
+  stationery: 'Stationery',
+  cleaning: 'Cleaning Supplies',
+  kitchen: 'Kitchen / Canteen',
   construction_materials: 'Construction Materials',
   spare_parts: 'Spare Parts',
-  fuel: 'Fuel',
+  fuel: 'Fuel & Lubricants',
   ppe_safety: 'PPE & Safety',
-  office_consumables: 'Office Consumables',
+  tools: 'Tools & Equipment',
+  electronics: 'Electronics',
+  uniforms: 'Uniforms & Clothing',
   other: 'Other',
 }
 
@@ -60,78 +66,131 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ou
 
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
 
-function AddItemModal({ onClose, editItem }) {
+const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags']
+
+function AddItemModal({ onClose, editItem, stores }) {
   const qc = useQueryClient()
   const [form, setForm] = useState(editItem ? {
-    item_code: editItem.item_code || '',
     name: editItem.name || '',
     category: editItem.category || 'office_consumables',
     unit: editItem.unit || '',
     reorder_level: editItem.reorder_level ?? '',
-    description: editItem.description || '',
   } : {
-    item_code: '', name: '', category: 'office_consumables',
-    unit: '', reorder_level: '', description: '',
+    name: '', category: 'office_consumables', unit: '', reorder_level: '',
   })
+  const [openingQty, setOpeningQty] = useState('')
+  const [openingCost, setOpeningCost] = useState('')
+  const [openingStore, setOpeningStore] = useState(stores[0]?.id ?? '')
 
-  const mut = useMutation({
-    mutationFn: (data) => editItem ? updateStockItem(editItem.id, data) : createStockItem(data),
+  const itemMut = useMutation({
+    mutationFn: async (data) => {
+      const itemRes = editItem ? await updateStockItem(editItem.id, data) : await createStockItem(data)
+      const newItem = itemRes.data
+      if (!editItem && openingQty && Number(openingQty) > 0) {
+        await createTransaction({
+          transaction_type: 'grn',
+          item: newItem.id,
+          store: openingStore || stores[0]?.id,
+          quantity: Number(openingQty),
+          unit_cost: Number(openingCost || 0),
+          transaction_date: new Date().toISOString(),
+          notes: 'Opening stock',
+        })
+      }
+      return newItem
+    },
     onSuccess: () => {
-      toast.success(editItem ? 'Item updated' : 'Stock item added')
+      toast.success(editItem ? 'Item updated' : 'Item added' + (openingQty ? ' with opening stock' : ''))
       qc.invalidateQueries({ queryKey: ['stock-items'] })
+      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
       onClose()
     },
     onError: e => {
       const d = e.response?.data
-      toast.error(d?.detail || JSON.stringify(d) || 'Failed to save item')
+      toast.error(d?.name?.[0] || d?.detail || JSON.stringify(d) || 'Failed to save item')
     },
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">{editItem ? 'Edit Item' : 'Add Stock Item'}</h2>
+          <h2 className="text-base font-bold text-brand-slate">{editItem ? 'Edit Item' : 'New Stock Item'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+
+        <div className="space-y-4">
+          {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Item Code *</label>
-            <input className={inp} value={form.item_code} onChange={e => set('item_code', e.target.value)} placeholder="e.g. ITEM-001" />
+            <label className="block text-xs font-medium text-gray-600 mb-1">Item Name *</label>
+            <input autoFocus className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. A4 Printing Paper, Stapler, Broom…" />
           </div>
+
+          {/* Category */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Unit *</label>
-            <input className={inp} value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="pcs / kg / L" />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
-            <input className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Item name" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Category *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
             <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
               {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
+
+          {/* Unit */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Reorder Level *</label>
-            <input type="number" min="0" className={inp} value={form.reorder_level} onChange={e => set('reorder_level', e.target.value)} placeholder="0" />
+            <label className="block text-xs font-medium text-gray-600 mb-1">Unit of Measure *</label>
+            <input className={inp} value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="Select or type below" />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {UNIT_CHIPS.map(u => (
+                <button key={u} type="button"
+                  onClick={() => set('unit', u)}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${form.unit === u ? 'bg-brand-red text-white border-brand-red' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                  {u}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
-            <textarea rows={2} className={`${inp} resize-none`} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Optional description" />
+
+          {/* Reorder level */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Reorder Alert Level</label>
+            <input type="number" min="0" className={inp} value={form.reorder_level} onChange={e => set('reorder_level', e.target.value)} placeholder="Alert when stock falls below this number" />
           </div>
+
+          {/* Opening stock — only when adding new */}
+          {!editItem && (
+            <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
+              <p className="text-xs font-semibold text-gray-600">Opening Stock <span className="font-normal text-gray-400">(optional)</span></p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                  <input type="number" min="0" step="any" className={inp} value={openingQty} onChange={e => setOpeningQty(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Unit Cost (KES)</label>
+                  <input type="number" min="0" step="any" className={inp} value={openingCost} onChange={e => setOpeningCost(e.target.value)} placeholder="0" />
+                </div>
+              </div>
+              {stores.length > 1 && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Store</label>
+                  <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
+                    {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex gap-3 mt-5">
+
+        <div className="flex gap-3 mt-6">
           <button
-            onClick={() => mut.mutate(form)}
-            disabled={mut.isPending || !form.item_code || !form.name || !form.unit}
-            className="flex-1 bg-brand-red text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60 hover:opacity-90">
-            {mut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
+            onClick={() => itemMut.mutate(form)}
+            disabled={itemMut.isPending || !form.name || !form.unit}
+            className="flex-1 bg-brand-red text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-60 hover:opacity-90">
+            {itemMut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
           </button>
-          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
         </div>
       </div>
     </div>
@@ -143,7 +202,7 @@ function AddItemModal({ onClose, editItem }) {
 export default function InventoryPage() {
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
-  const canEdit = role === 'system_admin' || role === 'store_keeper' || role === 'procurement_officer'
+  const canEdit = role === 'system_admin' || role === 'storekeeper' || role === 'procurement_officer' || role === 'admin_officer'
 
   const [tab, setTab] = useState('items')
   const [search, setSearch] = useState('')
@@ -907,6 +966,7 @@ export default function InventoryPage() {
       {(showAddItem || editItem) && (
         <AddItemModal
           editItem={editItem}
+          stores={stores}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
     </div>
