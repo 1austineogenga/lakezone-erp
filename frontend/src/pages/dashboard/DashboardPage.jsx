@@ -17,7 +17,6 @@ import { getProjects } from '../../api/projects'
 import { getPRs } from '../../api/procurement'
 import { getStockLevels } from '../../api/inventory'
 import { getFleetLive, getFleetDashboard } from '../../api/fleet'
-import { getFinanceDashboard } from '../../api/finance'
 import { getHRDashboard } from '../../api/hr'
 import useAuthStore from '../../store/authStore'
 import usePermissions from '../../hooks/usePermissions'
@@ -138,7 +137,6 @@ export default function DashboardPage() {
   const { data: levelsRes } = useQuery({ queryKey: ['levels'],    queryFn: () => getStockLevels({ page_size: 100 }) })
   const { data: fleetRes }  = useQuery({ queryKey: ['fleet-live'], queryFn: getFleetLive, refetchInterval: 60_000 })
   const { data: fleetDash } = useQuery({ queryKey: ['fleet-dashboard'], queryFn: getFleetDashboard, select: r => r.data, refetchInterval: 120_000 })
-  const { data: finance }   = useQuery({ queryKey: ['finance-dashboard'], queryFn: getFinanceDashboard, select: r => r.data })
   const { data: hr }        = useQuery({ queryKey: ['hr-dashboard'],      queryFn: getHRDashboard,      select: r => r.data })
 
   const projectList = projectsRes?.data?.results ?? []
@@ -208,27 +206,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Finance Strip ── */}
-      {finance && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Revenue (MTD)</p>
-            <p className="text-lg font-bold text-emerald-600">KES {fmtK(finance.revenue_mtd ?? finance.total_invoiced ?? 0)}</p>
-          </div>
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Expenses (MTD)</p>
-            <p className="text-lg font-bold text-red-500">KES {fmtK(finance.expenses_mtd ?? finance.total_expenses ?? 0)}</p>
-          </div>
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Outstanding Invoices</p>
-            <p className="text-lg font-bold text-amber-600">KES {fmtK(finance.outstanding_invoices ?? finance.total_outstanding ?? 0)}</p>
-          </div>
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Overdue Bills</p>
-            <p className="text-lg font-bold text-rose-600">KES {fmtK(finance.overdue_bills ?? finance.total_overdue ?? 0)}</p>
-          </div>
-        </div>
-      )}
 
       {/* ── Live Map ── */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
