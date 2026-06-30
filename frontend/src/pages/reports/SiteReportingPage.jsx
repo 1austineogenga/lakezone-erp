@@ -31,22 +31,29 @@ export default function SiteReportingPage() {
     '/reports/foreman/daily'
 
   return (
-    <div className="flex h-full min-h-0 gap-0">
-      {/* Left nav */}
-      <aside className="w-44 shrink-0 bg-white border-r border-gray-100 py-4 px-2 space-y-4 overflow-y-auto">
+    <div className="flex flex-col h-full min-h-0">
+      {/* Horizontal tab bar */}
+      <div className="bg-white border-b border-gray-100 px-5 pt-3 shrink-0">
         {NAV.map(section => (
-          <div key={section.heading}>
-            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{section.heading}</p>
+          <div key={section.heading} className="flex items-center gap-1 mb-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-2 whitespace-nowrap">
+              {section.heading}
+            </span>
             {section.links.filter(l => l.roles.includes(role)).map(link => (
               <NavLink key={link.to} to={link.to}
                 className={({ isActive }) =>
-                  `block px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? 'bg-brand-red/10 text-brand-red' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  `px-3 py-1.5 text-xs font-medium rounded-t-md border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'border-brand-red text-brand-red bg-brand-red/5'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}>
                 {link.label}
               </NavLink>
             ))}
+            <div className="border-b border-gray-100 flex-1 self-end mb-0 pb-0" />
           </div>
         ))}
-      </aside>
+      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-5">
