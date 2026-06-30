@@ -6,7 +6,8 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import {
   ArrowLeftIcon, ArrowPathIcon, MapPinIcon, BoltIcon,
   BeakerIcon, ExclamationTriangleIcon,
-  PencilIcon, TrashIcon, CheckIcon, XMarkIcon,
+  PencilIcon, TrashIcon, CheckIcon, XMarkIcon, PlusIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline'
 import {
   getVehicle, getVehicleLive, getFuelEvents, getTrips, getAlerts,
@@ -36,6 +37,23 @@ const fmt = (n, d = 1) => Number(n || 0).toFixed(d)
 const fmtDt = s => new Date(s).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
 
 function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
+  const [assetSearch, setAssetSearch] = useState('')
+  const [showAssets, setShowAssets] = useState(false)
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ['assets-all'],
+    queryFn: () => api.get('/inventory/assets/'),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: showAssets,
+  })
+
+  const filteredAssets = assets.filter(a =>
+    !assetSearch ||
+    a.serial_number?.toLowerCase().includes(assetSearch.toLowerCase()) ||
+    a.name?.toLowerCase().includes(assetSearch.toLowerCase()) ||
+    a.asset_code?.toLowerCase().includes(assetSearch.toLowerCase())
+  )
+
   const [form, setForm] = useState({
     vehicle_no:    vehicle.vehicle_no || '',
     vehicle_name:  vehicle.vehicle_name || '',
@@ -64,6 +82,22 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
 
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const fillFromAsset = (asset) => {
+    const [make, ...modelParts] = (asset.make_model || '').split(' ')
+    setForm(f => ({
+      ...f,
+      vehicle_name:     f.vehicle_name  || asset.name || '',
+      make:             f.make          || make || '',
+      model_name:       f.model_name    || modelParts.join(' ') || '',
+      chassis_number:   f.chassis_number|| asset.serial_number || '',
+      current_site:     f.current_site  || asset.location || '',
+      erp_status:       f.erp_status    || (asset.status === 'operational' ? 'OPER' : asset.status === 'non_operational' ? 'NON-OPER' : f.erp_status),
+    }))
+    setShowAssets(false)
+    setAssetSearch('')
+    toast.info(`Filled from asset ${asset.asset_code}`)
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -110,6 +144,35 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
           <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400" /></button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Fill from Asset */}
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-blue-700 font-medium">Fill blank fields from an Asset record</p>
+              <button onClick={() => setShowAssets(v => !v)}
+                className="flex items-center gap-1 text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                <ArrowDownTrayIcon className="h-3 w-3" /> {showAssets ? 'Hide' : 'Browse Assets'}
+              </button>
+            </div>
+            {showAssets && (
+              <div className="mt-2 space-y-2">
+                <input value={assetSearch} onChange={e => setAssetSearch(e.target.value)}
+                  placeholder="Search by name, serial, asset code…"
+                  className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs focus:outline-none focus:border-blue-500 bg-white" />
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {filteredAssets.slice(0, 20).map(a => (
+                    <button key={a.id} onClick={() => fillFromAsset(a)}
+                      className="w-full text-left px-3 py-2 bg-white rounded border border-blue-100 hover:border-blue-400 text-xs">
+                      <span className="font-medium text-brand-slate">{a.asset_code}</span>
+                      <span className="text-gray-500 ml-2">{a.name}</span>
+                      {a.serial_number && <span className="text-gray-400 ml-2">· {a.serial_number}</span>}
+                    </button>
+                  ))}
+                  {filteredAssets.length === 0 && <p className="text-xs text-gray-400 py-2 text-center">No assets found.</p>}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {textFields.map(({ label, key, type }) => (
               <div key={key}>
@@ -260,6 +323,49 @@ function ComplianceRow({ vehicleId, item, onUpdated }) {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function AddComplianceForm({ vehicleId, onAdded }) {
+  const [type, setType] = useState('insurance')
+  const [expiry, setExpiry] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleAdd = async () => {
+    setSaving(true)
+    try {
+      await updateCompliance(vehicleId, { compliance_type: type, expiry_date: expiry || null })
+      toast.success('Compliance record added.')
+      onAdded()
+      setExpiry('')
+    } catch {
+      toast.error('Failed to add compliance record.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-gray-50 pt-3">
+      <div>
+        <label className="block text-[10px] text-gray-500 mb-1">Type</label>
+        <select value={type} onChange={e => setType(e.target.value)}
+          className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red">
+          {Object.entries(COMPLIANCE_TYPE_LABEL).map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-[10px] text-gray-500 mb-1">Expiry Date</label>
+        <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)}
+          className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red" />
+      </div>
+      <button onClick={handleAdd} disabled={saving}
+        className="flex items-center gap-1 px-3 py-1.5 bg-brand-red text-white text-xs rounded hover:opacity-90 disabled:opacity-60">
+        <CheckIcon className="w-3 h-3" /> {saving ? 'Saving…' : 'Add'}
+      </button>
     </div>
   )
 }
@@ -469,11 +575,13 @@ export default function VehicleDetailPage() {
         </div>
       )}
 
-      {/* Compliance & Assignment */}
+      {/* Compliance & Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Compliance — always shown, always editable */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <h3 className="text-xs font-bold text-brand-slate mb-3">Compliance Status</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-brand-slate">Compliance Status</h3>
+          </div>
           {vehicle.compliance?.length > 0 ? (
             <div>
               {vehicle.compliance.map(c => (
@@ -481,8 +589,9 @@ export default function VehicleDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">No compliance records. Import a Fleet Register to populate.</p>
+            <p className="text-xs text-gray-400">No compliance records yet.</p>
           )}
+          <AddComplianceForm vehicleId={id} onAdded={refreshVehicle} />
         </div>
 
         <div className="space-y-4">
@@ -512,41 +621,51 @@ export default function VehicleDetailPage() {
             </div>
           )}
 
-          {/* Register details */}
-          {(vehicle.erp_status || vehicle.known_defects || vehicle.required_actions || vehicle.current_site) && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-              <h3 className="text-xs font-bold text-brand-slate">Fleet Register Details</h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                {[
-                  ['ERP Status', vehicle.erp_status],
-                  ['Priority', vehicle.priority_flag],
-                  ['Current Site', vehicle.current_site],
-                  ['Meter Reading', vehicle.meter_reading],
-                  ['ERP Code', vehicle.erp_code],
-                  ['Year Mfg', vehicle.year_manufacture],
-                  ['Year Acquired', vehicle.year_acquired],
-                  ['Chassis No.', vehicle.chassis_number],
-                ].filter(([, v]) => v).map(([label, val]) => (
-                  <div key={label}>
-                    <div className="text-gray-400">{label}</div>
-                    <div className="font-medium text-brand-slate">{val}</div>
-                  </div>
-                ))}
-              </div>
-              {vehicle.known_defects && (
-                <div>
-                  <div className="text-[10px] font-semibold text-red-600 uppercase mb-1">Known Defects</div>
-                  <p className="text-xs text-gray-600">{vehicle.known_defects}</p>
-                </div>
-              )}
-              {vehicle.required_actions && (
-                <div>
-                  <div className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Required Actions</div>
-                  <p className="text-xs text-gray-600">{vehicle.required_actions}</p>
-                </div>
-              )}
+          {/* Vehicle Details — always visible, blank fields show "—" with edit hint */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-brand-slate">Vehicle Details</h3>
+              <button onClick={() => setShowEdit(true)}
+                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-brand-red transition-colors">
+                <PencilIcon className="h-3 w-3" /> Edit
+              </button>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {[
+                ['ERP Status',    vehicle.erp_status],
+                ['Priority',      vehicle.priority_flag],
+                ['Current Site',  vehicle.current_site],
+                ['Meter Reading', vehicle.meter_reading],
+                ['ERP Code',      vehicle.erp_code],
+                ['Year Mfg',      vehicle.year_manufacture],
+                ['Year Acquired', vehicle.year_acquired],
+                ['Chassis No.',   vehicle.chassis_number],
+              ].map(([label, val]) => (
+                <div key={label}>
+                  <div className="text-gray-400">{label}</div>
+                  {val
+                    ? <div className="font-medium text-brand-slate">{val}</div>
+                    : <button onClick={() => setShowEdit(true)}
+                        className="text-gray-300 hover:text-brand-red transition-colors italic text-[10px]">
+                        — tap to edit
+                      </button>
+                  }
+                </div>
+              ))}
+            </div>
+            {vehicle.known_defects && (
+              <div>
+                <div className="text-[10px] font-semibold text-red-600 uppercase mb-1">Known Defects</div>
+                <p className="text-xs text-gray-600">{vehicle.known_defects}</p>
+              </div>
+            )}
+            {vehicle.required_actions && (
+              <div>
+                <div className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Required Actions</div>
+                <p className="text-xs text-gray-600">{vehicle.required_actions}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
