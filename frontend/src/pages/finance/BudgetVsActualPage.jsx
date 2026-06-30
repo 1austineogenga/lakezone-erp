@@ -189,7 +189,7 @@ export default function BudgetVsActualPage() {
                           </td>
                           <td className="px-4 py-3">
                             <button onClick={() => deleteMut.mutate(row.id)}
-                              className="text-gray-300 hover:text-red-500 transition-colors">
+                              className="text-gray-500 hover:text-red-500 transition-colors">
                               <TrashIcon className="h-3.5 w-3.5" />
                             </button>
                           </td>

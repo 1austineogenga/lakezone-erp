@@ -117,7 +117,7 @@ export default function ProjectPage() {
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" /> All Projects
           </button>
-          <span className="text-gray-200">|</span>
+          <span className="text-gray-400">|</span>
           {isLoading ? (
             <div className="h-4 bg-gray-100 rounded animate-pulse w-48" />
           ) : (

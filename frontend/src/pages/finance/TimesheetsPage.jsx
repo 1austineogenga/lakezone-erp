@@ -231,7 +231,7 @@ export default function TimesheetsPage() {
                       <td className="pt-2 pl-2">
                         {form.lines.length > 1 && (
                           <button type="button" onClick={() => removeLine(i)}
-                            className="text-gray-300 hover:text-red-500">
+                            className="text-gray-500 hover:text-red-500">
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         )}

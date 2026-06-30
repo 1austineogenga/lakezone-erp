@@ -517,7 +517,7 @@ export default function EmployeeDetailPage() {
                         <td className="px-4 py-2.5 text-xs text-gray-400">{d.uploaded_at?.slice(0, 10)}</td>
                         <td className="px-4 py-2.5">
                           <button onClick={() => docDeleteMut.mutate(d.id)}
-                            className="text-gray-300 hover:text-red-500">
+                            className="text-gray-500 hover:text-red-500">
                             <TrashIcon className="h-3.5 w-3.5" />
                           </button>
                         </td>

@@ -139,15 +139,15 @@ export default function AttendancePage() {
                             <td className="px-4 py-3">
                               <div className="flex gap-1">
                                 <button title="Mark Present" onClick={() => markStatus(rec.employee_id, 'present')}
-                                  className={`p-1 rounded ${rec.status === 'present' ? 'text-green-600' : 'text-gray-300 hover:text-green-600'}`}>
+                                  className={`p-1 rounded ${rec.status === 'present' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}>
                                   <CheckCircleIcon className="h-4 w-4" />
                                 </button>
                                 <button title="Mark Absent" onClick={() => markStatus(rec.employee_id, 'absent')}
-                                  className={`p-1 rounded ${rec.status === 'absent' ? 'text-red-600' : 'text-gray-300 hover:text-red-600'}`}>
+                                  className={`p-1 rounded ${rec.status === 'absent' ? 'text-red-600' : 'text-gray-400 hover:text-red-600'}`}>
                                   <XCircleIcon className="h-4 w-4" />
                                 </button>
                                 <button title="Mark On Leave" onClick={() => markStatus(rec.employee_id, 'on_leave')}
-                                  className={`p-1 rounded ${rec.status === 'on_leave' ? 'text-blue-600' : 'text-gray-300 hover:text-blue-600'}`}>
+                                  className={`p-1 rounded ${rec.status === 'on_leave' ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}>
                                   <ClockIcon className="h-4 w-4" />
                                 </button>
                               </div>

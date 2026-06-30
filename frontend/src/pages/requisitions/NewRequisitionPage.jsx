@@ -179,7 +179,7 @@ export default function NewRequisitionPage() {
                   {i === 0 && <div className="h-4 mb-1" />}
                   <button type="button" disabled={items.length === 1}
                     onClick={() => setItems(p => p.filter((_, idx) => idx !== i))}
-                    className="p-1.5 text-gray-300 hover:text-red-500 disabled:opacity-30 transition-colors">
+                    className="p-1.5 text-gray-500 hover:text-red-500 disabled:opacity-30 transition-colors">
                     <TrashIcon className="h-3.5 w-3.5" />
                   </button>
                 </div>

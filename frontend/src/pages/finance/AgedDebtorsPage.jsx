@@ -73,7 +73,7 @@ function AgingTable({ data, nameKey, labelSingular }) {
                       <td key={b} className="px-4 py-3 text-right">
                         {row[b] > 0
                           ? <span className={`text-xs px-2 py-0.5 rounded-full ${BAND_COLORS[b]}`}>{fmt(row[b])}</span>
-                          : <span className="text-gray-300 text-xs">—</span>
+                          : <span className="text-gray-500 text-xs">—</span>
                         }
                       </td>
                     ))}
