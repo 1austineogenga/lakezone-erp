@@ -286,7 +286,8 @@ class MDDashboardView(APIView):
                 'pending_expenses_value': float(pending_expenses_value),
                 'collection_rate': round((float(ar['total_received'] or 0) / float(ar['total_billed'] or 1)) * 100, 1),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard finance error: {e}')
             finance = {}
 
         # ── Projects ─────────────────────────────────────────────────────────
@@ -307,7 +308,8 @@ class MDDashboardView(APIView):
                     )
                 ),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard projects error: {e}')
             projects = {}
 
         # ── Fleet ────────────────────────────────────────────────────────────
@@ -324,7 +326,8 @@ class MDDashboardView(APIView):
                 'alerts_unacked': FleetAlert.objects.filter(acknowledged=False).count(),
                 'low_fuel': vehicles.filter(last_fuel__isnull=False, last_fuel__lt=30).count(),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard fleet error: {e}')
             fleet = {}
 
         # ── HR ───────────────────────────────────────────────────────────────
@@ -345,15 +348,18 @@ class MDDashboardView(APIView):
                 'on_leave_today': AttendanceRecord.objects.filter(
                     date=today, status='on_leave').count(),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard hr error: {e}')
             hr_data = {}
 
         # ── Procurement ──────────────────────────────────────────────────────
         try:
             from procurement.models import PurchaseRequisition, PurchaseOrder
             procurement = {
-                'pending_prs': PurchaseRequisition.objects.filter(status='pending').count(),
-                'approved_prs': PurchaseRequisition.objects.filter(status='approved').count(),
+                'pending_prs': PurchaseRequisition.objects.filter(
+                    status__in=['pending', 'dept_approved', 'finance_approved']).count(),
+                'approved_prs': PurchaseRequisition.objects.filter(
+                    status='md_approved').count(),
                 'open_pos': PurchaseOrder.objects.filter(status__in=['sent', 'partial']).count(),
                 'po_value_open': float(
                     PurchaseOrder.objects.filter(
@@ -361,19 +367,21 @@ class MDDashboardView(APIView):
                     ).aggregate(v=Sum('total_amount'))['v'] or 0
                 ),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard procurement error: {e}')
             procurement = {}
 
         # ── Requisitions ─────────────────────────────────────────────────────
         try:
-            from requisitions.models import Requisition
+            from requisitions.models import StaffRequisition
             requisitions = {
-                'pending': Requisition.objects.filter(status='submitted').count(),
-                'approved': Requisition.objects.filter(status='approved').count(),
-                'total_mtd': Requisition.objects.filter(
+                'pending': StaffRequisition.objects.filter(status='submitted').count(),
+                'approved': StaffRequisition.objects.filter(status='approved').count(),
+                'total_mtd': StaffRequisition.objects.filter(
                     created_at__date__gte=mtd_start).count(),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard requisitions error: {e}')
             requisitions = {}
 
         # ── Inventory / Assets ───────────────────────────────────────────────
@@ -387,7 +395,8 @@ class MDDashboardView(APIView):
                 'active_assets': Asset.objects.filter(status='operational').count(),
                 'under_repair': Asset.objects.filter(status='under_repair').count(),
             }
-        except Exception:
+        except Exception as e:
+            logger.error(f'MD dashboard inventory error: {e}')
             inventory = {}
 
         # ── Users ────────────────────────────────────────────────────────────
