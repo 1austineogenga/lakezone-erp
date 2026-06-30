@@ -13,4 +13,5 @@ urlpatterns = [
     path("users/<uuid:pk>/reset-password/", views.ResetUserPasswordView.as_view(), name="user-reset-password"),
     path("branches/", views.BranchListCreateView.as_view(), name="branch-list"),
     path("departments/", views.DepartmentListCreateView.as_view(), name="department-list"),
+    path("md-dashboard/", views.MDDashboardView.as_view(), name="md-dashboard"),
 ]

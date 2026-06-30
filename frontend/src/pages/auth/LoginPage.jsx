@@ -20,7 +20,7 @@ export default function LoginPage() {
       setTokens(data.access, data.refresh)
       const { data: me } = await getMe()
       setUser(me)
-      navigate('/')
+      navigate(me.must_change_password ? '/change-password' : '/')
     } catch {
       setError('Invalid email or password.')
     } finally {

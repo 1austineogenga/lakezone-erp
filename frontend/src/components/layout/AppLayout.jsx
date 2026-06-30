@@ -4,15 +4,18 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import ErrorBoundary from '../ErrorBoundary'
 import logoIcon from '../../assets/logo-icon.png'
+import useAuthStore from '../../store/authStore'
 
 export default function AppLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const user = useAuthStore(s => s.user)
 
   // Close mobile sidebar on route change
   useEffect(() => setMobileOpen(false), [location.pathname])
 
   if (!localStorage.getItem('access_token')) return <Navigate to="/login" replace />
+  if (user?.must_change_password) return <Navigate to="/change-password" replace />
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

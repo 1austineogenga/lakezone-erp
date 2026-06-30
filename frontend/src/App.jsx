@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import AppLayout from './components/layout/AppLayout'
 import PrivateRoute from './components/PrivateRoute'
 import LoginPage from './pages/auth/LoginPage'
+import ChangePasswordPage from './pages/auth/ChangePasswordPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import ProjectsPage from './pages/projects/ProjectsPage'
 import ProjectPage from './pages/projects/ProjectPage'
@@ -43,6 +44,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route element={<AppLayout />}>
             <Route path="/"                   element={<DashboardPage />} />
             <Route path="/projects"              element={<PrivateRoute module="projects"><ProjectsPage /></PrivateRoute>} />
