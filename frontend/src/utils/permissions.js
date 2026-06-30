@@ -78,10 +78,10 @@ const PERMISSIONS = {
     users: false, reports: 'read',
   },
   site_engineer: {
-    dashboard: 'full', projects: 'write', procurement: false,
-    requisitions: 'create', inventory: false, assets: false,
+    dashboard: 'full', projects: 'full', procurement: 'full',
+    requisitions: 'full', inventory: 'full', assets: 'full',
     crm: false, finance: false, hr: false, fleet: false,
-    users: false, reports: 'read',
+    users: false, reports: 'full',
   },
   site_foreman: {
     dashboard: 'full', projects: 'write', procurement: false,
