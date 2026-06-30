@@ -1,3 +1,4 @@
+import uuid as _uuid
 from django.db.models import Sum, Count
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
@@ -129,6 +130,9 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         )
         if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
             qs = qs.filter(item__department=user.department)
+        issued_to = self.request.query_params.get('issued_to')
+        if issued_to:
+            qs = qs.filter(issued_to=issued_to)
         return qs
 
     def perform_create(self, serializer):
@@ -138,6 +142,9 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         item = serializer.validated_data.get('item')
         if user.role not in EDIT_ALL_ROLES and item and item.department != user.department:
             raise PermissionDenied("You can only record movements for your own department's items.")
+        if not serializer.validated_data.get('reference_number'):
+            prefix = serializer.validated_data.get('transaction_type', 'TXN').upper()
+            serializer.validated_data['reference_number'] = f"{prefix}-{_uuid.uuid4().hex[:8].upper()}"
         serializer.save(processed_by=user)
 
 
