@@ -267,12 +267,6 @@ export default function NewEmployeePage() {
             )}
           </select>
         </Field>
-<<<<<<< HEAD
-=======
-        <Field label="Work Location">
-          <input {...f('work_location')} placeholder="e.g. On Site, Head Office" className={cls} />
-        </Field>
->>>>>>> 925c049 (Add employee_number, reports_to, work_location fields; seed command from Excel)
         <Field label="Reports To">
           <select {...f('reports_to')} className={cls}>
             <option value="">Select user…</option>
