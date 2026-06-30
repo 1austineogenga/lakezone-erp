@@ -5,6 +5,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 
 from .models import (
     JobGrade, Position, Employee, EmployeeDocument,
@@ -62,8 +63,15 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 # ── Employees ──────────────────────────────────────────────────────────────────
 
+class EmployeePagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+
 class EmployeeListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = EmployeePagination
 
     def get_serializer_class(self):
         if self.request.method == 'GET' and self.request.query_params.get('simple'):
