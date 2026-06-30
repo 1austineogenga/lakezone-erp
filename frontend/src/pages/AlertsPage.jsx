@@ -1,23 +1,29 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'react-toastify'
 import api from '../api/client'
 import {
   ExclamationTriangleIcon, CheckCircleIcon, XMarkIcon,
   PlusIcon, ChevronDownIcon, ChevronUpIcon, CalendarDaysIcon,
   UserCircleIcon, ShieldExclamationIcon, BeakerIcon, CheckIcon,
   BellSlashIcon, ClockIcon, TruckIcon, WrenchScrewdriverIcon,
-  CubeIcon, BoltIcon,
+  CubeIcon, BoltIcon, ArrowRightIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 
-const getComplianceAlerts = () => api.get('/notifications/compliance-alerts/')
-const getFleetAlerts      = (params) => api.get('/fleet/alerts/', { params })
-const acknowledgeAlert    = (id) => api.post(`/fleet/alerts/${id}/acknowledge/`)
-const getActions          = (params) => api.get('/notifications/actions/', { params })
-const createAction        = (d) => api.post('/notifications/actions/', d)
-const updateAction        = (id, d) => api.patch(`/notifications/actions/${id}/`, d)
-const addComment          = (d) => api.post('/notifications/actions/comments/', d)
-const getUsers            = () => api.get('/auth/users/', { params: { page_size: 200 } })
-const getLowStock         = () => api.get('/inventory/stock-levels/', { params: { page_size: 500 } })
+const getComplianceAlerts  = () => api.get('/notifications/compliance-alerts/')
+const getFleetAlerts       = (params) => api.get('/fleet/alerts/', { params })
+const acknowledgeAlert     = (id) => api.post(`/fleet/alerts/${id}/acknowledge/`)
+const getActions           = (params) => api.get('/notifications/actions/', { params })
+const createAction         = (d) => api.post('/notifications/actions/', d)
+const updateAction         = (id, d) => api.patch(`/notifications/actions/${id}/`, d)
+const addComment           = (d) => api.post('/notifications/actions/comments/', d)
+const getUsers             = () => api.get('/auth/users/', { params: { page_size: 200 } })
+const getLowStock          = () => api.get('/inventory/stock-levels/', { params: { page_size: 500 } })
+const getComplianceCases   = () => api.get('/notifications/compliance-cases/')
+const createComplianceCase = (d) => api.post('/notifications/compliance-cases/', d)
+const advanceCase          = (id, d) => api.post(`/notifications/compliance-cases/${id}/advance/`, d)
+const createCaseBill       = (id, d) => api.post(`/notifications/compliance-cases/${id}/bill/`, d)
+const getSuppliers         = () => api.get('/procurement/suppliers/', { params: { page_size: 200 } })
 
 const ALERT_TYPE_LABELS = {
   sos:                   'SOS Emergency',
@@ -83,6 +89,364 @@ function timeAgo(dt) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+// ── Compliance Workflow Panel ──────────────────────────────────────────────────
+
+const STEP_KEYS = ['open','acknowledged','contacted','invoice_received','payment_processed','certificate_updated','closed']
+const STEP_LABELS_MAP = {
+  open: 'Opened', acknowledged: 'Acknowledged', contacted: 'Provider Contacted',
+  invoice_received: 'Invoice Received', payment_processed: 'Payment Processed',
+  certificate_updated: 'Certificate Updated', closed: 'Closed',
+}
+const CONTACT_LABELS = { insurance: 'Contacted Insurer', inspection: 'Booked Inspection', speed_governor: 'Booked Calibration' }
+
+const inp2 = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
+
+function StepperBar({ currentStatus }) {
+  const idx = STEP_KEYS.indexOf(currentStatus)
+  return (
+    <div className="flex items-center gap-0 mb-6 overflow-x-auto pb-1">
+      {STEP_KEYS.map((key, i) => {
+        const done = i < idx
+        const active = i === idx
+        return (
+          <div key={key} className="flex items-center shrink-0">
+            <div className="flex flex-col items-center">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
+                ${done ? 'bg-green-500 border-green-500 text-white' : active ? 'bg-brand-red border-brand-red text-white' : 'bg-white border-gray-200 text-gray-400'}`}>
+                {done ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
+              </div>
+              <p className={`text-[9px] mt-1 text-center w-14 leading-tight
+                ${done ? 'text-green-600' : active ? 'text-brand-red font-semibold' : 'text-gray-400'}`}>
+                {STEP_LABELS_MAP[key]}
+              </p>
+            </div>
+            {i < STEP_KEYS.length - 1 && (
+              <div className={`h-0.5 w-6 mx-0.5 mb-4 shrink-0 ${i < idx ? 'bg-green-400' : 'bg-gray-200'}`} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }) {
+  const existingCase = cases.find(c =>
+    c.asset_ref === alert.asset_ref && c.compliance_type === alert.compliance_type && c.status !== 'closed'
+  )
+  const [mode, setMode] = useState(existingCase ? 'view' : 'start')
+  const [activeCase, setActiveCase] = useState(existingCase || null)
+  const [note, setNote] = useState('')
+  const [fields, setFields] = useState({})
+  const [showBillForm, setShowBillForm] = useState(false)
+  const [selectedSupplier, setSelectedSupplier] = useState('')
+
+  const setF = (k, v) => setFields(f => ({ ...f, [k]: v }))
+
+  const createMut = useMutation({
+    mutationFn: createComplianceCase,
+    onSuccess: (r) => {
+      setActiveCase(r.data)
+      setMode('view')
+      qc.invalidateQueries(['compliance-cases'])
+      toast.success('Renewal case opened')
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to open case'),
+  })
+
+  const advanceMut = useMutation({
+    mutationFn: ({ id, data }) => advanceCase(id, data),
+    onSuccess: (r) => {
+      setActiveCase(r.data)
+      setNote('')
+      setFields({})
+      qc.invalidateQueries(['compliance-cases'])
+      toast.success(`Advanced to: ${STEP_LABELS_MAP[r.data.status]}`)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to advance'),
+  })
+
+  const billMut = useMutation({
+    mutationFn: ({ id, supplier_id }) => createCaseBill(id, { supplier_id }),
+    onSuccess: (r) => {
+      setActiveCase(r.data)
+      setShowBillForm(false)
+      qc.invalidateQueries(['compliance-cases'])
+      toast.success(`Bill ${r.data.bill_number} created in Finance`)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to create bill'),
+  })
+
+  const handleStart = () => {
+    createMut.mutate({
+      asset_name: alert.asset_name,
+      asset_ref: alert.asset_ref,
+      compliance_type: alert.compliance_type,
+      original_expiry: alert.expiry_date,
+      vehicle_compliance_id: alert.source === 'fleet' ? alert.compliance_id : undefined,
+      note: note,
+    })
+  }
+
+  const handleAdvance = () => {
+    const payload = { note, ...fields }
+    advanceMut.mutate({ id: activeCase.id, data: payload })
+  }
+
+  const nextStep = activeCase ? STEP_KEYS[STEP_KEYS.indexOf(activeCase.status) + 1] : null
+  const contactLabel = CONTACT_LABELS[alert.compliance_type] || 'Contact Provider'
+
+  const renderNextStepForm = () => {
+    if (!nextStep || activeCase.status === 'closed') return null
+
+    return (
+      <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 space-y-3">
+        <p className="text-xs font-bold text-brand-slate">
+          Next: {nextStep === 'contacted' ? contactLabel : STEP_LABELS_MAP[nextStep]}
+        </p>
+
+        {nextStep === 'acknowledged' && (
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Assign To</label>
+            <select className={inp2} value={fields.assigned_to || ''} onChange={e => setF('assigned_to', e.target.value)}>
+              <option value="">— Unassigned —</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.role?.replace(/_/g,' ')})</option>)}
+            </select>
+          </div>
+        )}
+
+        {nextStep === 'contacted' && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Provider / Company Name</label>
+                <input className={inp2} placeholder={alert.compliance_type === 'insurance' ? 'e.g. APA Insurance' : alert.compliance_type === 'inspection' ? 'e.g. NTSA' : 'e.g. Stallion Systems'} value={fields.provider_name || ''} onChange={e => setF('provider_name', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Contact Person / Phone</label>
+                <input className={inp2} placeholder="Name or phone" value={fields.provider_contact || ''} onChange={e => setF('provider_contact', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Date Contacted</label>
+              <input type="date" className={inp2} value={fields.contacted_date || ''} onChange={e => setF('contacted_date', e.target.value)} />
+            </div>
+          </>
+        )}
+
+        {nextStep === 'invoice_received' && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Invoice / Reference No.</label>
+                <input className={inp2} placeholder="INV-001" value={fields.invoice_ref || ''} onChange={e => setF('invoice_ref', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Amount (KES) *</label>
+                <input type="number" min="0" step="any" className={inp2} value={fields.invoice_amount || ''} onChange={e => setF('invoice_amount', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Due Date</label>
+              <input type="date" className={inp2} value={fields.invoice_due_date || ''} onChange={e => setF('invoice_due_date', e.target.value)} />
+            </div>
+          </>
+        )}
+
+        {nextStep === 'payment_processed' && (
+          <div className="space-y-2">
+            {activeCase.bill ? (
+              <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg">
+                <DocumentTextIcon className="h-5 w-5 text-blue-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">Bill {activeCase.bill_number}</p>
+                  <p className={`text-[10px] capitalize ${activeCase.bill_status === 'paid' ? 'text-green-600' : 'text-amber-600'}`}>
+                    Status: {activeCase.bill_status?.replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <a href="/finance/bills" target="_blank" className="ml-auto text-xs text-brand-red hover:underline">View in Finance →</a>
+              </div>
+            ) : (
+              !showBillForm ? (
+                <button onClick={() => setShowBillForm(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-50">
+                  <DocumentTextIcon className="h-4 w-4" />
+                  Generate Bill in Finance (AP)
+                </button>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-600">Select Supplier for Bill</p>
+                  <select className={inp2} value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
+                    <option value="">— Select supplier —</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.company_name}</option>)}
+                  </select>
+                  <p className="text-[10px] text-gray-400">Amount: KES {Number(activeCase.invoice_amount || 0).toLocaleString()} · Ref: {activeCase.invoice_ref || 'N/A'}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => billMut.mutate({ id: activeCase.id, supplier_id: selectedSupplier })}
+                      disabled={!selectedSupplier || billMut.isPending}
+                      className="flex-1 bg-brand-red text-white text-xs font-semibold py-2 rounded-lg disabled:opacity-60">
+                      {billMut.isPending ? 'Creating…' : 'Create Bill'}
+                    </button>
+                    <button onClick={() => setShowBillForm(false)} className="flex-1 border border-gray-200 text-xs py-2 rounded-lg">Cancel</button>
+                  </div>
+                </div>
+              )
+            )}
+            <p className="text-[10px] text-gray-400 text-center">— or mark payment as done manually —</p>
+          </div>
+        )}
+
+        {nextStep === 'certificate_updated' && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">New Expiry Date *</label>
+              <input type="date" className={inp2} value={fields.new_expiry || ''} onChange={e => setF('new_expiry', e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">New Certificate No.</label>
+              <input className={inp2} placeholder="Certificate number" value={fields.new_cert_number || ''} onChange={e => setF('new_cert_number', e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Note</label>
+          <textarea rows={2} className={`${inp2} resize-none`} value={note} onChange={e => setNote(e.target.value)} placeholder="What was done, any details…" />
+        </div>
+
+        <button onClick={handleAdvance}
+          disabled={advanceMut.isPending || (nextStep === 'certificate_updated' && !fields.new_expiry) || (nextStep === 'invoice_received' && !fields.invoice_amount)}
+          className="w-full flex items-center justify-center gap-2 bg-brand-red text-white text-xs font-semibold py-2.5 rounded-xl disabled:opacity-60">
+          <ArrowRightIcon className="h-3.5 w-3.5" />
+          {advanceMut.isPending ? 'Saving…' : `Advance → ${nextStep === 'contacted' ? contactLabel : STEP_LABELS_MAP[nextStep]}`}
+        </button>
+      </div>
+    )
+  }
+
+  const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-xl h-full flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className={`${s.bg} border-b border-gray-100 px-5 py-4`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.badge}`}>{s.label}</span>
+                <span className="text-[10px] px-2 py-0.5 bg-white/70 border border-gray-200 rounded-full text-gray-600">
+                  {COMPLIANCE_TYPE_LABELS[alert.compliance_type] || alert.compliance_type}
+                </span>
+              </div>
+              <h2 className="font-bold text-brand-slate text-base">{alert.asset_name}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {alert.asset_ref} · Expires {alert.expiry_date} · {alert.days_left < 0 ? `${Math.abs(alert.days_left)}d overdue` : `${alert.days_left}d left`}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-black/10 rounded-lg">
+              <XMarkIcon className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {mode === 'start' && !existingCase && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-700">
+                Opening a renewal case will track this certificate through to completion — from contacting the provider to updating the expiry date in the system.
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Initial Note (optional)</label>
+                <textarea rows={2} className={`${inp2} resize-none`} value={note} onChange={e => setNote(e.target.value)} placeholder="Who is handling this, any context…" />
+              </div>
+              <button onClick={handleStart} disabled={createMut.isPending}
+                className="w-full bg-brand-red text-white text-sm font-semibold py-3 rounded-xl disabled:opacity-60">
+                {createMut.isPending ? 'Opening…' : 'Open Renewal Case'}
+              </button>
+            </div>
+          )}
+
+          {activeCase && (
+            <>
+              {/* Stepper */}
+              <StepperBar currentStatus={activeCase.status} />
+
+              {/* Status badge */}
+              {activeCase.status === 'closed' ? (
+                <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">Case Closed</p>
+                    <p className="text-xs text-green-600">New expiry: {activeCase.new_expiry || 'N/A'} · Cert: {activeCase.new_cert_number || 'N/A'}</p>
+                  </div>
+                </div>
+              ) : renderNextStepForm()}
+
+              {/* Case details summary */}
+              {(activeCase.provider_name || activeCase.invoice_amount || activeCase.new_expiry) && (
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {activeCase.provider_name && (
+                    <div className="bg-gray-50 rounded-lg p-2.5">
+                      <p className="text-gray-400 mb-0.5">Provider</p>
+                      <p className="font-medium text-gray-700">{activeCase.provider_name}</p>
+                      {activeCase.provider_contact && <p className="text-gray-500">{activeCase.provider_contact}</p>}
+                    </div>
+                  )}
+                  {activeCase.invoice_amount && (
+                    <div className="bg-gray-50 rounded-lg p-2.5">
+                      <p className="text-gray-400 mb-0.5">Invoice</p>
+                      <p className="font-medium text-gray-700">KES {Number(activeCase.invoice_amount).toLocaleString()}</p>
+                      {activeCase.invoice_ref && <p className="text-gray-500">{activeCase.invoice_ref}</p>}
+                    </div>
+                  )}
+                  {activeCase.new_expiry && (
+                    <div className="bg-green-50 rounded-lg p-2.5">
+                      <p className="text-gray-400 mb-0.5">New Expiry</p>
+                      <p className="font-semibold text-green-700">{activeCase.new_expiry}</p>
+                    </div>
+                  )}
+                  {activeCase.assigned_to_name && (
+                    <div className="bg-gray-50 rounded-lg p-2.5">
+                      <p className="text-gray-400 mb-0.5">Assigned To</p>
+                      <p className="font-medium text-gray-700">{activeCase.assigned_to_name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Audit trail */}
+              {activeCase.steps?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Audit Trail</p>
+                  <div className="space-y-2">
+                    {activeCase.steps.map(step => (
+                      <div key={step.id} className="flex gap-3 text-xs">
+                        <div className="flex flex-col items-center">
+                          <div className="w-5 h-5 rounded-full bg-green-100 border-2 border-green-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <CheckIcon className="h-2.5 w-2.5 text-green-600" />
+                          </div>
+                          <div className="w-px flex-1 bg-gray-100 mt-1" />
+                        </div>
+                        <div className="pb-3">
+                          <p className="font-semibold text-gray-700">{step.step_label}</p>
+                          {step.note && <p className="text-gray-500 mt-0.5">{step.note}</p>}
+                          <p className="text-gray-400 mt-0.5">{step.actioned_by_name} · {new Date(step.actioned_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SummaryCard({ icon: Icon, label, value, sub, bg, color, onClick, active }) {
   return (
     <button onClick={onClick}
@@ -112,6 +476,7 @@ export default function AlertsPage() {
   const [comment, setComment]           = useState('')
   const [commentingId, setCommentingId] = useState(null)
   const [filterStatus, setFilterStatus] = useState('')
+  const [caseAlert, setCaseAlert]       = useState(null)  // alert being worked on in workflow panel
 
   const { data: complianceAlerts = [], isLoading: compLoading } = useQuery({
     queryKey: ['compliance-alerts'],
@@ -139,6 +504,16 @@ export default function AlertsPage() {
   const { data: users = [] } = useQuery({
     queryKey: ['users-list'],
     queryFn:  () => getUsers().then(r => r.data?.results ?? r.data ?? []),
+  })
+
+  const { data: complianceCases = [] } = useQuery({
+    queryKey: ['compliance-cases'],
+    queryFn:  () => getComplianceCases().then(r => r.data?.results ?? r.data ?? []),
+  })
+
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers-list'],
+    queryFn:  () => getSuppliers().then(r => r.data?.results ?? r.data ?? []),
   })
 
   const ackMut = useMutation({
@@ -386,6 +761,10 @@ export default function AlertsPage() {
                 {shown.map(alert => {
                   const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
                   const typeLabel = alert.compliance_label || COMPLIANCE_TYPE_LABELS[alert.compliance_type] || alert.compliance_type
+                  const activeCase = complianceCases.find(c =>
+                    c.asset_ref === alert.asset_ref && c.compliance_type === alert.compliance_type && c.status !== 'closed'
+                  )
+                  const stepIdx = activeCase ? STEP_KEYS.indexOf(activeCase.status) : -1
                   return (
                     <div key={alert.id} className={`${s.bg} border border-l-4 ${s.border} border-gray-100 rounded-2xl px-5 py-4 flex items-center gap-4`}>
                       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} />
@@ -404,6 +783,11 @@ export default function AlertsPage() {
                           }`}>
                             {alert.source === 'fleet' ? 'Fleet' : 'Asset Register'}
                           </span>
+                          {activeCase && (
+                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium">
+                              Case: Step {stepIdx + 1}/7 — {STEP_LABELS_MAP[activeCase.status]}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-600">
                           Expires: <span className="font-semibold">{alert.expiry_date}</span>
@@ -416,6 +800,16 @@ export default function AlertsPage() {
                         </p>
                         {alert.notes && <p className="text-[10px] text-gray-400 mt-0.5 italic">{alert.notes}</p>}
                       </div>
+                      {alert.alert_level !== 'ok' && (
+                        <button onClick={() => setCaseAlert(alert)}
+                          className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-colors
+                            ${activeCase
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                              : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
+                          <ArrowRightIcon className="h-3.5 w-3.5" />
+                          {activeCase ? 'Manage Case' : 'Start Renewal'}
+                        </button>
+                      )}
                     </div>
                   )
                 })}
@@ -709,5 +1103,18 @@ export default function AlertsPage() {
         </div>
       )}
     </div>
+
+    {/* Compliance Renewal Workflow Panel */}
+    {caseAlert && (
+      <ComplianceWorkflowPanel
+        alert={caseAlert}
+        cases={complianceCases}
+        users={users}
+        suppliers={suppliers}
+        onClose={() => setCaseAlert(null)}
+        qc={qc}
+      />
+    )}
+  </div>
   )
 }
