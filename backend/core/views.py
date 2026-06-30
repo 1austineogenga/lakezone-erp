@@ -386,11 +386,16 @@ class MDDashboardView(APIView):
 
         # ── Inventory / Assets ───────────────────────────────────────────────
         try:
-            from inventory.models import StockItem, Asset
+            from inventory.models import StockItem, StockLevel, Asset
             from django.db.models import F
+            total_items = StockItem.objects.filter(is_active=True).count()
+            low_stock = StockLevel.objects.filter(
+                quantity_on_hand__lte=F('item__reorder_level'),
+                item__is_active=True,
+            ).values('item').distinct().count()
             inventory = {
-                'total_items': StockItem.objects.count(),
-                'low_stock': StockItem.objects.filter(quantity__lte=F('reorder_level')).count(),
+                'total_items': total_items,
+                'low_stock': low_stock,
                 'total_assets': Asset.objects.count(),
                 'active_assets': Asset.objects.filter(status='operational').count(),
                 'under_repair': Asset.objects.filter(status='under_repair').count(),
