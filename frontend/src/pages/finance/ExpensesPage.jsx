@@ -118,7 +118,7 @@ export default function ExpensesPage() {
                                 className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium">
                                 <CheckIcon className="h-3.5 w-3.5" /> Approve
                               </button>
-                              <span className="text-gray-300">|</span>
+                              <span className="text-gray-400">|</span>
                               <button onClick={() => reviewMutation.mutate({ id: claim.id, action: 'rejected' })}
                                 className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium">
                                 <XMarkIcon className="h-3.5 w-3.5" /> Reject

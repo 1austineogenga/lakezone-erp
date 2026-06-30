@@ -440,7 +440,7 @@ export default function VehiclesPage() {
                               <MapPinIcon className="h-3 w-3 text-gray-400 shrink-0" />
                               <span className="truncate max-w-[140px]">{location}</span>
                             </span>
-                          ) : <span className="text-gray-300">—</span>}
+                          ) : <span className="text-gray-400">—</span>}
                         </td>
                         {/* GPS */}
                         <td className="px-4 py-3 text-center">
@@ -464,7 +464,7 @@ export default function VehiclesPage() {
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${ERP_CLS[v.erp_status]||'bg-gray-100 text-gray-400'}`}>
                               {ERP_LABEL[v.erp_status]||v.erp_status}
                             </span>
-                          ) : <span className="text-gray-300 text-[10px]">—</span>}
+                          ) : <span className="text-gray-400 text-[10px]">—</span>}
                         </td>
                         {/* Compliance */}
                         <td className="px-4 py-3">

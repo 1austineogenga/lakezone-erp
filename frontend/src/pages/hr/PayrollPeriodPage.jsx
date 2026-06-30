@@ -201,7 +201,7 @@ export default function PayrollPeriodPage() {
                               {e.project_name
                                 ? <span className="text-blue-700 font-medium">{e.project_name}</span>
                                 : <span className="text-gray-400 italic">HQ / Overhead</span>}
-                              {canEdit && <span className="text-gray-300 text-[10px]">✎</span>}
+                              {canEdit && <span className="text-gray-500 text-[10px]">✎</span>}
                             </button>
                           )}
                         </td>

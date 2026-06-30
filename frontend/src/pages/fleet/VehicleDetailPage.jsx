@@ -633,8 +633,8 @@ export default function VehicleDetailPage() {
                   {val
                     ? <div className="font-medium text-brand-slate">{val}</div>
                     : <button onClick={() => setShowEdit(true)}
-                        className="text-gray-300 hover:text-brand-red transition-colors italic text-[10px]">
-                        — tap to edit
+                        className="text-gray-400 hover:text-brand-red transition-colors underline underline-offset-2 text-[10px]">
+                        + add
                       </button>
                   }
                 </div>
