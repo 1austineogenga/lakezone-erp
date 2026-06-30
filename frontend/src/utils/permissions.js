@@ -67,9 +67,9 @@ const PERMISSIONS = {
   },
   site_manager: {
     dashboard: 'full', projects: 'full', procurement: 'read',
-    requisitions: 'write', inventory: 'read', assets: 'read',
-    crm: false, finance: 'read', hr: 'read', fleet: 'read',
-    users: false, reports: 'read',
+    requisitions: 'full', inventory: 'full', assets: 'full',
+    crm: false, finance: 'read', hr: 'read', fleet: 'full',
+    users: false, reports: 'full',
   },
   project_manager: {  // legacy alias
     dashboard: 'full', projects: 'full', procurement: 'read',

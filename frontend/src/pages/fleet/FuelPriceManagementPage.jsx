@@ -1,12 +1,16 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon, PencilIcon, TrashIcon, ArrowPathIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { getFuelPrices, createFuelPrice, updateFuelPrice, deleteFuelPrice, fetchErcFuelPrices } from '../../api/fleet'
+import useAuthStore from '../../store/authStore'
 
 const fmtDt = s => new Date(s).toLocaleDateString()
 
 export default function FuelPriceManagementPage() {
+  const { user } = useAuthStore()
+  if (user?.role !== 'system_admin') return <Navigate to="/" />
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
