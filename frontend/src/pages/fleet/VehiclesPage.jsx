@@ -131,7 +131,7 @@ export default function VehiclesPage() {
     mutationFn: syncAssetsToFleet,
     onSuccess: r => {
       const d = r.data
-      toast.success(`Sync complete — ${d.created} created, ${d.linked} linked.`)
+      toast.success(`Sync complete — ${d.enriched ?? 0} GPS vehicles enriched, ${d.created} new offline records${d.errors?.length ? `, ${d.errors.length} errors` : ''}.`)
       qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
     },
     onError: () => toast.error('Sync failed.'),

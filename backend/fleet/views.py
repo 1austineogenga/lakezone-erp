@@ -920,10 +920,17 @@ class CurrentFuelPriceView(APIView):
 
 class SyncAssetsToFleetView(APIView):
     """
-    Sync Asset Register vehicles/machines → Fleet Vehicle table.
-    Creates offline (is_live=False) Vehicle records for assets not yet in TrackNTrace,
-    and links existing fleet vehicles to their Asset counterparts.
-    Deduplication key: registration_plate / asset_code → vehicle_no.
+    Sync Asset Register → Fleet vehicles without duplication.
+
+    Matching priority (no new vehicle created if any match found):
+      1. Vehicle.vehicle_no == Asset.serial_number   (GPS ID / plate stored as serial)
+      2. Vehicle.vehicle_no == Asset.asset_code      (fallback for manually-coded assets)
+
+    For matched GPS vehicles (is_live=True): only fills blank fields — never
+    overwrites GPS-provided name, make, model, or location.
+    For matched offline vehicles: updates all enrichable fields.
+    Creates a new offline record only when NO existing vehicle matches at all
+    and the asset has a usable serial number.
     """
     permission_classes = [IsAuthenticated]
 
@@ -938,76 +945,100 @@ class SyncAssetsToFleetView(APIView):
         import datetime as dt_mod
 
         today = dt_mod.date.today()
-        created_count = linked_count = skipped_count = 0
+        enriched_count = created_count = skipped_count = 0
         errors = []
 
-        for asset in Asset.objects.filter(category__in=self.ASSET_TYPE_MAP.keys()):
-            plate = (asset.registration_plate or '').strip()
-            code  = (asset.asset_code or '').strip()
-            vehicle_no = plate or code
-            if not vehicle_no:
-                skipped_count += 1
-                continue
+        CERT_MAP = [
+            ('insurance',      'insurance_expiry',           None),
+            ('inspection',     'inspection_cert_expiry',     'inspection_cert_status'),
+            ('speed_governor', 'speed_governor_cert_expiry', 'speed_governor_cert_status'),
+        ]
 
-            erp_status = (
-                'OPER'     if asset.status in ('operational', 'active', 'functional') else
-                'NON-OPER' if asset.status in ('non_operational', 'disposed', 'lost') else
-                'IDLE'     if asset.status == 'under_repair' else 'UNKNOWN'
-            )
-
-            defaults = dict(
-                vehicle_name=asset.name,
-                make=asset.make_model or '',
-                vehicle_type=self.ASSET_TYPE_MAP.get(asset.category, ''),
-                chassis_number=asset.insurance_chassis_number or '',
-                erp_code=code,
-                erp_status=erp_status,
-                known_defects=asset.current_defects or '',
-                required_actions=asset.requirements or '',
-                notes=asset.notes or '',
-                is_live=False,
-                source='register',
-            )
-
-            try:
-                vehicle, was_created = Vehicle.objects.get_or_create(
-                    vehicle_no=vehicle_no,
-                    defaults=defaults,
+        def sync_compliance(vehicle, asset):
+            for ctype, expiry_field, status_field in CERT_MAP:
+                expiry   = getattr(asset, expiry_field, None)
+                raw_stat = getattr(asset, status_field, None) if status_field else None
+                if not expiry and not raw_stat:
+                    continue
+                if expiry:
+                    days = (expiry - today).days
+                    comp_status = 'expired' if days < 0 else ('expiring_soon' if days <= 30 else 'valid')
+                else:
+                    comp_status = {'expired': 'expired', 'not_in_system': 'not_in_system'}.get(raw_stat, 'unknown')
+                VehicleCompliance.objects.update_or_create(
+                    vehicle=vehicle, compliance_type=ctype,
+                    defaults={'expiry_date': expiry, 'status': comp_status},
                 )
-            except Exception as e:
-                errors.append(f"{vehicle_no}: {e}")
-                continue
 
-            if was_created:
-                created_count += 1
-                # Seed compliance from asset certificate fields
-                CERT_MAP = [
-                    ('insurance',      'insurance_expiry',           None),
-                    ('inspection',     'inspection_cert_expiry',     'inspection_cert_status'),
-                    ('speed_governor', 'speed_governor_cert_expiry', 'speed_governor_cert_status'),
-                ]
-                for ctype, expiry_field, status_field in CERT_MAP:
-                    expiry    = getattr(asset, expiry_field, None)
-                    raw_stat  = getattr(asset, status_field, None) if status_field else None
-                    if not expiry and not raw_stat:
-                        continue
-                    if expiry:
-                        days = (expiry - today).days
-                        comp_status = 'expired' if days < 0 else ('expiring_soon' if days <= 30 else 'valid')
-                    else:
-                        comp_status = {'expired': 'expired', 'not_in_system': 'not_in_system'}.get(raw_stat, 'unknown')
-                    VehicleCompliance.objects.get_or_create(
-                        vehicle=vehicle, compliance_type=ctype,
-                        defaults={'expiry_date': expiry, 'status': comp_status},
+        for asset in Asset.objects.filter(
+            department='Operations',
+            category__in=self.ASSET_TYPE_MAP.keys(),
+        ):
+            serial = (asset.serial_number or '').strip()
+            code   = (asset.asset_code or '').strip()
+
+            # Try to find existing vehicle by serial first, then asset_code
+            vehicle = None
+            for lookup in [serial, code]:
+                if lookup:
+                    vehicle = Vehicle.objects.filter(vehicle_no=lookup).first()
+                    if vehicle:
+                        break
+
+            make_model_parts = (asset.make_model or '').split(' ', 1)
+            make_val  = make_model_parts[0] if make_model_parts else ''
+            model_val = make_model_parts[1] if len(make_model_parts) > 1 else ''
+
+            if vehicle:
+                # Enrich: only fill fields that are currently blank
+                changed = False
+                if not vehicle.vehicle_name and asset.name:
+                    vehicle.vehicle_name = asset.name; changed = True
+                if not vehicle.make and make_val:
+                    vehicle.make = make_val; changed = True
+                if not vehicle.model_name and model_val:
+                    vehicle.model_name = model_val; changed = True
+                if not vehicle.vehicle_type:
+                    vehicle.vehicle_type = self.ASSET_TYPE_MAP.get(asset.category, ''); changed = True
+                if not vehicle.known_defects and asset.current_defects:
+                    vehicle.known_defects = asset.current_defects; changed = True
+                if not vehicle.required_actions and asset.requirements:
+                    vehicle.required_actions = asset.requirements; changed = True
+                if not vehicle.chassis_number and asset.insurance_chassis_number:
+                    vehicle.chassis_number = asset.insurance_chassis_number; changed = True
+                if changed:
+                    vehicle.save()
+                sync_compliance(vehicle, asset)
+                enriched_count += 1
+
+            elif serial:
+                # No existing vehicle — create a new offline record using serial as vehicle_no
+                try:
+                    vehicle = Vehicle.objects.create(
+                        vehicle_no=serial,
+                        vehicle_name=asset.name or '',
+                        make=make_val,
+                        model_name=model_val,
+                        vehicle_type=self.ASSET_TYPE_MAP.get(asset.category, ''),
+                        known_defects=asset.current_defects or '',
+                        required_actions=asset.requirements or '',
+                        chassis_number=asset.insurance_chassis_number or '',
+                        is_live=False,
+                        source='register',
+                        is_active=True,
                     )
+                    sync_compliance(vehicle, asset)
+                    created_count += 1
+                except Exception as e:
+                    errors.append(f"{serial}: {e}")
             else:
-                linked_count += 1
+                skipped_count += 1
 
         return Response({
-            'created': created_count,
-            'linked':  linked_count,
-            'skipped': skipped_count,
-            'errors':  errors,
+            'enriched': enriched_count,
+            'created':  created_count,
+            'skipped':  skipped_count,
+            'errors':   errors,
         })
 
 
