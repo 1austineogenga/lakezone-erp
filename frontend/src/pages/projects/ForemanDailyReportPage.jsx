@@ -430,7 +430,7 @@ export default function ForemanDailyReportPage() {
                               <td className="px-2 py-1 w-6">
                                 <button
                                   onClick={() => removePlantRow(i)}
-                                  className="text-gray-300 hover:text-brand-red transition-colors"
+                                  className="text-gray-500 hover:text-brand-red transition-colors"
                                   title="Remove row"
                                 >
                                   <XMarkIcon className="w-3.5 h-3.5" />
@@ -474,7 +474,7 @@ export default function ForemanDailyReportPage() {
                               <td className="px-2 py-1 w-6">
                                 <button
                                   onClick={() => removeWorkRow(i)}
-                                  className="text-gray-300 hover:text-brand-red transition-colors"
+                                  className="text-gray-500 hover:text-brand-red transition-colors"
                                   title="Remove row"
                                 >
                                   <XMarkIcon className="w-3.5 h-3.5" />
