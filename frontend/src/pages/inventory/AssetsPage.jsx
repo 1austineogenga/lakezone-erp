@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getAssets, createAsset, updateAsset, getAssetDashboard } from '../../api/inventory'
 import useAuthStore from '../../store/authStore'
+import usePermissions from '../../hooks/usePermissions'
 import api from '../../api/client'
 
 const VIEW_ALL_READONLY = [
@@ -610,7 +611,8 @@ export default function AssetsPage() {
   const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
-  const canEdit = role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)
+  const { canWrite } = usePermissions()
+  const canEdit = (role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)) && canWrite('assets')
   const canViewAll = role === 'system_admin' || VIEW_ALL_READONLY.includes(role)
 
   const [search, setSearch] = useState('')
