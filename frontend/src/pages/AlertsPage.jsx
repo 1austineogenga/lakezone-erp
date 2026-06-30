@@ -1115,18 +1115,5 @@ export default function AlertsPage() {
         />
       )}
     </div>
-
-    {/* Compliance Renewal Workflow Panel */}
-    {caseAlert && (
-      <ComplianceWorkflowPanel
-        alert={caseAlert}
-        cases={complianceCases}
-        users={users}
-        suppliers={suppliers}
-        onClose={() => setCaseAlert(null)}
-        qc={qc}
-      />
-    )}
-  </div>
   )
 }
