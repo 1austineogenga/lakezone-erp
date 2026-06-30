@@ -615,7 +615,7 @@ export default function VehicleDetailPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-brand-slate">Vehicle Details</h3>
               <button onClick={() => setShowEdit(true)}
-                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-brand-red transition-colors">
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-red transition-colors">
                 <PencilIcon className="h-3 w-3" /> Edit
               </button>
             </div>
@@ -629,11 +629,11 @@ export default function VehicleDetailPage() {
                 ['Chassis No.',   vehicle.chassis_number],
               ].map(([label, val]) => (
                 <div key={label}>
-                  <div className="text-gray-400">{label}</div>
+                  <div className="text-xs text-gray-500 font-medium">{label}</div>
                   {val
-                    ? <div className="font-medium text-brand-slate">{val}</div>
+                    ? <div className="text-sm font-semibold text-brand-slate">{val}</div>
                     : <button onClick={() => setShowEdit(true)}
-                        className="text-gray-400 hover:text-brand-red transition-colors underline underline-offset-2 text-[10px]">
+                        className="text-xs text-gray-400 hover:text-brand-red transition-colors underline underline-offset-2">
                         + add
                       </button>
                   }
