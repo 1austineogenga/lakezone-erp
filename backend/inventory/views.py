@@ -15,10 +15,9 @@ from .serializers import (
 
 VIEW_ALL_READONLY_ROLES = {
     'managing_director', 'finance_officer', 'finance_manager',
-    'admin_officer', 'general_manager',
-    'head_of_security',
+    'general_manager', 'head_of_security',
 }
-EDIT_ALL_ROLES = {'system_admin'}
+EDIT_ALL_ROLES = {'system_admin', 'admin_officer'}
 
 
 def _can_edit(user):
