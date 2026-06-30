@@ -1,229 +1,135 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
+import { Link } from 'react-router-dom'
 import {
-  PlusIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon,
-  BuildingOfficeIcon, CubeIcon,
+  PlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon,
+  MagnifyingGlassIcon, ExclamationTriangleIcon,
+  ArrowsRightLeftIcon, DocumentTextIcon, UserIcon,
 } from '@heroicons/react/24/outline'
 import {
-  getStockItems, createStockItem, getTransactions, createTransaction, getStores,
+  getStockItems, createStockItem, updateStockItem,
+  getTransactions, createTransaction, getLowStockItems, getStores,
 } from '../../api/inventory'
+import usePermissions from '../../hooks/usePermissions'
 import useAuthStore from '../../store/authStore'
 import api from '../../api/client'
 
+const getSystemUsers = () => api.get('/auth/users/?page_size=200')
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const VIEW_ALL_READONLY = [
-  'managing_director', 'finance_officer', 'finance_manager',
-  'admin_officer', 'general_manager',
-]
+const today = new Date().toISOString().slice(0, 10)
 
 const CATEGORY_LABELS = {
-  construction_materials: 'Construction',
+  construction_materials: 'Construction Materials',
   spare_parts: 'Spare Parts',
   fuel: 'Fuel',
   ppe_safety: 'PPE & Safety',
-  office_consumables: 'Office',
+  office_consumables: 'Office Consumables',
   other: 'Other',
 }
 
 const TX_LABELS = {
-  grn: 'GRN', issue: 'Issue', transfer: 'Transfer',
-  return: 'Return', adjustment: 'Adjustment',
+  grn: 'Received',
+  issue: 'Issued',
+  transfer: 'Transfer',
+  return: 'Return',
+  adjustment: 'Adjustment',
 }
+
 const TX_COLORS = {
   grn: 'bg-green-100 text-green-700',
-  issue: 'bg-red-100 text-red-700',
-  transfer: 'bg-blue-100 text-blue-700',
+  issue: 'bg-blue-100 text-blue-700',
+  transfer: 'bg-purple-100 text-purple-700',
   return: 'bg-amber-100 text-amber-700',
-  adjustment: 'bg-purple-100 text-purple-700',
+  adjustment: 'bg-gray-100 text-gray-600',
 }
 
-const emptyItem = {
-  item_code: '', name: '', category: 'office_consumables',
-  unit: '', reorder_level: '', description: '', valuation_method: 'wac',
-}
-const emptyTx = {
-  transaction_type: 'grn', item: '', store: '', quantity: '',
-  unit_cost: '', reference_number: '', notes: '',
-  transaction_date: new Date().toISOString().slice(0, 16), reason: '',
-}
+const TABS = [
+  { key: 'items', label: 'Items' },
+  { key: 'issue', label: 'Issue' },
+  { key: 'receive', label: 'Receive' },
+  { key: 'history', label: 'History' },
+  { key: 'lowstock', label: 'Low Stock' },
+]
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Input style ───────────────────────────────────────────────────────────────
 
-function StatCard({ icon: Icon, label, value, color = 'blue' }) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-  }
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-      <div className={`p-2.5 rounded-xl ${colors[color]}`}><Icon className="h-5 w-5" /></div>
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-lg font-bold text-brand-slate">{value}</p>
-      </div>
-    </div>
-  )
-}
+const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
 
-function AddItemModal({ onClose }) {
-  const [form, setForm] = useState({ ...emptyItem })
+function AddItemModal({ onClose, editItem }) {
   const qc = useQueryClient()
-  const mut = useMutation({
-    mutationFn: createStockItem,
-    onSuccess: () => {
-      toast.success('Stock item added')
-      qc.invalidateQueries(['stock-items'])
-      onClose()
-    },
-    onError: e => toast.error(e.response?.data?.detail || 'Failed to add item'),
+  const [form, setForm] = useState(editItem ? {
+    item_code: editItem.item_code || '',
+    name: editItem.name || '',
+    category: editItem.category || 'office_consumables',
+    unit: editItem.unit || '',
+    reorder_level: editItem.reorder_level ?? '',
+    description: editItem.description || '',
+  } : {
+    item_code: '', name: '', category: 'office_consumables',
+    unit: '', reorder_level: '', description: '',
   })
-  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red'
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">Add Stock Item</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Item Code *</label>
-            <input required className={inp} value={form.item_code} onChange={e => setForm(f => ({ ...f, item_code: e.target.value }))} />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
-            <input required className={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
-            <select className={inp} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-              {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Unit *</label>
-            <input required className={inp} value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="pcs / kg / L" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Reorder Level</label>
-            <input type="number" min="0" className={inp} value={form.reorder_level} onChange={e => setForm(f => ({ ...f, reorder_level: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Valuation</label>
-            <select className={inp} value={form.valuation_method} onChange={e => setForm(f => ({ ...f, valuation_method: e.target.value }))}>
-              <option value="wac">Weighted Average</option>
-              <option value="fifo">FIFO</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
-            <textarea rows={2} className={`${inp} resize-none`} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          </div>
-        </div>
-        <div className="flex gap-3 mt-5">
-          <button onClick={() => mut.mutate(form)} disabled={mut.isPending || !form.item_code || !form.name || !form.unit}
-            className="flex-1 bg-brand-red text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60">
-            {mut.isPending ? 'Saving…' : 'Add Item'}
-          </button>
-          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancel</button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
-// ── Record Movement Modal ──────────────────────────────────────────────────────
-
-function RecordMovementModal({ items, stores, prefillItem, onClose }) {
-  const [form, setForm] = useState({ ...emptyTx, item: prefillItem || '' })
-  const qc = useQueryClient()
   const mut = useMutation({
-    mutationFn: createTransaction,
+    mutationFn: (data) => editItem ? updateStockItem(editItem.id, data) : createStockItem(data),
     onSuccess: () => {
-      toast.success('Movement recorded')
-      qc.invalidateQueries(['transactions'])
-      qc.invalidateQueries(['stock-items'])
+      toast.success(editItem ? 'Item updated' : 'Stock item added')
+      qc.invalidateQueries({ queryKey: ['stock-items'] })
       onClose()
     },
     onError: e => {
       const d = e.response?.data
-      toast.error(d?.non_field_errors?.[0] || d?.detail || JSON.stringify(d) || 'Failed')
+      toast.error(d?.detail || JSON.stringify(d) || 'Failed to save item')
     },
   })
-  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red'
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">Record Stock Movement</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+          <h2 className="text-base font-bold text-brand-slate">{editItem ? 'Edit Item' : 'Add Stock Item'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
-            <select className={inp} value={form.transaction_type} onChange={e => setForm(f => ({ ...f, transaction_type: e.target.value }))}>
-              {Object.entries(TX_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Item Code *</label>
+            <input className={inp} value={form.item_code} onChange={e => set('item_code', e.target.value)} placeholder="e.g. ITEM-001" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Item *</label>
-            <select required className={inp} value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))}>
-              <option value="">— Select —</option>
-              {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Store *</label>
-            <select required className={inp} value={form.store} onChange={e => setForm(f => ({ ...f, store: e.target.value }))}>
-              <option value="">— Select —</option>
-              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date *</label>
-            <input type="datetime-local" required className={inp} value={form.transaction_date}
-              onChange={e => setForm(f => ({ ...f, transaction_date: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Quantity *</label>
-            <input type="number" min="0.01" step="any" required className={inp} value={form.quantity}
-              onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Unit Cost (KES)</label>
-            <input type="number" min="0" step="any" className={inp} value={form.unit_cost}
-              onChange={e => setForm(f => ({ ...f, unit_cost: e.target.value }))} />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Unit *</label>
+            <input className={inp} value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="pcs / kg / L" />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Reference No. *</label>
-            <input required className={inp} value={form.reference_number}
-              onChange={e => setForm(f => ({ ...f, reference_number: e.target.value }))} />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+            <input className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Item name" />
           </div>
-          {form.transaction_type === 'adjustment' && (
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Reason (required for adjustments)</label>
-              <textarea rows={2} className={`${inp} resize-none`} value={form.reason}
-                onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
-            </div>
-          )}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Category *</label>
+            <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
+              {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Reorder Level *</label>
+            <input type="number" min="0" className={inp} value={form.reorder_level} onChange={e => set('reorder_level', e.target.value)} placeholder="0" />
+          </div>
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
-            <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+            <textarea rows={2} className={`${inp} resize-none`} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Optional description" />
           </div>
         </div>
         <div className="flex gap-3 mt-5">
           <button
-            onClick={() => mut.mutate({ ...form, quantity: Number(form.quantity), unit_cost: Number(form.unit_cost || 0) })}
-            disabled={mut.isPending || !form.item || !form.store || !form.quantity || !form.reference_number}
-            className="flex-1 bg-brand-red text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60">
-            {mut.isPending ? 'Saving…' : 'Record Movement'}
+            onClick={() => mut.mutate(form)}
+            disabled={mut.isPending || !form.item_code || !form.name || !form.unit}
+            className="flex-1 bg-brand-red text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60 hover:opacity-90">
+            {mut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
           </button>
           <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">Cancel</button>
         </div>
@@ -237,34 +143,50 @@ function RecordMovementModal({ items, stores, prefillItem, onClose }) {
 export default function InventoryPage() {
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
-  const canEdit = role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)
-  const canViewAll = role === 'system_admin' || VIEW_ALL_READONLY.includes(role)
+  const canEdit = role === 'system_admin' || role === 'store_keeper' || role === 'procurement_officer'
 
   const [tab, setTab] = useState('items')
   const [search, setSearch] = useState('')
+  const [filterCat, setFilterCat] = useState('')
   const [showAddItem, setShowAddItem] = useState(false)
-  const [showMovement, setShowMovement] = useState(false)
-  const [movementPrefill, setMovementPrefill] = useState(null)
-  const [selectedDept, setSelectedDept] = useState(null)
+  const [editItem, setEditItem] = useState(null)
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => api.get('/core/departments/').then(r => r.data?.results ?? r.data ?? []),
-    enabled: canViewAll,
+  // Issue form
+  const [issueForm, setIssueForm] = useState({
+    item: '', quantity: '', issued_to: '', issued_to_name: '', notes: '', date: today,
   })
 
-  const itemParams = { page_size: 500 }
-  if (canViewAll && selectedDept) itemParams.department = selectedDept
+  // Receive form
+  const [receiveForm, setReceiveForm] = useState({
+    item: '', quantity: '', unit_cost: '', notes: '', date: today, supplier: '',
+  })
+
+  // History filters
+  const [hDateFrom, setHDateFrom] = useState('')
+  const [hDateTo, setHDateTo] = useState('')
+  const [hType, setHType] = useState('')
+  const [hItem, setHItem] = useState('')
+  const [hSearch, setHSearch] = useState('')
+
+  const qc = useQueryClient()
+
+  // ── Queries ──────────────────────────────────────────────────────────────────
 
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['stock-items', itemParams],
-    queryFn: () => getStockItems(itemParams),
+    queryKey: ['stock-items'],
+    queryFn: () => getStockItems({ page_size: 500 }),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', { page_size: 500 }],
+    queryKey: ['stock-transactions'],
     queryFn: () => getTransactions({ page_size: 500 }),
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: lowStock = [] } = useQuery({
+    queryKey: ['low-stock'],
+    queryFn: getLowStockItems,
     select: r => r.data?.results ?? r.data ?? [],
   })
 
@@ -274,131 +196,303 @@ export default function InventoryPage() {
     select: r => r.data?.results ?? r.data ?? [],
   })
 
-  const lowItems = items.filter(i => Number(i.current_stock) <= Number(i.reorder_level))
-  const totalValue = items.reduce(
-    (s, i) => s + Number(i.current_stock) * Number(i.weighted_avg_cost || 0), 0
-  )
+  const { data: systemUsers = [] } = useQuery({
+    queryKey: ['system-users'],
+    queryFn: getSystemUsers,
+    select: r => r.data?.results ?? r.data ?? [],
+  })
 
-  const filteredItems = items.filter(i =>
-    !search ||
-    i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.item_code.toLowerCase().includes(search.toLowerCase())
-  )
+  // ── Mutations ────────────────────────────────────────────────────────────────
 
-  const TABS = [
-    { key: 'items', label: 'Stock Items' },
-    { key: 'movements', label: 'Stock Movements' },
-    { key: 'alerts', label: `Low Stock Alerts${lowItems.length ? ` (${lowItems.length})` : ''}` },
-  ]
+  const issueMut = useMutation({
+    mutationFn: createTransaction,
+    onSuccess: (_, vars) => {
+      const item = items.find(i => String(i.id) === String(vars.item))
+      const recipient = vars.issued_to_name ||
+        systemUsers.find(u => String(u.id) === String(vars.issued_to))?.full_name ||
+        systemUsers.find(u => String(u.id) === String(vars.issued_to))?.username ||
+        'recipient'
+      toast.success(`Issued ${vars.quantity} units of ${item?.name ?? 'item'} to ${recipient}`)
+      qc.invalidateQueries({ queryKey: ['stock-items'] })
+      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
+      qc.invalidateQueries({ queryKey: ['low-stock'] })
+      setIssueForm({ item: '', quantity: '', issued_to: '', issued_to_name: '', notes: '', date: today })
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.non_field_errors?.[0] || d?.detail || JSON.stringify(d) || 'Issue failed')
+    },
+  })
+
+  const receiveMut = useMutation({
+    mutationFn: createTransaction,
+    onSuccess: (_, vars) => {
+      const item = items.find(i => String(i.id) === String(vars.item))
+      toast.success(`Received ${vars.quantity} units of ${item?.name ?? 'item'}`)
+      qc.invalidateQueries({ queryKey: ['stock-items'] })
+      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
+      qc.invalidateQueries({ queryKey: ['low-stock'] })
+      setReceiveForm({ item: '', quantity: '', unit_cost: '', notes: '', date: today, supplier: '' })
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.non_field_errors?.[0] || d?.detail || JSON.stringify(d) || 'Receive failed')
+    },
+  })
+
+  // ── Derived data ─────────────────────────────────────────────────────────────
+
+  const firstStoreId = stores[0]?.id ?? ''
+
+  const totalValue = useMemo(() =>
+    items.reduce((s, i) => s + Number(i.current_stock) * Number(i.weighted_avg_cost || 0), 0),
+  [items])
+
+  const issuesThisMonth = useMemo(() => {
+    const now = new Date()
+    return transactions.filter(tx => {
+      if (tx.transaction_type !== 'issue') return false
+      const d = new Date(tx.transaction_date)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    }).length
+  }, [transactions])
+
+  const filteredItems = useMemo(() =>
+    items.filter(i => {
+      const matchSearch = !search ||
+        i.name.toLowerCase().includes(search.toLowerCase()) ||
+        (i.item_code || '').toLowerCase().includes(search.toLowerCase())
+      const matchCat = !filterCat || i.category === filterCat
+      return matchSearch && matchCat
+    }),
+  [items, search, filterCat])
+
+  const filteredHistory = useMemo(() =>
+    transactions.filter(tx => {
+      if (hType && tx.transaction_type !== hType) return false
+      if (hItem && String(tx.item) !== String(hItem)) return false
+      if (hDateFrom && tx.transaction_date < hDateFrom) return false
+      if (hDateTo && tx.transaction_date > hDateTo + 'T23:59:59') return false
+      if (hSearch) {
+        const q = hSearch.toLowerCase()
+        const match =
+          (tx.item_name || '').toLowerCase().includes(q) ||
+          (tx.reference_number || '').toLowerCase().includes(q) ||
+          (tx.issued_to_display || tx.issued_to_name || '').toLowerCase().includes(q) ||
+          (tx.processed_by_name || '').toLowerCase().includes(q)
+        if (!match) return false
+      }
+      return true
+    }),
+  [transactions, hType, hItem, hDateFrom, hDateTo, hSearch])
+
+  // ── Issue submit ─────────────────────────────────────────────────────────────
+
+  const handleIssue = () => {
+    if (!issueForm.item || !issueForm.quantity) {
+      toast.error('Item and quantity are required')
+      return
+    }
+    if (!issueForm.issued_to && !issueForm.issued_to_name.trim()) {
+      toast.error('Please select a system user or enter a recipient name')
+      return
+    }
+    const selectedItem = items.find(i => String(i.id) === String(issueForm.item))
+    const payload = {
+      transaction_type: 'issue',
+      item: issueForm.item,
+      store: firstStoreId,
+      quantity: Number(issueForm.quantity),
+      unit_cost: Number(selectedItem?.weighted_avg_cost || 0),
+      issued_to: issueForm.issued_to || undefined,
+      issued_to_name: issueForm.issued_to_name.trim() || undefined,
+      transaction_date: issueForm.date,
+      notes: issueForm.notes,
+      reference_number: '',
+    }
+    issueMut.mutate(payload)
+  }
+
+  // ── Receive submit ────────────────────────────────────────────────────────────
+
+  const handleReceive = () => {
+    if (!receiveForm.item || !receiveForm.quantity || !receiveForm.unit_cost) {
+      toast.error('Item, quantity and unit cost are required')
+      return
+    }
+    const payload = {
+      transaction_type: 'grn',
+      item: receiveForm.item,
+      store: firstStoreId,
+      quantity: Number(receiveForm.quantity),
+      unit_cost: Number(receiveForm.unit_cost),
+      transaction_date: receiveForm.date,
+      notes: receiveForm.notes
+        ? `${receiveForm.supplier ? 'Supplier: ' + receiveForm.supplier + '. ' : ''}${receiveForm.notes}`
+        : receiveForm.supplier ? 'Supplier: ' + receiveForm.supplier : '',
+      reference_number: '',
+    }
+    receiveMut.mutate(payload)
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5">
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-lg font-bold text-brand-slate">Inventory</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Stock items, movements &amp; alerts</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {user?.department_name ? `${user.department_name} · ` : ''}Stock management & transactions
+          </p>
         </div>
         {canEdit && (
-          <div className="flex gap-2">
-            <button onClick={() => setShowMovement(true)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-xs font-medium rounded-xl hover:bg-gray-50 text-gray-600">
-              <ArrowsRightLeftIcon className="h-4 w-4" /> Record Movement
-            </button>
-            <button onClick={() => setShowAddItem(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
-              <PlusIcon className="h-4 w-4" /> Add Item
-            </button>
-          </div>
+          <button
+            onClick={() => setShowAddItem(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
+            <PlusIcon className="h-4 w-4" /> Add Item
+          </button>
         )}
       </div>
 
-      {/* Department context */}
-      {canViewAll ? (
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-medium text-gray-500 mr-1">Department:</span>
-          <button onClick={() => setSelectedDept(null)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedDept ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-            All
-          </button>
-          {departments.map(d => (
-            <button key={d.id} onClick={() => setSelectedDept(d.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selectedDept === d.id ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-              {d.name}
-            </button>
-          ))}
-          {!canEdit && (
-            <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full border border-gray-200">
-              View only
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border bg-blue-50 border-blue-200 text-blue-700">
-          <BuildingOfficeIcon className="h-4 w-4 flex-shrink-0" />
-          <span>{user?.department_name || 'Your Department'} — Department Inventory</span>
-        </div>
-      )}
-
-      {/* Stats */}
+      {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={CubeIcon} label="Total Items" value={items.length} color="blue" />
-        <StatCard icon={ExclamationTriangleIcon} label="Low Stock" value={lowItems.length} color="amber" />
-        <StatCard icon={ArrowsRightLeftIcon} label="Movements" value={transactions.length} color="purple" />
-        <StatCard icon={CubeIcon} label="Est. Value (KES)"
-          value={totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} color="green" />
+        {/* Total Items */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+            <DocumentTextIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Total Items</p>
+            <p className="text-lg font-bold text-brand-slate">{items.length}</p>
+            <p className="text-xs text-gray-400">in catalog</p>
+          </div>
+        </div>
+
+        {/* Total Stock Value */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-green-50 text-green-600">
+            <ArrowsRightLeftIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Total Stock Value</p>
+            <p className="text-lg font-bold text-brand-slate">
+              KES {totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-xs text-gray-400">estimated value</p>
+          </div>
+        </div>
+
+        {/* Issues This Month */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
+            <ArrowUpTrayIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Issues This Month</p>
+            <p className="text-lg font-bold text-brand-slate">{issuesThisMonth}</p>
+            <p className="text-xs text-gray-400">transactions</p>
+          </div>
+        </div>
+
+        {/* Low Stock */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+          <div className={`p-2.5 rounded-xl ${lowStock.length > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
+            <ExclamationTriangleIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Low Stock</p>
+            <p className={`text-lg font-bold ${lowStock.length > 0 ? 'text-red-600' : 'text-brand-slate'}`}>{lowStock.length}</p>
+            <p className="text-xs text-gray-400">items at/below reorder</p>
+          </div>
+        </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tab panel */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-100 px-5 pt-4 gap-4">
+
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-100 px-5 pt-4 gap-5 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`pb-3 text-xs font-semibold transition-colors border-b-2 ${tab === t.key ? 'border-brand-red text-brand-red' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              className={`pb-3 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                tab === t.key
+                  ? 'border-brand-red text-brand-red'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}>
               {t.label}
+              {t.key === 'lowstock' && lowStock.length > 0 && (
+                <span className="ml-1.5 bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full font-bold">{lowStock.length}</span>
+              )}
             </button>
           ))}
         </div>
 
         <div className="p-5">
 
-          {/* Stock Items */}
+          {/* ── TAB: Items ───────────────────────────────────────────────────── */}
           {tab === 'items' && (
-            <div>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items…"
-                className="mb-4 w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red" />
+            <div className="space-y-4">
+              {/* Filters row */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
+                  <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Search name or code…"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                </div>
+                <select
+                  value={filterCat}
+                  onChange={e => setFilterCat(e.target.value)}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                  <option value="">All Categories</option>
+                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+                {canEdit && (
+                  <button
+                    onClick={() => setTab('issue')}
+                    className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 text-gray-600 ml-auto">
+                    <ArrowUpTrayIcon className="h-3.5 w-3.5" /> Issue Stock
+                  </button>
+                )}
+              </div>
+
+              {/* Table */}
               {loadingItems ? (
-                <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}</div>
+                <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-9 bg-gray-100 rounded-lg animate-pulse" />)}</div>
               ) : filteredItems.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
-                  <CubeIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No stock items found.</p>
-                  {canEdit && (
-                    <button onClick={() => setShowAddItem(true)} className="mt-3 text-xs text-brand-red font-medium hover:underline">
-                      + Add your first item
-                    </button>
-                  )}
+                  <DocumentTextIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No items found.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-xs">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {['Code', 'Name', 'Category', 'Unit', 'Stock', 'Reorder', 'WAC', 'Value', 'Status'].map(h => (
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {['Code', 'Name', 'Category', 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-50">
                       {filteredItems.map(item => {
                         const stock = Number(item.current_stock)
-                        const reorder = Number(item.reorder_level)
+                        const reorder = Number(item.reorder_level ?? 0)
                         const wac = Number(item.weighted_avg_cost || 0)
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2.5 font-mono text-gray-400">{item.item_code}</td>
+                            <td className="px-3 py-2.5">
+                              <Link to={`/inventory/${item.id}`} className="font-mono text-brand-red hover:underline text-xs">
+                                {item.item_code}
+                              </Link>
+                            </td>
                             <td className="px-3 py-2.5 font-medium text-gray-800">{item.name}</td>
                             <td className="px-3 py-2.5 text-gray-500">{CATEGORY_LABELS[item.category] ?? item.category}</td>
                             <td className="px-3 py-2.5 text-gray-500">{item.unit}</td>
@@ -406,14 +500,43 @@ export default function InventoryPage() {
                               {stock.toLocaleString()}
                             </td>
                             <td className="px-3 py-2.5 text-gray-500">{reorder.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-gray-500">{wac.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-gray-500">
+                              {wac > 0 ? `KES ${wac.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—'}
+                            </td>
                             <td className="px-3 py-2.5 text-gray-700">
-                              {(stock * wac).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              {wac > 0
+                                ? `KES ${(stock * wac).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                                : '—'}
                             </td>
                             <td className="px-3 py-2.5">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOut ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                                {isOut ? 'Out' : isLow ? 'Low' : 'OK'}
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                isOut ? 'bg-red-100 text-red-700' :
+                                isLow ? 'bg-amber-100 text-amber-700' :
+                                'bg-green-100 text-green-700'
+                              }`}>
+                                {isOut ? 'Out of Stock' : isLow ? 'Low' : 'OK'}
                               </span>
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              <div className="flex items-center gap-1">
+                                {canEdit && (
+                                  <button
+                                    onClick={() => {
+                                      setIssueForm(f => ({ ...f, item: String(item.id) }))
+                                      setTab('issue')
+                                    }}
+                                    className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
+                                    Issue
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <button
+                                    onClick={() => setEditItem(item)}
+                                    className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         )
@@ -425,90 +548,354 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/* Movements */}
-          {tab === 'movements' && (
-            <div className="overflow-x-auto">
-              {transactions.length === 0 ? (
+          {/* ── TAB: Issue ───────────────────────────────────────────────────── */}
+          {tab === 'issue' && (
+            <div className="max-w-xl mx-auto">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                <div>
+                  <h2 className="text-sm font-bold text-brand-slate uppercase tracking-wide">Issue Stock to Person</h2>
+                  <div className="mt-2 border-b border-gray-100" />
+                </div>
+
+                {/* Item */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Item *</label>
+                  <select
+                    className={inp}
+                    value={issueForm.item}
+                    onChange={e => setIssueForm(f => ({ ...f, item: e.target.value }))}>
+                    <option value="">— Select item —</option>
+                    {items.map(i => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.item_code}) — {Number(i.current_stock).toLocaleString()} {i.unit} in stock
+                      </option>
+                    ))}
+                  </select>
+                  {issueForm.item && (() => {
+                    const sel = items.find(i => String(i.id) === String(issueForm.item))
+                    return sel ? (
+                      <p className="mt-1 text-xs text-gray-400">
+                        Current stock: <span className="font-semibold text-gray-700">{Number(sel.current_stock).toLocaleString()} {sel.unit}</span>
+                      </p>
+                    ) : null
+                  })()}
+                </div>
+
+                {/* Quantity */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    className={inp}
+                    value={issueForm.quantity}
+                    onChange={e => setIssueForm(f => ({ ...f, quantity: e.target.value }))}
+                    placeholder="0" />
+                </div>
+
+                {/* System user */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> Issued To (System User)</span>
+                  </label>
+                  <select
+                    className={inp}
+                    value={issueForm.issued_to}
+                    onChange={e => setIssueForm(f => ({ ...f, issued_to: e.target.value, issued_to_name: '' }))}>
+                    <option value="">— Select system user —</option>
+                    {systemUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name || u.username} {u.role ? `(${u.role})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 border-b border-gray-100" />
+                  <span className="text-xs text-gray-400 font-medium">— OR —</span>
+                  <div className="flex-1 border-b border-gray-100" />
+                </div>
+
+                {/* External recipient */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Recipient Name (External)</label>
+                  <input
+                    className={inp}
+                    value={issueForm.issued_to_name}
+                    onChange={e => setIssueForm(f => ({ ...f, issued_to_name: e.target.value, issued_to: '' }))}
+                    placeholder="Enter name if not in system" />
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    className={inp}
+                    value={issueForm.date}
+                    onChange={e => setIssueForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    rows={3}
+                    className={`${inp} resize-none`}
+                    value={issueForm.notes}
+                    onChange={e => setIssueForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Optional notes or purpose" />
+                </div>
+
+                {/* Submit */}
+                <div className="pt-1">
+                  <button
+                    onClick={handleIssue}
+                    disabled={issueMut.isPending || !issueForm.item || !issueForm.quantity}
+                    className="w-full flex items-center justify-center gap-2 bg-brand-red text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-60 hover:opacity-90">
+                    <ArrowUpTrayIcon className="h-4 w-4" />
+                    {issueMut.isPending ? 'Processing…' : 'Issue Stock →'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB: Receive ─────────────────────────────────────────────────── */}
+          {tab === 'receive' && (
+            <div className="max-w-xl mx-auto">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                <div>
+                  <h2 className="text-sm font-bold text-brand-slate uppercase tracking-wide">Receive Stock (Goods Received)</h2>
+                  <div className="mt-2 border-b border-gray-100" />
+                </div>
+
+                {/* Item */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Item *</label>
+                  <select
+                    className={inp}
+                    value={receiveForm.item}
+                    onChange={e => setReceiveForm(f => ({ ...f, item: e.target.value }))}>
+                    <option value="">— Select item —</option>
+                    {items.map(i => (
+                      <option key={i.id} value={i.id}>{i.name} ({i.item_code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Quantity */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    className={inp}
+                    value={receiveForm.quantity}
+                    onChange={e => setReceiveForm(f => ({ ...f, quantity: e.target.value }))}
+                    placeholder="0" />
+                </div>
+
+                {/* Unit Cost */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Unit Cost (KES) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className={inp}
+                    value={receiveForm.unit_cost}
+                    onChange={e => setReceiveForm(f => ({ ...f, unit_cost: e.target.value }))}
+                    placeholder="0.00" />
+                </div>
+
+                {/* Supplier */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Supplier / Source</label>
+                  <input
+                    className={inp}
+                    value={receiveForm.supplier}
+                    onChange={e => setReceiveForm(f => ({ ...f, supplier: e.target.value }))}
+                    placeholder="Supplier name or source" />
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    className={inp}
+                    value={receiveForm.date}
+                    onChange={e => setReceiveForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    rows={3}
+                    className={`${inp} resize-none`}
+                    value={receiveForm.notes}
+                    onChange={e => setReceiveForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Optional notes" />
+                </div>
+
+                {/* Submit */}
+                <div className="pt-1">
+                  <button
+                    onClick={handleReceive}
+                    disabled={receiveMut.isPending || !receiveForm.item || !receiveForm.quantity || !receiveForm.unit_cost}
+                    className="w-full flex items-center justify-center gap-2 bg-brand-red text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-60 hover:opacity-90">
+                    <ArrowDownTrayIcon className="h-4 w-4" />
+                    {receiveMut.isPending ? 'Processing…' : 'Record Receipt →'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB: History ─────────────────────────────────────────────────── */}
+          {tab === 'history' && (
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="date"
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  value={hDateFrom}
+                  onChange={e => setHDateFrom(e.target.value)}
+                  placeholder="Date from" />
+                <input
+                  type="date"
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  value={hDateTo}
+                  onChange={e => setHDateTo(e.target.value)}
+                  placeholder="Date to" />
+                <select
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  value={hType}
+                  onChange={e => setHType(e.target.value)}>
+                  <option value="">All Types</option>
+                  {Object.entries(TX_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+                <select
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  value={hItem}
+                  onChange={e => setHItem(e.target.value)}>
+                  <option value="">All Items</option>
+                  {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <input
+                    className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red"
+                    placeholder="Search…"
+                    value={hSearch}
+                    onChange={e => setHSearch(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Table */}
+              {filteredHistory.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
-                  <ArrowsRightLeftIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No movements recorded yet.</p>
+                  <DocumentTextIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No transactions found.</p>
                 </div>
               ) : (
-                <table className="min-w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {['Date', 'Item', 'Type', 'Qty', 'Unit Cost', 'Reference', 'Recorded By'].map(h => (
-                        <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {transactions.map(tx => (
-                      <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
-                          {new Date(tx.transaction_date).toLocaleDateString()}
-                        </td>
-                        <td className="px-3 py-2.5 text-gray-800">{tx.item_name}</td>
-                        <td className="px-3 py-2.5">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TX_COLORS[tx.transaction_type] ?? 'bg-gray-100 text-gray-600'}`}>
-                            {TX_LABELS[tx.transaction_type] ?? tx.transaction_type}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 font-medium text-gray-700">{Number(tx.quantity).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-gray-500">{Number(tx.unit_cost).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 font-mono text-gray-400">{tx.reference_number}</td>
-                        <td className="px-3 py-2.5 text-gray-500">{tx.processed_by_name}</td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {['Date', 'Type', 'Item', 'Qty', 'Issued To / Source', 'Recorded By', 'Notes', 'Ref'].map(h => (
+                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredHistory.map(tx => (
+                        <tr key={tx.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                            {new Date(tx.transaction_date).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TX_COLORS[tx.transaction_type] ?? 'bg-gray-100 text-gray-600'}`}>
+                              {TX_LABELS[tx.transaction_type] ?? tx.transaction_type}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{tx.item_name}</td>
+                          <td className="px-3 py-2.5 font-semibold text-gray-700">{Number(tx.quantity).toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-gray-500">{tx.issued_to_display || tx.issued_to_name || '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-500">{tx.processed_by_name || '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-400 max-w-[180px] truncate" title={tx.notes}>{tx.notes || '—'}</td>
+                          <td className="px-3 py-2.5 font-mono text-gray-400 whitespace-nowrap">{tx.reference_number || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-3 text-xs text-gray-400">{filteredHistory.length} transaction{filteredHistory.length !== 1 ? 's' : ''}</p>
+                </div>
               )}
             </div>
           )}
 
-          {/* Low Stock */}
-          {tab === 'alerts' && (
+          {/* ── TAB: Low Stock ───────────────────────────────────────────────── */}
+          {tab === 'lowstock' && (
             <div>
-              {lowItems.length === 0 ? (
+              {lowStock.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
                   <ExclamationTriangleIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">All stock levels are healthy.</p>
+                  <p className="text-sm font-medium">All stock levels are healthy.</p>
+                  <p className="text-xs mt-1">No items are at or below their reorder level.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {lowItems.map(item => {
-                    const stock = Number(item.current_stock)
-                    const reorder = Number(item.reorder_level)
-                    const pct = reorder > 0 ? Math.min((stock / reorder) * 100, 100) : 0
-                    return (
-                      <div key={item.id}
-                        className={`rounded-xl border p-4 ${stock === 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-sm text-gray-800">{item.name}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stock === 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {stock === 0 ? 'Out of Stock' : 'Low Stock'}
-                          </span>
+                <>
+                  <p className="text-xs text-gray-400 mb-4">{lowStock.length} item{lowStock.length !== 1 ? 's' : ''} require restocking</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {lowStock.map(item => {
+                      const stock = Number(item.current_stock)
+                      const reorder = Number(item.reorder_level ?? 0)
+                      const pct = reorder > 0 ? Math.min((stock / reorder) * 100, 100) : 0
+                      const isOut = stock === 0
+                      return (
+                        <div key={item.id}
+                          className={`rounded-xl border p-4 ${isOut ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
+                          <div className="flex items-start justify-between mb-2 gap-2">
+                            <div>
+                              <p className="font-semibold text-sm text-gray-800 leading-tight">{item.name}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{item.item_code} · {item.unit}</p>
+                            </div>
+                            <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${isOut ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {isOut ? 'Out of Stock' : 'Low Stock'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs mb-2">
+                            <span className="text-gray-600">Stock: <strong className={isOut ? 'text-red-600' : 'text-amber-600'}>{stock.toLocaleString()}</strong></span>
+                            <span className="text-gray-400">/ reorder: {reorder.toLocaleString()}</span>
+                          </div>
+                          <div className="h-1.5 bg-white rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${isOut ? 'bg-red-400' : 'bg-amber-400'}`}
+                              style={{ width: `${pct}%` }} />
+                          </div>
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                setReceiveForm(f => ({ ...f, item: String(item.id) }))
+                                setTab('receive')
+                              }}
+                              className="mt-3 w-full text-xs font-medium py-1.5 rounded-lg border border-brand-red text-brand-red hover:bg-red-50 transition-colors">
+                              + Receive Stock
+                            </button>
+                          )}
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">{item.item_code} · {item.unit}</p>
-                        <div className="flex items-center gap-2 text-xs mb-2">
-                          <span className="text-gray-500">Stock: <strong className={stock === 0 ? 'text-red-600' : 'text-amber-600'}>{stock}</strong></span>
-                          <span className="text-gray-400">/ reorder: {reorder}</span>
-                        </div>
-                        <div className="h-1.5 bg-white rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${stock === 0 ? 'bg-red-400' : 'bg-amber-400'}`}
-                            style={{ width: `${pct}%` }} />
-                        </div>
-                        {canEdit && (
-                          <button
-                            onClick={() => { setMovementPrefill(item.id); setShowMovement(true) }}
-                            className="mt-3 w-full text-xs font-medium py-1.5 rounded-lg border border-brand-red text-brand-red hover:bg-red-50">
-                            + Record Movement
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -516,14 +903,11 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {showAddItem && <AddItemModal onClose={() => setShowAddItem(false)} />}
-      {showMovement && (
-        <RecordMovementModal
-          items={items}
-          stores={stores}
-          prefillItem={movementPrefill}
-          onClose={() => { setShowMovement(false); setMovementPrefill(null) }}
-        />
+      {/* Modals */}
+      {(showAddItem || editItem) && (
+        <AddItemModal
+          editItem={editItem}
+          onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
     </div>
   )

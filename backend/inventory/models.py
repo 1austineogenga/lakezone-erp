@@ -122,6 +122,15 @@ class StockTransaction(models.Model):
     )
     transaction_date = models.DateTimeField()
     notes = models.TextField(blank=True)
+    issued_to = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='received_stock_items',
+        help_text='System user who received the issued item'
+    )
+    issued_to_name = models.CharField(
+        max_length=200, blank=True,
+        help_text='Name of recipient if not a system user'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

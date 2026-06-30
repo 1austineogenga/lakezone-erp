@@ -63,6 +63,7 @@ class StockTransactionSerializer(serializers.ModelSerializer):
     item_code = serializers.CharField(source="item.item_code", read_only=True)
     store_name = serializers.CharField(source="store.name", read_only=True)
     line_total = serializers.SerializerMethodField()
+    issued_to_display = serializers.SerializerMethodField()
 
     class Meta:
         model = StockTransaction
@@ -72,12 +73,19 @@ class StockTransactionSerializer(serializers.ModelSerializer):
             "quantity", "unit_cost", "line_total",
             "project", "boq_item", "po",
             "reference_number", "processed_by", "processed_by_name",
-            "transaction_date", "notes", "created_at",
+            "transaction_date", "notes",
+            "issued_to", "issued_to_name", "issued_to_display",
+            "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 
     def get_line_total(self, obj):
         return obj.quantity * obj.unit_cost
+
+    def get_issued_to_display(self, obj):
+        if obj.issued_to:
+            return obj.issued_to.get_full_name() or obj.issued_to.username
+        return obj.issued_to_name or ''
 
     def create(self, validated_data):
         validated_data["processed_by"] = self.context["request"].user
