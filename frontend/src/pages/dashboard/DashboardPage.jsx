@@ -20,6 +20,7 @@ import { getFleetLive, getFleetDashboard } from '../../api/fleet'
 import { getHRDashboard } from '../../api/hr'
 import useAuthStore from '../../store/authStore'
 import usePermissions from '../../hooks/usePermissions'
+import MDDashboard from './MDDashboard'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -173,6 +174,23 @@ export default function DashboardPage() {
   const today     = new Date()
   const hour      = today.getHours()
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
+  const isMDorAdmin = ['managing_director', 'system_admin'].includes(user?.role)
+
+  if (isMDorAdmin) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-brand-slate">{greeting}, {user?.first_name ?? 'there'} 👋</h1>
+          <p className="text-xs text-gray-600 mt-0.5">
+            {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {' · '}<span className="text-brand-red font-medium">Lake Zone Enterprises ERP</span>
+          </p>
+        </div>
+        <MDDashboard />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
