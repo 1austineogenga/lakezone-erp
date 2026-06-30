@@ -103,7 +103,7 @@ export default function WeeklyProgressPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Weekly Progress</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{progressList.length} weeks logged</p>
+          <p className="text-xs text-gray-600 mt-0.5">{progressList.length} weeks logged</p>
         </div>
         {canEdit && (
           <button onClick={() => { setForm(f => ({ ...f, week_no: String(nextWeekNo) })); setShowModal(true) }}
@@ -134,14 +134,14 @@ export default function WeeklyProgressPage() {
       {/* Progress Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {progressList.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No progress entries yet. Log the first week.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No progress entries yet. Log the first week.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Week #', 'Period', 'Materials', 'Fuel', 'Labour', 'Casuals', 'Total Actual', 'Budget', 'Variance', 'Print'].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -159,7 +159,7 @@ export default function WeeklyProgressPage() {
                       <td className="px-3 py-3">{fmt(p.labour_actual)}</td>
                       <td className="px-3 py-3">{fmt(p.casuals_actual)}</td>
                       <td className="px-3 py-3 font-semibold">{fmt(actual)}</td>
-                      <td className="px-3 py-3 text-gray-500">{fmt(budget)}</td>
+                      <td className="px-3 py-3 text-gray-600">{fmt(budget)}</td>
                       <td className={`px-3 py-3 font-medium ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {variance >= 0 ? '+' : ''}{fmt(variance)}
                       </td>
@@ -248,7 +248,7 @@ export default function WeeklyProgressPage() {
                   ))}
                 </div>
                 <div className="pt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">Total Actual: <span className="font-bold text-brand-slate">{fmt(totalActual)}</span></p>
+                  <p className="text-xs text-gray-600">Total Actual: <span className="font-bold text-brand-slate">{fmt(totalActual)}</span></p>
                 </div>
               </div>
 

@@ -6,7 +6,7 @@ import { printDoc } from '../../utils/print'
 function Field({ label, value, onChange, type = 'text', className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30" />
     </div>
@@ -16,7 +16,7 @@ function Field({ label, value, onChange, type = 'text', className = '' }) {
 function Textarea({ label, value, onChange, rows = 3 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-red/30 resize-none" />
     </div>
@@ -201,7 +201,7 @@ export default function RFIPage() {
         <div className="space-y-3">
           <Textarea label="Description of work item / activity" value={workDescription} onChange={setWorkDescription} rows={2} />
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-2">Inspection Stage</label>
+            <label className="block text-[10px] font-medium text-gray-600 mb-2">Inspection Stage</label>
             <div className="flex flex-wrap gap-4">
               {INSPECTION_STAGES.map(stage => (
                 <label key={stage} className="flex items-center gap-1.5 cursor-pointer">
@@ -221,9 +221,9 @@ export default function RFIPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50">
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-3 py-2 border-b border-gray-200">Checklist item</th>
-                <th className="text-center text-[10px] font-semibold text-gray-500 px-3 py-2 border-b border-gray-200 w-28">Yes / No</th>
-                <th className="text-left text-[10px] font-semibold text-gray-500 px-3 py-2 border-b border-gray-200 w-40">Remarks</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-3 py-2 border-b border-gray-200">Checklist item</th>
+                <th className="text-center text-[10px] font-semibold text-gray-600 px-3 py-2 border-b border-gray-200 w-28">Yes / No</th>
+                <th className="text-left text-[10px] font-semibold text-gray-600 px-3 py-2 border-b border-gray-200 w-40">Remarks</th>
               </tr>
             </thead>
             <tbody>
@@ -274,7 +274,7 @@ export default function RFIPage() {
       <Section title="E. Engineer / Consultant Response">
         <div className="space-y-4">
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-2">Inspection Result</label>
+            <label className="block text-[10px] font-medium text-gray-600 mb-2">Inspection Result</label>
             <div className="flex flex-wrap gap-4">
               {INSPECTION_RESULTS.map(r => (
                 <label key={r} className="flex items-center gap-1.5 cursor-pointer">

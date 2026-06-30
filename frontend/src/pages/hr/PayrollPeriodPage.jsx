@@ -75,7 +75,7 @@ export default function PayrollPeriodPage() {
     onError: () => toast.error('Failed to update project.'),
   })
 
-  if (loadingPeriod) return <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+  if (loadingPeriod) return <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
   if (!period) return null
 
   const totalGross = entries?.reduce((s, e) => s + Number(e.gross_pay || 0), 0) || 0
@@ -120,7 +120,7 @@ export default function PayrollPeriodPage() {
               )}
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-1">Payment Date: {period.payment_date || '—'}</p>
+          <p className="text-sm text-gray-600 mt-1">Payment Date: {period.payment_date || '—'}</p>
           {period.status === 'approved' && (
             <p className="text-xs text-blue-600 mt-1">
               Paying will post a Journal Entry to Finance GL — site employees charged to project, HQ staff to Overhead.
@@ -140,7 +140,7 @@ export default function PayrollPeriodPage() {
         ].map(s => (
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className={`text-lg font-bold ${s.color}`}>{fmt(s.val)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -160,18 +160,18 @@ export default function PayrollPeriodPage() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-brand-slate text-sm">Payroll Entries</h3>
-          <span className="text-xs text-gray-400">{entries?.length || 0} employees</span>
+          <span className="text-xs text-gray-600">{entries?.length || 0} employees</span>
         </div>
         {loadingEntries
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !entries || entries.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No entries. Generate payroll first.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No entries. Generate payroll first.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Employee', 'Dept', 'Cost Charged To', 'Type', 'Gross Pay', 'PAYE', 'NSSF', 'SHA/SHIF', 'Net Pay'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -180,9 +180,9 @@ export default function PayrollPeriodPage() {
                       <tr key={e.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-brand-slate text-xs">{e.employee_number}</p>
-                          <p className="text-xs text-gray-500">{e.full_name}</p>
+                          <p className="text-xs text-gray-600">{e.full_name}</p>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{e.department_name || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{e.department_name || '—'}</td>
                         <td className="px-4 py-3 text-xs min-w-[160px]">
                           {editingProject === e.id ? (
                             <select autoFocus
@@ -200,8 +200,8 @@ export default function PayrollPeriodPage() {
                               className={`flex items-center gap-1 ${canEdit ? 'hover:text-brand-red cursor-pointer' : 'cursor-default'}`}>
                               {e.project_name
                                 ? <span className="text-blue-700 font-medium">{e.project_name}</span>
-                                : <span className="text-gray-400 italic">HQ / Overhead</span>}
-                              {canEdit && <span className="text-gray-500 text-[10px]">✎</span>}
+                                : <span className="text-gray-600 italic">HQ / Overhead</span>}
+                              {canEdit && <span className="text-gray-600 text-[10px]">✎</span>}
                             </button>
                           )}
                         </td>

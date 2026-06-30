@@ -157,7 +157,7 @@ export default function TopBar({ onToggleSidebar }) {
               {/* List */}
               <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
                 {notifications.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-8">No notifications</p>
+                  <p className="text-sm text-gray-600 text-center py-8">No notifications</p>
                 ) : notifications.map(n => (
                   <button
                     key={n.id}
@@ -171,8 +171,8 @@ export default function TopBar({ onToggleSidebar }) {
                       {!n.is_read && <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-red shrink-0" />}
                     </div>
                     <p className="text-xs font-semibold text-brand-slate mt-1 leading-tight">{n.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{n.message}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{timeAgo(n.created_at)}</p>
+                    <p className="text-xs text-gray-600 mt-0.5 leading-snug line-clamp-2">{n.message}</p>
+                    <p className="text-[10px] text-gray-600 mt-1">{timeAgo(n.created_at)}</p>
                   </button>
                 ))}
               </div>
@@ -201,7 +201,7 @@ export default function TopBar({ onToggleSidebar }) {
               <p className="text-sm font-medium text-gray-800 leading-tight">
                 {user ? `${user.first_name} ${user.last_name}` : 'User'}
               </p>
-              <p className="text-xs text-gray-500 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
+              <p className="text-xs text-gray-600 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
             </div>
           </button>
 

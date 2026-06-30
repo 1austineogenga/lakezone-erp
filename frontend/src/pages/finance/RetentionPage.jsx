@@ -60,7 +60,7 @@ export default function RetentionPage() {
     })
   }
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (isLoading) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
 
   const { summary, ar_invoices = [], releases = [] } = data || {}
 
@@ -69,18 +69,18 @@ export default function RetentionPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total AR Retention Held</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total AR Retention Held</p>
           <p className="text-xl font-bold text-brand-slate">{fmt(summary?.ar_retention_held)}</p>
-          <p className="text-xs text-gray-400 mt-1">Clients holding on our invoices</p>
+          <p className="text-xs text-gray-600 mt-1">Clients holding on our invoices</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Released to Date</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Released to Date</p>
           <p className="text-xl font-bold text-green-600">{fmt(summary?.ar_retention_released)}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net Retention Due</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Net Retention Due</p>
           <p className="text-xl font-bold text-orange-600">{fmt(summary?.ar_retention_net)}</p>
-          <p className="text-xs text-gray-400 mt-1">Still to be released by clients</p>
+          <p className="text-xs text-gray-600 mt-1">Still to be released by clients</p>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function RetentionPage() {
             <thead className="bg-gray-50">
               <tr>
                 {['Invoice', 'Client', 'Project', 'Issue Date', 'Retention Held'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -103,8 +103,8 @@ export default function RetentionPage() {
                 <tr key={inv.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 font-mono text-xs text-brand-slate font-medium">{inv.invoice_number}</td>
                   <td className="px-4 py-2.5 text-gray-700">{inv['client__company_name']}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{inv['project__name'] || '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{inv.issue_date}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{inv['project__name'] || '—'}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{inv.issue_date}</td>
                   <td className="px-4 py-2.5 font-semibold text-orange-600">{fmt(inv.retention_amount)}</td>
                 </tr>
               ))}
@@ -128,7 +128,7 @@ export default function RetentionPage() {
           <form onSubmit={handleSubmit} className="p-5 border-b border-gray-100 bg-gray-50">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Type *</label>
+                <label className="block text-xs text-gray-600 mb-1">Type *</label>
                 <select required value={form.retention_type} onChange={e => setForm({...form, retention_type: e.target.value})}
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                   <option value="receivable">Receivable (client owes us)</option>
@@ -137,7 +137,7 @@ export default function RetentionPage() {
               </div>
               {form.retention_type === 'receivable' && (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Invoice</label>
+                  <label className="block text-xs text-gray-600 mb-1">Invoice</label>
                   <select value={form.invoice} onChange={e => setForm({...form, invoice: e.target.value})}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                     <option value="">Select invoice…</option>
@@ -146,7 +146,7 @@ export default function RetentionPage() {
                 </div>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Project</label>
+                <label className="block text-xs text-gray-600 mb-1">Project</label>
                 <select value={form.project} onChange={e => setForm({...form, project: e.target.value})}
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
                   <option value="">No project</option>
@@ -154,17 +154,17 @@ export default function RetentionPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Amount (KES) *</label>
+                <label className="block text-xs text-gray-600 mb-1">Amount (KES) *</label>
                 <input required type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Release Date *</label>
+                <label className="block text-xs text-gray-600 mb-1">Release Date *</label>
                 <input required type="date" value={form.release_date} onChange={e => setForm({...form, release_date: e.target.value})}
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                <label className="block text-xs text-gray-600 mb-1">Notes</label>
                 <input value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
               </div>
@@ -183,12 +183,12 @@ export default function RetentionPage() {
         )}
 
         {releases.length === 0
-          ? <p className="text-sm text-gray-400 p-5">No retention releases recorded yet.</p>
+          ? <p className="text-sm text-gray-600 p-5">No retention releases recorded yet.</p>
           : <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {['Type', 'Project', 'Invoice / Bill', 'Amount', 'Release Date', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -198,12 +198,12 @@ export default function RetentionPage() {
                     <td className="px-4 py-2.5 capitalize text-xs font-medium text-gray-700">
                       {r.retention_type}
                     </td>
-                    <td className="px-4 py-2.5 text-gray-500 truncate max-w-[120px]">{r.project_name || '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 truncate max-w-[120px]">{r.project_name || '—'}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-brand-slate">
                       {r.invoice_number || r.bill_number || '—'}
                     </td>
                     <td className="px-4 py-2.5 font-semibold text-orange-600">{fmt(r.amount)}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{r.release_date}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{r.release_date}</td>
                     <td className="px-4 py-2.5">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[r.status]}`}>
                         {r.status}

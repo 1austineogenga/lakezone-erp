@@ -46,13 +46,13 @@ export default function BankTransactionsPage() {
             </div>
           )
           : !data?.length
-            ? <div className="p-12 text-center text-gray-400 text-sm">No records found.</div>
+            ? <div className="p-12 text-center text-gray-600 text-sm">No records found.</div>
             : (
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Reference', 'Date', 'Type', 'Account', 'Payee', 'Description', 'Amount (KES)'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -60,15 +60,15 @@ export default function BankTransactionsPage() {
                   {data.map(txn => (
                     <tr key={txn.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{txn.reference || '—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{txn.txn_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{txn.txn_date}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TXN_COLORS[txn.txn_type] || 'bg-gray-100 text-gray-600'}`}>
                           {txn.txn_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{txn.account || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs">{txn.account || '—'}</td>
                       <td className="px-4 py-3 text-gray-700 truncate max-w-[120px]">{txn.payee || '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 truncate max-w-[160px]">{txn.description || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate max-w-[160px]">{txn.description || '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-700">KES {Number(txn.amount).toLocaleString()}</td>
                     </tr>
                   ))}

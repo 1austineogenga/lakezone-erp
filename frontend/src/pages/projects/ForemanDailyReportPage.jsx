@@ -22,7 +22,7 @@ import useAuthStore from '../../store/authStore'
 function Field({ label, value, onChange, type = 'text', disabled = false, className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <input
         type={type}
         value={value}
@@ -37,7 +37,7 @@ function Field({ label, value, onChange, type = 'text', disabled = false, classN
 function Textarea({ label, value, onChange, rows = 3, disabled = false }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-gray-600 mb-1">{label}</label>
       <textarea
         rows={rows}
         value={value}
@@ -66,7 +66,7 @@ function StatusBadge({ isEditable }) {
       Editable
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
       <LockClosedIcon className="w-2.5 h-2.5" />
       Locked
     </span>
@@ -312,16 +312,16 @@ export default function ForemanDailyReportPage() {
       {/* ── history list ── */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden no-print">
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-gray-400">Loading reports…</div>
+          <div className="py-12 text-center text-xs text-gray-600">Loading reports…</div>
         ) : reports.length === 0 ? (
-          <div className="py-12 text-center text-xs text-gray-400">No reports found.</div>
+          <div className="py-12 text-center text-xs text-gray-600">No reports found.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   {['Date', 'Project', 'Location', 'Submitted by', 'Submitted at', 'Status'].map(col => (
-                    <th key={col} className="text-left text-[10px] font-semibold text-gray-500 px-4 py-2.5">{col}</th>
+                    <th key={col} className="text-left text-[10px] font-semibold text-gray-600 px-4 py-2.5">{col}</th>
                   ))}
                 </tr>
               </thead>
@@ -334,9 +334,9 @@ export default function ForemanDailyReportPage() {
                   >
                     <td className="px-4 py-2.5">{r.date || '—'}</td>
                     <td className="px-4 py-2.5 font-medium text-brand-slate">{r.project_name || '—'}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{r.location || '—'}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{r.submitted_by_name || r.submitted_by || '—'}</td>
-                    <td className="px-4 py-2.5 text-gray-400">
+                    <td className="px-4 py-2.5 text-gray-600">{r.location || '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{r.submitted_by_name || r.submitted_by || '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-600">
                       {r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}
                     </td>
                     <td className="px-4 py-2.5">
@@ -375,7 +375,7 @@ export default function ForemanDailyReportPage() {
             )}
 
             {loadingReport ? (
-              <div className="py-16 text-center text-xs text-gray-400">Loading…</div>
+              <div className="py-16 text-center text-xs text-gray-600">Loading…</div>
             ) : (
               <div className="p-5 space-y-5">
 
@@ -412,7 +412,7 @@ export default function ForemanDailyReportPage() {
                       <thead>
                         <tr className="bg-gray-50">
                           {['Plant/Material', 'ID/Unit', 'Qty', 'Status', 'Remarks', ...(isLocked ? [] : [''])].map((col, ci) => (
-                            <th key={ci} className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">
+                            <th key={ci} className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">
                               {col}
                             </th>
                           ))}
@@ -456,7 +456,7 @@ export default function ForemanDailyReportPage() {
                       <thead>
                         <tr className="bg-gray-50">
                           {['No.', 'Location/Chainage', 'Description of Work', 'Unit/Qty', 'Remarks', ...(isLocked ? [] : [''])].map((col, ci) => (
-                            <th key={ci} className="text-left text-[10px] font-semibold text-gray-500 px-2 py-1.5 border-b border-gray-200">
+                            <th key={ci} className="text-left text-[10px] font-semibold text-gray-600 px-2 py-1.5 border-b border-gray-200">
                               {col}
                             </th>
                           ))}

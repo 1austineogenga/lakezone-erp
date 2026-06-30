@@ -16,7 +16,7 @@ function SummaryCard({ icon: Icon, label, value, sub, bg, color }) {
       </div>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-gray-600 mt-0.5">{label}</p>
-      {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+      {sub && <p className="text-[10px] text-gray-600">{sub}</p>}
     </div>
   )
 }
@@ -81,20 +81,20 @@ export default function EnhancedFuelReportPage() {
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-brand-slate">Enhanced Fuel Report</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Fills, drains, consumption &amp; costs by vehicle</p>
+        <p className="text-xs text-gray-600 mt-0.5">Fills, drains, consumption &amp; costs by vehicle</p>
       </div>
 
       {/* Filters */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-wrap gap-3 items-end">
         {[['From', dateFrom, setDateFrom], ['To', dateTo, setDateTo]].map(([label, val, set]) => (
           <div key={label}>
-            <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
             <input type="date" value={val} onChange={e => set(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
           </div>
         ))}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Vehicle</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle</label>
           <select value={vehicleId} onChange={e => setVehicleId(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Vehicles</option>
@@ -102,7 +102,7 @@ export default function EnhancedFuelReportPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Location (for prices)</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Location (for prices)</label>
           <select value={location} onChange={e => setLocation(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="Nairobi">Nairobi</option>
@@ -121,19 +121,19 @@ export default function EnhancedFuelReportPage() {
           <div className="grid grid-cols-3 gap-3">
             {currentPrices.petrol && (
               <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Super Petrol</p>
+                <p className="text-xs text-gray-600">Super Petrol</p>
                 <p className="text-lg font-bold text-blue-600">KSh {currentPrices.petrol.price_per_litre}/L</p>
               </div>
             )}
             {currentPrices.diesel && (
               <div className="bg-white rounded-lg p-3 border border-green-100">
-                <p className="text-xs text-gray-500">Diesel</p>
+                <p className="text-xs text-gray-600">Diesel</p>
                 <p className="text-lg font-bold text-green-600">KSh {currentPrices.diesel.price_per_litre}/L</p>
               </div>
             )}
             {currentPrices.kerosene && (
               <div className="bg-white rounded-lg p-3 border border-amber-100">
-                <p className="text-xs text-gray-500">Kerosene</p>
+                <p className="text-xs text-gray-600">Kerosene</p>
                 <p className="text-lg font-bold text-amber-600">KSh {currentPrices.kerosene.price_per_litre}/L</p>
               </div>
             )}
@@ -211,14 +211,14 @@ export default function EnhancedFuelReportPage() {
 
         {tab === 'fills' && (
           fills.length === 0 ? (
-            <p className="text-sm text-gray-400 p-8 text-center">No fill events in this period.</p>
+            <p className="text-sm text-gray-600 p-8 text-center">No fill events in this period.</p>
           ) : (
             <div className="overflow-x-auto max-h-80">
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
                   <tr>
                     {['Vehicle', 'Date / Time', 'Before', 'After', 'Added', 'Price/L', 'Total Cost'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -226,11 +226,11 @@ export default function EnhancedFuelReportPage() {
                   {fills.map(e => (
                     <tr key={e.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2.5 font-semibold text-brand-slate">{e.vehicle_no || e.vehicle}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmtDt(e.occurred_at)}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}L</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmtDt(e.occurred_at)}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmt(e.fuel_before)}L</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmt(e.fuel_after)}L</td>
                       <td className="px-4 py-2.5 font-bold text-green-600">+{fmt(e.fuel_change)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{e.price_per_litre ? `KSh ${e.price_per_litre}` : '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{e.price_per_litre ? `KSh ${e.price_per_litre}` : '—'}</td>
                       <td className="px-4 py-2.5 font-bold text-green-600">{e.total_cost ? fmtCost(e.total_cost) : '—'}</td>
                     </tr>
                   ))}
@@ -242,14 +242,14 @@ export default function EnhancedFuelReportPage() {
 
         {tab === 'drains' && (
           drains.length === 0 ? (
-            <p className="text-sm text-gray-400 p-8 text-center">No drain events in this period.</p>
+            <p className="text-sm text-gray-600 p-8 text-center">No drain events in this period.</p>
           ) : (
             <div className="overflow-x-auto max-h-80">
               <table className="min-w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
                   <tr>
                     {['Vehicle', 'Type', 'Date / Time', 'Before', 'After', 'Lost', 'Price/L', 'Total Cost'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -263,11 +263,11 @@ export default function EnhancedFuelReportPage() {
                           {e.event_type}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmtDt(e.occurred_at)}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_before)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{fmt(e.fuel_after)}L</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmtDt(e.occurred_at)}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmt(e.fuel_before)}L</td>
+                      <td className="px-4 py-2.5 text-gray-600">{fmt(e.fuel_after)}L</td>
                       <td className="px-4 py-2.5 font-bold text-red-600">{fmt(e.fuel_change)}L</td>
-                      <td className="px-4 py-2.5 text-gray-500">{e.price_per_litre ? `KSh ${e.price_per_litre}` : '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{e.price_per_litre ? `KSh ${e.price_per_litre}` : '—'}</td>
                       <td className="px-4 py-2.5 font-bold text-red-600">{e.total_cost ? fmtCost(e.total_cost) : '—'}</td>
                     </tr>
                   ))}

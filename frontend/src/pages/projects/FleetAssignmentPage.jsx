@@ -52,7 +52,7 @@ export default function FleetAssignmentPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Fleet Assignment</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Vehicles assigned to this project</p>
+          <p className="text-xs text-gray-600 mt-0.5">Vehicles assigned to this project</p>
         </div>
         {canEdit && (
           <button onClick={() => setModal(true)}
@@ -71,7 +71,7 @@ export default function FleetAssignmentPage() {
         ].map(s => (
           <div key={s.label} className={`${s.bg} ${s.border} border border-gray-200 rounded-xl p-4`}>
             <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -84,7 +84,7 @@ export default function FleetAssignmentPage() {
         {assignments.length === 0 ? (
           <div className="p-10 text-center">
             <TruckIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">No vehicles assigned yet.</p>
+            <p className="text-sm text-gray-600">No vehicles assigned yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -92,7 +92,7 @@ export default function FleetAssignmentPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {['Vehicle', 'Status', 'From', 'To', 'Daily Rate', 'Active', 'Notes'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -106,15 +106,15 @@ export default function FleetAssignmentPage() {
                         {a.last_status || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{a.assigned_from}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{a.assigned_to || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{a.assigned_from}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{a.assigned_to || '—'}</td>
                     <td className="px-4 py-3 text-xs font-medium">KES {Number(a.daily_rate || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${a.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${a.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                         {a.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{a.notes || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{a.notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>

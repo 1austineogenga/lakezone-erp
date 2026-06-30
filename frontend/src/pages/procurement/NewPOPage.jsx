@@ -82,7 +82,7 @@ export default function NewPOPage() {
 
       <div className="mb-6">
         <h1 className="text-xl font-bold text-brand-slate">New Purchase Order</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Create a purchase order and send to supplier</p>
+        <p className="text-sm text-gray-600 mt-0.5">Create a purchase order and send to supplier</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -91,7 +91,7 @@ export default function NewPOPage() {
           <h3 className="font-semibold text-brand-slate">Order Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Supplier *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Supplier *</label>
               <select required className={inp} value={form.supplier}
                 onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}>
                 <option value="">— Select supplier —</option>
@@ -101,7 +101,7 @@ export default function NewPOPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Linked PR (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Linked PR (optional)</label>
               <select className={inp} value={form.pr}
                 onChange={e => setForm(f => ({ ...f, pr: e.target.value }))}>
                 <option value="">— None —</option>
@@ -111,18 +111,18 @@ export default function NewPOPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Delivery Date *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Delivery Date *</label>
               <input required type="date" className={inp} value={form.delivery_date}
                 onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Delivery Address *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Delivery Address *</label>
               <input required className={inp} placeholder="e.g. Site A, Kisumu"
                 value={form.delivery_address}
                 onChange={e => setForm(f => ({ ...f, delivery_address: e.target.value }))} />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
               <textarea rows={2} className={`${inp} resize-none`} placeholder="Additional instructions…"
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
@@ -141,11 +141,11 @@ export default function NewPOPage() {
           </div>
 
           <div className="hidden sm:grid grid-cols-12 gap-2 mb-2 px-1">
-            <span className="col-span-4 text-xs font-medium text-gray-400">Description</span>
-            <span className="col-span-1 text-xs font-medium text-gray-400">Unit</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Qty</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Unit Price (KES)</span>
-            <span className="col-span-2 text-xs font-medium text-gray-400">Amount</span>
+            <span className="col-span-4 text-xs font-medium text-gray-600">Description</span>
+            <span className="col-span-1 text-xs font-medium text-gray-600">Unit</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Qty</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Unit Price (KES)</span>
+            <span className="col-span-2 text-xs font-medium text-gray-600">Amount</span>
             <span className="col-span-1" />
           </div>
 
@@ -185,7 +185,7 @@ export default function NewPOPage() {
           {total > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
               <div className="text-sm">
-                <span className="text-gray-500 mr-3">Total Value:</span>
+                <span className="text-gray-600 mr-3">Total Value:</span>
                 <span className="font-bold text-brand-slate">KES {total.toLocaleString()}</span>
               </div>
             </div>

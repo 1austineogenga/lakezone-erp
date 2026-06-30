@@ -44,7 +44,7 @@ export default function NewExpensePage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <h2 className="text-lg font-bold text-brand-slate">New Expense Claim</h2>
-        <p className="text-sm text-gray-500">Submit a reimbursement claim for business expenses</p>
+        <p className="text-sm text-gray-600">Submit a reimbursement claim for business expenses</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -87,31 +87,31 @@ export default function NewExpensePage() {
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Date *</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Date *</label>}
                   <input required type="date" value={item.date} onChange={e => setItem(i, 'date', e.target.value)}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-red" />
                 </div>
                 <div className="col-span-3">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Description *</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Description *</label>}
                   <input required value={item.description} onChange={e => setItem(i, 'description', e.target.value)}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
                     placeholder="What was spent on" />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Category</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Category</label>}
                   <select value={item.category} onChange={e => setItem(i, 'category', e.target.value)}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-red">
                     {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Amount (KES) *</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Amount (KES) *</label>}
                   <input required type="number" min="0" step="0.01" value={item.amount} onChange={e => setItem(i, 'amount', e.target.value)}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
                     placeholder="0.00" />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Receipt Ref</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Receipt Ref</label>}
                   <input value={item.receipt_ref} onChange={e => setItem(i, 'receipt_ref', e.target.value)}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-red"
                     placeholder="Ref no." />
@@ -127,7 +127,7 @@ export default function NewExpensePage() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-sm">
-            <span className="text-gray-500 mr-3">Total:</span>
+            <span className="text-gray-600 mr-3">Total:</span>
             <span className="font-bold text-brand-slate">KES {total.toLocaleString()}</span>
           </div>
         </div>

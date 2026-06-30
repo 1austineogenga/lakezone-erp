@@ -157,7 +157,7 @@ export default function CasualsRegistryPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-brand-slate">Casuals Register</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Track casual workers, approvals, and daily attendance</p>
+          <p className="text-sm text-gray-600 mt-0.5">Track casual workers, approvals, and daily attendance</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -347,9 +347,9 @@ export default function CasualsRegistryPage() {
 
       {/* Table */}
       {isLoading ? (
-        <p className="text-center text-gray-400 py-12">Loading…</p>
+        <p className="text-center text-gray-600 py-12">Loading…</p>
       ) : casuals.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-600">
           <p className="text-lg font-medium">No casuals found</p>
           <p className="text-sm mt-1">Add one or import from Excel</p>
         </div>
@@ -366,10 +366,10 @@ export default function CasualsRegistryPage() {
                       {STATUS_LABELS[c.status]}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-600 mt-0.5">
                     ID: {c.id_number} · {c.phone} · {c.placement}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{c.assignment}</p>
+                  <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{c.assignment}</p>
                 </div>
 
                 {/* Stats */}
@@ -442,7 +442,7 @@ export default function CasualsRegistryPage() {
                 <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 text-sm">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 mb-1">Assignment</p>
+                      <p className="text-xs font-medium text-gray-600 mb-1">Assignment</p>
                       <p className="text-gray-800 whitespace-pre-wrap">{c.assignment}</p>
                     </div>
                     <div className="space-y-1 text-xs text-gray-600">
@@ -460,7 +460,7 @@ export default function CasualsRegistryPage() {
                   {/* Daily logs */}
                   {c.daily_logs?.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 mb-1">Daily Log</p>
+                      <p className="text-xs font-medium text-gray-600 mb-1">Daily Log</p>
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-gray-500 border-b border-gray-200">
@@ -480,7 +480,7 @@ export default function CasualsRegistryPage() {
                                 KES {(parseFloat(c.daily_rate) * parseFloat(log.days_worked)).toLocaleString()}
                               </td>
                               <td className="py-0.5">{log.logged_by_name}</td>
-                              <td className="py-0.5 text-gray-500">{log.notes}</td>
+                              <td className="py-0.5 text-gray-600">{log.notes}</td>
                             </tr>
                           ))}
                         </tbody>

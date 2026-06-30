@@ -221,7 +221,7 @@ function PermissionMatrix({ role }) {
         const level = perms[key] || false
         return (
           <div key={key} className={`text-center px-1 py-1 rounded text-[10px] font-medium ${LEVEL_COLORS[String(level)]}`}>
-            <div className="text-[9px] text-gray-400 leading-none mb-0.5">{label}</div>
+            <div className="text-[9px] text-gray-600 leading-none mb-0.5">{label}</div>
             {level === false ? '—' : level}
           </div>
         )
@@ -299,7 +299,7 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">User Management</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Manage system users and their role-based access</p>
+          <p className="text-xs text-gray-600 mt-0.5">Manage system users and their role-based access</p>
         </div>
         {canEdit && (
           <button onClick={() => setModal({ mode: 'add' })}
@@ -325,7 +325,7 @@ export default function UsersPage() {
         </div>
         {previewRole && (
           <div>
-            <p className="text-xs text-gray-400 mb-1">Access levels: <span className="text-green-700 font-medium">full</span> · <span className="text-blue-700 font-medium">write</span> · <span className="text-gray-600 font-medium">read</span> · <span className="text-amber-700 font-medium">create</span> · <span className="text-red-300 font-medium">—</span> none</p>
+            <p className="text-xs text-gray-600 mb-1">Access levels: <span className="text-green-700 font-medium">full</span> · <span className="text-blue-700 font-medium">write</span> · <span className="text-gray-600 font-medium">read</span> · <span className="text-amber-700 font-medium">create</span> · <span className="text-red-300 font-medium">—</span> none</p>
             <PermissionMatrix role={previewRole} />
           </div>
         )}
@@ -339,7 +339,7 @@ export default function UsersPage() {
             className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red w-52" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Role</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
           <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Roles</option>
@@ -360,13 +360,13 @@ export default function UsersPage() {
         {isLoading ? (
           <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-400 p-10 text-center">No users found.</p>
+          <p className="text-sm text-gray-600 p-10 text-center">No users found.</p>
         ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {['Name', 'Email', 'Phone', 'Role', 'Status', canEdit ? 'Actions' : ''].filter(Boolean).map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -374,8 +374,8 @@ export default function UsersPage() {
               {filtered.map(u => (
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-brand-slate">{u.full_name}</td>
-                  <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                  <td className="px-4 py-3 text-gray-500">{u.phone || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                  <td className="px-4 py-3 text-gray-600">{u.phone || '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
                       {u.role_display || roleLabel(u.role)}

@@ -95,7 +95,7 @@ function MaintenanceSchedulePanel({ req, schedule, canLog }) {
           <h3 className="font-semibold text-brand-slate text-sm">Maintenance Schedule</h3>
         </div>
         {schedule && (
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${SCHED_STATUS_STYLE[schedule.status] || 'bg-gray-100 text-gray-500'}`}>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${SCHED_STATUS_STYLE[schedule.status] || 'bg-gray-100 text-gray-600'}`}>
             {schedule.status.replace(/_/g, ' ')}
           </span>
         )}
@@ -105,14 +105,14 @@ function MaintenanceSchedulePanel({ req, schedule, canLog }) {
         {!schedule && !showForm ? (
           canLog ? (
             <div className="text-center py-4">
-              <p className="text-xs text-gray-400 mb-3">No schedule logged yet. Log one to assign and plan this repair.</p>
+              <p className="text-xs text-gray-600 mb-3">No schedule logged yet. Log one to assign and plan this repair.</p>
               <button onClick={() => setShowForm(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 mx-auto">
                 <PlusIcon className="h-3.5 w-3.5" /> Log Schedule
               </button>
             </div>
           ) : (
-            <p className="text-xs text-gray-400 text-center py-4">Awaiting site manager or admin to log a schedule.</p>
+            <p className="text-xs text-gray-600 text-center py-4">Awaiting site manager or admin to log a schedule.</p>
           )
         ) : schedule && !showForm ? (
           <div className="space-y-3">
@@ -124,19 +124,19 @@ function MaintenanceSchedulePanel({ req, schedule, canLog }) {
             </dl>
             {schedule.work_description && (
               <div>
-                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">Work Description</p>
+                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wide mb-1">Work Description</p>
                 <p className="text-xs text-gray-700">{schedule.work_description}</p>
               </div>
             )}
             {schedule.payment_details && (
               <div>
-                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">Payment Details</p>
+                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wide mb-1">Payment Details</p>
                 <p className="text-xs text-gray-700">{schedule.payment_details}</p>
               </div>
             )}
             {schedule.notes && (
               <div>
-                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">Notes</p>
+                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wide mb-1">Notes</p>
                 <p className="text-xs text-gray-600 italic">{schedule.notes}</p>
               </div>
             )}
@@ -175,26 +175,26 @@ function MaintenanceSchedulePanel({ req, schedule, canLog }) {
               { label: 'Payment Amount (KES)', key: 'payment_amount', type: 'number', placeholder: '0.00' },
             ].map(({ label, key, type, placeholder }) => (
               <div key={key}>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                 <input type={type || 'text'} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                   placeholder={placeholder}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
               </div>
             ))}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Work Description</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Work Description</label>
               <textarea rows={2} value={form.work_description} onChange={e => setForm(f => ({ ...f, work_description: e.target.value }))}
                 placeholder="What needs to be done…"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Payment Details</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Payment Details</label>
               <textarea rows={2} value={form.payment_details} onChange={e => setForm(f => ({ ...f, payment_details: e.target.value }))}
                 placeholder="Bank account / mobile money / cash…"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
               <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
             </div>
@@ -262,32 +262,32 @@ function FuelPaymentPanel({ req, fuelPayment, canRecord }) {
 
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Payment Mode *</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode *</label>
           <select value={form.payment_mode} onChange={e => setForm(f => ({ ...f, payment_mode: e.target.value }))}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="finance_raised">Finance Raised Payment</option>
             <option value="md_paid">MD Paid Directly (Update Record)</option>
           </select>
-          <p className="text-[10px] text-gray-400 mt-1">
+          <p className="text-[10px] text-gray-600 mt-1">
             {form.payment_mode === 'finance_raised'
               ? 'Finance will process the payment and raise an expense claim.'
               : 'Record that the MD has already paid — an expense claim will still be created.'}
           </p>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Amount Paid (KES) *</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Amount Paid (KES) *</label>
           <input required type="number" min="0" step="0.01" value={form.amount_paid}
             onChange={e => setForm(f => ({ ...f, amount_paid: e.target.value }))} placeholder="0.00"
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Payment Reference</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Payment Reference</label>
           <input value={form.payment_ref} onChange={e => setForm(f => ({ ...f, payment_ref: e.target.value }))}
             placeholder="Receipt / bank ref"
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
           <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
         </div>
@@ -356,9 +356,9 @@ export default function RequisitionDetailPage() {
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <p className="text-[10px] font-mono text-gray-400">{req.reference_number}</p>
+            <p className="text-[10px] font-mono text-gray-600">{req.reference_number}</p>
             <h1 className="text-lg font-bold text-brand-slate mt-0.5">{req.title}</h1>
-            <p className="text-xs text-gray-400 capitalize mt-1">
+            <p className="text-xs text-gray-600 capitalize mt-1">
               {req.req_type.replace(/_/g, ' ')} · {req.priority} priority
             </p>
           </div>
@@ -415,7 +415,7 @@ export default function RequisitionDetailPage() {
             </dl>
             {req.description && (
               <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Description</p>
+                <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1">Description</p>
                 <p className="text-xs text-gray-700">{req.description}</p>
               </div>
             )}
@@ -431,7 +431,7 @@ export default function RequisitionDetailPage() {
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     {['Description', 'Qty', 'Unit', 'Unit Price', 'Total'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -439,8 +439,8 @@ export default function RequisitionDetailPage() {
                   {req.items.map(item => (
                     <tr key={item.id}>
                       <td className="px-4 py-2.5 text-gray-700">{item.description}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{item.quantity}</td>
-                      <td className="px-4 py-2.5 text-gray-400">{item.unit || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{item.quantity}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{item.unit || '—'}</td>
                       <td className="px-4 py-2.5 text-gray-600">{Number(item.unit_price).toLocaleString()}</td>
                       <td className="px-4 py-2.5 font-semibold text-brand-slate">{Number(item.total_price).toLocaleString()}</td>
                     </tr>
@@ -448,7 +448,7 @@ export default function RequisitionDetailPage() {
                 </tbody>
                 <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
-                    <td colSpan={4} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Total</td>
+                    <td colSpan={4} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600">Total</td>
                     <td className="px-4 py-2.5 font-bold text-brand-slate">KES {Number(req.total_amount).toLocaleString()}</td>
                   </tr>
                 </tfoot>
@@ -488,10 +488,10 @@ export default function RequisitionDetailPage() {
                       <span className={`text-xs font-semibold ${a.action === 'approved' ? 'text-green-600' : a.action === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
                         {a.action.charAt(0).toUpperCase() + a.action.slice(1)}
                       </span>
-                      <span className="text-[10px] text-gray-400">· {a.approved_by_name}</span>
+                      <span className="text-[10px] text-gray-600">· {a.approved_by_name}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400">{new Date(a.actioned_at).toLocaleString('en-KE')}</p>
-                    {a.comments && <p className="text-[10px] text-gray-500 mt-0.5 italic">"{a.comments}"</p>}
+                    <p className="text-[10px] text-gray-600">{new Date(a.actioned_at).toLocaleString('en-KE')}</p>
+                    {a.comments && <p className="text-[10px] text-gray-600 mt-0.5 italic">"{a.comments}"</p>}
                   </div>
                 ))}
               </div>
@@ -543,7 +543,7 @@ export default function RequisitionDetailPage() {
           {req.status === 'submitted' && req.requested_by === user?.id && !canApprove && (
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
               <h2 className="text-sm font-semibold text-brand-slate mb-2">Recall Requisition</h2>
-              <p className="text-xs text-gray-400 mb-3">Withdraw this requisition before it is reviewed.</p>
+              <p className="text-xs text-gray-600 mb-3">Withdraw this requisition before it is reviewed.</p>
               <button onClick={() => {
                 import('../../api/requisitions').then(({ recallRequisition }) => {
                   recallRequisition(id).then(() => {

@@ -72,7 +72,7 @@ export default function AdvancesPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">Salary Advance Request</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Employee *</label>
+              <label className="block text-xs text-gray-600 mb-1">Employee *</label>
               <select required {...f('employee')} className={cls}>
                 <option value="">Select employee…</option>
                 {employees?.map(e => (
@@ -81,11 +81,11 @@ export default function AdvancesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Amount (KES) *</label>
+              <label className="block text-xs text-gray-600 mb-1">Amount (KES) *</label>
               <input required type="number" min="1" {...f('amount')} className={cls} />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Reason *</label>
+              <label className="block text-xs text-gray-600 mb-1">Reason *</label>
               <textarea required {...f('reason')} rows={2}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
             </div>
@@ -106,15 +106,15 @@ export default function AdvancesPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Salary Advances</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !advances || advances.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No advance requests.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No advance requests.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Employee', 'Amount', 'Reason', 'Date', 'Status', 'Actions'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -123,11 +123,11 @@ export default function AdvancesPage() {
                       <tr key={adv.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-brand-slate text-xs">{adv.employee_number}</p>
-                          <p className="text-xs text-gray-500">{adv.employee_name}</p>
+                          <p className="text-xs text-gray-600">{adv.employee_name}</p>
                         </td>
                         <td className="px-4 py-3 font-medium text-sm">{fmt(adv.amount)}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs max-w-xs truncate">{adv.reason}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{adv.request_date}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{adv.request_date}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[adv.status]}`}>
                             {adv.status}

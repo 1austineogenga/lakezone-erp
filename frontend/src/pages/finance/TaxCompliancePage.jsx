@@ -46,7 +46,7 @@ export default function TaxCompliancePage() {
 }
 
 function VATSection({ data }) {
-  if (!data) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (!data) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
 
   const { monthly = [], totals = {} } = data
 
@@ -55,21 +55,21 @@ function VATSection({ data }) {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Output VAT (Sales)</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Output VAT (Sales)</p>
           <p className="text-xl font-bold text-blue-700">{fmt(totals.output_vat)}</p>
-          <p className="text-xs text-gray-400 mt-1">VAT charged on invoices issued</p>
+          <p className="text-xs text-gray-600 mt-1">VAT charged on invoices issued</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Input VAT (Purchases)</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Input VAT (Purchases)</p>
           <p className="text-xl font-bold text-purple-700">{fmt(totals.input_vat)}</p>
-          <p className="text-xs text-gray-400 mt-1">VAT paid on bills received</p>
+          <p className="text-xs text-gray-600 mt-1">VAT paid on bills received</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net VAT Payable to KRA</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Net VAT Payable to KRA</p>
           <p className={`text-xl font-bold ${totals.net_vat_payable >= 0 ? 'text-red-600' : 'text-green-600'}`}>
             {fmt(totals.net_vat_payable)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             {totals.net_vat_payable >= 0 ? 'Payable to KRA' : 'VAT credit / refund due'}
           </p>
         </div>
@@ -100,12 +100,12 @@ function VATSection({ data }) {
           <h3 className="font-semibold text-brand-slate text-sm">Monthly VAT Return Summary</h3>
         </div>
         {monthly.length === 0
-          ? <p className="text-sm text-gray-400 p-8 text-center">No VAT data yet.</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">No VAT data yet.</p>
           : <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {['Period', 'Output VAT', 'Input VAT', 'Net VAT Payable', 'Status'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -135,7 +135,7 @@ function VATSection({ data }) {
 }
 
 function WHTSection({ data }) {
-  if (!data) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (!data) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
 
   const { entries = [], by_supplier = [], total_wht = 0 } = data
 
@@ -144,12 +144,12 @@ function WHTSection({ data }) {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total WHT Withheld</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total WHT Withheld</p>
           <p className="text-xl font-bold text-orange-600">{fmt(total_wht)}</p>
-          <p className="text-xs text-gray-400 mt-1">Amount to remit to KRA</p>
+          <p className="text-xs text-gray-600 mt-1">Amount to remit to KRA</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Suppliers with WHT</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Suppliers with WHT</p>
           <p className="text-xl font-bold text-brand-slate">{by_supplier.length}</p>
         </div>
       </div>
@@ -164,7 +164,7 @@ function WHTSection({ data }) {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Supplier', 'Bills', 'Total WHT Withheld'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -172,7 +172,7 @@ function WHTSection({ data }) {
               {by_supplier.map(s => (
                 <tr key={s.supplier_name} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">{s.supplier_name}</td>
-                  <td className="px-4 py-3 text-gray-500">{s.count}</td>
+                  <td className="px-4 py-3 text-gray-600">{s.count}</td>
                   <td className="px-4 py-3 font-semibold text-orange-600">{fmt(s.total_wht)}</td>
                 </tr>
               ))}
@@ -187,13 +187,13 @@ function WHTSection({ data }) {
           <h3 className="font-semibold text-brand-slate text-sm">WHT Transaction Register</h3>
         </div>
         {entries.length === 0
-          ? <p className="text-sm text-gray-400 p-8 text-center">No WHT entries. Set withholding_tax on bills to populate this register.</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">No WHT entries. Set withholding_tax on bills to populate this register.</p>
           : <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Bill #', 'Supplier', 'Project', 'Date', 'Subtotal', 'WHT Rate', 'WHT Amount'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -202,8 +202,8 @@ function WHTSection({ data }) {
                     <tr key={e.bill_id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{e.bill_number}</td>
                       <td className="px-4 py-3 text-gray-700">{e.supplier_name}</td>
-                      <td className="px-4 py-3 text-gray-500">{e.project_name || '—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{e.issue_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{e.project_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{e.issue_date}</td>
                       <td className="px-4 py-3">{fmt(e.subtotal)}</td>
                       <td className="px-4 py-3">
                         <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-medium">

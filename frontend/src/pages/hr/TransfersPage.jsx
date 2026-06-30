@@ -218,7 +218,7 @@ export default function TransfersPage() {
                     <label className="block text-xs font-medium text-gray-700 mb-1">Relocation Allowance (KES)</label>
                     <input type="number" min="0" step="0.01" {...f('relocation_allowance')} placeholder="0.00"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
-                    <p className="text-xs text-gray-400 mt-0.5">One-off payment for relocation costs</p>
+                    <p className="text-xs text-gray-600 mt-0.5">One-off payment for relocation costs</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Daily Allowance Rate (KES)</label>
@@ -256,15 +256,15 @@ export default function TransfersPage() {
       {/* Transfers table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : transfers.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No transfer requests found.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No transfer requests found.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Employee', 'Destination', 'Route', 'Dates', 'Allowances', 'Status', 'Actions'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -273,11 +273,11 @@ export default function TransfersPage() {
                       <tr key={t.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-brand-slate text-xs">{t.employee_name}</p>
-                          <p className="text-xs text-gray-400">{t.employee_number}</p>
+                          <p className="text-xs text-gray-600">{t.employee_number}</p>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600">
                           <p>{DEST_LABELS[t.destination_type]}</p>
-                          {t.project_name && <p className="text-gray-400">{t.project_name}</p>}
+                          {t.project_name && <p className="text-gray-600">{t.project_name}</p>}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 text-xs text-gray-600">
@@ -286,22 +286,22 @@ export default function TransfersPage() {
                             <span className="font-medium text-brand-slate">{t.to_location}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">
+                        <td className="px-4 py-3 text-xs text-gray-600">
                           <p>{t.start_date}</p>
-                          {t.end_date && <p className="text-gray-400">→ {t.end_date}</p>}
+                          {t.end_date && <p className="text-gray-600">→ {t.end_date}</p>}
                         </td>
                         <td className="px-4 py-3 text-xs">
                           {parseFloat(t.total_allowance) > 0 ? (
                             <div>
                               <span className="text-green-700 font-medium">KES {parseFloat(t.total_allowance).toLocaleString()}</span>
                               {t.status === 'approved' && (
-                                <p className="text-gray-400 flex items-center gap-0.5 mt-0.5">
+                                <p className="text-gray-600 flex items-center gap-0.5 mt-0.5">
                                   <BanknotesIcon className="h-3 w-3" /> Expense raised
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-gray-600">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -347,7 +347,7 @@ export default function TransfersPage() {
             <h3 className="font-semibold text-brand-slate mb-1 capitalize">
               {reviewModal.action} Transfer
             </h3>
-            <p className="text-sm text-gray-500 mb-1">
+            <p className="text-sm text-gray-600 mb-1">
               {reviewModal.transfer.employee_name} → {reviewModal.transfer.to_location}
             </p>
             {reviewModal.action === 'approved' && parseFloat(reviewModal.transfer.total_allowance) > 0 && (

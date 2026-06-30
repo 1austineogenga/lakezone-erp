@@ -99,7 +99,7 @@ function EmptyState({ icon: Icon, message }) {
   return (
     <div className="py-16 text-center">
       <Icon className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-      <p className="text-gray-400 text-sm">{message}</p>
+      <p className="text-gray-600 text-sm">{message}</p>
     </div>
   )
 }
@@ -243,7 +243,7 @@ function PRsTab() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {['PR #', 'Requested By', 'Department', 'Project', 'Items', 'Est. Value (KES)', 'Status', 'Date', ''].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
@@ -261,7 +261,7 @@ function PRsTab() {
                   {pr.total_estimated_value != null ? Number(pr.total_estimated_value).toLocaleString() : '—'}
                 </td>
                 <td className="px-4 py-3"><StatusBadge status={pr.status} colorMap={PR_STATUS_COLORS} /></td>
-                <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : '—'}</td>
+                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : '—'}</td>
                 <td className="px-4 py-3 text-brand-red hover:underline font-medium">View</td>
               </tr>
             ))}
@@ -313,7 +313,7 @@ function POsTab() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {['PO #', 'Supplier', 'PR Reference', 'Total Value (KES)', 'Status', 'Delivery Date', ''].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
@@ -324,12 +324,12 @@ function POsTab() {
               <tr key={po.id} className="hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => navigate(`/procurement/po/${po.id}`)}>
                 <td className="px-4 py-3 font-mono text-brand-slate font-medium">{po.po_number}</td>
                 <td className="px-4 py-3 text-gray-700">{po.supplier_name || '—'}</td>
-                <td className="px-4 py-3 font-mono text-gray-500">{po.pr_number ?? (po.pr ? po.pr : '—')}</td>
+                <td className="px-4 py-3 font-mono text-gray-600">{po.pr_number ?? (po.pr ? po.pr : '—')}</td>
                 <td className="px-4 py-3 font-medium text-gray-800">
                   {po.total_value != null ? Number(po.total_value).toLocaleString() : '—'}
                 </td>
                 <td className="px-4 py-3"><StatusBadge status={po.status} colorMap={PO_STATUS_COLORS} /></td>
-                <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{po.delivery_date || '—'}</td>
+                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{po.delivery_date || '—'}</td>
                 <td className="px-4 py-3 text-brand-red hover:underline font-medium">View</td>
               </tr>
             ))}
@@ -377,7 +377,7 @@ function SuppliersTab() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {['Company', 'Contact Person', 'Phone', 'Email', 'KRA PIN', 'Categories', 'Status'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
@@ -390,8 +390,8 @@ function SuppliersTab() {
                 <td className="px-4 py-3 text-gray-600">{s.contact_person}</td>
                 <td className="px-4 py-3 text-gray-600">{s.phone}</td>
                 <td className="px-4 py-3 text-gray-600">{s.email}</td>
-                <td className="px-4 py-3 font-mono text-gray-500">{s.kra_pin}</td>
-                <td className="px-4 py-3 text-gray-500">
+                <td className="px-4 py-3 font-mono text-gray-600">{s.kra_pin}</td>
+                <td className="px-4 py-3 text-gray-600">
                   {Array.isArray(s.supply_categories) && s.supply_categories.length
                     ? s.supply_categories.join(', ')
                     : '—'}
@@ -430,7 +430,7 @@ export default function ProcurementPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-brand-slate">Procurement</h1>
-          <p className="text-sm text-gray-500">Purchase Requisitions, Orders &amp; Suppliers</p>
+          <p className="text-sm text-gray-600">Purchase Requisitions, Orders &amp; Suppliers</p>
         </div>
       </div>
 

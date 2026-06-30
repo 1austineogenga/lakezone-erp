@@ -254,7 +254,7 @@ export default function CRMPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">CRM</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Clients and tender pipeline management</p>
+          <p className="text-xs text-gray-600 mt-0.5">Clients and tender pipeline management</p>
         </div>
         {canEdit && (
           <div className="flex gap-2">
@@ -283,7 +283,7 @@ export default function CRMPage() {
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
             <div>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-xs text-gray-600">{label}</p>
               <p className="font-bold text-brand-slate text-sm">{value}</p>
             </div>
           </div>
@@ -325,13 +325,13 @@ export default function CRMPage() {
           {loadingClients ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
           ) : filteredClients.length === 0 ? (
-            <p className="text-sm text-gray-400 p-10 text-center">No clients found.</p>
+            <p className="text-sm text-gray-600 p-10 text-center">No clients found.</p>
           ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Company', 'Contact Person', 'Email', 'Phone', 'KRA PIN', 'Status', canEdit ? 'Actions' : ''].filter(Boolean).map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -340,9 +340,9 @@ export default function CRMPage() {
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-brand-slate">{c.company_name}</td>
                     <td className="px-4 py-3 text-gray-600">{c.contact_person}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.email || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.phone || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.kra_pin || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{c.email || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{c.phone || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{c.kra_pin || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {c.is_active ? 'Active' : 'Inactive'}
@@ -373,13 +373,13 @@ export default function CRMPage() {
           {loadingOpps ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
           ) : filteredOpps.length === 0 ? (
-            <p className="text-sm text-gray-400 p-10 text-center">No opportunities found.</p>
+            <p className="text-sm text-gray-600 p-10 text-center">No opportunities found.</p>
           ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Opportunity', 'Client', 'Tender No.', 'Est. Value', 'Deadline', 'Probability', 'Stage', canEdit ? 'Actions' : ''].filter(Boolean).map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -392,9 +392,9 @@ export default function CRMPage() {
                     <tr key={o.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-brand-slate max-w-[200px] truncate">{o.opportunity_name}</td>
                       <td className="px-4 py-3 text-gray-600">{o.client_name}</td>
-                      <td className="px-4 py-3 text-gray-500">{o.tender_number || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{o.tender_number || '—'}</td>
                       <td className="px-4 py-3 font-medium">{fmt(o.estimated_value)}</td>
-                      <td className={`px-4 py-3 ${overdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                      <td className={`px-4 py-3 ${overdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                         {deadline ? deadline.toLocaleDateString() : '—'}
                         {overdue && <span className="ml-1 text-[10px] bg-red-100 text-red-600 px-1 rounded">Overdue</span>}
                       </td>
@@ -404,7 +404,7 @@ export default function CRMPage() {
                             <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden">
                               <div className="h-full bg-brand-red rounded-full" style={{ width: `${o.probability_percent}%` }} />
                             </div>
-                            <span className="text-gray-500">{o.probability_percent}%</span>
+                            <span className="text-gray-600">{o.probability_percent}%</span>
                           </div>
                         ) : '—'}
                       </td>

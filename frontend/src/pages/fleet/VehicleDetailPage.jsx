@@ -162,11 +162,11 @@ function EditVehicleModal({ vehicle, projects, configs, onClose, onSaved }) {
                     <button key={a.id} onClick={() => fillFromAsset(a)}
                       className="w-full text-left px-3 py-2 bg-white rounded border border-blue-100 hover:border-blue-400 text-xs">
                       <span className="font-medium text-brand-slate">{a.asset_code}</span>
-                      <span className="text-gray-500 ml-2">{a.name}</span>
-                      {a.serial_number && <span className="text-gray-400 ml-2">· {a.serial_number}</span>}
+                      <span className="text-gray-600 ml-2">{a.name}</span>
+                      {a.serial_number && <span className="text-gray-600 ml-2">· {a.serial_number}</span>}
                     </button>
                   ))}
-                  {filteredAssets.length === 0 && <p className="text-xs text-gray-400 py-2 text-center">No assets found.</p>}
+                  {filteredAssets.length === 0 && <p className="text-xs text-gray-600 py-2 text-center">No assets found.</p>}
                 </div>
               </div>
             )}
@@ -277,7 +277,7 @@ function ComplianceRow({ vehicleId, item, onUpdated }) {
         <span className="text-xs text-gray-600 font-medium">{typeLabel}</span>
         <div className="flex items-center gap-2">
           {!editing && item.expiry_date && (
-            <span className="text-[10px] text-gray-400">{item.expiry_date}</span>
+            <span className="text-[10px] text-gray-600">{item.expiry_date}</span>
           )}
           {!editing && (
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusCls}`}>{statusLabel}</span>
@@ -291,13 +291,13 @@ function ComplianceRow({ vehicleId, item, onUpdated }) {
       {editing && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <div>
-            <label className="block text-[10px] text-gray-500 mb-1">Expiry Date</label>
+            <label className="block text-[10px] text-gray-600 mb-1">Expiry Date</label>
             <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
               className="px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red" />
           </div>
           {!expiryDate && (
             <div>
-              <label className="block text-[10px] text-gray-500 mb-1">Status</label>
+              <label className="block text-[10px] text-gray-600 mb-1">Status</label>
               <select value={statusOverride} onChange={e => setStatusOverride(e.target.value)}
                 className="px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red">
                 {Object.entries(COMPLIANCE_STATUS_LABEL).map(([v, l]) => (
@@ -338,7 +338,7 @@ function AddComplianceForm({ vehicleId, onAdded }) {
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-gray-50 pt-3">
       <div>
-        <label className="block text-[10px] text-gray-500 mb-1">Type</label>
+        <label className="block text-[10px] text-gray-600 mb-1">Type</label>
         <select value={type} onChange={e => setType(e.target.value)}
           className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red">
           {Object.entries(COMPLIANCE_TYPE_LABEL).map(([v, l]) => (
@@ -347,7 +347,7 @@ function AddComplianceForm({ vehicleId, onAdded }) {
         </select>
       </div>
       <div>
-        <label className="block text-[10px] text-gray-500 mb-1">Expiry Date</label>
+        <label className="block text-[10px] text-gray-600 mb-1">Expiry Date</label>
         <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)}
           className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:border-brand-red" />
       </div>
@@ -453,7 +453,7 @@ export default function VehicleDetailPage() {
     qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
   }
 
-  if (!vehicle) return <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+  if (!vehicle) return <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
 
   const fuelChartData = liveHistory
     .filter(d => d.fuel_level != null)
@@ -502,16 +502,16 @@ export default function VehicleDetailPage() {
             {vehicle.last_status && (
               <>
                 <span className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT[vehicle.last_status] || 'bg-gray-300'}`} />
-                <span className="text-sm text-gray-500">{STATUS_LABEL[vehicle.last_status] || vehicle.last_status}</span>
+                <span className="text-sm text-gray-600">{STATUS_LABEL[vehicle.last_status] || vehicle.last_status}</span>
               </>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {[vehicle.vehicle_name, vehicle.make, vehicle.model_name, vehicle.year].filter(Boolean).join(' · ')}
             {vehicle.project_name ? ` · ${vehicle.project_name}` : ''}
           </p>
           {vehicle.last_location && (
-            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+            <p className="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
               <MapPinIcon className="h-3 w-3" /> {vehicle.last_location}
             </p>
           )}
@@ -537,7 +537,7 @@ export default function VehicleDetailPage() {
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
             <s.icon className={`h-5 w-5 ${s.color} mb-1`} />
             <p className={`text-xl font-bold ${s.color}`}>{s.val}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -578,7 +578,7 @@ export default function VehicleDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">No compliance records yet.</p>
+            <p className="text-xs text-gray-600">No compliance records yet.</p>
           )}
           <AddComplianceForm vehicleId={id} onAdded={refreshVehicle} />
         </div>
@@ -589,20 +589,20 @@ export default function VehicleDetailPage() {
               <h3 className="text-xs font-bold text-brand-slate mb-3">Current Assignment</h3>
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Driver / Operator</span>
+                  <span className="text-gray-600">Driver / Operator</span>
                   <span className="font-medium text-brand-slate">
                     {vehicle.current_assignment.employee_name || vehicle.current_assignment.driver_name || '—'}
                   </span>
                 </div>
                 {vehicle.current_assignment.site && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Site</span>
+                    <span className="text-gray-600">Site</span>
                     <span className="font-medium text-brand-slate">{vehicle.current_assignment.site}</span>
                   </div>
                 )}
                 {vehicle.current_assignment.employee && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">HR Record</span>
+                    <span className="text-gray-600">HR Record</span>
                     <span className="text-green-600 font-medium">Matched ✓</span>
                   </div>
                 )}
@@ -670,13 +670,13 @@ export default function VehicleDetailPage() {
 
         {tab === 'fuel' && (
           fuelEvents.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No fuel events recorded.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No fuel events recorded.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Type', 'Time', 'Before', 'After', 'Change', 'Location'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -688,13 +688,13 @@ export default function VehicleDetailPage() {
                             {e.event_type}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(e.occurred_at)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{fmtDt(e.occurred_at)}</td>
                         <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_before)} {e.fuel_unit || 'L'}</td>
                         <td className="px-4 py-3 text-xs">{fuelDisplay(e.fuel_after)} {e.fuel_unit || 'L'}</td>
                         <td className={`px-4 py-3 text-xs font-medium ${e.event_type === 'fill' ? 'text-green-600' : 'text-red-600'}`}>
                           {e.event_type === 'fill' ? '+' : ''}{fuelDisplay(Math.abs(e.fuel_change))} {e.fuel_unit || 'L'}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 max-w-[160px] truncate">{e.location_name || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-[160px] truncate">{e.location_name || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -704,27 +704,27 @@ export default function VehicleDetailPage() {
 
         {tab === 'trips' && (
           trips.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No trips recorded.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No trips recorded.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Start', 'End', 'From', 'To', 'Distance', 'Duration', 'Max Speed'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {trips.map(t => (
                       <tr key={t.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(t.started_at)}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500">
+                        <td className="px-4 py-3 text-xs text-gray-600">{fmtDt(t.started_at)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">
                           {t.ended_at ? fmtDt(t.ended_at) : <span className="text-green-600 font-medium">In Progress</span>}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 max-w-[120px] truncate">{t.start_location || '—'}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400 max-w-[120px] truncate">{t.end_location || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-[120px] truncate">{t.start_location || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-[120px] truncate">{t.end_location || '—'}</td>
                         <td className="px-4 py-3 text-xs font-medium">{t.distance_km ? `${Number(t.distance_km).toFixed(1)} km` : '—'}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{t.duration_minutes ? `${t.duration_minutes} min` : '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{t.duration_minutes ? `${t.duration_minutes} min` : '—'}</td>
                         <td className="px-4 py-3 text-xs">{t.max_speed ? `${fmt(t.max_speed)} km/h` : '—'}</td>
                       </tr>
                     ))}
@@ -735,14 +735,14 @@ export default function VehicleDetailPage() {
 
         {tab === 'alerts' && (
           alerts.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No alerts for this vehicle.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No alerts for this vehicle.</p>
             : <div className="divide-y divide-gray-100">
                 {alerts.map(a => (
                   <div key={a.id} className={`px-5 py-4 flex items-start gap-3 ${a.acknowledged ? 'opacity-50' : ''}`}>
                     <ExclamationTriangleIcon className={`h-4 w-4 mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-red-500' : a.severity === 'high' ? 'text-orange-500' : a.severity === 'medium' ? 'text-yellow-500' : 'text-blue-500'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-brand-slate">{a.message}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{fmtDt(a.occurred_at)}</p>
+                      <p className="text-[10px] text-gray-600 mt-0.5">{fmtDt(a.occurred_at)}</p>
                     </div>
                     {!a.acknowledged && (
                       <button onClick={() => ackMut.mutate(a.id)} className="text-xs text-blue-600 hover:underline shrink-0">
@@ -756,13 +756,13 @@ export default function VehicleDetailPage() {
 
         {tab === 'maintenance' && (
           maintenanceRecords.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No maintenance records. Add via the Maintenance page.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No maintenance records. Add via the Maintenance page.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Type', 'Date', 'Odometer', 'Description', 'Next Service Date', 'Next Service km', 'Cost'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -778,7 +778,7 @@ export default function VehicleDetailPage() {
                           <td className="px-4 py-3">
                             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium capitalize">{m.maintenance_type}</span>
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{m.date}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600">{m.date}</td>
                           <td className="px-4 py-3 text-xs">{m.odometer_at_service ? `${(m.odometer_at_service / 1000).toFixed(0)} km` : '—'}</td>
                           <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate">{m.description}</td>
                           <td className={`px-4 py-3 text-xs font-medium ${overdue ? 'text-red-600' : dueSoon ? 'text-amber-600' : 'text-gray-600'}`}>
@@ -792,7 +792,7 @@ export default function VehicleDetailPage() {
                           <td className={`px-4 py-3 text-xs font-medium ${m.next_service_odometer && vehicle.last_odometer && m.next_service_odometer - vehicle.last_odometer < 500000 ? 'text-amber-600' : 'text-gray-600'}`}>
                             {m.next_service_odometer ? `${(m.next_service_odometer / 1000).toFixed(0)} km` : '—'}
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{m.cost ? `KES ${Number(m.cost).toLocaleString()}` : '—'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600">{m.cost ? `KES ${Number(m.cost).toLocaleString()}` : '—'}</td>
                         </tr>
                       )
                     })}
@@ -819,7 +819,7 @@ export default function VehicleDetailPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
             <TrashIcon className="w-8 h-8 text-red-400 mx-auto mb-3" />
             <h3 className="text-sm font-bold text-brand-slate mb-2">Delete Vehicle?</h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-gray-600 mb-4">
               This will permanently delete <strong>{vehicle.vehicle_no}</strong> and all associated data.
               This action cannot be undone.
             </p>

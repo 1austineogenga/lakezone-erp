@@ -166,26 +166,26 @@ export default function GLJournalPage() {
           <h3 className="font-semibold text-brand-slate text-sm">New Journal Entry</h3>
           <div className="flex gap-3 flex-wrap">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Type *</label>
+              <label className="block text-xs text-gray-600 mb-1">Type *</label>
               <select value={form.entry_type} onChange={e => setForm(f => ({ ...f, entry_type: e.target.value }))}
                 className={cls}>
                 {ENTRY_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Date *</label>
+              <label className="block text-xs text-gray-600 mb-1">Date *</label>
               <input required type="date" value={form.entry_date}
                 onChange={e => setForm(f => ({ ...f, entry_date: e.target.value }))}
                 className={cls} />
             </div>
             <div className="flex-1 min-w-64">
-              <label className="block text-xs text-gray-500 mb-1">Description *</label>
+              <label className="block text-xs text-gray-600 mb-1">Description *</label>
               <input required value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 className={`w-full ${cls}`} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Project</label>
+              <label className="block text-xs text-gray-600 mb-1">Project</label>
               <select value={form.project} onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
                 className={cls}>
                 <option value="">None</option>
@@ -251,7 +251,7 @@ export default function GLJournalPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-gray-200">
-                  <td colSpan={2} className="pt-3 pr-2 text-right text-xs font-semibold text-gray-500">Totals:</td>
+                  <td colSpan={2} className="pt-3 pr-2 text-right text-xs font-semibold text-gray-600">Totals:</td>
                   <td className={`pt-3 pl-2 text-right font-bold ${isBalanced ? 'text-green-600' : 'text-red-600'}`}>
                     {fmt(totalDebits)}
                   </td>
@@ -294,15 +294,15 @@ export default function GLJournalPage() {
             <h3 className="font-semibold text-brand-slate text-sm">General Ledger — Journal Entries</h3>
           </div>
           {isLoading
-            ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
             : !journals || journals.length === 0
-              ? <p className="text-sm text-gray-400 p-8 text-center">No journal entries yet.</p>
+              ? <p className="text-sm text-gray-600 p-8 text-center">No journal entries yet.</p>
               : <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         {['Reference', 'Type', 'Date', 'Period', 'Description', 'Debits', 'Credits', 'Status', 'Actions'].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -313,9 +313,9 @@ export default function GLJournalPage() {
                             {j.reference}
                             {j.is_reversing && <span className="ml-1 text-red-500 text-xs">(Rev)</span>}
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500 capitalize">{j.entry_type.replace('_', ' ')}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600 capitalize">{j.entry_type.replace('_', ' ')}</td>
                           <td className="px-4 py-3 text-gray-700">{j.entry_date}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{j.period}</td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">{j.period}</td>
                           <td className="px-4 py-3 text-gray-700 max-w-xs truncate">{j.description}</td>
                           <td className="px-4 py-3 text-right font-medium">{fmtN(j.total_debits)}</td>
                           <td className="px-4 py-3 text-right font-medium">{fmtN(j.total_credits)}</td>
@@ -355,7 +355,7 @@ export default function GLJournalPage() {
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-brand-slate text-sm">Trial Balance</h3>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-600 mt-0.5">
                 Period: {trialBalance?.period || 'All'} —
                 {trialBalance?.is_balanced
                   ? <span className="text-green-600 font-medium"> ✓ Balanced</span>
@@ -364,13 +364,13 @@ export default function GLJournalPage() {
             </div>
           </div>
           {!trialBalance || trialBalance.rows?.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No posted journal entries {periodFilter ? `for ${periodFilter}` : 'yet'}.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No posted journal entries {periodFilter ? `for ${periodFilter}` : 'yet'}.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Account Code', 'Account Name', 'Type', 'Total Debits', 'Total Credits', 'Balance'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -379,7 +379,7 @@ export default function GLJournalPage() {
                       <tr key={r.account_code} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{r.account_code}</td>
                         <td className="px-4 py-3 text-gray-700">{r.account_name}</td>
-                        <td className="px-4 py-3 text-gray-500 capitalize text-xs">{r.account_type}</td>
+                        <td className="px-4 py-3 text-gray-600 capitalize text-xs">{r.account_type}</td>
                         <td className="px-4 py-3 text-right">{fmtN(r.total_debit)}</td>
                         <td className="px-4 py-3 text-right">{fmtN(r.total_credit)}</td>
                         <td className={`px-4 py-3 text-right font-semibold ${r.balance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>

@@ -80,7 +80,7 @@ function ReceiveItemsModal({ po, onClose, onSuccess }) {
             <thead className="bg-gray-50">
               <tr>
                 {['Description', 'Unit', 'Ordered', 'Received'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -88,7 +88,7 @@ function ReceiveItemsModal({ po, onClose, onSuccess }) {
               {(po.line_items || []).map(item => (
                 <tr key={item.id}>
                   <td className="px-3 py-2 text-gray-800">{item.description}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.unit}</td>
+                  <td className="px-3 py-2 text-gray-600">{item.unit}</td>
                   <td className="px-3 py-2 text-gray-700">{Number(item.quantity).toLocaleString()}</td>
                   <td className="px-3 py-2">
                     <input
@@ -192,9 +192,9 @@ export default function PODetailPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-5">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <p className="text-xs font-mono text-gray-400 mb-1">Purchase Order</p>
+            <p className="text-xs font-mono text-gray-600 mb-1">Purchase Order</p>
             <h1 className="text-xl font-bold text-brand-slate">{po.po_number}</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               Supplier: <span className="font-medium text-gray-700">{po.supplier_name || '—'}</span>
             </p>
           </div>
@@ -294,7 +294,7 @@ export default function PODetailPage() {
           { label: 'Total Value (KES)', value: total > 0 ? total.toLocaleString() : '—', bold: true },
         ].map(card => (
           <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">{card.label}</p>
+            <p className="text-xs text-gray-600 mb-1">{card.label}</p>
             <p className={`text-sm ${card.bold ? 'font-bold text-brand-slate' : 'font-medium text-gray-800'}`}>{card.value}</p>
           </div>
         ))}
@@ -310,13 +310,13 @@ export default function PODetailPage() {
           <thead className="bg-gray-50">
             <tr>
               {['Description', 'Unit', 'Ordered Qty', 'Received Qty', 'Unit Price (KES)', 'Total (KES)'].map(h => (
-                <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {!po.line_items?.length ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No line items</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-600">No line items</td></tr>
             ) : po.line_items.map(item => {
               const ordered = Number(item.quantity)
               const received = Number(item.received_quantity ?? 0)
@@ -326,7 +326,7 @@ export default function PODetailPage() {
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-800">{item.description}</td>
-                  <td className="px-4 py-3 text-gray-500">{item.unit}</td>
+                  <td className="px-4 py-3 text-gray-600">{item.unit}</td>
                   <td className="px-4 py-3 text-gray-700">{ordered.toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export default function PODetailPage() {
           {total > 0 && (
             <tfoot className="bg-gray-50 border-t border-gray-200">
               <tr>
-                <td colSpan={5} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Total Value</td>
+                <td colSpan={5} className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600">Total Value</td>
                 <td className="px-4 py-2.5 font-bold text-brand-slate">KES {total.toLocaleString()}</td>
               </tr>
             </tfoot>

@@ -70,33 +70,33 @@ export default function BiometricDevicesPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Biometric Device</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Device Serial / ID *</label>
+              <label className="block text-xs text-gray-600 mb-1">Device Serial / ID *</label>
               <input required {...f('device_id')} placeholder="e.g. ZK-001" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name *</label>
+              <label className="block text-xs text-gray-600 mb-1">Name *</label>
               <input required {...f('name')} placeholder="e.g. Main Gate" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Location *</label>
+              <label className="block text-xs text-gray-600 mb-1">Location *</label>
               <input required {...f('location')} placeholder="e.g. Head Office Entrance" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Device Type</label>
+              <label className="block text-xs text-gray-600 mb-1">Device Type</label>
               <select {...f('device_type')} className={cls}>
                 {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">IP Address</label>
+              <label className="block text-xs text-gray-600 mb-1">IP Address</label>
               <input {...f('ip_address')} placeholder="192.168.1.x" className={cls} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">API Key (for push auth)</label>
+              <label className="block text-xs text-gray-600 mb-1">API Key (for push auth)</label>
               <input {...f('api_key')} placeholder="Leave blank to auto-generate" className={cls} />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
               <input {...f('notes')} className={cls} />
             </div>
           </div>
@@ -115,9 +115,9 @@ export default function BiometricDevicesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading
-          ? <p className="text-sm text-gray-400 col-span-2 text-center py-8">Loading…</p>
+          ? <p className="text-sm text-gray-600 col-span-2 text-center py-8">Loading…</p>
           : !devices || devices.length === 0
-            ? <p className="text-sm text-gray-400 col-span-2 text-center py-8">No biometric devices registered.</p>
+            ? <p className="text-sm text-gray-600 col-span-2 text-center py-8">No biometric devices registered.</p>
             : devices.map(dev => (
                 <div key={dev.id} className={`bg-white border rounded-xl p-5 ${dev.is_active ? 'border-gray-200' : 'border-dashed border-gray-300 opacity-60'}`}>
                   <div className="flex items-start justify-between mb-3">
@@ -128,33 +128,33 @@ export default function BiometricDevicesPage() {
                           : <SignalSlashIcon className="h-4 w-4 text-gray-400" />}
                         <p className="font-semibold text-brand-slate">{dev.name}</p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{dev.location}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{dev.location}</p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dev.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dev.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                       {dev.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
 
                   <div className="space-y-1.5 text-xs text-gray-600 mb-4">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Serial / ID</span>
+                      <span className="text-gray-600">Serial / ID</span>
                       <span className="font-mono font-medium">{dev.device_id}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Type</span>
+                      <span className="text-gray-600">Type</span>
                       <span>{TYPE_LABELS[dev.device_type] || dev.device_type}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">IP Address</span>
+                      <span className="text-gray-600">IP Address</span>
                       <span className="font-mono">{dev.ip_address || '—'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Last Sync</span>
+                      <span className="text-gray-600">Last Sync</span>
                       <span>{dev.last_sync ? new Date(dev.last_sync).toLocaleString() : 'Never'}</span>
                     </div>
                     {dev.api_key && (
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-400">API Key</span>
+                        <span className="text-gray-600">API Key</span>
                         <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">{dev.api_key}</code>
                       </div>
                     )}

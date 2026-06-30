@@ -98,23 +98,23 @@ export default function LeavePage() {
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-semibold text-brand-slate text-sm">Leave Applications</h3>
             {applications && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-600">
                 {applications.filter(a => a.status === 'submitted').length} pending review
               </span>
             )}
           </div>
 
           {isLoading ? (
-            <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+            <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           ) : !applications?.length ? (
-            <p className="text-sm text-gray-400 p-8 text-center">No leave applications.</p>
+            <p className="text-sm text-gray-600 p-8 text-center">No leave applications.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Ref', 'Employee', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -124,8 +124,8 @@ export default function LeavePage() {
                       <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{app.reference}</td>
                       <td className="px-4 py-3 text-gray-700 text-xs font-medium">{app.employee_name}</td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{app.leave_type_name}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{app.start_date}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{app.end_date}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs">{app.start_date}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs">{app.end_date}</td>
                       <td className="px-4 py-3 font-medium text-xs">{app.days}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[app.status]}`}>
@@ -151,7 +151,7 @@ export default function LeavePage() {
                             </>
                           )}
                           {app.review_notes && (
-                            <span className="text-xs text-gray-400 italic truncate max-w-[120px]" title={app.review_notes}>
+                            <span className="text-xs text-gray-600 italic truncate max-w-[120px]" title={app.review_notes}>
                               "{app.review_notes}"
                             </span>
                           )}
@@ -182,13 +182,13 @@ export default function LeavePage() {
             <h3 className="font-semibold text-brand-slate mb-1">
               {reviewModal.action === 'approved' ? 'Approve Leave' : 'Reject Leave'}
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
               <span className="font-medium">{reviewModal.app.employee_name}</span>
               {' — '}{reviewModal.app.leave_type_name}
               {' · '}{reviewModal.app.start_date} → {reviewModal.app.end_date}
               {' · '}{reviewModal.app.days} day{reviewModal.app.days !== 1 ? 's' : ''}
             </p>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-gray-600 mb-1">
               Comments {reviewModal.action === 'rejected' ? '(required)' : '(optional)'}
             </label>
             <textarea
@@ -259,11 +259,11 @@ function LeaveTypesTab() {
           className="bg-white border border-gray-200 rounded-xl p-5"
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input required {...f('name')} className={cls} /></div>
-            <div><label className="block text-xs text-gray-500 mb-1">Code *</label><input required {...f('code')} placeholder="AL, SL…" className={cls} /></div>
-            <div><label className="block text-xs text-gray-500 mb-1">Days Entitled</label><input type="number" {...f('days_entitled')} className={cls} /></div>
+            <div><label className="block text-xs text-gray-600 mb-1">Name *</label><input required {...f('name')} className={cls} /></div>
+            <div><label className="block text-xs text-gray-600 mb-1">Code *</label><input required {...f('code')} placeholder="AL, SL…" className={cls} /></div>
+            <div><label className="block text-xs text-gray-600 mb-1">Days Entitled</label><input type="number" {...f('days_entitled')} className={cls} /></div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Applicable To</label>
+              <label className="block text-xs text-gray-600 mb-1">Applicable To</label>
               <select {...f('applicable_to')} className={cls}>
                 <option value="all">All</option>
                 <option value="staff_only">Staff Only</option>
@@ -296,13 +296,13 @@ function LeaveTypesTab() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {!leaveTypes?.length ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No leave types configured.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No leave types configured.</p>
         ) : (
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Name', 'Code', 'Days/Year', 'Paid', 'Applicable To', 'Carry Fwd'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>

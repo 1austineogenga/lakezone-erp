@@ -43,7 +43,7 @@ export default function TripsReportPage() {
     <div className="space-y-5">
       <div>
         <h2 className="font-bold text-brand-slate text-lg">Trip & Mileage Report</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Fleet utilization, distance, and speed analytics</p>
+        <p className="text-xs text-gray-600 mt-0.5">Fleet utilization, distance, and speed analytics</p>
       </div>
 
       {/* Filters */}
@@ -76,7 +76,7 @@ export default function TripsReportPage() {
           ].map(s => (
             <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
               <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
@@ -109,7 +109,7 @@ export default function TripsReportPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {['Vehicle', 'Trips', 'Distance', 'Avg Trip', 'Max Speed', 'Fuel Used'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -136,14 +136,14 @@ export default function TripsReportPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Trip Log ({trips.length})</h3>
         </div>
         {trips.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No trips in this period.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No trips in this period.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {['Vehicle', 'Start', 'End', 'From → To', 'Distance', 'Duration', 'Max Speed', 'Driver'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -151,17 +151,17 @@ export default function TripsReportPage() {
                 {trips.map(t => (
                   <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-xs font-medium text-brand-slate">{t.vehicle_no || t.vehicle}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{fmtDt(t.started_at)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-xs text-gray-600">{fmtDt(t.started_at)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
                       {t.ended_at ? fmtDt(t.ended_at) : <span className="text-green-600 font-medium">In Progress</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 max-w-[180px] truncate">
+                    <td className="px-4 py-3 text-xs text-gray-600 max-w-[180px] truncate">
                       {t.start_location || '—'}{t.end_location ? ` → ${t.end_location}` : ''}
                     </td>
                     <td className="px-4 py-3 text-xs font-medium">{t.distance_km ? `${fmt(t.distance_km)} km` : '—'}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{t.duration_minutes ? `${t.duration_minutes} min` : '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{t.duration_minutes ? `${t.duration_minutes} min` : '—'}</td>
                     <td className="px-4 py-3 text-xs">{t.max_speed ? `${fmt(t.max_speed)} km/h` : '—'}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{t.driver_name || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{t.driver_name || '—'}</td>
                   </tr>
                 ))}
               </tbody>

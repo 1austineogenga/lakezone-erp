@@ -86,8 +86,8 @@ function ProfileTab({ user, refetch }) {
         </div>
         <div>
           <p className="font-bold text-brand-slate text-lg">{user.first_name} {user.last_name}</p>
-          <p className="text-sm text-gray-500 capitalize">{user.role_display || user.role?.replace(/_/g, ' ')}</p>
-          <p className="text-xs text-gray-400">{user.email}</p>
+          <p className="text-sm text-gray-600 capitalize">{user.role_display || user.role?.replace(/_/g, ' ')}</p>
+          <p className="text-xs text-gray-600">{user.email}</p>
           {photoMut.isPending && <p className="text-xs text-amber-600 mt-1">Uploading…</p>}
         </div>
       </div>
@@ -101,7 +101,7 @@ function ProfileTab({ user, refetch }) {
           { label: 'Date Joined', value: user.date_joined ? new Date(user.date_joined).toLocaleDateString() : '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-gray-50 rounded-lg px-4 py-3">
-            <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+            <p className="text-xs text-gray-600 mb-0.5">{label}</p>
             <p className="text-sm font-medium text-brand-slate">{value}</p>
           </div>
         ))}
@@ -271,13 +271,13 @@ function LeaveTab() {
         {isLoading ? (
           <div className="p-6 space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : leaves.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No leave applications yet.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No leave applications yet.</p>
         ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {['Type', 'From', 'To', 'Days', 'Reason', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -288,7 +288,7 @@ function LeaveTab() {
                   <td className="px-4 py-3 text-gray-600">{l.start_date}</td>
                   <td className="px-4 py-3 text-gray-600">{l.end_date}</td>
                   <td className="px-4 py-3 text-gray-600">{l.days_requested ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{l.reason || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{l.reason || '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[l.status] || 'bg-gray-100 text-gray-600'}`}>
                       {l.status}
@@ -378,13 +378,13 @@ function AdvanceTab({ userId }) {
         {isLoading ? (
           <div className="p-6 space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : advances.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No advance requests yet.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No advance requests yet.</p>
         ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {['Amount', 'Repayment', 'Reason', 'Requested On', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -393,8 +393,8 @@ function AdvanceTab({ userId }) {
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-brand-slate">KES {Number(a.amount).toLocaleString()}</td>
                   <td className="px-4 py-3 text-gray-600">{a.repayment_months} mo.</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{a.reason}</td>
-                  <td className="px-4 py-3 text-gray-500">{a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{a.reason}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[a.status] || 'bg-gray-100 text-gray-600'}`}>
                       {a.status}
@@ -437,13 +437,13 @@ function RequisitionsTab() {
         {isLoading ? (
           <div className="p-6 space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}</div>
         ) : reqs.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No requisitions yet.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No requisitions yet.</p>
         ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {['Reference', 'Description', 'Date', 'Status', ''].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -452,7 +452,7 @@ function RequisitionsTab() {
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-brand-slate">{r.reference_number || r.rq_number || '—'}</td>
                   <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{r.description || r.title || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_REQ[r.status] || 'bg-gray-100 text-gray-600'}`}>
                       {r.status}
@@ -492,7 +492,7 @@ export default function ProfilePage() {
     <div className="max-w-3xl mx-auto space-y-5">
       <div>
         <h2 className="font-bold text-brand-slate text-lg">My Profile</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Manage your account, apply for leave, advances and requisitions</p>
+        <p className="text-xs text-gray-600 mt-0.5">Manage your account, apply for leave, advances and requisitions</p>
       </div>
 
       {/* Tabs */}

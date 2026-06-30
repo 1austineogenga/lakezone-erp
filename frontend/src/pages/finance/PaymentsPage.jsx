@@ -44,13 +44,13 @@ export default function PaymentsPage() {
             </div>
           )
           : !data?.length
-            ? <div className="p-12 text-center text-gray-400 text-sm">No records found.</div>
+            ? <div className="p-12 text-center text-gray-600 text-sm">No records found.</div>
             : (
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Reference', 'Type', 'Method', 'Invoice', 'Bill', 'Amount (KES)', 'Date'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -63,11 +63,11 @@ export default function PaymentsPage() {
                           {p.payment_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs capitalize">{p.payment_method?.replace(/_/g, ' ') || '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs font-mono">{p.invoice || '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs font-mono">{p.bill || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs capitalize">{p.payment_method?.replace(/_/g, ' ') || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs font-mono">{p.invoice || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs font-mono">{p.bill || '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-700">KES {Number(p.amount).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-500">{p.payment_date}</td>
+                      <td className="px-4 py-3 text-gray-600">{p.payment_date}</td>
                     </tr>
                   ))}
                 </tbody>

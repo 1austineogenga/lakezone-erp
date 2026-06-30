@@ -127,7 +127,7 @@ export default function AlertsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Fleet Alerts</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {unackedCount > 0
               ? <span className="text-red-500 font-medium">{unackedCount} unacknowledged</span>
               : 'All clear'}
@@ -162,7 +162,7 @@ export default function AlertsPage() {
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex flex-wrap gap-3 items-end">
         <FunnelIcon className="h-4 w-4 text-gray-400 self-center" />
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Vehicle</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle</label>
           <select value={vehicleId} onChange={e => setVehicleId(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Vehicles</option>
@@ -170,7 +170,7 @@ export default function AlertsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
             <option value="">All Types</option>
@@ -197,8 +197,8 @@ export default function AlertsPage() {
       ) : displayed.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
           <CheckCircleIcon className="h-12 w-12 text-green-400 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">No alerts to show</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm font-medium text-gray-600">No alerts to show</p>
+          <p className="text-xs text-gray-600 mt-1">
             {showAck ? 'Nothing matches your filters.' : 'All alerts are acknowledged.'}
           </p>
         </div>
@@ -216,15 +216,15 @@ export default function AlertsPage() {
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${SEV_BADGE[a.severity] || 'bg-gray-100 text-gray-600'}`}>
                     {a.severity?.toUpperCase()}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                  <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                     {TYPE_LABEL[a.alert_type] || a.alert_type?.replace(/_/g, ' ')}
                   </span>
                   {TYPE_GROUP[a.alert_type] && (
-                    <span className="text-[10px] text-gray-400">{TYPE_GROUP[a.alert_type]}</span>
+                    <span className="text-[10px] text-gray-600">{TYPE_GROUP[a.alert_type]}</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-600">{a.message}</p>
-                <p className="text-[10px] text-gray-400 mt-1.5">{new Date(a.occurred_at).toLocaleString()}</p>
+                <p className="text-[10px] text-gray-600 mt-1.5">{new Date(a.occurred_at).toLocaleString()}</p>
                 {a.acknowledged && a.acknowledged_at && (
                   <p className="text-[10px] text-green-600 mt-0.5 flex items-center gap-1">
                     <CheckCircleIcon className="h-3 w-3" />

@@ -115,11 +115,11 @@ export default function TimesheetsPage() {
       {payrollSummary && (
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Labour Cost (Approved)</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Labour Cost (Approved)</p>
             <p className="text-xl font-bold text-brand-slate">{fmt(payrollSummary.grand_total)}</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Hours (Approved)</p>
+            <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Total Hours (Approved)</p>
             <p className="text-xl font-bold text-brand-slate">{Number(payrollSummary.total_hours || 0).toLocaleString()} hrs</p>
           </div>
         </div>
@@ -160,13 +160,13 @@ export default function TimesheetsPage() {
           <h3 className="font-semibold text-brand-slate text-sm">New Timesheet</h3>
           <div className="flex gap-4 flex-wrap">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Week Starting (Monday) *</label>
+              <label className="block text-xs text-gray-600 mb-1">Week Starting (Monday) *</label>
               <input required type="date" value={form.week_start}
                 onChange={e => setForm(f => ({ ...f, week_start: e.target.value }))}
                 className={cls} />
             </div>
             <div className="flex-1 min-w-48">
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
               <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 className={`w-full ${cls}`} />
             </div>
@@ -273,14 +273,14 @@ export default function TimesheetsPage() {
             <h3 className="font-semibold text-brand-slate text-sm">Timesheets</h3>
           </div>
           {isLoading
-            ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
             : !timesheets || timesheets.length === 0
-              ? <p className="text-sm text-gray-400 p-8 text-center">No timesheets yet.</p>
+              ? <p className="text-sm text-gray-600 p-8 text-center">No timesheets yet.</p>
               : <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Reference', 'Employee', 'Week Starting', 'Total', 'Status', 'Actions'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -289,7 +289,7 @@ export default function TimesheetsPage() {
                       <tr key={ts.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{ts.reference}</td>
                         <td className="px-4 py-3 text-gray-700">{ts.employee_name}</td>
-                        <td className="px-4 py-3 text-gray-500">{ts.week_start}</td>
+                        <td className="px-4 py-3 text-gray-600">{ts.week_start}</td>
                         <td className="px-4 py-3 font-medium">{fmt(ts.total_amount)}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ts.status]}`}>
@@ -329,15 +329,15 @@ export default function TimesheetsPage() {
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h3 className="font-semibold text-brand-slate text-sm">Payroll Cost Allocation by Project &amp; Cost Code</h3>
-            <p className="text-xs text-gray-400 mt-0.5">From approved timesheets only</p>
+            <p className="text-xs text-gray-600 mt-0.5">From approved timesheets only</p>
           </div>
           {!payrollSummary || payrollSummary.rows?.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No approved timesheets yet.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No approved timesheets yet.</p>
             : <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Project', 'Cost Code', 'Total Hours', 'Total Amount'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>

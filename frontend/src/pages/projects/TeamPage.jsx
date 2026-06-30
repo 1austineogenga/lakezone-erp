@@ -126,7 +126,7 @@ export default function TeamPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Project Team</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Personnel assigned to this project</p>
+          <p className="text-xs text-gray-600 mt-0.5">Personnel assigned to this project</p>
         </div>
         {canEdit && (
           <button onClick={() => setModal(true)}
@@ -145,7 +145,7 @@ export default function TeamPage() {
         ].map(s => (
           <div key={s.label} className={`${s.bg} ${s.border} border border-gray-200 rounded-xl p-4`}>
             <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -158,7 +158,7 @@ export default function TeamPage() {
         {personnel.length === 0 ? (
           <div className="p-10 text-center">
             <UsersIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">No team members assigned yet.</p>
+            <p className="text-sm text-gray-600">No team members assigned yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -166,7 +166,7 @@ export default function TeamPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {['Name', 'Role', 'Start Date', 'End Date', 'Monthly Rate', 'In Budget', 'Notes', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -175,19 +175,19 @@ export default function TeamPage() {
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-xs font-semibold text-brand-slate">{p.employee_name}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[p.role] || 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[p.role] || 'bg-gray-100 text-gray-600'}`}>
                         {roleLabel(p.role)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{p.start_date || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{p.end_date || <span className="text-green-600 font-medium">Ongoing</span>}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{p.start_date || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{p.end_date || <span className="text-green-600 font-medium">Ongoing</span>}</td>
                     <td className="px-4 py-3 text-xs font-medium">KES {Number(p.monthly_rate || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.include_in_budget ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.include_in_budget ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                         {p.include_in_budget ? 'Yes' : 'No'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{p.notes || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{p.notes || '—'}</td>
                     <td className="px-4 py-3 text-xs">
                       {!p.end_date && (
                         <button onClick={() => { setReassignModal(p); setReassignTarget(''); }}
@@ -225,7 +225,7 @@ export default function TeamPage() {
                       <button key={e.id} onClick={() => { setSelectedEmployee(e); setEmployeeSearch(e.full_name) }}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-50 last:border-0">
                         <span className="font-medium">{e.full_name}</span>
-                        <span className="text-gray-400 ml-2">{e.employee_number} · {e.employment_type} · {e.department_name}</span>
+                        <span className="text-gray-600 ml-2">{e.employee_number} · {e.employment_type} · {e.department_name}</span>
                       </button>
                     ))}
                   </div>
@@ -233,11 +233,11 @@ export default function TeamPage() {
                 {selectedEmployee && (
                   <div className="mt-1 flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
                     <span className="font-medium">{selectedEmployee.full_name}</span>
-                    <span className="text-gray-400">{selectedEmployee.employee_number}</span>
+                    <span className="text-gray-600">{selectedEmployee.employee_number}</span>
                     <button onClick={() => { setSelectedEmployee(null); setEmployeeSearch('') }} className="ml-auto text-gray-400 hover:text-red-500">×</button>
                   </div>
                 )}
-                <p className="text-[10px] text-gray-400 mt-0.5">Or enter manually below if not in HR system</p>
+                <p className="text-[10px] text-gray-600 mt-0.5">Or enter manually below if not in HR system</p>
               </div>
               {!selectedEmployee && (
                 <div>
@@ -320,7 +320,7 @@ export default function TeamPage() {
                   ))}
                 </select>
               </div>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-[10px] text-gray-600">
                 This will end their assignment on this project and add them to the selected destination.
               </p>
             </div>

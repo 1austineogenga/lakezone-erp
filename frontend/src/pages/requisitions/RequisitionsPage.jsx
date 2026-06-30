@@ -131,7 +131,7 @@ function ReqCard({ req, canApprove, canSeeFuelPayment }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <div>
-              <p className="text-[10px] font-mono text-gray-400">{req.reference_number}</p>
+              <p className="text-[10px] font-mono text-gray-600">{req.reference_number}</p>
               <p className="text-sm font-semibold text-brand-slate mt-0.5 truncate max-w-xs">{req.title}</p>
             </div>
             <div className="flex items-center gap-1.5 flex-wrap shrink-0">
@@ -144,7 +144,7 @@ function ReqCard({ req, canApprove, canSeeFuelPayment }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-400 flex-wrap">
+          <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-600 flex-wrap">
             <span className="flex items-center gap-1"><UserIcon className="h-3 w-3" /> {req.requested_by_name}</span>
             {req.project_name && <span>{req.project_name}</span>}
             <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" /> Need by {fmtDate(req.date_required)}</span>
@@ -202,7 +202,7 @@ function ScheduleCard({ schedule, canApprove }) {
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[10px] font-mono text-gray-400">{schedule.requisition_ref}</p>
+          <p className="text-[10px] font-mono text-gray-600">{schedule.requisition_ref}</p>
           <p className="text-sm font-semibold text-brand-slate mt-0.5">{schedule.requisition_title}</p>
         </div>
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${SCHED_STATUS_STYLE[schedule.status] || 'bg-gray-100 text-gray-600'}`}>
@@ -212,23 +212,23 @@ function ScheduleCard({ schedule, canApprove }) {
 
       <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
         {schedule.assigned_to && (
-          <div><span className="text-gray-400">Assigned:</span> <span className="font-medium">{schedule.assigned_to}</span></div>
+          <div><span className="text-gray-600">Assigned:</span> <span className="font-medium">{schedule.assigned_to}</span></div>
         )}
         {schedule.scheduled_date && (
-          <div><span className="text-gray-400">Date:</span> <span className="font-medium">{fmtDate(schedule.scheduled_date)}</span></div>
+          <div><span className="text-gray-600">Date:</span> <span className="font-medium">{fmtDate(schedule.scheduled_date)}</span></div>
         )}
         {schedule.payment_amount && (
-          <div><span className="text-gray-400">Payment:</span> <span className="font-semibold text-emerald-600">{fmt(schedule.payment_amount)}</span></div>
+          <div><span className="text-gray-600">Payment:</span> <span className="font-semibold text-emerald-600">{fmt(schedule.payment_amount)}</span></div>
         )}
-        <div><span className="text-gray-400">Logged by:</span> <span className="font-medium">{schedule.logged_by_name}</span></div>
+        <div><span className="text-gray-600">Logged by:</span> <span className="font-medium">{schedule.logged_by_name}</span></div>
       </div>
 
       {schedule.work_description && (
-        <p className="text-xs text-gray-500 mt-2 line-clamp-2">{schedule.work_description}</p>
+        <p className="text-xs text-gray-600 mt-2 line-clamp-2">{schedule.work_description}</p>
       )}
 
       {schedule.payment_details && (
-        <p className="text-[10px] text-gray-400 mt-1">Payment details: {schedule.payment_details}</p>
+        <p className="text-[10px] text-gray-600 mt-1">Payment details: {schedule.payment_details}</p>
       )}
 
       {schedule.expense_claim && (
@@ -238,7 +238,7 @@ function ScheduleCard({ schedule, canApprove }) {
       )}
 
       {schedule.admin_comments && (
-        <p className="mt-2 text-xs italic text-gray-400">Admin: "{schedule.admin_comments}"</p>
+        <p className="mt-2 text-xs italic text-gray-600">Admin: "{schedule.admin_comments}"</p>
       )}
 
       <div className="flex items-center gap-2 mt-3">
@@ -293,7 +293,7 @@ function SummaryStrip({ data }) {
       ].map(c => (
         <div key={c.label} className={`${c.bg} rounded-2xl p-3 text-center`}>
           <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{c.label}</p>
+          <p className="text-xs text-gray-600 mt-0.5">{c.label}</p>
         </div>
       ))}
     </div>
@@ -350,7 +350,7 @@ export default function RequisitionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-brand-slate">Requisitions</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Fuel · Materials · Repairs · General purchases</p>
+          <p className="text-xs text-gray-600 mt-0.5">Fuel · Materials · Repairs · General purchases</p>
         </div>
         <button onClick={() => navigate('/requisitions/new')}
           className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
@@ -442,9 +442,9 @@ export default function RequisitionsPage() {
         ) : schedules.length === 0 ? (
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
             <CalendarDaysIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-400">No maintenance schedules yet.</p>
+            <p className="text-sm font-medium text-gray-600">No maintenance schedules yet.</p>
             {canLogSchedule && (
-              <p className="text-xs text-gray-400 mt-1">Open a Repair & Maintenance requisition to log a schedule.</p>
+              <p className="text-xs text-gray-600 mt-1">Open a Repair & Maintenance requisition to log a schedule.</p>
             )}
           </div>
         ) : (
@@ -461,7 +461,7 @@ export default function RequisitionsPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
           <ClipboardDocumentListIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-400">No requisitions found.</p>
+          <p className="text-sm font-medium text-gray-600">No requisitions found.</p>
           <button onClick={() => navigate('/requisitions/new')}
             className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
             <PlusIcon className="h-3.5 w-3.5" /> Create one

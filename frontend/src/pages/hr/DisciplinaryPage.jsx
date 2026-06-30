@@ -68,34 +68,34 @@ export default function DisciplinaryPage() {
           <h3 className="font-semibold text-brand-slate text-sm mb-4">New Disciplinary Record</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Employee *</label>
+              <label className="block text-xs text-gray-600 mb-1">Employee *</label>
               <select required {...f('employee')} className={cls}>
                 <option value="">Select employee…</option>
                 {employees?.map(e => <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Type *</label>
+              <label className="block text-xs text-gray-600 mb-1">Type *</label>
               <select required {...f('record_type')} className={cls}>
                 {RECORD_TYPES.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Incident Date *</label>
+              <label className="block text-xs text-gray-600 mb-1">Incident Date *</label>
               <input required type="date" {...f('incident_date')} className={cls} />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Description *</label>
+              <label className="block text-xs text-gray-600 mb-1">Description *</label>
               <textarea required {...f('description')} rows={2}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Action Taken *</label>
+              <label className="block text-xs text-gray-600 mb-1">Action Taken *</label>
               <textarea required {...f('action_taken')} rows={2}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
               <input {...f('notes')} className={cls} />
             </div>
             <div className="flex items-center gap-2 pt-4">
@@ -120,15 +120,15 @@ export default function DisciplinaryPage() {
           <h3 className="font-semibold text-brand-slate text-sm">Disciplinary Records</h3>
         </div>
         {isLoading
-          ? <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+          ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !records || records.length === 0
-            ? <p className="text-sm text-gray-400 p-8 text-center">No disciplinary records.</p>
+            ? <p className="text-sm text-gray-600 p-8 text-center">No disciplinary records.</p>
             : <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {['Employee', 'Type', 'Incident Date', 'Description', 'Action Taken', 'Acknowledged'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -137,18 +137,18 @@ export default function DisciplinaryPage() {
                       <tr key={r.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-brand-slate text-xs">{r.employee_number}</p>
-                          <p className="text-xs text-gray-500">{r.employee_name}</p>
+                          <p className="text-xs text-gray-600">{r.employee_name}</p>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${TYPE_COLORS[r.record_type]}`}>
                             {r.record_type}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{r.incident_date}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{r.incident_date}</td>
                         <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{r.description}</td>
                         <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{r.action_taken}</td>
                         <td className="px-4 py-3 text-xs">
-                          <span className={`px-2 py-0.5 rounded-full font-medium ${r.acknowledged ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          <span className={`px-2 py-0.5 rounded-full font-medium ${r.acknowledged ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                             {r.acknowledged ? 'Yes' : 'Pending'}
                           </span>
                         </td>

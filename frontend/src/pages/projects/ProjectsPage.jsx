@@ -114,7 +114,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Projects</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{projects.length} total projects</p>
+          <p className="text-xs text-gray-600 mt-0.5">{projects.length} total projects</p>
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">
@@ -142,12 +142,12 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       {isLoading ? (
-        <p className="text-sm text-gray-400 p-8 text-center">Loading…</p>
+        <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
       ) : projects.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
           <BuildingOffice2Icon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">No projects yet</p>
-          <p className="text-xs text-gray-400 mt-1">{canEdit ? 'Create manually or import from Excel.' : 'No projects have been created yet.'}</p>
+          <p className="text-sm font-medium text-gray-600">No projects yet</p>
+          <p className="text-xs text-gray-600 mt-1">{canEdit ? 'Create manually or import from Excel.' : 'No projects have been created yet.'}</p>
           {canEdit && (
             <div className="flex justify-center gap-2 mt-4">
               <button onClick={() => setShowImport(true)}
@@ -175,19 +175,19 @@ export default function ProjectsPage() {
                   </span>
                 </div>
                 <h3 className="font-semibold text-brand-slate text-sm leading-snug mb-1">{p.name}</h3>
-                <p className="text-xs text-gray-400 mb-3">{p.client || '—'}</p>
+                <p className="text-xs text-gray-600 mb-3">{p.client || '—'}</p>
                 <div className="border-t border-gray-100 pt-3 space-y-1.5">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Contract Value</span>
+                    <span className="text-gray-600">Contract Value</span>
                     <span className="font-semibold text-brand-slate">KES {Number(p.contract_value || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Period</span>
+                    <span className="text-gray-600">Period</span>
                     <span className="text-gray-600">{p.start_date || '—'} → {p.end_date || '—'}</span>
                   </div>
                   {p.location && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Location</span>
+                      <span className="text-gray-600">Location</span>
                       <span className="text-gray-600">{p.location}</span>
                     </div>
                   )}
@@ -240,7 +240,7 @@ export default function ProjectsPage() {
                     {importFile
                       ? <p className="text-sm font-medium text-brand-slate">{importFile.name}</p>
                       : <><DocumentArrowUpIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                         <p className="text-sm text-gray-400">Click to select file</p></>}
+                         <p className="text-sm text-gray-600">Click to select file</p></>}
                     <input ref={fileRef} type="file" accept=".xlsx" className="hidden"
                       onChange={e => setImportFile(e.target.files[0] || null)} />
                   </div>
@@ -353,7 +353,7 @@ export default function ProjectsPage() {
                     {budgetFile
                       ? <p className="text-sm font-medium text-brand-slate">{budgetFile.name}</p>
                       : <><TableCellsIcon className="h-8 w-8 text-blue-300 mx-auto mb-2" />
-                         <p className="text-sm text-gray-400">Click to select workbook</p></>}
+                         <p className="text-sm text-gray-600">Click to select workbook</p></>}
                     <input ref={budgetRef} type="file" accept=".xlsx" className="hidden"
                       onChange={e => setBudgetFile(e.target.files[0] || null)} />
                   </div>

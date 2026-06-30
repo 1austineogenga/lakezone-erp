@@ -103,10 +103,10 @@ export default function BudgetPage() {
       <div className="space-y-4">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Budget</h2>
-          <p className="text-xs text-gray-400 mt-0.5">No budget created yet</p>
+          <p className="text-xs text-gray-600 mt-0.5">No budget created yet</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
-          <p className="text-sm font-medium text-gray-500 mb-4">No budget for this project yet.</p>
+          <p className="text-sm font-medium text-gray-600 mb-4">No budget for this project yet.</p>
           <button
             onClick={() => setShowCreateForm(true)}
             className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
@@ -165,7 +165,7 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Budget</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{activeBudget.title || 'Project Budget'} · {activeBudget.period_weeks} weeks</p>
+          <p className="text-xs text-gray-600 mt-0.5">{activeBudget.title || 'Project Budget'} · {activeBudget.period_weeks} weeks</p>
         </div>
         {canEdit && (
           <button onClick={() => setShowCreateForm(true)}
@@ -185,7 +185,7 @@ export default function BudgetPage() {
         ].map(s => (
           <div key={s.label} className={`${s.bg} border border-gray-200 border-l-4 ${s.border} rounded-xl p-4`}>
             <p className={`text-lg font-bold ${s.text}`}>{s.val}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -233,7 +233,7 @@ export default function BudgetPage() {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['Category', 'Items', 'Base Total', 'High Case Total'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -241,13 +241,13 @@ export default function BudgetPage() {
                 {byCategory.map(row => (
                   <tr key={row.category} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 capitalize font-medium text-brand-slate">{row.category}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{row.count}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{row.count}</td>
                     <td className="px-4 py-2.5 font-medium">{fmt(row.base_total)}</td>
                     <td className="px-4 py-2.5 text-orange-600">{fmt(row.high_total)}</td>
                   </tr>
                 ))}
                 {byCategory.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No data yet.</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-600">No data yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -284,7 +284,7 @@ export default function BudgetPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     {['Week', 'Materials', 'Fuel', 'Labour', 'Casuals', 'Base Total'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -300,7 +300,7 @@ export default function BudgetPage() {
                     </tr>
                   ))}
                   {byWeek.length === 0 && (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No weekly data yet.</td></tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-600">No weekly data yet.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -332,7 +332,7 @@ export default function BudgetPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     {['Week', 'Month', 'Category', 'Description', 'Qty', 'Unit', 'Base Rate', 'Base Cost', 'High Case'].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                      <th key={h} className="px-3 py-2.5 text-left font-medium text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -348,14 +348,14 @@ export default function BudgetPage() {
                       </td>
                       <td className="px-3 py-2.5 text-gray-700 max-w-[200px] truncate">{item.description}</td>
                       <td className="px-3 py-2.5">{item.quantity}</td>
-                      <td className="px-3 py-2.5 text-gray-500">{item.unit}</td>
+                      <td className="px-3 py-2.5 text-gray-600">{item.unit}</td>
                       <td className="px-3 py-2.5">{fmt(item.base_rate)}</td>
                       <td className="px-3 py-2.5 font-medium">{fmt(item.base_cost)}</td>
                       <td className="px-3 py-2.5 text-orange-600">{fmt(item.high_case_cost)}</td>
                     </tr>
                   ))}
                   {filteredItems.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No items found.</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-600">No items found.</td></tr>
                   )}
                 </tbody>
               </table>

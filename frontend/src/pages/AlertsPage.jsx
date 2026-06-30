@@ -207,7 +207,7 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
 
         {nextStep === 'acknowledged' && (
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Assign To</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Assign To</label>
             <select className={inp2} value={fields.assigned_to || ''} onChange={e => setF('assigned_to', e.target.value)}>
               <option value="">— Unassigned —</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.role?.replace(/_/g,' ')})</option>)}
@@ -219,16 +219,16 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
           <>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Provider / Company Name</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Provider / Company Name</label>
                 <input className={inp2} placeholder={alert.compliance_type === 'insurance' ? 'e.g. APA Insurance' : alert.compliance_type === 'inspection' ? 'e.g. NTSA' : 'e.g. Stallion Systems'} value={fields.provider_name || ''} onChange={e => setF('provider_name', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Contact Person / Phone</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Contact Person / Phone</label>
                 <input className={inp2} placeholder="Name or phone" value={fields.provider_contact || ''} onChange={e => setF('provider_contact', e.target.value)} />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date Contacted</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date Contacted</label>
               <input type="date" className={inp2} value={fields.contacted_date || ''} onChange={e => setF('contacted_date', e.target.value)} />
             </div>
           </>
@@ -238,16 +238,16 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
           <>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Invoice / Reference No.</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Invoice / Reference No.</label>
                 <input className={inp2} placeholder="INV-001" value={fields.invoice_ref || ''} onChange={e => setF('invoice_ref', e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Amount (KES) *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Amount (KES) *</label>
                 <input type="number" min="0" step="any" className={inp2} value={fields.invoice_amount || ''} onChange={e => setF('invoice_amount', e.target.value)} />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Due Date</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Due Date</label>
               <input type="date" className={inp2} value={fields.invoice_due_date || ''} onChange={e => setF('invoice_due_date', e.target.value)} />
             </div>
           </>
@@ -280,7 +280,7 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                     <option value="">— Select supplier —</option>
                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.company_name}</option>)}
                   </select>
-                  <p className="text-[10px] text-gray-400">Amount: KES {Number(activeCase.invoice_amount || 0).toLocaleString()} · Ref: {activeCase.invoice_ref || 'N/A'}</p>
+                  <p className="text-[10px] text-gray-600">Amount: KES {Number(activeCase.invoice_amount || 0).toLocaleString()} · Ref: {activeCase.invoice_ref || 'N/A'}</p>
                   <div className="flex gap-2">
                     <button onClick={() => billMut.mutate({ id: activeCase.id, supplier_id: selectedSupplier })}
                       disabled={!selectedSupplier || billMut.isPending}
@@ -292,25 +292,25 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                 </div>
               )
             )}
-            <p className="text-[10px] text-gray-400 text-center">— or mark payment as done manually —</p>
+            <p className="text-[10px] text-gray-600 text-center">— or mark payment as done manually —</p>
           </div>
         )}
 
         {nextStep === 'certificate_updated' && (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">New Expiry Date *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">New Expiry Date *</label>
               <input type="date" className={inp2} value={fields.new_expiry || ''} onChange={e => setF('new_expiry', e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">New Certificate No.</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">New Certificate No.</label>
               <input className={inp2} placeholder="Certificate number" value={fields.new_cert_number || ''} onChange={e => setF('new_cert_number', e.target.value)} />
             </div>
           </div>
         )}
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Note</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Note</label>
           <textarea rows={2} className={`${inp2} resize-none`} value={note} onChange={e => setNote(e.target.value)} placeholder="What was done, any details…" />
         </div>
 
@@ -341,7 +341,7 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                 </span>
               </div>
               <h2 className="font-bold text-brand-slate text-base">{alert.asset_name}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-600 mt-0.5">
                 {alert.asset_ref} · Expires {alert.expiry_date} · {alert.days_left < 0 ? `${Math.abs(alert.days_left)}d overdue` : `${alert.days_left}d left`}
               </p>
             </div>
@@ -358,7 +358,7 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                 Opening a renewal case will track this certificate through to completion — from contacting the provider to updating the expiry date in the system.
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Initial Note (optional)</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Initial Note (optional)</label>
                 <textarea rows={2} className={`${inp2} resize-none`} value={note} onChange={e => setNote(e.target.value)} placeholder="Who is handling this, any context…" />
               </div>
               <button onClick={handleStart} disabled={createMut.isPending}
@@ -389,27 +389,27 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {activeCase.provider_name && (
                     <div className="bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-gray-400 mb-0.5">Provider</p>
+                      <p className="text-gray-600 mb-0.5">Provider</p>
                       <p className="font-medium text-gray-700">{activeCase.provider_name}</p>
-                      {activeCase.provider_contact && <p className="text-gray-500">{activeCase.provider_contact}</p>}
+                      {activeCase.provider_contact && <p className="text-gray-600">{activeCase.provider_contact}</p>}
                     </div>
                   )}
                   {activeCase.invoice_amount && (
                     <div className="bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-gray-400 mb-0.5">Invoice</p>
+                      <p className="text-gray-600 mb-0.5">Invoice</p>
                       <p className="font-medium text-gray-700">KES {Number(activeCase.invoice_amount).toLocaleString()}</p>
-                      {activeCase.invoice_ref && <p className="text-gray-500">{activeCase.invoice_ref}</p>}
+                      {activeCase.invoice_ref && <p className="text-gray-600">{activeCase.invoice_ref}</p>}
                     </div>
                   )}
                   {activeCase.new_expiry && (
                     <div className="bg-green-50 rounded-lg p-2.5">
-                      <p className="text-gray-400 mb-0.5">New Expiry</p>
+                      <p className="text-gray-600 mb-0.5">New Expiry</p>
                       <p className="font-semibold text-green-700">{activeCase.new_expiry}</p>
                     </div>
                   )}
                   {activeCase.assigned_to_name && (
                     <div className="bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-gray-400 mb-0.5">Assigned To</p>
+                      <p className="text-gray-600 mb-0.5">Assigned To</p>
                       <p className="font-medium text-gray-700">{activeCase.assigned_to_name}</p>
                     </div>
                   )}
@@ -419,7 +419,7 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
               {/* Audit trail */}
               {activeCase.steps?.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Audit Trail</p>
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3">Audit Trail</p>
                   <div className="space-y-2">
                     {activeCase.steps.map(step => (
                       <div key={step.id} className="flex gap-3 text-xs">
@@ -431,8 +431,8 @@ function ComplianceWorkflowPanel({ alert, cases, users, suppliers, onClose, qc }
                         </div>
                         <div className="pb-3">
                           <p className="font-semibold text-gray-700">{step.step_label}</p>
-                          {step.note && <p className="text-gray-500 mt-0.5">{step.note}</p>}
-                          <p className="text-gray-400 mt-0.5">{step.actioned_by_name} · {new Date(step.actioned_at).toLocaleString()}</p>
+                          {step.note && <p className="text-gray-600 mt-0.5">{step.note}</p>}
+                          <p className="text-gray-600 mt-0.5">{step.actioned_by_name} · {new Date(step.actioned_at).toLocaleString()}</p>
                         </div>
                       </div>
                     ))}
@@ -458,7 +458,7 @@ function SummaryCard({ icon: Icon, label, value, sub, bg, color, onClick, active
         <span className={`text-2xl font-bold ${color}`}>{value}</span>
       </div>
       <p className="text-xs font-semibold text-gray-700">{label}</p>
-      {sub && <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[10px] text-gray-600 mt-0.5">{sub}</p>}
     </button>
   )
 }
@@ -563,7 +563,7 @@ export default function AlertsPage() {
     if (shown.length === 0) return (
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
         <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-        <p className="text-sm font-medium text-gray-500">No {showAcked ? '' : 'unacknowledged '}alerts</p>
+        <p className="text-sm font-medium text-gray-600">No {showAcked ? '' : 'unacknowledged '}alerts</p>
       </div>
     )
     return (
@@ -577,11 +577,11 @@ export default function AlertsPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-sm font-bold text-brand-slate">{alert.vehicle_name || alert.vehicle_no}</span>
-                {alert.vehicle_name && <span className="text-xs text-gray-400 font-mono">{alert.vehicle_no}</span>}
+                {alert.vehicle_name && <span className="text-xs text-gray-600 font-mono">{alert.vehicle_no}</span>}
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${SEV_BADGE[alert.severity] || 'bg-gray-100 text-gray-600'}`}>
                   {alert.severity?.toUpperCase()}
                 </span>
-                <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                   {ALERT_TYPE_LABELS[alert.alert_type] || alert.alert_type}
                 </span>
                 {alert.acknowledged && (
@@ -591,7 +591,7 @@ export default function AlertsPage() {
                 )}
               </div>
               <p className="text-xs text-gray-600">{alert.message}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{timeAgo(alert.occurred_at)}</p>
+              <p className="text-[10px] text-gray-600 mt-1">{timeAgo(alert.occurred_at)}</p>
             </div>
             {!alert.acknowledged && (
               <button onClick={() => ackMut.mutate(alert.id)} disabled={ackMut.isPending}
@@ -618,7 +618,7 @@ export default function AlertsPage() {
       {/* Header */}
       <div>
         <h1 className="text-lg font-bold text-brand-slate">System Alerts</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Compliance, fuel, safety, inventory and scheduled action alerts</p>
+        <p className="text-xs text-gray-600 mt-0.5">Compliance, fuel, safety, inventory and scheduled action alerts</p>
       </div>
 
       {/* Dashboard summary cards */}
@@ -723,7 +723,7 @@ export default function AlertsPage() {
                     <p className="text-xs font-semibold text-gray-600">{label}</p>
                   </div>
                   <p className={`text-xl font-bold ${count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
-                  <p className="text-[10px] text-gray-400">{count === 0 ? 'All valid' : 'Action required'}</p>
+                  <p className="text-[10px] text-gray-600">{count === 0 ? 'All valid' : 'Action required'}</p>
                 </div>
               )
             })}
@@ -752,7 +752,7 @@ export default function AlertsPage() {
             return shown.length === 0 ? (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
                 <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-gray-600">
                   {filterAlert === 'ok' ? 'No valid certificates to show' : 'All compliance documents are up to date'}
                 </p>
               </div>
@@ -771,7 +771,7 @@ export default function AlertsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="font-bold text-brand-slate text-sm">{alert.asset_name}</span>
-                          <span className="text-xs text-gray-400 font-mono">{alert.asset_ref}</span>
+                          <span className="text-xs text-gray-600 font-mono">{alert.asset_ref}</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
                           <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
                             {typeLabel}
@@ -792,13 +792,13 @@ export default function AlertsPage() {
                         <p className="text-xs text-gray-600">
                           Expires: <span className="font-semibold">{alert.expiry_date}</span>
                           {' · '}
-                          <span className={alert.days_left < 0 ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                          <span className={alert.days_left < 0 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
                             {alert.days_left < 0
                               ? `${Math.abs(alert.days_left)} days overdue`
                               : `${alert.days_left} days remaining`}
                           </span>
                         </p>
-                        {alert.notes && <p className="text-[10px] text-gray-400 mt-0.5 italic">{alert.notes}</p>}
+                        {alert.notes && <p className="text-[10px] text-gray-600 mt-0.5 italic">{alert.notes}</p>}
                       </div>
                       {alert.alert_level !== 'ok' && (
                         <button onClick={() => setCaseAlert(alert)}
@@ -823,8 +823,8 @@ export default function AlertsPage() {
       {tab === 'fuel' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500">Fuel refills, drain/theft events and low-fuel warnings.</p>
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <p className="text-xs text-gray-600">Fuel refills, drain/theft events and low-fuel warnings.</p>
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
               <input type="checkbox" checked={showAcked} onChange={e => setShowAcked(e.target.checked)} className="rounded border-gray-300 accent-brand-red" />
               Show acknowledged
             </label>
@@ -839,8 +839,8 @@ export default function AlertsPage() {
       {tab === 'safety' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500">SOS, speeding, long idle, ignition-off-moving and device offline alerts.</p>
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <p className="text-xs text-gray-600">SOS, speeding, long idle, ignition-off-moving and device offline alerts.</p>
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
               <input type="checkbox" checked={showAcked} onChange={e => setShowAcked(e.target.checked)} className="rounded border-gray-300 accent-brand-red" />
               Show acknowledged
             </label>
@@ -854,18 +854,18 @@ export default function AlertsPage() {
       {/* ── Low Stock ── */}
       {tab === 'stock' && (
         <div className="space-y-4">
-          <p className="text-xs text-gray-500">Stock items currently at or below their reorder level.</p>
+          <p className="text-xs text-gray-600">Stock items currently at or below their reorder level.</p>
           {stockLevels.length === 0 ? (
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
               <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-              <p className="text-sm font-medium text-gray-500">All stock levels are adequate</p>
+              <p className="text-sm font-medium text-gray-600">All stock levels are adequate</p>
             </div>
           ) : (() => {
             const low = stockLevels.filter(s => s.is_below_reorder)
             if (low.length === 0) return (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
                 <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-                <p className="text-sm font-medium text-gray-500">All stock levels are adequate</p>
+                <p className="text-sm font-medium text-gray-600">All stock levels are adequate</p>
               </div>
             )
             return (
@@ -876,7 +876,7 @@ export default function AlertsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="font-bold text-brand-slate text-sm">{s.item_name}</span>
-                        <span className="text-xs text-gray-400 font-mono">{s.item_code}</span>
+                        <span className="text-xs text-gray-600 font-mono">{s.item_code}</span>
                         <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">LOW STOCK</span>
                         {s.store_name && (
                           <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
@@ -927,16 +927,16 @@ export default function AlertsPage() {
               </div>
               <form onSubmit={e => { e.preventDefault(); createMut.mutate(form) }} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Title *</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
                   <input {...f('title')} required placeholder="Action title…" className={inputCls} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Due Date *</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Due Date *</label>
                     <input type="date" {...f('due_date')} required className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Priority</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
                     <select {...f('priority')} className={inputCls}>
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -945,7 +945,7 @@ export default function AlertsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Assign To</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assign To</label>
                     <select {...f('assigned_to')} className={inputCls}>
                       <option value="">Unassigned</option>
                       {users.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
@@ -954,7 +954,7 @@ export default function AlertsPage() {
                 </div>
                 {editingId && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                     <select {...f('status')} className={inputCls}>
                       <option value="pending">Pending</option>
                       <option value="in_progress">In Progress</option>
@@ -964,7 +964,7 @@ export default function AlertsPage() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
                   <textarea {...f('description')} rows={3} placeholder="Details…" className={`${inputCls} resize-none`} />
                 </div>
                 <div className="flex gap-2 justify-end">
@@ -984,7 +984,7 @@ export default function AlertsPage() {
           ) : actions.length === 0 ? (
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
               <CalendarDaysIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-400">No scheduled actions.</p>
+              <p className="text-sm font-medium text-gray-600">No scheduled actions.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1006,7 +1006,7 @@ export default function AlertsPage() {
                           {action.priority}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
+                      <div className="flex items-center gap-4 text-xs text-gray-600 flex-wrap">
                         <span className="flex items-center gap-1">
                           <CalendarDaysIcon className="h-3.5 w-3.5" /> Due: {action.due_date}
                         </span>
@@ -1055,14 +1055,14 @@ export default function AlertsPage() {
                         <p className="text-xs text-gray-600 whitespace-pre-wrap">{action.description}</p>
                       )}
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Comments</p>
+                        <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-2">Comments</p>
                         {!action.comments?.length && (
-                          <p className="text-xs text-gray-400">No comments yet.</p>
+                          <p className="text-xs text-gray-600">No comments yet.</p>
                         )}
                         <div className="space-y-2">
                           {action.comments?.map(c => (
                             <div key={c.id} className="bg-white rounded-xl px-3 py-2.5 border border-gray-100">
-                              <div className="flex items-center gap-2 text-[10px] text-gray-400 mb-0.5">
+                              <div className="flex items-center gap-2 text-[10px] text-gray-600 mb-0.5">
                                 <span className="font-semibold text-brand-slate">{c.author_name}</span>
                                 <span>{new Date(c.created_at).toLocaleString()}</span>
                               </div>

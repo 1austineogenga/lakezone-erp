@@ -117,7 +117,7 @@ export default function ProjectPage() {
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" /> All Projects
           </button>
-          <span className="text-gray-400">|</span>
+          <span className="text-gray-600">|</span>
           {isLoading ? (
             <div className="h-4 bg-gray-100 rounded animate-pulse w-48" />
           ) : (
@@ -131,7 +131,7 @@ export default function ProjectPage() {
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
                 {STATUS_LABELS[project?.status] || ''}
               </span>
-              <span className="ml-auto text-xs text-gray-400 shrink-0">
+              <span className="ml-auto text-xs text-gray-600 shrink-0">
                 Contract: <span className="font-medium text-brand-slate">KES {Number(project?.contract_value || 0).toLocaleString()}</span>
               </span>
             </>

@@ -65,10 +65,10 @@ export default function FleetRegisterImportModal({ onClose, onSuccess }) {
                 ${dragging ? 'border-brand-red bg-red-50' : 'border-gray-200 hover:border-brand-red hover:bg-gray-50'}`}
             >
               <ArrowUpTrayIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 {loading ? 'Uploading…' : 'Drag & drop your Excel file here, or click to browse'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">Supports: Fleet Master Register (.xlsx)</p>
+              <p className="text-[10px] text-gray-600 mt-1">Supports: Fleet Master Register (.xlsx)</p>
               <input ref={inputRef} type="file" accept=".xlsx" className="hidden"
                 onChange={e => handleFile(e.target.files[0])} />
             </div>

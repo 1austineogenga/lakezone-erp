@@ -23,7 +23,7 @@ const BAND_COLORS = {
 const BANDS = ['current', '1_30', '31_60', '61_90', '90_plus']
 
 function AgingTable({ data, nameKey, labelSingular }) {
-  if (!data) return <div className="p-8 text-center text-gray-400 text-sm">Loading…</div>
+  if (!data) return <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
 
   const rows = data.by_client || data.by_supplier || []
   const totals = data.totals || {}
@@ -33,7 +33,7 @@ function AgingTable({ data, nameKey, labelSingular }) {
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-brand-slate">{labelSingular}</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Grand total outstanding: <span className="font-semibold text-gray-600">KES {Number(data.grand_total || 0).toLocaleString()}</span></p>
+          <p className="text-xs text-gray-600 mt-0.5">Grand total outstanding: <span className="font-semibold text-gray-600">KES {Number(data.grand_total || 0).toLocaleString()}</span></p>
         </div>
       </div>
 
@@ -53,16 +53,16 @@ function AgingTable({ data, nameKey, labelSingular }) {
       )}
 
       {rows.length === 0
-        ? <p className="text-sm text-gray-400 p-8 text-center">No outstanding {labelSingular.toLowerCase()}.</p>
+        ? <p className="text-sm text-gray-600 p-8 text-center">No outstanding {labelSingular.toLowerCase()}.</p>
         : <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{nameKey === 'client_name' ? 'Client' : 'Supplier'}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{nameKey === 'client_name' ? 'Client' : 'Supplier'}</th>
                   {BANDS.map(b => (
-                    <th key={b} className="px-4 py-3 text-right text-xs font-semibold text-gray-500">{BAND_LABELS[b]}</th>
+                    <th key={b} className="px-4 py-3 text-right text-xs font-semibold text-gray-600">{BAND_LABELS[b]}</th>
                   ))}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Total</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -73,7 +73,7 @@ function AgingTable({ data, nameKey, labelSingular }) {
                       <td key={b} className="px-4 py-3 text-right">
                         {row[b] > 0
                           ? <span className={`text-xs px-2 py-0.5 rounded-full ${BAND_COLORS[b]}`}>{fmt(row[b])}</span>
-                          : <span className="text-gray-500 text-xs">—</span>
+                          : <span className="text-gray-600 text-xs">—</span>
                         }
                       </td>
                     ))}

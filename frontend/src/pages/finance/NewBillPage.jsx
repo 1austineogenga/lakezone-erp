@@ -56,7 +56,7 @@ export default function NewBillPage() {
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-lg font-bold text-brand-slate">Record Vendor Bill</h2>
-        <p className="text-sm text-gray-500">Record a supplier invoice or subcontractor certificate</p>
+        <p className="text-sm text-gray-600">Record a supplier invoice or subcontractor certificate</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -136,24 +136,24 @@ export default function NewBillPage() {
             {lines.map((line, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-5">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Description *</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Description *</label>}
                   <input required value={line.description} onChange={e => setLine(i, 'description', e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
                     placeholder="Item / service" />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Qty</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Qty</label>}
                   <input type="number" min="0.01" step="0.01" value={line.quantity} onChange={e => setLine(i, 'quantity', e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
                 </div>
                 <div className="col-span-3">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Unit Price (KES)</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Unit Price (KES)</label>}
                   <input type="number" min="0" step="0.01" value={line.unit_price} onChange={e => setLine(i, 'unit_price', e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
                     placeholder="0.00" />
                 </div>
                 <div className="col-span-1">
-                  {i === 0 && <label className="block text-xs text-gray-500 mb-1">Cost Code</label>}
+                  {i === 0 && <label className="block text-xs text-gray-600 mb-1">Cost Code</label>}
                   <select value={line.cost_code} onChange={e => setLine(i, 'cost_code', e.target.value)}
                     className="w-full px-1.5 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-red">
                     <option value="">—</option>

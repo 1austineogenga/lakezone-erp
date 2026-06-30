@@ -77,7 +77,7 @@ function KpiCard({ icon: Icon, label, value, sub, bg, color, trend, onClick }) {
       </div>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-gray-600">{label}</p>
-      {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+      {sub && <p className="text-[10px] text-gray-600">{sub}</p>}
       {trend != null && (
         <div className={`flex items-center gap-0.5 text-[10px] font-medium mt-0.5 ${trend >= 0 ? 'text-green-600' : 'text-red-500'}`}>
           {trend >= 0
@@ -95,7 +95,7 @@ function SectionHeader({ title, sub, action, onAction }) {
     <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
       <div>
         <h3 className="font-semibold text-brand-slate text-sm">{title}</h3>
-        {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[10px] text-gray-600 mt-0.5">{sub}</p>}
       </div>
       {action && (
         <button onClick={onAction} className="text-xs text-brand-red hover:underline flex items-center gap-0.5">
@@ -183,7 +183,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-brand-slate">{greeting}, {user?.first_name ?? 'there'} 👋</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             {' · '}Lake Zone Enterprises ERP
           </p>
@@ -212,19 +212,19 @@ export default function DashboardPage() {
       {finance && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Revenue (MTD)</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Revenue (MTD)</p>
             <p className="text-lg font-bold text-emerald-600">KES {fmtK(finance.revenue_mtd ?? finance.total_invoiced ?? 0)}</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Expenses (MTD)</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Expenses (MTD)</p>
             <p className="text-lg font-bold text-red-500">KES {fmtK(finance.expenses_mtd ?? finance.total_expenses ?? 0)}</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Outstanding Invoices</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Outstanding Invoices</p>
             <p className="text-lg font-bold text-amber-600">KES {fmtK(finance.outstanding_invoices ?? finance.total_outstanding ?? 0)}</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Overdue Bills</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Overdue Bills</p>
             <p className="text-lg font-bold text-rose-600">KES {fmtK(finance.overdue_bills ?? finance.total_overdue ?? 0)}</p>
           </div>
         </div>
@@ -252,10 +252,10 @@ export default function DashboardPage() {
                 <Popup>
                   <div className="text-xs space-y-1 min-w-[160px]">
                     <p className="font-bold text-sm">{p.code} — {p.name}</p>
-                    <p className="text-gray-500">{p.client}</p>
+                    <p className="text-gray-600">{p.client}</p>
                     <p>Status: <span className="font-medium capitalize">{p.status?.replace('_', ' ')}</span></p>
                     <p>Contract: <span className="font-medium">KES {Number(p.contract_value || 0).toLocaleString()}</span></p>
-                    {p.location && <p className="text-gray-400">{p.location}</p>}
+                    {p.location && <p className="text-gray-600">{p.location}</p>}
                   </div>
                 </Popup>
               </Marker>
@@ -266,10 +266,10 @@ export default function DashboardPage() {
                 <Popup>
                   <div className="text-xs space-y-1 min-w-[140px]">
                     <p className="font-bold text-sm">{v.vehicle_no}</p>
-                    {v.vehicle_name && <p className="text-gray-500">{v.vehicle_name}</p>}
-                    <p>Status: <span className={`font-medium ${STATUS_PILL[v.last_status] ? 'capitalize' : 'text-gray-400'}`}>{STATUS_LABEL[v.last_status] || '—'}</span></p>
-                    {v.last_location && <p className="text-gray-400">{v.last_location}</p>}
-                    <p className="text-gray-400">Last seen: {fmtTime(v.last_seen_minutes_ago)}</p>
+                    {v.vehicle_name && <p className="text-gray-600">{v.vehicle_name}</p>}
+                    <p>Status: <span className={`font-medium ${STATUS_PILL[v.last_status] ? 'capitalize' : 'text-gray-600'}`}>{STATUS_LABEL[v.last_status] || '—'}</span></p>
+                    {v.last_location && <p className="text-gray-600">{v.last_location}</p>}
+                    <p className="text-gray-600">Last seen: {fmtTime(v.last_seen_minutes_ago)}</p>
                   </div>
                 </Popup>
               </Marker>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           {statusChartData.length === 0 ? (
             <div className="p-10 text-center">
               <FolderIcon className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No projects yet</p>
+              <p className="text-sm text-gray-600">No projects yet</p>
             </div>
           ) : (
             <>
@@ -320,7 +320,7 @@ export default function DashboardPage() {
           {vehicles.length === 0 ? (
             <div className="p-10 text-center">
               <TruckIcon className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No live data</p>
+              <p className="text-sm text-gray-600">No live data</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
@@ -330,13 +330,13 @@ export default function DashboardPage() {
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_DOT[v.last_status] || 'bg-gray-300'}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-brand-slate">{v.vehicle_no}</p>
-                    <p className="text-[10px] text-gray-400 truncate">{v.last_location || v.vehicle_name || '—'}</p>
+                    <p className="text-[10px] text-gray-600 truncate">{v.last_location || v.vehicle_name || '—'}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[v.last_status] || 'bg-gray-100 text-gray-400'}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[v.last_status] || 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABEL[v.last_status] || '—'}
                     </span>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{fmtTime(v.last_seen_minutes_ago)}</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{fmtTime(v.last_seen_minutes_ago)}</p>
                   </div>
                 </div>
               ))}
@@ -350,8 +350,8 @@ export default function DashboardPage() {
           {recentAlerts.length === 0 ? (
             <div className="p-10 text-center">
               <CheckCircleIcon className="h-10 w-10 text-green-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">All clear</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">No active fleet alerts</p>
+              <p className="text-sm font-medium text-gray-600">All clear</p>
+              <p className="text-[10px] text-gray-600 mt-0.5">No active fleet alerts</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-600">{a.message}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{new Date(a.occurred_at).toLocaleString()}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">{new Date(a.occurred_at).toLocaleString()}</p>
                 </div>
               ))}
             </div>
@@ -384,14 +384,14 @@ export default function DashboardPage() {
             onAction={() => navigate('/projects')}
           />
           {activeProjects.length === 0 ? (
-            <p className="text-sm text-gray-400 p-8 text-center">No active projects</p>
+            <p className="text-sm text-gray-600 p-8 text-center">No active projects</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
                   <tr>
                     {['Code', 'Name', 'Client', 'Value', 'End Date', 'Status'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -403,9 +403,9 @@ export default function DashboardPage() {
                         <span className="bg-brand-slate text-white text-[10px] font-bold px-2 py-0.5 rounded-lg">{p.code}</span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-brand-slate max-w-[160px] truncate">{p.name}</td>
-                      <td className="px-4 py-3 text-gray-500 max-w-[110px] truncate">{p.client || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 max-w-[110px] truncate">{p.client || '—'}</td>
                       <td className="px-4 py-3 font-medium text-emerald-700">KES {fmtK(Number(p.contract_value || 0))}</td>
-                      <td className="px-4 py-3 text-gray-400">{p.end_date || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{p.end_date || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${PROJECT_STATUS_STYLE[p.status] || 'bg-gray-100 text-gray-600'}`}>
                           {p.status?.replace('_', ' ')}
@@ -428,7 +428,7 @@ export default function DashboardPage() {
             onAction={() => navigate('/procurement')}
           />
           {prList.length === 0 ? (
-            <p className="text-sm text-gray-400 p-8 text-center">No requisitions yet</p>
+            <p className="text-sm text-gray-600 p-8 text-center">No requisitions yet</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {prList.slice(0, 8).map(pr => (
@@ -442,7 +442,7 @@ export default function DashboardPage() {
                       'bg-gray-100 text-gray-600'
                     }`}>{pr.status}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{pr.requested_by_name} · {pr.created_at?.slice(0, 10)}</p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">{pr.requested_by_name} · {pr.created_at?.slice(0, 10)}</p>
                 </div>
               ))}
             </div>

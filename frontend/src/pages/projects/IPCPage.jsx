@@ -83,7 +83,7 @@ export default function IPCPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-brand-slate text-lg">Interim Payment Certificates</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{ipcs.length} IPCs</p>
+          <p className="text-xs text-gray-600 mt-0.5">{ipcs.length} IPCs</p>
         </div>
         {canEdit && (
           <button onClick={() => setShowModal(true)}
@@ -102,7 +102,7 @@ export default function IPCPage() {
         ].map(s => (
           <div key={s.label} className={`${s.bg} border border-gray-200 border-l-4 ${s.border} rounded-xl p-4`}>
             <p className={`text-xl font-bold ${s.text}`}>{s.val}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+            <p className="text-xs text-gray-600 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -110,14 +110,14 @@ export default function IPCPage() {
       {/* IPC Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         {ipcs.length === 0 ? (
-          <p className="text-sm text-gray-400 p-8 text-center">No IPCs yet. Create the first one.</p>
+          <p className="text-sm text-gray-600 p-8 text-center">No IPCs yet. Create the first one.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {['IPC #', 'Period', 'Chainage', 'Claimed', 'Certified', 'Paid', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
               </thead>

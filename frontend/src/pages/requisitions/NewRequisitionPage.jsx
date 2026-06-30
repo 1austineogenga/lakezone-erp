@@ -65,7 +65,7 @@ export default function NewRequisitionPage() {
           <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Requisitions
         </button>
         <h1 className="text-lg font-bold text-brand-slate">New Requisition</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Submitted directly to MD for approval</p>
+        <p className="text-xs text-gray-600 mt-0.5">Submitted directly to MD for approval</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -81,7 +81,7 @@ export default function NewRequisitionPage() {
                     ? 'border-brand-red bg-red-50 text-brand-red'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                 <p className="font-semibold">{t.label}</p>
-                <p className={`mt-0.5 ${form.req_type === t.value ? 'text-red-400' : 'text-gray-400'}`}>{t.hint}</p>
+                <p className={`mt-0.5 ${form.req_type === t.value ? 'text-red-400' : 'text-gray-600'}`}>{t.hint}</p>
               </button>
             ))}
           </div>
@@ -102,13 +102,13 @@ export default function NewRequisitionPage() {
           <h2 className="text-sm font-semibold text-brand-slate mb-3">Details</h2>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Title *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
               <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder={`e.g. ${selectedType?.label} — Site A`}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Priority *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Priority *</label>
               <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 {['low', 'medium', 'high', 'urgent'].map(p => (
@@ -117,13 +117,13 @@ export default function NewRequisitionPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date Required *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date Required *</label>
               <input required type="date" value={form.date_required}
                 onChange={e => setForm(f => ({ ...f, date_required: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Project (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Project (optional)</label>
               <select value={form.project} onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 <option value="">— None —</option>
@@ -131,7 +131,7 @@ export default function NewRequisitionPage() {
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Description / Justification</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description / Justification</label>
               <textarea rows={3} value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Provide context or reason for this requisition…"
@@ -153,24 +153,24 @@ export default function NewRequisitionPage() {
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-4">
-                  {i === 0 && <label className="block text-[10px] text-gray-400 mb-1">Description *</label>}
+                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Description *</label>}
                   <input required value={item.description} onChange={e => setItem(i, 'description', e.target.value)}
                     placeholder="Item or service"
                     className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-[10px] text-gray-400 mb-1">Qty *</label>}
+                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Qty *</label>}
                   <input required type="number" min="0.01" step="0.01" value={item.quantity}
                     onChange={e => setItem(i, 'quantity', e.target.value)} placeholder="1"
                     className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="block text-[10px] text-gray-400 mb-1">Unit</label>}
+                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit</label>}
                   <input value={item.unit} onChange={e => setItem(i, 'unit', e.target.value)} placeholder="pcs / L"
                     className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
                 <div className="col-span-3">
-                  {i === 0 && <label className="block text-[10px] text-gray-400 mb-1">Unit Price (KES)</label>}
+                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit Price (KES)</label>}
                   <input type="number" min="0" step="0.01" value={item.unit_price}
                     onChange={e => setItem(i, 'unit_price', e.target.value)} placeholder="0.00"
                     className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
@@ -188,7 +188,7 @@ export default function NewRequisitionPage() {
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
             <div className="text-xs">
-              <span className="text-gray-400 mr-3">Estimated Total</span>
+              <span className="text-gray-600 mr-3">Estimated Total</span>
               <span className="font-bold text-brand-slate text-sm">KES {estimatedTotal.toLocaleString()}</span>
             </div>
           </div>
