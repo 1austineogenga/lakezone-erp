@@ -66,7 +66,7 @@ const PERMISSIONS = {
     users: false, reports: 'read',
   },
   site_manager: {
-    dashboard: 'full', projects: 'full', procurement: 'read',
+    dashboard: 'full', projects: false, procurement: false,
     requisitions: 'full', inventory: 'full', assets: 'full',
     crm: false, finance: false, hr: false, fleet: 'full',
     users: false, reports: 'full',
