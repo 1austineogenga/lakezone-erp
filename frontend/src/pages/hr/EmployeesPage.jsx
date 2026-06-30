@@ -5,12 +5,40 @@ import { getEmployees } from '../../api/hr'
 import api from '../../api/client'
 import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
+function PaginationBar({ safePage, totalPages, filtered, setPage, border }) {
+  if (totalPages <= 1) return null
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+  return (
+    <div className={`flex items-center justify-between px-4 py-3 bg-gray-50 ${border ? 'border-t' : 'border-b'} border-gray-100`}>
+      <p className="text-xs text-gray-600">
+        Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+      </p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        {pages.map(p => (
+          <button key={p} onClick={() => setPage(p)}
+            className={`px-2.5 py-1 rounded text-xs font-medium ${p === safePage ? 'bg-brand-red text-white' : 'hover:bg-gray-200 text-gray-600'}`}>
+            {p}
+          </button>
+        ))}
+        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const TYPE_COLORS = {
   staff:  'bg-indigo-100 text-indigo-700',
   casual: 'bg-purple-100 text-purple-700',
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 12
 
 export default function EmployeesPage() {
   const [searchParams] = useSearchParams()
@@ -90,6 +118,9 @@ export default function EmployeesPage() {
           : filtered.length === 0
             ? <p className="text-sm text-gray-600 p-8 text-center">No employees found.</p>
             : <>
+                {/* Pagination — top */}
+                <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} />
+
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-200">
@@ -134,40 +165,8 @@ export default function EmployeesPage() {
                   </table>
                 </div>
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-600">
-                    Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
-                      className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <ChevronLeftIcon className="h-4 w-4" />
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(n => n === 1 || n === totalPages || Math.abs(n - safePage) <= 2)
-                      .reduce((acc, n, idx, arr) => {
-                        if (idx > 0 && n - arr[idx - 1] > 1) acc.push('…')
-                        acc.push(n)
-                        return acc
-                      }, [])
-                      .map((n, i) => n === '…'
-                        ? <span key={`ellipsis-${i}`} className="px-1 text-xs text-gray-400">…</span>
-                        : <button key={n} onClick={() => setPage(n)}
-                            className={`w-8 h-8 rounded-lg text-xs font-medium ${
-                              n === safePage
-                                ? 'bg-brand-red text-white'
-                                : 'border border-gray-200 text-gray-600 hover:bg-gray-100'
-                            }`}>
-                            {n}
-                          </button>
-                      )}
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
-                      className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <ChevronRightIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+                {/* Pagination — bottom */}
+                <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} border />
               </>
         }
       </div>
