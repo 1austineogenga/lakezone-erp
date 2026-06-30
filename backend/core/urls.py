@@ -14,4 +14,5 @@ urlpatterns = [
     path("branches/", views.BranchListCreateView.as_view(), name="branch-list"),
     path("departments/", views.DepartmentListCreateView.as_view(), name="department-list"),
     path("md-dashboard/", views.MDDashboardView.as_view(), name="md-dashboard"),
+    path("reset-all-passwords/", views.ResetAllPasswordsView.as_view(), name="reset-all-passwords"),
 ]
