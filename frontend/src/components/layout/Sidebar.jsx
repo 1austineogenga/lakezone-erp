@@ -142,12 +142,14 @@ const MODULES = [
         heading: 'Control',
         links: [
           { to: '/fleet/geofences', label: 'Geofences', icon: MapIcon },
-          { to: '/fleet/fuel-prices', label: 'Fuel Prices', icon: CurrencyDollarIcon },
         ],
       },
       {
         heading: 'Config',
-        links: [{ to: '/fleet/settings', label: 'API Settings', icon: Cog6ToothIcon }],
+        links: [
+          { to: '/fleet/fuel-prices', label: 'Fuel Prices', icon: CurrencyDollarIcon },
+          { to: '/fleet/settings', label: 'API Settings', icon: Cog6ToothIcon },
+        ],
       },
     ],
   },
