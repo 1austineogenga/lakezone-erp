@@ -42,10 +42,10 @@ const PERMISSIONS = {
     users: false, reports: 'read',
   },
   hr_manager: {
-    dashboard: 'full', projects: 'read', procurement: false,
-    requisitions: 'full', inventory: false, assets: 'read',
+    dashboard: 'full', projects: false, procurement: false,
+    requisitions: 'full', inventory: 'full', assets: 'full',
     crm: false, finance: false, hr: 'full', fleet: false,
-    users: 'write', reports: 'read',
+    users: false, reports: 'read',
   },
   procurement_officer: {
     dashboard: 'full', projects: 'read', procurement: 'full',
