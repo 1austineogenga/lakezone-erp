@@ -52,6 +52,8 @@ class FleetSyncService:
                     if not vehicle_no:
                         continue
                     vehicle = self._resolve_vehicle(vehicle_no, raw, config, vehicle_list)
+                    if vehicle is None:
+                        continue  # not in asset register — skip
                     if vehicle not in vehicle_list:
                         vehicle_list.append(vehicle)
                     try:
@@ -79,7 +81,14 @@ class FleetSyncService:
         return synced_count
 
     def _resolve_vehicle(self, vehicle_no, raw, config, vehicle_list):
-        """Find or create a Vehicle record for the given plate, linking it to config."""
+        """
+        Find an existing Vehicle for this GPS plate/ID and update its live fields.
+        Only creates a new Vehicle record if one already exists in the asset register
+        (i.e. inventory.Asset has a matching serial_number). GPS vehicles from the
+        provider that have no matching asset record are ignored — this prevents the
+        GPS provider's full fleet (which may include old/sold/external units) from
+        flooding the register.
+        """
         from .models import Vehicle
         vehicle = next((v for v in vehicle_list if v.vehicle_no == vehicle_no), None)
         if vehicle is None:
@@ -93,12 +102,31 @@ class FleetSyncService:
                 ).order_by('-updated_at').first()
 
         if vehicle is None:
+            # Only auto-create if this vehicle_no matches an asset in the register
+            try:
+                from inventory.models import Asset
+                asset = Asset.objects.filter(
+                    serial_number__iexact=vehicle_no,
+                    department='Operations',
+                ).first()
+            except Exception:
+                asset = None
+
+            if asset is None:
+                # GPS vehicle not in asset register — skip, don't create
+                logger.debug(
+                    "GPS vehicle %s not in asset register — skipping auto-create", vehicle_no
+                )
+                return None
+
             vehicle = Vehicle.objects.create(
                 vehicle_no=vehicle_no,
                 vehicle_name=raw.get('Vehicle_Name', '') or vehicle_no,
                 imei=raw.get('IMEI', '') or '',
                 vehicle_type=raw.get('Vehicletype', '') or '',
                 api_config=config,
+                is_live=True,
+                source='live',
                 is_active=True,
             )
         else:
@@ -115,6 +143,10 @@ class FleetSyncService:
             if not vehicle.vehicle_type and raw.get('Vehicletype'):
                 vehicle.vehicle_type = raw['Vehicletype'].strip()
                 update_fields.append('vehicle_type')
+            if not vehicle.is_live:
+                vehicle.is_live = True
+                vehicle.source = 'live'
+                update_fields.extend(['is_live', 'source'])
             if update_fields:
                 update_fields.append('updated_at')
                 vehicle.save(update_fields=update_fields)
