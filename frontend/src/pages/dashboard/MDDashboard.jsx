@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { getMDDashboard } from '../../api/auth'
 import {
   BanknotesIcon, FolderIcon, TruckIcon, UsersIcon,
@@ -25,9 +26,11 @@ function SectionTitle({ icon: Icon, label, color = 'text-brand-red' }) {
   )
 }
 
-function KpiTile({ label, value, sub, subColor = 'text-gray-400', color = 'text-gray-800', bg = 'bg-white', border = 'border-gray-100' }) {
+function KpiTile({ label, value, sub, subColor = 'text-gray-400', color = 'text-gray-800', bg = 'bg-white', border = 'border-gray-100', to }) {
+  const navigate = useNavigate()
+  const cls = `${bg} border ${border} rounded-xl p-4 shadow-sm transition-all ${to ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}`
   return (
-    <div className={`${bg} border ${border} rounded-xl p-4 shadow-sm`}>
+    <div className={cls} onClick={to ? () => navigate(to) : undefined}>
       <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1">{label}</p>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
       {sub && <p className={`text-xs mt-0.5 ${subColor}`}>{sub}</p>}
@@ -62,6 +65,7 @@ function StatusDot({ status }) {
 }
 
 export default function MDDashboard() {
+  const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ['md-dashboard'],
     queryFn: getMDDashboard,
@@ -95,10 +99,10 @@ export default function MDDashboard() {
       <div>
         <SectionTitle icon={BanknotesIcon} label="Finance Overview" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiTile label="Total Invoiced (AR)" value={fmtK(finance.ar_billed)} sub={`${arCollectionPct}% collected`} subColor={arCollectionPct >= 70 ? 'text-green-600' : 'text-amber-600'} color="text-blue-700" />
-          <KpiTile label="Cash Received" value={fmtK(finance.ar_received)} sub="from clients" color="text-green-700" />
-          <KpiTile label="AR Outstanding" value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subColor={finance.ar_overdue > 0 ? 'text-red-500' : 'text-green-500'} color="text-amber-700" />
-          <KpiTile label="AP Outstanding" value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subColor={finance.ap_overdue > 0 ? 'text-red-500' : 'text-green-500'} color="text-red-700" />
+          <KpiTile label="Total Invoiced (AR)" value={fmtK(finance.ar_billed)} sub={`${arCollectionPct}% collected`} subColor={arCollectionPct >= 70 ? 'text-green-600' : 'text-amber-600'} color="text-blue-700" to="/finance/invoices" />
+          <KpiTile label="Cash Received" value={fmtK(finance.ar_received)} sub="from clients" color="text-green-700" to="/finance/payments" />
+          <KpiTile label="AR Outstanding" value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subColor={finance.ar_overdue > 0 ? 'text-red-500' : 'text-green-500'} color="text-amber-700" to="/finance/aged" />
+          <KpiTile label="AP Outstanding" value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subColor={finance.ap_overdue > 0 ? 'text-red-500' : 'text-green-500'} color="text-red-700" to="/finance/bills" />
         </div>
 
         {/* Collection rate bar */}
@@ -128,15 +132,15 @@ export default function MDDashboard() {
         <div>
           <SectionTitle icon={FolderIcon} label="Projects" color="text-blue-600" />
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <KpiTile label="Active" value={projects.active || 0} color="text-green-700" />
-            <KpiTile label="On Hold" value={projects.on_hold || 0} color="text-amber-700" />
-            <KpiTile label="Completed" value={projects.completed || 0} color="text-blue-700" />
+            <KpiTile label="Active" value={projects.active || 0} color="text-green-700" to="/projects?status=active" />
+            <KpiTile label="On Hold" value={projects.on_hold || 0} color="text-amber-700" to="/projects?status=on_hold" />
+            <KpiTile label="Completed" value={projects.completed || 0} color="text-blue-700" to="/projects?status=completed" />
           </div>
           {projects.recent?.length > 0 && (
             <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-              <p className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b border-gray-50">Recent Projects</p>
+              <p className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b border-gray-50 flex items-center justify-between">Recent Projects <span className="cursor-pointer text-brand-red hover:underline" onClick={() => navigate('/projects')}>View all →</span></p>
               {projects.recent.map((p, i) => (
-                <div key={p.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < projects.recent.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 ${i < projects.recent.length - 1 ? 'border-b border-gray-50' : ''}`}>
                   <StatusDot status={p.status} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
@@ -158,12 +162,12 @@ export default function MDDashboard() {
         <div>
           <SectionTitle icon={ClipboardDocumentListIcon} label="Procurement" color="text-purple-600" />
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiTile label="Pending PRs" value={procurement.pending_prs || 0} sub="awaiting approval" subColor={procurement.pending_prs > 0 ? 'text-amber-500' : 'text-gray-400'} color="text-amber-700" />
-            <KpiTile label="Open POs" value={procurement.open_pos || 0} sub={fmtK(procurement.po_value_open)} color="text-purple-700" />
+            <KpiTile label="Pending PRs" value={procurement.pending_prs || 0} sub="awaiting approval" subColor={procurement.pending_prs > 0 ? 'text-amber-500' : 'text-gray-400'} color="text-amber-700" to="/procurement" />
+            <KpiTile label="Open POs" value={procurement.open_pos || 0} sub={fmtK(procurement.po_value_open)} color="text-purple-700" to="/procurement" />
           </div>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiTile label="Approved PRs" value={procurement.approved_prs || 0} color="text-green-700" />
-            <KpiTile label="Pending Requisitions" value={requisitions.pending || 0} sub="awaiting approval" subColor={requisitions.pending > 0 ? 'text-amber-500' : 'text-gray-400'} color="text-amber-700" />
+            <KpiTile label="Approved PRs" value={procurement.approved_prs || 0} color="text-green-700" to="/procurement" />
+            <KpiTile label="Pending Requisitions" value={requisitions.pending || 0} sub="awaiting approval" subColor={requisitions.pending > 0 ? 'text-amber-500' : 'text-gray-400'} color="text-amber-700" to="/requisitions" />
           </div>
           {/* Requisitions strip */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
@@ -194,8 +198,8 @@ export default function MDDashboard() {
         <div>
           <SectionTitle icon={TruckIcon} label="Fleet Status" color="text-cyan-600" />
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiTile label="Online Now" value={`${fleet.online || 0}/${fleet.total || 0}`} sub={`${fleetOnlinePct}% availability`} subColor={fleetOnlinePct >= 60 ? 'text-green-600' : 'text-red-500'} color="text-cyan-700" />
-            <KpiTile label="Moving" value={fleet.moving || 0} sub="live GPS" color="text-green-700" />
+            <KpiTile label="Online Now" value={`${fleet.online || 0}/${fleet.total || 0}`} sub={`${fleetOnlinePct}% availability`} subColor={fleetOnlinePct >= 60 ? 'text-green-600' : 'text-red-500'} color="text-cyan-700" to="/fleet/vehicles" />
+            <KpiTile label="Moving" value={fleet.moving || 0} sub="live GPS" color="text-green-700" to="/fleet/vehicles" />
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -219,10 +223,14 @@ export default function MDDashboard() {
             </div>
             <div className="flex gap-2 mt-3 flex-wrap">
               {fleet.alerts_unacked > 0 && (
-                <AlertPill count={fleet.alerts_unacked} label="unacknowledged alerts" color="bg-red-100 text-red-700" />
+                <span onClick={() => navigate('/fleet/alerts')} className="cursor-pointer">
+                  <AlertPill count={fleet.alerts_unacked} label="unacknowledged alerts" color="bg-red-100 text-red-700" />
+                </span>
               )}
               {fleet.low_fuel > 0 && (
-                <AlertPill count={fleet.low_fuel} label="low fuel" color="bg-amber-100 text-amber-700" />
+                <span onClick={() => navigate('/fleet/fuel')} className="cursor-pointer">
+                  <AlertPill count={fleet.low_fuel} label="low fuel" color="bg-amber-100 text-amber-700" />
+                </span>
               )}
             </div>
           </div>
@@ -232,20 +240,20 @@ export default function MDDashboard() {
         <div>
           <SectionTitle icon={UsersIcon} label="Human Resources" color="text-indigo-600" />
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiTile label="Total Workforce" value={hr.total_employees || 0} sub={`${hr.staff || 0} staff · ${hr.casuals || 0} casuals`} color="text-indigo-700" />
-            <KpiTile label="Present Today" value={hr.present_today || 0} sub={`${hr.on_leave_today || 0} on leave`} color="text-green-700" />
+            <KpiTile label="Total Workforce" value={hr.total_employees || 0} sub={`${hr.staff || 0} staff · ${hr.casuals || 0} casuals`} color="text-indigo-700" to="/hr/employees" />
+            <KpiTile label="Present Today" value={hr.present_today || 0} sub={`${hr.on_leave_today || 0} on leave`} color="text-green-700" to="/hr/attendance" />
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">HR Alerts</p>
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => navigate('/hr/leave')}>
                 <div className="flex items-center gap-2">
                   <DocumentTextIcon className="h-3.5 w-3.5 text-amber-500" />
                   <span className="text-xs text-gray-700">Pending Leave Applications</span>
                 </div>
                 <span className={`text-xs font-bold ${hr.pending_leaves > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{hr.pending_leaves || 0}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => navigate('/hr/employees')}>
                 <div className="flex items-center gap-2">
                   <ClockIcon className="h-3.5 w-3.5 text-red-400" />
                   <span className="text-xs text-gray-700">Expiring Contracts (30 days)</span>
@@ -268,8 +276,8 @@ export default function MDDashboard() {
         <div>
           <SectionTitle icon={CubeIcon} label="Inventory & Assets" color="text-orange-600" />
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiTile label="Stock Items" value={inventory.total_items || 0} sub={inventory.low_stock > 0 ? `${inventory.low_stock} below reorder` : 'All stocked'} subColor={inventory.low_stock > 0 ? 'text-red-500' : 'text-green-500'} color="text-orange-700" />
-            <KpiTile label="Registered Assets" value={inventory.total_assets || 0} sub={`${inventory.active_assets || 0} operational`} color="text-orange-700" />
+            <KpiTile label="Stock Items" value={inventory.total_items || 0} sub={inventory.low_stock > 0 ? `${inventory.low_stock} below reorder` : 'All stocked'} subColor={inventory.low_stock > 0 ? 'text-red-500' : 'text-green-500'} color="text-orange-700" to="/inventory" />
+            <KpiTile label="Registered Assets" value={inventory.total_assets || 0} sub={`${inventory.active_assets || 0} operational`} color="text-orange-700" to="/assets" />
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <div className="grid grid-cols-3 gap-2 text-center">
