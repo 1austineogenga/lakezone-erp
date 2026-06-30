@@ -3,64 +3,100 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
-  TruckIcon, PlusIcon, MagnifyingGlassIcon, ArrowUpTrayIcon,
-  MapPinIcon, BeakerIcon, ClockIcon, XMarkIcon, ArrowPathIcon,
-  SignalIcon, SignalSlashIcon, WrenchScrewdriverIcon, PrinterIcon,
+  TruckIcon, PlusIcon, MagnifyingGlassIcon, ArrowPathIcon,
+  MapPinIcon, WrenchScrewdriverIcon, ExclamationTriangleIcon,
+  SignalIcon, PrinterIcon, ChevronUpDownIcon,
 } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig, syncAssetsToFleet } from '../../api/fleet'
 import api from '../../api/client'
-import FleetRegisterImportModal from './FleetRegisterImportModal'
 
-const STATUS_DOT   = { MOVING: 'bg-green-500', IDLE: 'bg-amber-400', STOP: 'bg-gray-300', INACTIVE: 'bg-red-400', '': 'bg-gray-200' }
+// ── Icon: live GPS tracked ──────────────────────────────────────────────────
+function LiveIcon() {
+  return (
+    <span className="relative flex h-2.5 w-2.5">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+    </span>
+  )
+}
+// ── Icon: not GPS tracked ───────────────────────────────────────────────────
+function OfflineIcon() {
+  return <WrenchScrewdriverIcon className="h-3 w-3 text-gray-400" />
+}
+
 const STATUS_LABEL = { MOVING: 'Moving', IDLE: 'Idling', STOP: 'Stopped', INACTIVE: 'Offline' }
-const STATUS_PILL  = {
+const STATUS_CLS   = {
   MOVING:   'bg-green-100 text-green-700',
   IDLE:     'bg-amber-100 text-amber-700',
   STOP:     'bg-gray-100 text-gray-500',
-  INACTIVE: 'bg-red-100 text-red-600',
-  '':       'bg-gray-100 text-gray-400',
+  INACTIVE: 'bg-red-100 text-red-500',
 }
-const SOURCE_PILL = {
-  live:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-  register: 'bg-blue-50 text-blue-700 border-blue-200',
-  manual:   'bg-gray-50 text-gray-500 border-gray-200',
-}
-const SOURCE_LABEL = {
-  live:     'Live',
-  register: 'Asset Register',
-  manual:   'Manual',
-}
-const ERP_STATUS_PILL = {
+const ERP_CLS = {
   OPER:       'bg-green-100 text-green-700',
   'NON-OPER': 'bg-red-100 text-red-700',
   IDLE:       'bg-amber-100 text-amber-700',
   UNKNOWN:    'bg-gray-100 text-gray-400',
 }
-
-const EMPTY = {
-  vehicle_no: '', vehicle_name: '', imei: '', vehicle_type: '', make: '', model_name: '',
-  year: '', fuel_type: 'diesel', fuel_capacity: 60, api_config: '', project: '',
+const ERP_LABEL = {
+  OPER: 'Operational', 'NON-OPER': 'Non-Operational', IDLE: 'Idle', UNKNOWN: 'Unknown',
 }
 
-function FuelBar({ pct }) {
-  const n = Number(pct)
-  const color = n < 10 ? 'bg-red-500' : n < 25 ? 'bg-amber-400' : 'bg-green-500'
-  return (
-    <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
-      <div className={`${color} h-1.5 rounded-full transition-all`} style={{ width: `${Math.min(n, 100)}%` }} />
-    </div>
-  )
+// Group vehicles by asset_category
+const CATEGORY_ORDER = ['Plant Machine', 'Vehicle', 'Canter / Truck', 'Prime Mover', 'Trailer', 'Low Loader', 'Tipper']
+const CATEGORY_LABEL = {
+  'Plant Machine': 'Plant Machines',
+  'Vehicle':       'Vehicles',
+  'Canter / Truck':'Canters & Trucks',
+  'Prime Mover':   'Prime Movers',
+  'Trailer':       'Trailers & Low Loaders',
+  'Low Loader':    'Trailers & Low Loaders',
+  'Tipper':        'Tippers',
+  '':              'Other',
+}
+// Merge similar labels
+function normCat(v) {
+  if (!v) return 'Other'
+  if (v === 'Low Loader' || v === 'Trailer') return 'Movers & Trailers'
+  if (v === 'Canter / Truck') return 'Canters & Trucks'
+  if (v === 'Plant Machine') return 'Plant Machines'
+  if (v === 'Prime Mover') return 'Prime Movers'
+  if (v === 'Tipper') return 'Tippers'
+  if (v === 'Vehicle') return 'Vehicles'
+  return v
+}
+const CAT_COLOR = {
+  'Plant Machines':    'bg-blue-50 text-blue-700 border-blue-200',
+  'Vehicles':          'bg-green-50 text-green-700 border-green-200',
+  'Canters & Trucks':  'bg-orange-50 text-orange-700 border-orange-200',
+  'Prime Movers':      'bg-purple-50 text-purple-700 border-purple-200',
+  'Movers & Trailers': 'bg-gray-50 text-gray-600 border-gray-200',
+  'Tippers':           'bg-amber-50 text-amber-700 border-amber-200',
+  'Other':             'bg-gray-50 text-gray-500 border-gray-200',
+}
+
+function complianceBadge(c) {
+  const s = c.status
+  if (s === 'expired')       return <span key={c.id} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700">EXPIRED</span>
+  if (s === 'not_in_system') return <span key={c.id} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-100 text-orange-700">Not in System</span>
+  if (s === 'expiring_soon') return <span key={c.id} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700">Expiring</span>
+  return null
+}
+
+const EMPTY = {
+  vehicle_no: '', vehicle_name: '', vehicle_type: '', make: '', model_name: '',
+  year: '', fuel_type: 'diesel', fuel_capacity: 60, asset_category: '', chassis_number: '',
+  year_manufacture: '', year_acquired: '', current_site: '', erp_status: 'OPER',
 }
 
 export default function VehiclesPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [search, setSearch]         = useState('')
-  const [showForm, setShowForm]     = useState(false)
-  const [showImport, setShowImport] = useState(false)
+  const [search, setSearch]           = useState('')
+  const [catFilter, setCatFilter]     = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [sourceFilter, setSourceFilter] = useState('')
-  const [form, setForm]             = useState(EMPTY)
+  const [showForm, setShowForm]       = useState(false)
+  const [form, setForm]               = useState(EMPTY)
+  const [sortKey, setSortKey]         = useState('asset_no')
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['fleet-vehicles'],
@@ -86,8 +122,7 @@ export default function VehiclesPage() {
     onSuccess: () => {
       toast.success('Vehicle added.')
       qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
-      setShowForm(false)
-      setForm(EMPTY)
+      setShowForm(false); setForm(EMPTY)
     },
     onError: e => toast.error(e.response?.data?.vehicle_no?.[0] || 'Failed to add vehicle.'),
   })
@@ -96,135 +131,121 @@ export default function VehiclesPage() {
     mutationFn: syncAssetsToFleet,
     onSuccess: r => {
       const d = r.data
-      toast.success(`Sync complete — ${d.created} created, ${d.linked} linked${d.errors?.length ? `, ${d.errors.length} errors` : ''}.`)
+      toast.success(`Sync complete — ${d.created} created, ${d.linked} linked.`)
       qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
     },
-    onError: () => toast.error('Sync from Asset Register failed.'),
+    onError: () => toast.error('Sync failed.'),
   })
 
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleCreate = () => {
-    const payload = { ...form, is_live: false, source: 'manual' }
+    const payload = { ...form, is_live: false, source: 'register' }
     if (!payload.year) delete payload.year
     if (!payload.project) delete payload.project
     if (!payload.api_config) delete payload.api_config
     createMut.mutate(payload)
   }
 
-  const liveCount    = vehicles.filter(v => v.is_live).length
-  const offlineCount = vehicles.filter(v => !v.is_live).length
-
+  // ── Print ────────────────────────────────────────────────────────────────
   const handlePrint = () => {
-    const rows = filtered.map(v => `
-      <tr>
-        <td>${v.vehicle_no || '—'}</td>
-        <td>${v.vehicle_name || '—'}</td>
-        <td>${[v.make, v.model_name].filter(Boolean).join(' ') || '—'}</td>
-        <td>${v.vehicle_type || '—'}</td>
-        <td>${v.year || '—'}</td>
-        <td>${v.last_location || v.current_site || '—'}</td>
-        <td>${v.is_live
-          ? (STATUS_LABEL[v.last_status] || v.last_status || 'Unknown')
-          : (v.erp_status === 'OPER' ? 'Operational' : v.erp_status === 'NON-OPER' ? 'Non-Operational' : v.erp_status || '—')
-        }</td>
-        <td>${v.source === 'live' ? 'Live Tracked' : v.source === 'register' ? 'Asset Register' : 'Manual'}</td>
-      </tr>`).join('')
-
     const win = window.open('', '_blank')
+    const sorted = [...filtered].sort((a, b) => (a.asset_no || 999) - (b.asset_no || 999))
     win.document.write(`<!DOCTYPE html><html><head>
       <title>Lakezone Fleet Register</title>
       <style>
-        body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; color: #111; }
-        h2 { font-size: 15px; margin-bottom: 2px; }
-        p.sub { font-size: 10px; color: #666; margin-bottom: 14px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #1e293b; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
-        td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
-        tr:nth-child(even) td { background: #f9fafb; }
-        @media print { body { margin: 10px; } }
+        body{font-family:Arial,sans-serif;font-size:10px;margin:20px;color:#111}
+        h2{font-size:14px;margin-bottom:2px}p.sub{font-size:9px;color:#666;margin-bottom:12px}
+        table{width:100%;border-collapse:collapse}
+        th{background:#1e293b;color:#fff;padding:5px 7px;text-align:left;font-size:9px}
+        td{padding:4px 7px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+        tr:nth-child(even) td{background:#f9fafb}
+        .live{color:#16a34a;font-weight:bold}.notrack{color:#9ca3af}
+        .red{color:#dc2626;font-weight:bold}.amber{color:#d97706;font-weight:bold}
       </style>
     </head><body>
-      <h2>Lakezone Enterprises Ltd — Fleet Register</h2>
-      <p class="sub">Printed: ${new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })} &nbsp;|&nbsp; ${filtered.length} vehicles shown</p>
-      <table>
-        <thead><tr>
-          <th>#</th><th>Reg No.</th><th>Name / Description</th><th>Make &amp; Model</th>
-          <th>Type</th><th>Year</th><th>Location</th><th>Status</th><th>Source</th>
-        </tr></thead>
-        <tbody>${filtered.map((v, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td><b>${v.vehicle_no || '—'}</b></td>
-            <td>${v.vehicle_name || '—'}</td>
-            <td>${[v.make, v.model_name].filter(Boolean).join(' ') || '—'}</td>
-            <td>${v.vehicle_type || '—'}</td>
-            <td>${v.year || '—'}</td>
-            <td>${v.last_location || v.current_site || '—'}</td>
-            <td>${v.is_live
-              ? (STATUS_LABEL[v.last_status] || v.last_status || 'Unknown')
-              : (v.erp_status === 'OPER' ? 'Operational' : v.erp_status === 'NON-OPER' ? 'Non-Operational' : v.erp_status || '—')
-            }</td>
-            <td>${v.source === 'live' ? 'Live' : v.source === 'register' ? 'Register' : 'Manual'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </body></html>`)
-    win.document.close()
-    win.focus()
-    win.print()
+      <h2>Lakezone Enterprises Ltd — Fleet & Machinery Register</h2>
+      <p class="sub">Printed: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} &nbsp;|&nbsp; ${sorted.length} assets shown</p>
+      <table><thead><tr>
+        <th>#</th><th>Reg / ID</th><th>Description</th><th>Make & Model</th>
+        <th>Category</th><th>Year</th><th>Location</th><th>Status</th><th>GPS</th><th>Compliance</th>
+      </tr></thead><tbody>
+      ${sorted.map((v,i)=>{
+        const comp = (v.compliance||[]).filter(c=>c.status==='expired'||c.status==='not_in_system')
+        return `<tr>
+          <td>${v.asset_no||i+1}</td>
+          <td><b>${v.vehicle_no}</b></td>
+          <td>${v.vehicle_name||'—'}</td>
+          <td>${[v.make,v.model_name].filter(Boolean).join(' ')||'—'}</td>
+          <td>${normCat(v.asset_category)||'—'}</td>
+          <td>${v.year_manufacture||v.year||'—'}</td>
+          <td>${v.current_site||v.last_location||'—'}</td>
+          <td>${v.is_live?(STATUS_LABEL[v.last_status]||'—'):(ERP_LABEL[v.erp_status]||'—')}</td>
+          <td class="${v.is_live?'live':'notrack'}">${v.is_live?'Live GPS':'Not tracked'}</td>
+          <td class="red">${comp.map(c=>c.compliance_type).join(', ')||'OK'}</td>
+        </tr>`}).join('')}
+      </tbody></table></body></html>`)
+    win.document.close(); win.focus(); win.print()
   }
+
+  // ── Derived counts ───────────────────────────────────────────────────────
+  const liveCount   = vehicles.filter(v => v.is_live).length
+  const totalCount  = vehicles.length
+  const warnCount   = vehicles.filter(v => (v.compliance||[]).some(c => c.status === 'expired' || c.status === 'not_in_system')).length
+
+  const categories = [...new Set(vehicles.map(v => normCat(v.asset_category)))].filter(Boolean).sort()
 
   const filtered = vehicles.filter(v => {
-    const matchSearch = !search ||
-      v.vehicle_no?.toLowerCase().includes(search.toLowerCase()) ||
-      v.vehicle_name?.toLowerCase().includes(search.toLowerCase()) ||
-      v.make?.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = !statusFilter || (
-      v.is_live
-        ? (v.last_status || '') === statusFilter
-        : statusFilter === 'INACTIVE'
-    )
-    const matchSource = !sourceFilter || v.source === sourceFilter
-    return matchSearch && matchStatus && matchSource
+    const q = search.toLowerCase()
+    const matchSearch = !q ||
+      v.vehicle_no?.toLowerCase().includes(q) ||
+      v.vehicle_name?.toLowerCase().includes(q) ||
+      v.make?.toLowerCase().includes(q) ||
+      v.model_name?.toLowerCase().includes(q) ||
+      v.current_site?.toLowerCase().includes(q) ||
+      v.asset_category?.toLowerCase().includes(q)
+    const matchCat    = !catFilter || normCat(v.asset_category) === catFilter
+    const matchStatus = !statusFilter ||
+      (statusFilter === 'live'     && v.is_live) ||
+      (statusFilter === 'untracked'&& !v.is_live) ||
+      (statusFilter === 'warn'     && (v.compliance||[]).some(c => c.status==='expired'||c.status==='not_in_system')) ||
+      (statusFilter === 'nonop'    && v.erp_status === 'NON-OPER')
+    return matchSearch && matchCat && matchStatus
+  }).sort((a, b) => {
+    if (sortKey === 'asset_no') return (a.asset_no||999)-(b.asset_no||999)
+    if (sortKey === 'vehicle_no') return (a.vehicle_no||'').localeCompare(b.vehicle_no||'')
+    if (sortKey === 'location') return (a.current_site||a.last_location||'').localeCompare(b.current_site||b.last_location||'')
+    return 0
   })
 
-  const statusCounts = vehicles.filter(v => v.is_live).reduce((acc, v) => {
-    const s = v.last_status || 'INACTIVE'
-    acc[s] = (acc[s] || 0) + 1
-    return acc
-  }, {})
-
-  const fmtTime = mins => {
-    if (mins == null) return '—'
-    if (mins < 2) return 'Just now'
-    if (mins < 60) return `${Math.round(mins)}m ago`
-    return `${Math.round(mins / 60)}h ago`
-  }
+  // Group by normalised category
+  const grouped = {}
+  filtered.forEach(v => {
+    const cat = normCat(v.asset_category) || 'Other'
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(v)
+  })
+  const groupOrder = ['Plant Machines','Vehicles','Canters & Trucks','Prime Movers','Movers & Trailers','Tippers','Other']
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-brand-slate">Vehicles & Machines</h2>
+          <h2 className="text-lg font-bold text-brand-slate">Vehicles & Machinery</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            {vehicles.length} total · {liveCount} live-tracked · {offlineCount} asset-register only
+            {totalCount} total · {liveCount} GPS-tracked · {warnCount > 0 && <span className="text-red-500 font-medium">{warnCount} compliance issues</span>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-gray-400 hover:text-gray-700 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-gray-400 transition-colors">
             <PrinterIcon className="h-3.5 w-3.5" /> Print
           </button>
           <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition-colors disabled:opacity-60">
             <ArrowPathIcon className={`h-3.5 w-3.5 ${syncMut.isPending ? 'animate-spin' : ''}`} />
             {syncMut.isPending ? 'Syncing…' : 'Sync from Assets'}
-          </button>
-          <button onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-brand-slate text-xs font-semibold rounded-xl hover:border-brand-red hover:text-brand-red transition-colors">
-            <ArrowUpTrayIcon className="h-3.5 w-3.5" /> Import Register
           </button>
           <button onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
@@ -233,80 +254,74 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      {/* Summary count row */}
-      <div className="flex gap-3 flex-wrap">
+      {/* ── Summary pills ────────────────────────────────────────────────── */}
+      <div className="flex gap-2 flex-wrap">
         {[
-          { label: 'Live Tracked', count: liveCount, icon: SignalIcon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Moving',  count: statusCounts.MOVING  || 0, icon: TruckIcon,            color: 'text-green-600',  bg: 'bg-green-50' },
-          { label: 'Idling',  count: statusCounts.IDLE    || 0, icon: ClockIcon,             color: 'text-amber-600',  bg: 'bg-amber-50' },
-          { label: 'Offline', count: (statusCounts.INACTIVE || 0) + offlineCount, icon: SignalSlashIcon, color: 'text-red-500', bg: 'bg-red-50' },
-          { label: 'Asset Only', count: offlineCount, icon: WrenchScrewdriverIcon, color: 'text-blue-600', bg: 'bg-blue-50' },
-        ].map(({ label, count, icon: Icon, color, bg }) => (
-          <div key={label} className={`${bg} rounded-xl px-4 py-2.5 flex items-center gap-2`}>
-            <Icon className={`h-4 w-4 ${color}`} />
-            <div>
-              <p className={`text-lg font-bold leading-none ${color}`}>{count}</p>
-              <p className="text-[10px] text-gray-500">{label}</p>
-            </div>
-          </div>
+          { label: 'Total Assets', val: totalCount, color: 'text-brand-slate', bg: 'bg-gray-50', filter: '' },
+          { label: 'GPS Tracked',  val: liveCount,  color: 'text-emerald-600', bg: 'bg-emerald-50', filter: 'live' },
+          { label: 'Not Tracked',  val: totalCount - liveCount, color: 'text-gray-500', bg: 'bg-gray-50', filter: 'untracked' },
+          { label: 'Compliance Issues', val: warnCount, color: 'text-red-600', bg: 'bg-red-50', filter: 'warn' },
+        ].map(({ label, val, color, bg, filter }) => (
+          <button key={label} onClick={() => setStatusFilter(f => f === filter ? '' : filter)}
+            className={`${bg} rounded-xl px-4 py-2 text-left transition-all border ${statusFilter===filter ? 'border-brand-red shadow-sm' : 'border-transparent'}`}>
+            <p className={`text-lg font-bold leading-none ${color}`}>{val}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+          </button>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Status filter */}
-        {[['', 'All Status'], ['MOVING', 'Moving'], ['IDLE', 'Idling'], ['STOP', 'Stopped'], ['INACTIVE', 'Offline']].map(([val, label]) => (
-          <button key={val} onClick={() => setStatusFilter(val)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
-              ${statusFilter === val
-                ? 'bg-brand-red text-white border-brand-red'
-                : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
-            {val && <span className={`w-2 h-2 rounded-full ${STATUS_DOT[val]}`} />}
-            {label}
+      {/* ── Filters bar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap bg-white border border-gray-100 rounded-xl px-4 py-2.5">
+        {/* Category filter */}
+        <div className="flex gap-1 flex-wrap flex-1">
+          <button onClick={() => setCatFilter('')}
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${!catFilter ? 'bg-brand-slate text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+            All
           </button>
-        ))}
-
-        <div className="w-px h-5 bg-gray-200 mx-1" />
-
-        {/* Source filter */}
-        {[['', 'All Sources'], ['live', 'Live'], ['register', 'Asset Register'], ['manual', 'Manual']].map(([val, label]) => (
-          <button key={val} onClick={() => setSourceFilter(val)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
-              ${sourceFilter === val
-                ? 'bg-brand-slate text-white border-brand-slate'
-                : 'bg-white border-gray-200 text-gray-600 hover:border-brand-slate hover:text-brand-slate'}`}>
-            {label}
-          </button>
-        ))}
-
-        {/* Search */}
-        <div className="relative ml-auto">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search vehicle, make…"
-            className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-brand-red" />
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setCatFilter(c => c === cat ? '' : cat)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${catFilter === cat ? 'bg-brand-red text-white border-brand-red' : `${CAT_COLOR[cat]||'bg-gray-50 text-gray-600 border-gray-200'} hover:opacity-80`}`}>
+              {cat}
+            </button>
+          ))}
+        </div>
+        {/* Sort + Search */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <ChevronUpDownIcon className="h-3.5 w-3.5" />
+            <select value={sortKey} onChange={e => setSortKey(e.target.value)}
+              className="border-0 bg-transparent text-xs text-gray-600 focus:outline-none">
+              <option value="asset_no">Asset #</option>
+              <option value="vehicle_no">Reg No.</option>
+              <option value="location">Location</option>
+            </select>
+          </div>
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search reg, make, site…"
+              className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red w-44" />
+          </div>
         </div>
       </div>
 
-      {/* Add Form */}
+      {/* ── Add Vehicle Form ──────────────────────────────────────────────── */}
       {showForm && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-brand-slate text-sm">New Vehicle / Machine</h3>
-            <button onClick={() => { setShowForm(false); setForm(EMPTY) }}>
-              <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <h3 className="font-semibold text-brand-slate text-sm mb-4">Add Vehicle / Machine</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Vehicle / Plate No. *', key: 'vehicle_no', placeholder: 'e.g. KBZ 123A' },
-              { label: 'Vehicle Name',  key: 'vehicle_name', placeholder: 'e.g. Site Truck' },
-              { label: 'IMEI (if tracked)', key: 'imei', placeholder: 'GPS device IMEI' },
-              { label: 'Make',          key: 'make', placeholder: 'e.g. Toyota' },
-              { label: 'Model',         key: 'model_name', placeholder: 'e.g. Hilux' },
-              { label: 'Year',          key: 'year', placeholder: '2020', type: 'number' },
-              { label: 'Tank (litres)', key: 'fuel_capacity', placeholder: '60', type: 'number' },
-              { label: 'Type',          key: 'vehicle_type', placeholder: 'e.g. Truck, Excavator' },
+              { label: 'Reg No. / ID *', key: 'vehicle_no', placeholder: 'e.g. KBZ 123A' },
+              { label: 'Name / Description', key: 'vehicle_name', placeholder: 'e.g. Grader' },
+              { label: 'Make', key: 'make', placeholder: 'e.g. Caterpillar' },
+              { label: 'Model', key: 'model_name', placeholder: 'e.g. 140G' },
+              { label: 'Type', key: 'vehicle_type', placeholder: 'e.g. Grader' },
+              { label: 'Category', key: 'asset_category', placeholder: 'e.g. Plant Machine' },
+              { label: 'Chassis / Serial', key: 'chassis_number', placeholder: '' },
+              { label: 'Year of Mfg.', key: 'year_manufacture', placeholder: '2020', type: 'number' },
+              { label: 'Year Acquired', key: 'year_acquired', placeholder: '2024', type: 'number' },
+              { label: 'Tank (L)', key: 'fuel_capacity', placeholder: '60', type: 'number' },
+              { label: 'Site / Location', key: 'current_site', placeholder: 'e.g. Njambini' },
             ].map(({ label, key, placeholder, type }) => (
               <div key={key}>
                 <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
@@ -320,8 +335,18 @@ export default function VehiclesPage() {
               <select value={form.fuel_type} onChange={e => field('fuel_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                 {['diesel','petrol','electric','hybrid'].map(t => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  <option key={t} value={t}>{t[0].toUpperCase()+t.slice(1)}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">ERP Status</label>
+              <select value={form.erp_status} onChange={e => field('erp_status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
+                <option value="OPER">Operational</option>
+                <option value="NON-OPER">Non-Operational</option>
+                <option value="IDLE">Idle</option>
+                <option value="UNKNOWN">Unknown</option>
               </select>
             </div>
             <div>
@@ -332,19 +357,11 @@ export default function VehiclesPage() {
                 {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">API Config (tracking)</label>
-              <select value={form.api_config} onChange={e => field('api_config', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
-                <option value="">— None (offline) —</option>
-                {configs.map(c => <option key={c.id} value={c.id}>{c.base_url}</option>)}
-              </select>
-            </div>
           </div>
           <div className="flex gap-2 mt-4">
             <button onClick={handleCreate} disabled={createMut.isPending || !form.vehicle_no}
               className="px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-60">
-              {createMut.isPending ? 'Saving…' : 'Save Vehicle'}
+              {createMut.isPending ? 'Saving…' : 'Save'}
             </button>
             <button onClick={() => { setShowForm(false); setForm(EMPTY) }}
               className="px-4 py-2 border border-gray-200 text-xs rounded-lg hover:bg-gray-50">
@@ -354,139 +371,120 @@ export default function VehiclesPage() {
         </div>
       )}
 
-      {/* Vehicle Cards */}
+      {/* ── Main Table ───────────────────────────────────────────────────── */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse">
-              <div className="h-4 bg-gray-100 rounded w-24 mb-3" />
-              <div className="h-3 bg-gray-100 rounded w-16 mb-4" />
-              <div className="h-1.5 bg-gray-100 rounded mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-20" />
-            </div>
+            <div key={i} className="h-12 border-b border-gray-50 animate-pulse bg-gray-50" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
           <TruckIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-400">
-            {search || statusFilter || sourceFilter
-              ? 'No vehicles match your filters.'
-              : 'No vehicles yet. Add one or sync from Asset Register.'}
-          </p>
-          {!search && !statusFilter && !sourceFilter && (
-            <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
-              className="mt-3 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-60">
-              Sync from Asset Register
-            </button>
-          )}
+          <p className="text-sm font-medium text-gray-400">No vehicles match your filters.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map(v => {
-            const isOffline = !v.is_live
-            return (
-              <div key={v.id} onClick={() => navigate(`/fleet/vehicles/${v.id}`)}
-                className={`bg-white border rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all p-4 group
-                  ${isOffline
-                    ? 'border-blue-100 hover:border-blue-300'
-                    : 'border-gray-100 hover:border-brand-red/20'}`}>
-                {/* Card Header */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-bold text-sm group-hover:transition-colors ${isOffline ? 'text-blue-800 group-hover:text-blue-600' : 'text-brand-slate group-hover:text-brand-red'}`}>
-                      {v.vehicle_no}
-                    </p>
-                    {v.vehicle_name && <p className="text-xs text-gray-400 mt-0.5 truncate">{v.vehicle_name}</p>}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                    {/* Source badge */}
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold uppercase tracking-wide ${SOURCE_PILL[v.source] || SOURCE_PILL.manual}`}>
-                      {isOffline ? <SignalSlashIcon className="h-2.5 w-2.5 inline mr-0.5" /> : <SignalIcon className="h-2.5 w-2.5 inline mr-0.5" />}
-                      {SOURCE_LABEL[v.source] || v.source}
-                    </span>
-                    {/* Status badge */}
-                    {v.is_live ? (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[v.last_status || '']}`}>
-                        {STATUS_LABEL[v.last_status] || 'Unknown'}
-                      </span>
-                    ) : (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ERP_STATUS_PILL[v.erp_status] || 'bg-gray-100 text-gray-400'}`}>
-                        {v.erp_status === 'OPER' ? 'Operational' : v.erp_status === 'NON-OPER' ? 'Non-Op' : v.erp_status || 'Unknown'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Live vehicle: fuel bar + speed */}
-                {v.is_live && (
-                  <>
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between text-xs mb-0.5">
-                        <span className="text-gray-400 flex items-center gap-1"><BeakerIcon className="h-3 w-3" /> Fuel</span>
-                        <span className="font-medium text-gray-600">
-                          {v.last_fuel != null ? `${Number(v.last_fuel).toFixed(0)}%` : '—'}
-                        </span>
-                      </div>
-                      {v.last_fuel != null && <FuelBar pct={v.last_fuel} />}
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <MapPinIcon className="h-3 w-3" />
-                        {v.last_speed != null ? `${Number(v.last_speed).toFixed(0)} km/h` : '—'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ClockIcon className="h-3 w-3" />
-                        {fmtTime(v.last_seen_minutes_ago)}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                {/* Offline vehicle: site + compliance summary */}
-                {isOffline && (
-                  <div className="space-y-1.5 mt-1">
-                    {v.current_site && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <MapPinIcon className="h-3 w-3" /> {v.current_site}
-                      </p>
-                    )}
-                    {v.compliance?.length > 0 && (() => {
-                      const expired = v.compliance.filter(c => c.status === 'expired').length
-                      const expiring = v.compliance.filter(c => c.status === 'expiring_soon').length
-                      return (expired + expiring > 0) ? (
-                        <p className="text-[10px] text-red-600 font-medium">
-                          {expired > 0 && `${expired} cert${expired > 1 ? 's' : ''} expired`}
-                          {expired > 0 && expiring > 0 && ' · '}
-                          {expiring > 0 && `${expiring} expiring soon`}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] text-green-600 font-medium">Compliance OK</p>
-                      )
-                    })()}
-                    {v.known_defects && (
-                      <p className="text-[10px] text-amber-600 truncate">⚠ {v.known_defects}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Make/Type footer */}
-                {(v.make || v.vehicle_type) && (
-                  <p className="text-[10px] text-gray-300 mt-2 truncate">
-                    {[v.make, v.model_name, v.vehicle_type].filter(Boolean).join(' · ')}
-                  </p>
-                )}
+        <div className="space-y-4">
+          {groupOrder.filter(g => grouped[g]?.length).map(groupName => (
+            <div key={groupName} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+              {/* Group header */}
+              <div className={`px-4 py-2 flex items-center justify-between border-b border-gray-100 ${CAT_COLOR[groupName] || 'bg-gray-50'}`}>
+                <span className="text-xs font-bold tracking-wide uppercase">{groupName}</span>
+                <span className="text-xs font-medium opacity-70">{grouped[groupName].length} assets</span>
               </div>
-            )
-          })}
-        </div>
-      )}
 
-      {showImport && (
-        <FleetRegisterImportModal
-          onClose={() => setShowImport(false)}
-          onSuccess={() => qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })}
-        />
+              {/* Table */}
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500 w-6">#</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500 w-24">Reg / ID</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Description</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Make & Model</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Location</th>
+                    <th className="px-4 py-2 text-center font-semibold text-gray-500">GPS</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Status</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Compliance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {grouped[groupName].map(v => {
+                    const compIssues = (v.compliance||[]).filter(c => c.status==='expired'||c.status==='not_in_system'||c.status==='expiring_soon')
+                    const hasWarn    = compIssues.length > 0 || v.erp_status === 'NON-OPER'
+                    const location   = v.current_site || v.last_location || '—'
+                    return (
+                      <tr key={v.id}
+                        onClick={() => navigate(`/fleet/vehicles/${v.id}`)}
+                        className={`cursor-pointer transition-colors hover:bg-gray-50 ${hasWarn ? 'bg-red-50/30' : ''}`}>
+                        {/* # */}
+                        <td className="px-4 py-3 text-gray-400">{v.asset_no || '—'}</td>
+                        {/* Reg */}
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-brand-slate">{v.vehicle_no}</span>
+                        </td>
+                        {/* Description */}
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-800">{v.vehicle_name || '—'}</p>
+                          {v.chassis_number && v.chassis_number !== 'N/A' && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">{v.chassis_number}</p>
+                          )}
+                        </td>
+                        {/* Make & Model */}
+                        <td className="px-4 py-3 text-gray-600">
+                          {[v.make, v.model_name].filter(Boolean).join(' ') || '—'}
+                        </td>
+                        {/* Location */}
+                        <td className="px-4 py-3">
+                          {location !== '—' ? (
+                            <span className="flex items-center gap-1 text-gray-600">
+                              <MapPinIcon className="h-3 w-3 text-gray-400 shrink-0" />
+                              <span className="truncate max-w-[140px]">{location}</span>
+                            </span>
+                          ) : <span className="text-gray-300">—</span>}
+                        </td>
+                        {/* GPS */}
+                        <td className="px-4 py-3 text-center">
+                          {v.is_live ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <LiveIcon />
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_CLS[v.last_status||'']||'bg-gray-100 text-gray-400'}`}>
+                                {STATUS_LABEL[v.last_status] || 'Unknown'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <OfflineIcon />
+                              <span className="text-[9px] text-gray-400">Untracked</span>
+                            </div>
+                          )}
+                        </td>
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          {v.erp_status ? (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${ERP_CLS[v.erp_status]||'bg-gray-100 text-gray-400'}`}>
+                              {ERP_LABEL[v.erp_status]||v.erp_status}
+                            </span>
+                          ) : <span className="text-gray-300 text-[10px]">—</span>}
+                        </td>
+                        {/* Compliance */}
+                        <td className="px-4 py-3">
+                          {compIssues.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 items-center">
+                              <ExclamationTriangleIcon className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                              {compIssues.map(c => complianceBadge(c))}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-green-600 font-medium">OK</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
