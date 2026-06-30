@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon, PencilIcon, TrashIcon, MapIcon } from '@heroicons/react/24/outline'
 import { getGeofences, createGeofence, updateGeofence, deleteGeofence, getGeofenceEvents } from '../../api/fleet'
+import usePermissions from '../../hooks/usePermissions'
 
 const fmtDt = s => new Date(s).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
 
 export default function GeofenceManagementPage() {
   const queryClient = useQueryClient()
+  const { canWrite } = usePermissions()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
@@ -84,15 +86,17 @@ export default function GeofenceManagementPage() {
           <h2 className="text-lg font-bold text-brand-slate">Geofence Management</h2>
           <p className="text-xs text-gray-600 mt-0.5">Create and manage vehicle geofences</p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
-          <PlusIcon className="h-4 w-4" />
-          New Geofence
-        </button>
+        {canWrite('fleet') && (
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+            <PlusIcon className="h-4 w-4" />
+            New Geofence
+          </button>
+        )}
       </div>
 
       {/* Form */}
-      {showForm && (
+      {showForm && canWrite('fleet') && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <h3 className="font-semibold text-brand-slate text-sm mb-4">{editingId ? 'Edit' : 'Create'} Geofence</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -166,16 +170,18 @@ export default function GeofenceManagementPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-3">
-                        <button onClick={(e) => { e.stopPropagation(); handleEdit(g); }}
-                          className="p-2 text-gray-400 hover:text-brand-red transition-colors">
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteMut.mutate(g.id); }}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors">
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                      {canWrite('fleet') && (
+                        <div className="flex gap-2 ml-3">
+                          <button onClick={(e) => { e.stopPropagation(); handleEdit(g); }}
+                            className="p-2 text-gray-400 hover:text-brand-red transition-colors">
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteMut.mutate(g.id); }}
+                            className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
