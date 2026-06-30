@@ -2,6 +2,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Compliance Renewal Cases
+    path("compliance-cases/",                  views.ComplianceCaseListCreateView.as_view(), name="compliance-case-list"),
+    path("compliance-cases/<uuid:pk>/",        views.ComplianceCaseDetailView.as_view(),     name="compliance-case-detail"),
+    path("compliance-cases/<uuid:pk>/advance/",views.advance_compliance_case,                name="compliance-case-advance"),
+    path("compliance-cases/<uuid:pk>/bill/",   views.create_compliance_bill,                 name="compliance-case-bill"),
+
     path("",                    views.NotificationListView.as_view(),        name="notification-list"),
     path("unread/",             views.unread_count,                          name="notification-unread-count"),
     path("mark-all/",           views.mark_all_read,                         name="notification-mark-all"),
