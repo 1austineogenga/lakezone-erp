@@ -8,7 +8,7 @@ import {
   CurrencyDollarIcon, CheckCircleIcon, ExclamationTriangleIcon,
   ShieldCheckIcon, DocumentTextIcon, XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { getAssets, createAsset, updateAsset, getAssetDashboard } from '../../api/inventory'
+import { getAssets, createAsset, updateAsset, deleteAsset, getAssetDashboard } from '../../api/inventory'
 import useAuthStore from '../../store/authStore'
 import usePermissions from '../../hooks/usePermissions'
 import api from '../../api/client'
@@ -652,7 +652,7 @@ export default function AssetsPage() {
   const [selectedDept, setSelectedDept] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [editAsset, setEditAsset] = useState(null)
-  const [viewMode, setViewMode] = useState('cards')
+  const [viewMode, setViewMode] = useState('table')
   const [page, setPage] = useState(1)
 
   const { data: departments = [] } = useQuery({
@@ -676,6 +676,19 @@ export default function AssetsPage() {
     queryKey: ['asset-dashboard'],
     queryFn: () => getAssetDashboard().then(r => r.data),
   })
+
+  const qc = useQueryClient()
+  const deleteMut = useMutation({
+    mutationFn: (id) => deleteAsset(id),
+    onSuccess: () => { toast.success('Asset deleted'); qc.invalidateQueries(['assets']); qc.invalidateQueries(['asset-dashboard']) },
+    onError: () => toast.error('Failed to delete asset'),
+  })
+
+  const handleDelete = (asset) => {
+    if (window.confirm(`Delete "${asset.name}"? This cannot be undone.`)) {
+      deleteMut.mutate(asset.id)
+    }
+  }
 
   const filtered = assets.filter(a =>
     !search ||
@@ -802,7 +815,7 @@ export default function AssetsPage() {
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
-                {['Code', 'Name', 'Plate', 'Category', 'Dept', 'Status', 'Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry', ''].map(h => (
+                {['Code', 'Name', 'Plate', 'Category', 'Dept', 'Status', 'Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry', 'Actions'].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -812,7 +825,7 @@ export default function AssetsPage() {
                 const cat = CATEGORY_OPTIONS.find(c => c.value === asset.category)
                 const st = STATUS_OPTIONS.find(s => s.value === asset.status)
                 return (
-                  <tr key={asset.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/${asset.id}`)}>
+                  <tr key={asset.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 font-mono text-gray-600">{asset.asset_code}</td>
                     <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
                     <td className="px-3 py-2.5 font-mono text-gray-600">{asset.registration_plate || '—'}</td>
@@ -822,7 +835,17 @@ export default function AssetsPage() {
                     <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-600">—</span>}</td>
                     <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
                     <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
-                    <td className="px-3 py-2.5">{canEdit && <button onClick={e => { e.stopPropagation(); setEditAsset(asset); setShowModal(true) }} className="text-xs text-brand-red hover:underline font-medium">Edit</button>}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => navigate(`/assets/${asset.id}`)} className="text-xs text-blue-600 hover:underline font-medium">View</button>
+                        {canEdit && <>
+                          <span className="text-gray-300">|</span>
+                          <button onClick={() => { setEditAsset(asset); setShowModal(true) }} className="text-xs text-amber-600 hover:underline font-medium">Edit</button>
+                          <span className="text-gray-300">|</span>
+                          <button onClick={() => handleDelete(asset)} className="text-xs text-red-600 hover:underline font-medium">Delete</button>
+                        </>}
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
