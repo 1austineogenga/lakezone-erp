@@ -44,15 +44,6 @@ function KpiCard({ label, value, sub, subOk, valueColor, bg, border, accent, to 
   )
 }
 
-function ProgressBar({ value, max, color = 'bg-brand-red' }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
-  return (
-    <div className="w-full bg-white/50 rounded-full h-2 mt-1">
-      <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
-    </div>
-  )
-}
-
 function StatusDot({ status }) {
   const colors = {
     active: 'bg-green-500', completed: 'bg-blue-500',
@@ -94,29 +85,20 @@ export default function MDDashboard() {
   if (!data) return null
 
   const { finance = {}, projects = {}, fleet = {}, hr = {}, procurement = {}, requisitions = {}, inventory = {}, users = {} } = data
-
   const fleetOnlinePct = fleet.total > 0 ? Math.round((fleet.online / fleet.total) * 100) : 0
   const arCollectionPct = finance.collection_rate || 0
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      {/* ── Finance ── */}
+      {/* ── Finance — full width ── */}
       <div>
         <SectionTitle icon={BanknotesIcon} label="Finance Overview" iconBg="bg-blue-100" iconColor="text-blue-600" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-          <KpiCard label="Total Invoiced (AR)" value={fmtK(finance.ar_billed)}
-            sub={`${arCollectionPct}% collected`} subOk={arCollectionPct >= 70}
-            valueColor="text-blue-800" bg="bg-blue-50" border="border-blue-100" accent="bg-blue-400" to="/finance/invoices" />
-          <KpiCard label="Cash Received" value={fmtK(finance.ar_received)}
-            sub="from clients"
-            valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/finance/payments" />
-          <KpiCard label="AR Outstanding" value={fmtK(finance.ar_outstanding)}
-            sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0}
-            valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/finance/aged" />
-          <KpiCard label="AP Outstanding" value={fmtK(finance.ap_outstanding)}
-            sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0}
-            valueColor="text-red-800" bg="bg-red-50" border="border-red-100" accent="bg-red-400" to="/finance/bills" />
+          <KpiCard label="Total Invoiced (AR)" value={fmtK(finance.ar_billed)} sub={`${arCollectionPct}% collected`} subOk={arCollectionPct >= 70} valueColor="text-blue-800" bg="bg-blue-50" border="border-blue-100" accent="bg-blue-400" to="/finance/invoices" />
+          <KpiCard label="Cash Received" value={fmtK(finance.ar_received)} sub="from clients" valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/finance/payments" />
+          <KpiCard label="AR Outstanding" value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/finance/aged" />
+          <KpiCard label="AP Outstanding" value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0} valueColor="text-red-800" bg="bg-red-50" border="border-red-100" accent="bg-red-400" to="/finance/bills" />
         </div>
         <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
@@ -134,18 +116,31 @@ export default function MDDashboard() {
         </div>
       </div>
 
-      {/* ── Projects + Procurement ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ── Operations KPI row — uniform 6-card grid ── */}
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Operations at a Glance</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KpiCard label="Active Projects" value={projects.active || 0} sub={`${projects.on_hold || 0} on hold`} valueColor="text-violet-800" bg="bg-violet-50" border="border-violet-100" accent="bg-violet-400" to="/projects?status=active" />
+          <KpiCard label="Pending PRs" value={procurement.pending_prs || 0} sub="awaiting approval" subOk={procurement.pending_prs === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/procurement" />
+          <KpiCard label="Open POs" value={procurement.open_pos || 0} sub={fmtK(procurement.po_value_open)} valueColor="text-purple-800" bg="bg-purple-50" border="border-purple-100" accent="bg-purple-400" to="/procurement" />
+          <KpiCard label="Fleet Online" value={`${fleet.online || 0}/${fleet.total || 0}`} sub={`${fleetOnlinePct}% availability`} subOk={fleetOnlinePct >= 60} valueColor="text-cyan-800" bg="bg-cyan-50" border="border-cyan-100" accent="bg-cyan-400" to="/fleet/vehicles" />
+          <KpiCard label="Total Workforce" value={hr.total_employees || 0} sub={`${hr.staff || 0} staff · ${hr.casuals || 0} casuals`} valueColor="text-indigo-800" bg="bg-indigo-50" border="border-indigo-100" accent="bg-indigo-400" to="/hr/employees" />
+          <KpiCard label="Stock Items" value={inventory.total_items || 0} sub={inventory.low_stock > 0 ? `${inventory.low_stock} low stock` : 'All stocked'} subOk={inventory.low_stock === 0} valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/inventory" />
+        </div>
+      </div>
+
+      {/* ── Detail panels — 3 columns, align to top ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
         {/* Projects */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={FolderIcon} label="Projects" iconBg="bg-violet-100" iconColor="text-violet-600" />
-          <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="grid grid-cols-3 gap-2">
             <KpiCard label="Active" value={projects.active || 0} valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/projects?status=active" />
             <KpiCard label="On Hold" value={projects.on_hold || 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/projects?status=on_hold" />
             <KpiCard label="Completed" value={projects.completed || 0} valueColor="text-violet-800" bg="bg-violet-50" border="border-violet-100" accent="bg-violet-400" to="/projects?status=completed" />
           </div>
-          {projects.recent?.length > 0 && (
+          {projects.recent?.length > 0 ? (
             <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
               <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100 flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500">Recent Projects</p>
@@ -168,49 +163,43 @@ export default function MDDashboard() {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-4">No recent projects</p>
           )}
         </div>
 
         {/* Procurement */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={ClipboardDocumentListIcon} label="Procurement" iconBg="bg-purple-100" iconColor="text-purple-600" />
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-2 gap-2">
             <KpiCard label="Pending PRs" value={procurement.pending_prs || 0} sub="awaiting approval" subOk={procurement.pending_prs === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/procurement" />
             <KpiCard label="Open POs" value={procurement.open_pos || 0} sub={fmtK(procurement.po_value_open)} valueColor="text-purple-800" bg="bg-purple-50" border="border-purple-100" accent="bg-purple-400" to="/procurement" />
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
             <KpiCard label="Approved PRs" value={procurement.approved_prs || 0} valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/procurement" />
-            <KpiCard label="Pending Requisitions" value={requisitions.pending || 0} sub="awaiting approval" subOk={requisitions.pending === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/requisitions" />
+            <KpiCard label="Pending Reqs" value={requisitions.pending || 0} sub="awaiting approval" subOk={requisitions.pending === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/requisitions" />
           </div>
           <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3">Requisitions MTD</p>
-            <div className="flex items-center gap-4">
-              <div className="text-center">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-lg font-bold text-gray-800">{requisitions.total_mtd || 0}</p>
-                <p className="text-[10px] text-gray-500">Total raised</p>
+                <p className="text-[10px] text-gray-400">Total</p>
               </div>
-              <div className="h-8 w-px bg-purple-200" />
-              <div className="text-center">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-lg font-bold text-green-600">{requisitions.approved || 0}</p>
-                <p className="text-[10px] text-gray-500">Approved</p>
+                <p className="text-[10px] text-gray-400">Approved</p>
               </div>
-              <div className="h-8 w-px bg-purple-200" />
-              <div className="text-center">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-lg font-bold text-amber-600">{requisitions.pending || 0}</p>
-                <p className="text-[10px] text-gray-500">Pending</p>
+                <p className="text-[10px] text-gray-400">Pending</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Fleet + HR ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Fleet */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={TruckIcon} label="Fleet Status" iconBg="bg-cyan-100" iconColor="text-cyan-600" />
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-2 gap-2">
             <KpiCard label="Online Now" value={`${fleet.online || 0}/${fleet.total || 0}`} sub={`${fleetOnlinePct}% availability`} subOk={fleetOnlinePct >= 60} valueColor="text-cyan-800" bg="bg-cyan-50" border="border-cyan-100" accent="bg-cyan-400" to="/fleet/vehicles" />
             <KpiCard label="Moving" value={fleet.moving || 0} sub="live GPS" valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/fleet/vehicles" />
           </div>
@@ -219,10 +208,10 @@ export default function MDDashboard() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Fleet Availability</p>
               <span className={`text-xs font-bold ${fleetOnlinePct >= 60 ? 'text-green-600' : 'text-red-500'}`}>{fleetOnlinePct}%</span>
             </div>
-            <div className="w-full bg-white rounded-full h-2">
+            <div className="w-full bg-white rounded-full h-2 mb-3">
               <div className={`${fleetOnlinePct >= 60 ? 'bg-cyan-500' : 'bg-red-400'} h-2 rounded-full`} style={{ width: `${fleetOnlinePct}%` }} />
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+            <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-white rounded-lg py-2">
                 <p className="text-sm font-bold text-green-600">{fleet.moving || 0}</p>
                 <p className="text-[10px] text-gray-400">Moving</p>
@@ -237,16 +226,20 @@ export default function MDDashboard() {
               </div>
             </div>
             <div className="flex gap-2 mt-3 flex-wrap">
-              {fleet.alerts_unacked > 0 && <span onClick={() => navigate('/fleet/alerts')} className="cursor-pointer"><AlertPill count={fleet.alerts_unacked} label="unacknowledged alerts" color="bg-red-100 text-red-700" /></span>}
+              {fleet.alerts_unacked > 0 && <span onClick={() => navigate('/fleet/alerts')} className="cursor-pointer"><AlertPill count={fleet.alerts_unacked} label="unacked alerts" color="bg-red-100 text-red-700" /></span>}
               {fleet.low_fuel > 0 && <span onClick={() => navigate('/fleet/fuel')} className="cursor-pointer"><AlertPill count={fleet.low_fuel} label="low fuel" color="bg-amber-100 text-amber-700" /></span>}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── HR + Inventory + Users — 3 columns, align to top ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
         {/* HR */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={UsersIcon} label="Human Resources" iconBg="bg-indigo-100" iconColor="text-indigo-600" />
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-2 gap-2">
             <KpiCard label="Total Workforce" value={hr.total_employees || 0} sub={`${hr.staff || 0} staff · ${hr.casuals || 0} casuals`} valueColor="text-indigo-800" bg="bg-indigo-50" border="border-indigo-100" accent="bg-indigo-400" to="/hr/employees" />
             <KpiCard label="Present Today" value={hr.present_today || 0} sub={`${hr.on_leave_today || 0} on leave`} valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/hr/attendance" />
           </div>
@@ -270,33 +263,25 @@ export default function MDDashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Inventory & Assets + Users ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Inventory & Assets */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={CubeIcon} label="Inventory & Assets" iconBg="bg-orange-100" iconColor="text-orange-600" />
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <KpiCard label="Stock Items" value={inventory.total_items || 0}
-              sub={inventory.low_stock > 0 ? `${inventory.low_stock} below reorder` : 'All stocked'} subOk={inventory.low_stock === 0}
-              valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/inventory" />
-            <KpiCard label="Registered Assets" value={inventory.total_assets || 0}
-              sub={`${inventory.active_assets || 0} operational`}
-              valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/assets" />
+          <div className="grid grid-cols-2 gap-2">
+            <KpiCard label="Stock Items" value={inventory.total_items || 0} sub={inventory.low_stock > 0 ? `${inventory.low_stock} below reorder` : 'All stocked'} subOk={inventory.low_stock === 0} valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/inventory" />
+            <KpiCard label="Registered Assets" value={inventory.total_assets || 0} sub={`${inventory.active_assets || 0} operational`} valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/assets" />
           </div>
           <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 shadow-sm">
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-white rounded-lg py-2">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-sm font-bold text-green-600">{inventory.active_assets || 0}</p>
                 <p className="text-[10px] text-gray-400">Operational</p>
               </div>
-              <div className="bg-white rounded-lg py-2">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-sm font-bold text-amber-500">{inventory.under_repair || 0}</p>
                 <p className="text-[10px] text-gray-400">Under Repair</p>
               </div>
-              <div className="bg-white rounded-lg py-2">
+              <div className="bg-white rounded-lg py-2.5">
                 <p className="text-sm font-bold text-red-500">{inventory.low_stock || 0}</p>
                 <p className="text-[10px] text-gray-400">Low Stock</p>
               </div>
@@ -305,14 +290,14 @@ export default function MDDashboard() {
         </div>
 
         {/* System Users */}
-        <div>
+        <div className="space-y-3">
           <SectionTitle icon={UserGroupIcon} label="System Users" iconBg="bg-slate-100" iconColor="text-slate-600" />
           <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Active Users by Role</p>
               <span className="text-xs font-bold text-slate-600">{users.total || 0} total</span>
             </div>
-            <div className="px-4 py-2 max-h-44 overflow-y-auto">
+            <div className="px-4 py-2">
               {(users.by_role || []).map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <p className="text-xs text-gray-700 capitalize">{r.role?.replace(/_/g, ' ')}</p>
