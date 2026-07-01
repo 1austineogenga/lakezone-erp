@@ -76,16 +76,20 @@ const CATEGORY_GROUPS = [
   { label: 'Other',             items: ['other'] },
 ]
 
-function AddItemModal({ onClose, editItem, stores }) {
+function AddItemModal({ onClose, editItem, stores, departments }) {
   const qc = useQueryClient()
   const [form, setForm] = useState(editItem ? {
-    name: editItem.name || '',
-    category: editItem.category || 'office_consumables',
-    unit: editItem.unit || '',
-    reorder_level: editItem.reorder_level ?? '',
-    description: editItem.description || '',
+    name:              editItem.name              || '',
+    category:          editItem.category          || 'office_consumables',
+    unit:              editItem.unit              || '',
+    reorder_level:     editItem.reorder_level != null ? String(parseFloat(editItem.reorder_level)) : '',
+    description:       editItem.description       || '',
+    valuation_method:  editItem.valuation_method  || 'wac',
+    department:        editItem.department         || '',
+    is_active:         editItem.is_active != null ? editItem.is_active : true,
   } : {
-    name: '', category: 'office_consumables', unit: '', reorder_level: '', description: '',
+    name: '', category: 'office_consumables', unit: '', reorder_level: '',
+    description: '', valuation_method: 'wac', department: '', is_active: true,
   })
   const [openingQty,   setOpeningQty]   = useState('')
   const [openingCost,  setOpeningCost]  = useState('')
@@ -186,6 +190,14 @@ function AddItemModal({ onClose, editItem, stores }) {
             </div>
           </div>
 
+          {/* Item code — read only, edit mode only */}
+          {editItem && (
+            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+              <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Item Code</span>
+              <span className="font-mono text-sm font-bold text-brand-slate ml-1">{editItem.item_code}</span>
+            </div>
+          )}
+
           {/* Reorder level + Description row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -202,6 +214,35 @@ function AddItemModal({ onClose, editItem, stores }) {
                 placeholder="Brief notes…" />
             </div>
           </div>
+
+          {/* Valuation method + Department */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Valuation Method</label>
+              <select className={inp} value={form.valuation_method} onChange={e => set('valuation_method', e.target.value)}>
+                <option value="wac">Weighted Average Cost</option>
+                <option value="fifo">FIFO</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Department <span className="text-gray-400 font-normal">(optional)</span></label>
+              <select className={inp} value={form.department || ''} onChange={e => set('department', e.target.value || null)}>
+                <option value="">— All departments —</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Active toggle — edit mode only */}
+          {editItem && (
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="is_active_chk" checked={form.is_active}
+                onChange={e => set('is_active', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-red focus:ring-brand-red" />
+              <label htmlFor="is_active_chk" className="text-xs font-semibold text-gray-600">Item is Active</label>
+              {!form.is_active && <span className="text-[11px] text-red-500">Inactive items are hidden from issue/receive forms</span>}
+            </div>
+          )}
 
           {/* Opening stock — new items only */}
           {!editItem && (
@@ -328,6 +369,12 @@ export default function InventoryPage() {
   const { data: systemUsers = [] } = useQuery({
     queryKey: ['system-users'],
     queryFn: getSystemUsers,
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => api.get('/auth/departments/'),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
@@ -1037,6 +1084,7 @@ export default function InventoryPage() {
         <AddItemModal
           editItem={editItem}
           stores={stores}
+          departments={departments}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
     </div>
