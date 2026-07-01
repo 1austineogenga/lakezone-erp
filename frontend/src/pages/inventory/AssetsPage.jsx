@@ -661,7 +661,8 @@ export default function AssetsPage() {
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
-    queryFn: () => api.get('/auth/departments/').then(r => r.data?.results ?? r.data ?? []),
+    queryFn: () => api.get('/auth/departments/'),
+    select: r => r.data?.results ?? r.data ?? [],
     enabled: canViewAll,
   })
 
