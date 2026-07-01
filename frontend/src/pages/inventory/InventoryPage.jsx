@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
@@ -324,6 +324,11 @@ function AdjustStockModal({ item, stores, onClose }) {
   const [newQty, setNewQty] = useState(String(currentStock))
   const [notes, setNotes]   = useState('')
 
+  // Auto-select first store when stores load asynchronously
+  useEffect(() => {
+    if (!store && stores[0]?.id) setStore(stores[0].id)
+  }, [stores])
+
   const diff = Number(newQty) - currentStock
   const diffLabel = diff === 0 ? 'No change'
     : diff > 0 ? `+${diff} (stock will increase)`
@@ -352,7 +357,8 @@ function AdjustStockModal({ item, stores, onClose }) {
     },
   })
 
-  const canSave = store && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && diff !== 0
+  const needsStore = stores.length > 0
+  const canSave = (!needsStore || store) && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && diff !== 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -389,15 +395,19 @@ function AdjustStockModal({ item, stores, onClose }) {
           </div>
 
           {/* Store */}
-          {stores.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Store <span className="text-brand-red">*</span></label>
-              <select className={inp} value={store} onChange={e => setStore(e.target.value)}>
-                <option value="">— Select store —</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Store {needsStore && <span className="text-brand-red">*</span>}</label>
+            <select className={inp} value={store} onChange={e => setStore(e.target.value)}
+              disabled={stores.length === 0}>
+              {stores.length === 0
+                ? <option value="">No stores configured</option>
+                : <>
+                    <option value="">— Select store —</option>
+                    {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </>
+              }
+            </select>
+          </div>
 
           {/* Notes */}
           <div>
