@@ -22,7 +22,7 @@ class StockItemSerializer(serializers.ModelSerializer):
             "is_active", "department", "department_name",
             "current_stock", "weighted_avg_cost", "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "item_code", "created_at"]
 
     def get_current_stock(self, obj):
         return obj.current_stock()
