@@ -131,7 +131,7 @@ class ExpenseClaimListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'role', None)
-        privileged = {'finance_officer', 'finance_manager', 'managing_director', 'admin', 'superuser'}
+        privileged = {'finance_officer', 'finance_manager', 'managing_director', 'admin', 'superuser', 'system_admin', 'general_manager', 'admin_officer'}
         qs = ExpenseClaim.objects.select_related('submitted_by', 'project').all()
         if role not in privileged:
             qs = qs.filter(submitted_by=user)
