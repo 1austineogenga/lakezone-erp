@@ -68,6 +68,42 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ou
 
 const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags', 'tubes', 'packets', 'drums', 'bales', 'tonnes']
 
+// ── Quick Create Store (inline, used when no stores exist) ────────────────────
+
+function QuickCreateStore({ onCreated }) {
+  const [name, setName]         = useState('')
+  const [location, setLocation] = useState('')
+  const [saving, setSaving]     = useState(false)
+
+  const handleCreate = async () => {
+    if (!name.trim()) return toast.error('Store name is required')
+    setSaving(true)
+    try {
+      const res = await api.post('/inventory/stores/', { name, location })
+      toast.success(`Store "${name}" created`)
+      onCreated(res.data)
+    } catch {
+      toast.error('Failed to create store')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+      <p className="text-xs font-semibold text-amber-800">No stores configured — create one to continue</p>
+      <input value={name} onChange={e => setName(e.target.value)}
+        className={inp} placeholder="Store name (e.g. Main Storeroom)" />
+      <input value={location} onChange={e => setLocation(e.target.value)}
+        className={inp} placeholder="Location (optional)" />
+      <button onClick={handleCreate} disabled={saving || !name.trim()}
+        className="w-full py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50">
+        {saving ? 'Creating…' : 'Create Store & Continue'}
+      </button>
+    </div>
+  )
+}
+
 const CATEGORY_GROUPS = [
   { label: 'Office & Admin',    items: ['office_consumables', 'stationery'] },
   { label: 'Facilities',        items: ['cleaning', 'kitchen'] },
@@ -264,21 +300,28 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
                 </div>
               </div>
 
-              {/* Always show store picker when qty is entered */}
-              {stores.length > 0 && (
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Store {hasOpening && <span className="text-brand-red">*</span>}
-                  </label>
-                  <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
-                    <option value="">— Select store —</option>
-                    {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  {hasOpening && !openingStore && (
-                    <p className="text-[11px] text-red-500 mt-1">A store is required when adding opening stock.</p>
-                  )}
-                </div>
-              )}
+              {/* Store picker */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Store {hasOpening && <span className="text-brand-red">*</span>}
+                </label>
+                {stores.length === 0 ? (
+                  <QuickCreateStore onCreated={(newStore) => {
+                    qc.invalidateQueries({ queryKey: ['stores'] })
+                    setOpeningStore(newStore.id)
+                  }} />
+                ) : (
+                  <>
+                    <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
+                      <option value="">— Select store —</option>
+                      {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    {hasOpening && !openingStore && (
+                      <p className="text-[11px] text-red-500 mt-1">A store is required when adding opening stock.</p>
+                    )}
+                  </>
+                )}
+              </div>
 
               {hasOpening && openingStore && (
                 <p className="text-[11px] text-indigo-600">
@@ -396,17 +439,18 @@ function AdjustStockModal({ item, stores, onClose }) {
 
           {/* Store */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Store {needsStore && <span className="text-brand-red">*</span>}</label>
-            <select className={inp} value={store} onChange={e => setStore(e.target.value)}
-              disabled={stores.length === 0}>
-              {stores.length === 0
-                ? <option value="">No stores configured</option>
-                : <>
-                    <option value="">— Select store —</option>
-                    {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </>
-              }
-            </select>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Store <span className="text-brand-red">*</span></label>
+            {stores.length === 0 ? (
+              <QuickCreateStore onCreated={(newStore) => {
+                qc.invalidateQueries({ queryKey: ['stores'] })
+                setStore(newStore.id)
+              }} />
+            ) : (
+              <select className={inp} value={store} onChange={e => setStore(e.target.value)}>
+                <option value="">— Select store —</option>
+                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            )}
           </div>
 
           {/* Notes */}
