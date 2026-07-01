@@ -217,23 +217,58 @@ class ResetAllPasswordsView(APIView):
 
 
 class BranchListCreateView(generics.ListCreateAPIView):
-    queryset = Branch.objects.filter(is_active=True)
     serializer_class = BranchSerializer
+
+    def get_queryset(self):
+        show_all = self.request.query_params.get('all') == 'true'
+        if show_all:
+            return Branch.objects.all()
+        return Branch.objects.filter(is_active=True)
 
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsManagement()]
+
+
+class BranchDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Branch.objects.all()
+    serializer_class = BranchSerializer
+    permission_classes = [IsManagement]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DepartmentListCreateView(generics.ListCreateAPIView):
-    queryset = Department.objects.select_related("branch").filter(is_active=True)
     serializer_class = DepartmentSerializer
+
+    def get_queryset(self):
+        show_all = self.request.query_params.get('all') == 'true'
+        qs = Department.objects.select_related("branch", "head")
+        if not show_all:
+            qs = qs.filter(is_active=True)
+        return qs
 
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsManagement()]
+
+
+class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Department.objects.select_related("branch", "head").all()
+    serializer_class = DepartmentSerializer
+    permission_classes = [IsManagement]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MDDashboardView(APIView):

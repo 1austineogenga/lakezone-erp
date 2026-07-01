@@ -13,6 +13,7 @@ import DisciplinaryPage from './DisciplinaryPage'
 import TransfersPage from './TransfersPage'
 import CasualsRegistryPage from './CasualsRegistryPage'
 import LeaveApplicationPage from './LeaveApplicationPage'
+import OrganisationPage from './OrganisationPage'
 
 export default function HRPage() {
   return (
@@ -31,6 +32,7 @@ export default function HRPage() {
       <Route path="disciplinary"   element={<DisciplinaryPage />} />
       <Route path="transfers"      element={<TransfersPage />} />
       <Route path="casuals-registry" element={<CasualsRegistryPage />} />
+      <Route path="organisation"      element={<OrganisationPage />} />
     </Routes>
   )
 }

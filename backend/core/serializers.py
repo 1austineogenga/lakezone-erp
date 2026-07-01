@@ -12,10 +12,16 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class DepartmentSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source="branch.name", read_only=True)
+    head_name   = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
-        fields = ["id", "name", "branch", "branch_name", "is_active"]
+        fields = ["id", "name", "branch", "branch_name", "head", "head_name", "is_active"]
+
+    def get_head_name(self, obj):
+        if obj.head:
+            return obj.head.get_full_name() or obj.head.email
+        return None
 
 
 class UserSerializer(serializers.ModelSerializer):
