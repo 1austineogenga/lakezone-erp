@@ -374,6 +374,8 @@ function AdjustStockModal({ item, stores, onClose }) {
     if (!store && stores[0]?.id) setStore(stores[0].id)
   }, [stores])
 
+  const needsStore = stores.length > 0
+  const costChanged = unitCost !== '' && Number(unitCost) !== currentCost
   const diff = Number(newQty) - currentStock
   const diffLabel = diff === 0
     ? (costChanged ? 'Qty unchanged — cost update only' : 'No change')
@@ -407,8 +409,6 @@ function AdjustStockModal({ item, stores, onClose }) {
     },
   })
 
-  const needsStore = stores.length > 0
-  const costChanged = unitCost !== '' && Number(unitCost) !== currentCost
   const canSave = (!needsStore || store) && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && (diff !== 0 || costChanged)
 
   return (
