@@ -68,6 +68,17 @@ class StockItem(models.Model):
     class Meta:
         ordering = ["item_code"]
 
+    def save(self, *args, **kwargs):
+        if not self.item_code:
+            category_prefix = (self.category or 'GEN')[:3].upper()
+            count = StockItem.objects.filter(item_code__startswith=f'STK-{category_prefix}-').count() + 1
+            self.item_code = f'STK-{category_prefix}-{count:04d}'
+            # Ensure uniqueness if there's a collision
+            while StockItem.objects.filter(item_code=self.item_code).exists():
+                count += 1
+                self.item_code = f'STK-{category_prefix}-{count:04d}'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.item_code} — {self.name}"
 
