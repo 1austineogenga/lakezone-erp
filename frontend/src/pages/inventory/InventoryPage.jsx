@@ -293,7 +293,14 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
         {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
           <button
-            onClick={() => itemMut.mutate(form)}
+            onClick={() => {
+              const payload = {
+                ...form,
+                reorder_level: form.reorder_level === '' ? 0 : Number(form.reorder_level),
+                department: form.department || null,
+              }
+              itemMut.mutate(payload)
+            }}
             disabled={itemMut.isPending || !canSubmit}
             className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity">
             {itemMut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
