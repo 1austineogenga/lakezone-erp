@@ -208,6 +208,8 @@ class StockTransaction(models.Model):
         elif self.transaction_type == TransactionType.ADJUSTMENT:
             # quantity field stores the absolute new quantity for adjustments
             stock_level.quantity_on_hand = self.quantity
+            if self.unit_cost > 0:
+                stock_level.weighted_avg_cost = self.unit_cost
         stock_level.save()
 
     def _allocate_cost_to_boq(self):
