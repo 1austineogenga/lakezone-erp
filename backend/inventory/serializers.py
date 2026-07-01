@@ -77,7 +77,13 @@ class StockTransactionSerializer(serializers.ModelSerializer):
             "issued_to", "issued_to_name", "issued_to_display",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "processed_by_name",
+                            "transaction_type_display", "item_name", "item_code",
+                            "store_name", "line_total", "issued_to_display"]
+        extra_kwargs = {
+            "reference_number": {"required": False, "allow_blank": True},
+            "processed_by":     {"required": False, "allow_null": True},
+        }
 
     def get_line_total(self, obj):
         return obj.quantity * obj.unit_cost

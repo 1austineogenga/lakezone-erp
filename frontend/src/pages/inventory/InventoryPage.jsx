@@ -66,7 +66,15 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ou
 
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
 
-const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags']
+const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags', 'tubes', 'packets', 'drums', 'bales', 'tonnes']
+
+const CATEGORY_GROUPS = [
+  { label: 'Office & Admin',    items: ['office_consumables', 'stationery'] },
+  { label: 'Facilities',        items: ['cleaning', 'kitchen'] },
+  { label: 'Site & Operations', items: ['construction_materials', 'spare_parts', 'fuel', 'ppe_safety', 'tools'] },
+  { label: 'Staff',             items: ['uniforms', 'electronics'] },
+  { label: 'Other',             items: ['other'] },
+]
 
 function AddItemModal({ onClose, editItem, stores }) {
   const qc = useQueryClient()
@@ -75,122 +83,184 @@ function AddItemModal({ onClose, editItem, stores }) {
     category: editItem.category || 'office_consumables',
     unit: editItem.unit || '',
     reorder_level: editItem.reorder_level ?? '',
+    description: editItem.description || '',
   } : {
-    name: '', category: 'office_consumables', unit: '', reorder_level: '',
+    name: '', category: 'office_consumables', unit: '', reorder_level: '', description: '',
   })
-  const [openingQty, setOpeningQty] = useState('')
-  const [openingCost, setOpeningCost] = useState('')
+  const [openingQty,   setOpeningQty]   = useState('')
+  const [openingCost,  setOpeningCost]  = useState('')
   const [openingStore, setOpeningStore] = useState(stores[0]?.id ?? '')
+
+  const hasOpening = !editItem && Number(openingQty) > 0
 
   const itemMut = useMutation({
     mutationFn: async (data) => {
-      const itemRes = editItem ? await updateStockItem(editItem.id, data) : await createStockItem(data)
+      const itemRes = editItem
+        ? await updateStockItem(editItem.id, data)
+        : await createStockItem(data)
       const newItem = itemRes.data
-      if (!editItem && openingQty && Number(openingQty) > 0) {
+      if (hasOpening) {
+        const storeId = openingStore || stores[0]?.id
+        if (!storeId) throw new Error('Please select a store for the opening stock.')
         await createTransaction({
           transaction_type: 'grn',
           item: newItem.id,
-          store: openingStore || stores[0]?.id,
+          store: storeId,
           quantity: Number(openingQty),
           unit_cost: Number(openingCost || 0),
-          transaction_date: new Date().toISOString(),
-          notes: 'Opening stock',
+          transaction_date: new Date().toISOString().slice(0, 10),
+          notes: 'Opening stock entry',
         })
       }
       return newItem
     },
     onSuccess: () => {
-      toast.success(editItem ? 'Item updated' : 'Item added' + (openingQty ? ' with opening stock' : ''))
+      toast.success(editItem ? 'Item updated' : `Item added${hasOpening ? ' with opening stock' : ''}`)
       qc.invalidateQueries({ queryKey: ['stock-items'] })
       qc.invalidateQueries({ queryKey: ['stock-transactions'] })
       onClose()
     },
     onError: e => {
       const d = e.response?.data
-      toast.error(d?.name?.[0] || d?.detail || JSON.stringify(d) || 'Failed to save item')
+      const msg = e.message || d?.store?.[0] || d?.name?.[0] || d?.detail || JSON.stringify(d) || 'Failed to save item'
+      toast.error(msg)
     },
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const canSubmit = form.name.trim() && form.unit.trim() && (!hasOpening || openingStore)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">{editItem ? 'Edit Item' : 'New Stock Item'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">{editItem ? 'Edit Stock Item' : 'New Stock Item'}</h2>
+            <p className="text-white/50 text-xs mt-0.5">Fill in the details below</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
 
-        <div className="space-y-4">
-          {/* Name */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+
+          {/* Item Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Item Name *</label>
-            <input autoFocus className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. A4 Printing Paper, Stapler, Broom…" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Item Name <span className="text-brand-red">*</span></label>
+            <input autoFocus className={inp} value={form.name}
+              onChange={e => set('name', e.target.value)}
+              placeholder="e.g. A4 Printing Paper, Safety Helmet, Foam Cleaner…" />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Category <span className="text-brand-red">*</span></label>
             <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
-              {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {CATEGORY_GROUPS.map(g => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.map(v => (
+                    <option key={v} value={v}>{CATEGORY_LABELS[v]}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 
-          {/* Unit */}
+          {/* Unit of Measure */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Unit of Measure *</label>
-            <input className={inp} value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="Select or type below" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Unit of Measure <span className="text-brand-red">*</span></label>
+            <input className={inp} value={form.unit}
+              onChange={e => set('unit', e.target.value)}
+              placeholder="Type or pick a quick unit below…" />
             <div className="flex flex-wrap gap-1.5 mt-2">
               {UNIT_CHIPS.map(u => (
-                <button key={u} type="button"
-                  onClick={() => set('unit', u)}
-                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${form.unit === u ? 'bg-brand-red text-white border-brand-red' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                <button key={u} type="button" onClick={() => set('unit', u)}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors
+                    ${form.unit === u
+                      ? 'bg-brand-red text-white border-brand-red'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
                   {u}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Reorder level */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Reorder Alert Level</label>
-            <input type="number" min="0" className={inp} value={form.reorder_level} onChange={e => set('reorder_level', e.target.value)} placeholder="Alert when stock falls below this number" />
+          {/* Reorder level + Description row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Reorder Alert Level</label>
+              <input type="number" min="0" className={inp} value={form.reorder_level}
+                onChange={e => set('reorder_level', e.target.value)}
+                placeholder="e.g. 5" />
+              <p className="text-[10px] text-gray-400 mt-1">Trigger low-stock alert below this qty</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input className={inp} value={form.description}
+                onChange={e => set('description', e.target.value)}
+                placeholder="Brief notes…" />
+            </div>
           </div>
 
-          {/* Opening stock — only when adding new */}
+          {/* Opening stock — new items only */}
           {!editItem && (
-            <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
-              <p className="text-xs font-semibold text-gray-600">Opening Stock <span className="font-normal text-gray-600">(optional)</span></p>
+            <div className="border border-dashed border-indigo-200 rounded-xl p-4 bg-indigo-50/40 space-y-3">
+              <p className="text-xs font-bold text-indigo-700">Opening Stock
+                <span className="font-normal text-indigo-500 ml-1">(optional — skip if stock is 0)</span>
+              </p>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Quantity</label>
-                  <input type="number" min="0" step="any" className={inp} value={openingQty} onChange={e => setOpeningQty(e.target.value)} placeholder="0" />
+                  <input type="number" min="0" step="any" className={inp} value={openingQty}
+                    onChange={e => setOpeningQty(e.target.value)} placeholder="0" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Unit Cost (KES)</label>
-                  <input type="number" min="0" step="any" className={inp} value={openingCost} onChange={e => setOpeningCost(e.target.value)} placeholder="0" />
+                  <input type="number" min="0" step="any" className={inp} value={openingCost}
+                    onChange={e => setOpeningCost(e.target.value)} placeholder="0.00" />
                 </div>
               </div>
-              {stores.length > 1 && (
+
+              {/* Always show store picker when qty is entered */}
+              {stores.length > 0 && (
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Store</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Store {hasOpening && <span className="text-brand-red">*</span>}
+                  </label>
                   <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
+                    <option value="">— Select store —</option>
                     {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                  {hasOpening && !openingStore && (
+                    <p className="text-[11px] text-red-500 mt-1">A store is required when adding opening stock.</p>
+                  )}
                 </div>
+              )}
+
+              {hasOpening && openingStore && (
+                <p className="text-[11px] text-indigo-600">
+                  Will record a GRN of <strong>{openingQty}</strong> units
+                  {openingCost ? ` @ KES ${Number(openingCost).toLocaleString()} each` : ''} into selected store.
+                </p>
               )}
             </div>
           )}
         </div>
 
-        <div className="flex gap-3 mt-6">
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
           <button
             onClick={() => itemMut.mutate(form)}
-            disabled={itemMut.isPending || !form.name || !form.unit}
-            className="flex-1 bg-brand-red text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-60 hover:opacity-90">
+            disabled={itemMut.isPending || !canSubmit}
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity">
             {itemMut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
           </button>
-          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
+          <button onClick={onClose}
+            className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
