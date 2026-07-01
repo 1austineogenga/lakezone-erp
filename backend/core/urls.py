@@ -12,7 +12,9 @@ urlpatterns = [
     path("users/<uuid:pk>/", views.UserDetailView.as_view(), name="user-detail"),
     path("users/<uuid:pk>/reset-password/", views.ResetUserPasswordView.as_view(), name="user-reset-password"),
     path("branches/", views.BranchListCreateView.as_view(), name="branch-list"),
+    path("branches/<uuid:pk>/", views.BranchDetailView.as_view(), name="branch-detail"),
     path("departments/", views.DepartmentListCreateView.as_view(), name="department-list"),
+    path("departments/<uuid:pk>/", views.DepartmentDetailView.as_view(), name="department-detail"),
     path("md-dashboard/", views.MDDashboardView.as_view(), name="md-dashboard"),
     path("reset-all-passwords/", views.ResetAllPasswordsView.as_view(), name="reset-all-passwords"),
 ]

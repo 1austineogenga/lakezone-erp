@@ -11,7 +11,7 @@ import {
   ShieldExclamationIcon, CurrencyDollarIcon, ArrowsRightLeftIcon,
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
-  BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon,
+  BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -98,6 +98,7 @@ const MODULES = [
           { to: '/hr/employees',    label: 'Employees',    icon: UsersIcon },
           { to: '/hr/transfers',    label: 'Transfers',    icon: ArrowsRightLeftIcon },
           { to: '/hr/disciplinary', label: 'Disciplinary', icon: ShieldExclamationIcon },
+          ...(role === 'system_admin' ? [{ to: '/hr/organisation', label: 'Organisation', icon: BuildingOfficeIcon }] : []),
         ],
       },
       {
