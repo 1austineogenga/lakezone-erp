@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getEmployees } from '../../api/hr'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'react-toastify'
+import { getEmployees, deleteEmployee } from '../../api/hr'
 import api from '../../api/client'
 import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
@@ -48,6 +49,8 @@ function PaginationBar({ safePage, totalPages, filtered, setPage, border }) {
 }
 
 export default function EmployeesPage() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
   const [searchParams] = useSearchParams()
   const [search, setSearch]   = useState('')
   const [typeFilter, setType] = useState(searchParams.get('type') || '')
@@ -79,6 +82,18 @@ export default function EmployeesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
   const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => deleteEmployee(id),
+    onSuccess: () => { toast.success('Employee deleted'); qc.invalidateQueries(['employees']) },
+    onError: () => toast.error('Failed to delete employee'),
+  })
+
+  const handleDelete = (emp) => {
+    if (window.confirm(`Delete ${emp.full_name}? This cannot be undone.`)) {
+      deleteMut.mutate(emp.id)
+    }
+  }
 
   const handleSearch = (val) => { setSearch(val); setPage(1) }
   const handleType   = (val) => { setType(val);   setPage(1) }
@@ -137,7 +152,7 @@ export default function EmployeesPage() {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    {['#', 'Employee', 'Type', 'Department', 'Position', 'Phone', 'Date Hired', 'Status'].map(h => (
+                    {['#', 'Employee', 'Type', 'Department', 'Position', 'Phone', 'Date Hired', 'Status', 'Actions'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</th>
                     ))}
                   </tr>
@@ -180,6 +195,15 @@ export default function EmployeesPage() {
                             ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {emp.is_active ? 'Active' : 'Inactive'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <Link to={`/hr/employees/${emp.id}`} className="text-xs font-medium text-blue-600 hover:underline">View</Link>
+                            <span className="text-gray-300">|</span>
+                            <Link to={`/hr/employees/${emp.id}`} state={{ edit: true }} className="text-xs font-medium text-amber-600 hover:underline">Edit</Link>
+                            <span className="text-gray-300">|</span>
+                            <button onClick={() => handleDelete(emp)} className="text-xs font-medium text-red-600 hover:underline">Delete</button>
+                          </div>
                         </td>
                       </tr>
                     )
