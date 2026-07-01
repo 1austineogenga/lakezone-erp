@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
@@ -19,11 +19,12 @@ const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focu
 export default function EmployeeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const qc = useQueryClient()
   const { user, canWrite } = usePermissions()
   const canEdit = user?.role === 'system_admin' || user?.role === 'hr_manager'
   const [tab, setTab] = useState('profile')
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(location.state?.edit === true)
   const [editData, setEditData] = useState({})
   const [docForm, setDocForm] = useState({ doc_type: 'contract', title: '', file_ref: '', notes: '' })
   const [showDocForm, setShowDocForm] = useState(false)
