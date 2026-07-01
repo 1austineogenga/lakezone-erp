@@ -329,6 +329,10 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
                   <input type="number" min="0" step="0.1" className={inp} value={form.hours_to_next_service}
                     onChange={e => set('hours_to_next_service', e.target.value)} placeholder="e.g. 250" />
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Registration Plate <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input className={inp} value={form.registration_plate} onChange={e => set('registration_plate', e.target.value.toUpperCase())} placeholder="e.g. KDW 277S" />
+                </div>
               </div>
             </div>
           )}
