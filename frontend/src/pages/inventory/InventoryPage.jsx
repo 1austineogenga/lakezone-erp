@@ -363,9 +363,11 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
 function AdjustStockModal({ item, stores, onClose }) {
   const qc = useQueryClient()
   const currentStock = Number(item.current_stock ?? 0)
-  const [store, setStore]   = useState(stores[0]?.id ?? '')
-  const [newQty, setNewQty] = useState(String(currentStock))
-  const [notes, setNotes]   = useState('')
+  const currentCost  = Number(item.weighted_avg_cost ?? 0)
+  const [store, setStore]       = useState(stores[0]?.id ?? '')
+  const [newQty, setNewQty]     = useState(String(currentStock))
+  const [unitCost, setUnitCost] = useState(currentCost > 0 ? String(currentCost) : '')
+  const [notes, setNotes]       = useState('')
 
   // Auto-select first store when stores load asynchronously
   useEffect(() => {
@@ -384,7 +386,7 @@ function AdjustStockModal({ item, stores, onClose }) {
       item: item.id,
       store,
       quantity: Number(newQty),
-      unit_cost: Number(item.weighted_avg_cost || 0),
+      unit_cost: unitCost !== '' ? Number(unitCost) : Number(item.weighted_avg_cost || 0),
       transaction_date: new Date().toISOString().slice(0, 10),
       notes: notes || `Stock adjusted from ${currentStock} to ${newQty} ${item.unit}`,
     }),
@@ -424,17 +426,30 @@ function AdjustStockModal({ item, stores, onClose }) {
             <span className="text-lg font-extrabold text-brand-slate">{currentStock.toLocaleString()} <span className="text-xs font-normal text-gray-400">{item.unit}</span></span>
           </div>
 
-          {/* New quantity */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">New Quantity <span className="text-brand-red">*</span></label>
-            <input
-              type="number" min="0" step="any"
-              className={inp}
-              value={newQty}
-              onChange={e => setNewQty(e.target.value)}
-              autoFocus
-            />
-            <p className={`text-[11px] mt-1.5 font-semibold ${diffColor}`}>{diffLabel}</p>
+          {/* New quantity + Unit cost */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">New Quantity <span className="text-brand-red">*</span></label>
+              <input
+                type="number" min="0" step="any"
+                className={inp}
+                value={newQty}
+                onChange={e => setNewQty(e.target.value)}
+                autoFocus
+              />
+              <p className={`text-[11px] mt-1.5 font-semibold ${diffColor}`}>{diffLabel}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Unit Cost (KES)</label>
+              <input
+                type="number" min="0" step="any"
+                className={inp}
+                value={unitCost}
+                onChange={e => setUnitCost(e.target.value)}
+                placeholder={currentCost > 0 ? `Current: ${currentCost.toLocaleString()}` : '0.00'}
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Updates weighted avg cost</p>
+            </div>
           </div>
 
           {/* Store */}
