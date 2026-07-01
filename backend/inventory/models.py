@@ -158,15 +158,15 @@ class StockTransaction(models.Model):
 
     def clean(self):
         errors = {}
-        # quantity must be positive
-        if self.quantity is not None and self.quantity <= 0:
-            errors["quantity"] = "Quantity must be greater than 0."
-        # unit_cost must be non-negative
+        # adjustments can have quantity 0 (zeroing out stock); others must be positive
+        if self.transaction_type != TransactionType.ADJUSTMENT:
+            if self.quantity is not None and self.quantity <= 0:
+                errors["quantity"] = "Quantity must be greater than 0."
+        else:
+            if self.quantity is not None and self.quantity < 0:
+                errors["quantity"] = "Quantity cannot be negative."
         if self.unit_cost is not None and self.unit_cost < 0:
             errors["unit_cost"] = "Unit cost must be >= 0."
-        # adjustments require a reason
-        if self.transaction_type == TransactionType.ADJUSTMENT and not self.reason:
-            errors["reason"] = "A reason is required for stock adjustments."
         if errors:
             raise ValidationError(errors)
 
@@ -205,6 +205,9 @@ class StockTransaction(models.Model):
             stock_level.quantity_on_hand = new_qty
         elif self.transaction_type in (TransactionType.ISSUE, TransactionType.TRANSFER):
             stock_level.quantity_on_hand -= self.quantity
+        elif self.transaction_type == TransactionType.ADJUSTMENT:
+            # quantity field stores the absolute new quantity for adjustments
+            stock_level.quantity_on_hand = self.quantity
         stock_level.save()
 
     def _allocate_cost_to_boq(self):
