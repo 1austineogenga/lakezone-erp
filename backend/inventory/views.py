@@ -1,6 +1,7 @@
 import uuid as _uuid
 from django.db.models import Sum, Count
 from rest_framework import generics, permissions
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -155,9 +156,15 @@ class StockTransactionDetailView(generics.RetrieveAPIView):
 
 # ── Fixed Assets ──────────────────────────────────────────────────────────────
 
+class AssetPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 class AssetListCreateView(generics.ListCreateAPIView):
     serializer_class = AssetSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = AssetPagination
     filterset_fields = ['category', 'status', 'condition']
     search_fields = ['name', 'asset_code', 'serial_number', 'assigned_to']
 

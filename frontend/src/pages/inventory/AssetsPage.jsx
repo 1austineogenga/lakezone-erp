@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
@@ -11,6 +12,36 @@ import { getAssets, createAsset, updateAsset, getAssetDashboard } from '../../ap
 import useAuthStore from '../../store/authStore'
 import usePermissions from '../../hooks/usePermissions'
 import api from '../../api/client'
+
+const PAGE_SIZE = 12
+
+function PaginationBar({ safePage, totalPages, total, setPage, border }) {
+  if (totalPages <= 1) return null
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+  return (
+    <div className={`flex items-center justify-between px-4 py-3 bg-gray-50 ${border ? 'border-t' : 'border-b'} border-gray-100 rounded-xl`}>
+      <p className="text-xs text-gray-600">
+        Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, total)} of {total}
+      </p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        {pages.map(p => (
+          <button key={p} onClick={() => setPage(p)}
+            className={`px-2.5 py-1 rounded text-xs font-medium ${p === safePage ? 'bg-brand-red text-white' : 'hover:bg-gray-200 text-gray-600'}`}>
+            {p}
+          </button>
+        ))}
+        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const VIEW_ALL_READONLY = [
   'managing_director', 'finance_officer', 'finance_manager',
@@ -622,6 +653,7 @@ export default function AssetsPage() {
   const [showModal, setShowModal] = useState(false)
   const [editAsset, setEditAsset] = useState(null)
   const [viewMode, setViewMode] = useState('cards')
+  const [page, setPage] = useState(1)
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
@@ -652,6 +684,15 @@ export default function AssetsPage() {
     (a.registration_plate || '').toLowerCase().includes(search.toLowerCase()) ||
     (a.assigned_to || '').toLowerCase().includes(search.toLowerCase())
   )
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const handleSearch = (v) => { setSearch(v); setPage(1) }
+  const handleCategory = (v) => { setFilterCategory(v); setPage(1) }
+  const handleStatus = (v) => { setFilterStatus(v); setPage(1) }
+  const handleDept = (v) => { setSelectedDept(v); setPage(1) }
 
   const expiringCerts = assets.filter(a => {
     const soon = d => { if (!d) return false; const days = Math.ceil((new Date(d) - new Date()) / 86400000); return days >= 0 && days <= 30 }
@@ -684,12 +725,12 @@ export default function AssetsPage() {
       {canViewAll ? (
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-xs font-medium text-gray-600">Dept:</span>
-          <button onClick={() => setSelectedDept(null)}
+          <button onClick={() => handleDept(null)}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedDept ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
             All
           </button>
           {departments.map(d => (
-            <button key={d.id} onClick={() => setSelectedDept(d.name)}
+            <button key={d.id} onClick={() => handleDept(d.name)}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selectedDept === d.name ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
               {d.name}
             </button>
@@ -714,14 +755,14 @@ export default function AssetsPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, plate, assigned to…"
+        <input value={search} onChange={e => handleSearch(e.target.value)} placeholder="Search name, plate, assigned to…"
           className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red w-52" />
-        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+        <select value={filterCategory} onChange={e => handleCategory(e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red">
           <option value="">All Categories</option>
           {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+        <select value={filterStatus} onChange={e => handleStatus(e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red">
           <option value="">All Statuses</option>
           {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -744,15 +785,20 @@ export default function AssetsPage() {
           )}
         </div>
       ) : viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(asset => (
-            <AssetCard key={asset.id} asset={asset} canEdit={canEdit}
-              onClick={() => navigate(`/assets/${asset.id}`)}
-              onEdit={a => { setEditAsset(a); setShowModal(true) }} />
-          ))}
+        <div className="space-y-3">
+          <PaginationBar safePage={safePage} totalPages={totalPages} total={filtered.length} setPage={setPage} />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {paginated.map(asset => (
+              <AssetCard key={asset.id} asset={asset} canEdit={canEdit}
+                onClick={() => navigate(`/assets/${asset.id}`)}
+                onEdit={a => { setEditAsset(a); setShowModal(true) }} />
+            ))}
+          </div>
+          <PaginationBar safePage={safePage} totalPages={totalPages} total={filtered.length} setPage={setPage} border />
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+          <PaginationBar safePage={safePage} totalPages={totalPages} total={filtered.length} setPage={setPage} />
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
@@ -762,7 +808,7 @@ export default function AssetsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(asset => {
+              {paginated.map(asset => {
                 const cat = CATEGORY_OPTIONS.find(c => c.value === asset.category)
                 const st = STATUS_OPTIONS.find(s => s.value === asset.status)
                 return (
@@ -782,6 +828,7 @@ export default function AssetsPage() {
               })}
             </tbody>
           </table>
+          <PaginationBar safePage={safePage} totalPages={totalPages} total={filtered.length} setPage={setPage} border />
         </div>
       )}
 
