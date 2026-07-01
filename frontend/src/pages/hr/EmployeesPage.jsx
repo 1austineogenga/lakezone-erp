@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getEmployees } from '../../api/hr'
 import api from '../../api/client'
-import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, PhoneIcon, BuildingOfficeIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 const PAGE_SIZE = 12
 
@@ -23,93 +23,27 @@ function PaginationBar({ safePage, totalPages, filtered, setPage, border }) {
   if (totalPages <= 1) return null
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
   return (
-    <div className={`flex items-center justify-between px-4 py-3 ${border ? 'border-t' : 'border-b'} border-gray-100`}>
+    <div className={`flex items-center justify-between px-4 py-3 bg-gray-50 ${border ? 'border-t' : 'border-b'} border-gray-100`}>
       <p className="text-xs text-gray-500">
         Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
       </p>
       <div className="flex items-center gap-1">
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-40">
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
         {pages.map(p => (
           <button key={p} onClick={() => setPage(p)}
-            className={`px-2.5 py-1 rounded text-xs font-medium ${p === safePage ? 'bg-brand-red text-white' : 'hover:bg-gray-100 text-gray-600'}`}>
+            className={`px-2.5 py-1 rounded text-xs font-medium ${p === safePage ? 'bg-brand-red text-white' : 'hover:bg-gray-200 text-gray-600'}`}>
             {p}
           </button>
         ))}
         <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-40">
+          className="p-1 rounded hover:bg-gray-200 disabled:opacity-40">
           <ChevronRightIcon className="h-4 w-4" />
         </button>
       </div>
     </div>
-  )
-}
-
-function EmployeeCard({ emp }) {
-  const initials = (emp.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-  const bg = avatarColor(emp.full_name || '')
-  const isStaff = emp.employment_type === 'staff'
-
-  return (
-    <Link to={`/hr/employees/${emp.id}`}
-      className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden flex flex-col">
-
-      {/* Coloured top strip + avatar */}
-      <div className={`${bg} h-14 relative`}>
-        <div className="absolute -bottom-6 left-5">
-          <div className={`h-12 w-12 rounded-xl ${bg} border-2 border-white text-white flex items-center justify-center text-base font-bold shadow-md`}>
-            {initials}
-          </div>
-        </div>
-        {/* Type badge top-right */}
-        <div className="absolute top-3 right-3">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${isStaff ? 'bg-white/30 text-white' : 'bg-white/30 text-white'}`}>
-            {isStaff ? 'Staff' : 'Casual'}
-          </span>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="pt-8 px-5 pb-4 flex flex-col gap-1 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-bold text-brand-slate text-sm leading-tight">{emp.full_name}</p>
-            <p className="text-[11px] text-gray-400 font-mono mt-0.5">{emp.employee_number}</p>
-          </div>
-          <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold mt-0.5
-            ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {emp.is_active ? 'Active' : 'Inactive'}
-          </span>
-        </div>
-
-        {emp.position_title && (
-          <p className="text-xs text-gray-600 font-medium mt-1">{emp.position_title}</p>
-        )}
-
-        <div className="mt-2 space-y-1.5">
-          {emp.department_name && (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <BuildingOfficeIcon className="h-3 w-3 shrink-0" />
-              {emp.department_name}
-            </div>
-          )}
-          {emp.phone && (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <PhoneIcon className="h-3 w-3 shrink-0" />
-              {emp.phone}
-            </div>
-          )}
-          {emp.date_hired && (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <CalendarIcon className="h-3 w-3 shrink-0" />
-              Hired {emp.date_hired}
-            </div>
-          )}
-        </div>
-      </div>
-    </Link>
   )
 }
 
@@ -150,11 +84,8 @@ export default function EmployeesPage() {
   const handleType   = (val) => { setType(val);   setPage(1) }
   const handleDept   = (val) => { setDept(val);   setPage(1) }
 
-  const staffCount   = filtered.filter(e => e.employment_type === 'staff').length
-  const casualCount  = filtered.filter(e => e.employment_type === 'casual').length
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -162,8 +93,8 @@ export default function EmployeesPage() {
           <h1 className="text-lg font-bold text-brand-slate">Employees</h1>
           <div className="flex gap-3 mt-0.5">
             <span className="text-xs text-gray-500">{filtered.length} total</span>
-            <span className="text-xs text-indigo-600 font-medium">{staffCount} staff</span>
-            <span className="text-xs text-purple-600 font-medium">{casualCount} casuals</span>
+            <span className="text-xs text-indigo-600 font-medium">{filtered.filter(e => e.employment_type === 'staff').length} staff</span>
+            <span className="text-xs text-purple-600 font-medium">{filtered.filter(e => e.employment_type === 'casual').length} casuals</span>
           </div>
         </div>
         <Link to="/hr/employees/new"
@@ -193,26 +124,73 @@ export default function EmployeesPage() {
         </select>
       </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-52 bg-gray-100 rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 text-gray-500">
-          <p className="text-sm">No employees found.</p>
-        </div>
-      ) : (
-        <>
-          <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {paginated.map(emp => <EmployeeCard key={emp.id} emp={emp} />)}
-          </div>
-          <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} border />
-        </>
-      )}
+      {/* List */}
+      <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+        {isLoading ? (
+          <p className="text-sm text-gray-500 p-8 text-center">Loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-gray-500 p-8 text-center">No employees found.</p>
+        ) : (
+          <>
+            <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} />
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    {['#', 'Employee', 'Type', 'Department', 'Position', 'Phone', 'Date Hired', 'Status'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((emp, idx) => {
+                    const initials = (emp.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+                    const bg = avatarColor(emp.full_name || '')
+                    const isStaff = emp.employment_type === 'staff'
+                    return (
+                      <tr key={emp.id} className={`border-b border-gray-50 hover:bg-indigo-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                        <td className="px-4 py-3">
+                          <Link to={`/hr/employees/${emp.id}`}
+                            className="font-mono text-xs font-semibold text-brand-slate hover:text-brand-red hover:underline">
+                            {emp.employee_number}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link to={`/hr/employees/${emp.id}`} className="flex items-center gap-3 group">
+                            <div className={`h-8 w-8 rounded-lg ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                              {initials}
+                            </div>
+                            <span className="text-sm font-semibold text-brand-slate group-hover:text-brand-red transition-colors">
+                              {emp.full_name}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold
+                            ${isStaff ? 'bg-indigo-100 text-indigo-700' : 'bg-purple-100 text-purple-700'}`}>
+                            {isStaff ? 'Staff' : 'Casual'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{emp.department_name || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{emp.position_title || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 font-mono">{emp.phone || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{emp.date_hired}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold
+                            ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {emp.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <PaginationBar safePage={safePage} totalPages={totalPages} filtered={filtered} setPage={setPage} border />
+          </>
+        )}
+      </div>
     </div>
   )
 }
