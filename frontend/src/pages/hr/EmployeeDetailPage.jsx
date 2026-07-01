@@ -7,21 +7,37 @@ import {
   getEmployeeDocuments, createEmployeeDocument, deleteEmployeeDocument,
   getLeaveBalances,
 } from '../../api/hr'
-import { PlusIcon, TrashIcon, ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import {
+  PlusIcon, TrashIcon, ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon,
+  PhoneIcon, EnvelopeIcon, IdentificationIcon, BriefcaseIcon,
+  BuildingOfficeIcon, BanknotesIcon, ShieldExclamationIcon, DocumentTextIcon,
+  CalendarDaysIcon, UserIcon,
+} from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
-const TYPE_COLORS = { staff: 'bg-indigo-100 text-indigo-700', casual: 'bg-purple-100 text-purple-700' }
 const DOC_TYPES = ['contract', 'id_copy', 'certificate', 'nssf_card', 'nhif_card', 'kra_cert', 'medical', 'other']
-const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
+const cls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red'
+
+const AVATAR_COLORS = [
+  'from-indigo-500 to-indigo-600', 'from-violet-500 to-violet-600', 'from-blue-500 to-blue-600',
+  'from-cyan-500 to-cyan-600',     'from-teal-500 to-teal-600',     'from-emerald-500 to-emerald-600',
+  'from-amber-500 to-amber-600',   'from-rose-500 to-rose-600',     'from-pink-500 to-pink-600',
+  'from-sky-500 to-sky-600',       'from-orange-500 to-orange-600', 'from-lime-600 to-lime-700',
+]
+function avatarGradient(name = '') {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
+}
 
 export default function EmployeeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const qc = useQueryClient()
-  const { user, canWrite } = usePermissions()
+  const { user } = usePermissions()
   const canEdit = user?.role === 'system_admin' || user?.role === 'hr_manager'
   const [tab, setTab] = useState('profile')
   const [editing, setEditing] = useState(location.state?.edit === true)
@@ -40,33 +56,28 @@ export default function EmployeeDetailPage() {
     queryFn: () => api.get('/auth/departments/'),
     select: r => r.data?.results ?? r.data,
   })
-
   const { data: positions } = useQuery({
     queryKey: ['positions'],
     queryFn: () => api.get('/hr/positions/'),
     select: r => r.data?.results ?? r.data,
   })
-
   const { data: branches } = useQuery({
     queryKey: ['branches'],
     queryFn: () => api.get('/auth/branches/'),
     select: r => r.data?.results ?? r.data,
   })
-
   const { data: docs } = useQuery({
     queryKey: ['employee-docs', id],
     queryFn: () => getEmployeeDocuments({ employee: id }),
     select: r => r.data?.results ?? r.data,
     enabled: tab === 'documents',
   })
-
   const { data: leaveBalances } = useQuery({
     queryKey: ['leave-balances', id],
     queryFn: () => getLeaveBalances({ employee: id, year: new Date().getFullYear() }),
     select: r => r.data?.results ?? r.data,
     enabled: tab === 'leave',
   })
-
   const { data: users } = useQuery({
     queryKey: ['users-list'],
     queryFn: () => api.get('/auth/users/', { params: { page_size: 200 } }),
@@ -77,200 +88,185 @@ export default function EmployeeDetailPage() {
   useEffect(() => {
     if (emp && editing) {
       setEditData({
-        employee_number:            emp.employee_number || '',
-        reports_to:                 emp.reports_to || '',
-        first_name:                 emp.first_name || '',
-        last_name:                  emp.last_name || '',
-        middle_name:                emp.middle_name || '',
-        phone:                      emp.phone || '',
-        alt_phone:                  emp.alt_phone || '',
-        email:                      emp.email || '',
-        gender:                     emp.gender || '',
-        date_of_birth:              emp.date_of_birth || '',
-        marital_status:             emp.marital_status || '',
-        national_id:                emp.national_id || '',
-        kra_pin:                    emp.kra_pin || '',
-        nssf_number:                emp.nssf_number || '',
-        nhif_number:                emp.nhif_number || '',
-        department:                 emp.department || '',
-        position:                   emp.position || '',
-        branch:                     emp.branch || '',
-        date_hired:                 emp.date_hired || '',
-        contract_end_date:          emp.contract_end_date || '',
-        basic_salary:               emp.basic_salary || '',
-        house_allowance:            emp.house_allowance || '',
-        transport_allowance:        emp.transport_allowance || '',
-        medical_allowance:          emp.medical_allowance || '',
-        other_allowances:           emp.other_allowances || '',
-        daily_rate:                 emp.daily_rate || '',
-        bank_name:                  emp.bank_name || '',
-        bank_account:               emp.bank_account || '',
-        bank_branch:                emp.bank_branch || '',
-        emergency_contact_name:     emp.emergency_contact_name || '',
-        emergency_contact_phone:    emp.emergency_contact_phone || '',
+        employee_number: emp.employee_number || '', reports_to: emp.reports_to || '',
+        first_name: emp.first_name || '', last_name: emp.last_name || '', middle_name: emp.middle_name || '',
+        phone: emp.phone || '', alt_phone: emp.alt_phone || '', email: emp.email || '',
+        gender: emp.gender || '', date_of_birth: emp.date_of_birth || '', marital_status: emp.marital_status || '',
+        national_id: emp.national_id || '', kra_pin: emp.kra_pin || '',
+        nssf_number: emp.nssf_number || '', nhif_number: emp.nhif_number || '',
+        department: emp.department || '', position: emp.position || '', branch: emp.branch || '',
+        date_hired: emp.date_hired || '', contract_end_date: emp.contract_end_date || '',
+        basic_salary: emp.basic_salary || '', house_allowance: emp.house_allowance || '',
+        transport_allowance: emp.transport_allowance || '', medical_allowance: emp.medical_allowance || '',
+        other_allowances: emp.other_allowances || '', daily_rate: emp.daily_rate || '',
+        bank_name: emp.bank_name || '', bank_account: emp.bank_account || '', bank_branch: emp.bank_branch || '',
+        emergency_contact_name: emp.emergency_contact_name || '',
+        emergency_contact_phone: emp.emergency_contact_phone || '',
         emergency_contact_relation: emp.emergency_contact_relation || '',
-        is_active:                  emp.is_active,
-        notes:                      emp.notes || '',
+        is_active: emp.is_active, notes: emp.notes || '',
       })
     }
   }, [emp, editing])
 
   const updateMut = useMutation({
     mutationFn: data => updateEmployee(id, data),
-    onSuccess: () => {
-      toast.success('Employee updated.')
-      qc.invalidateQueries(['employee', id])
-      setEditing(false)
-    },
+    onSuccess: () => { toast.success('Employee updated.'); qc.invalidateQueries(['employee', id]); setEditing(false) },
     onError: e => toast.error(e.response?.data?.detail || 'Update failed.'),
   })
-
   const docCreateMut = useMutation({
     mutationFn: data => createEmployeeDocument({ ...data, employee: id }),
-    onSuccess: () => {
-      toast.success('Document added.')
-      qc.invalidateQueries(['employee-docs', id])
-      setShowDocForm(false)
-      setDocForm({ doc_type: 'contract', title: '', file_ref: '', notes: '' })
-    },
+    onSuccess: () => { toast.success('Document added.'); qc.invalidateQueries(['employee-docs', id]); setShowDocForm(false); setDocForm({ doc_type: 'contract', title: '', file_ref: '', notes: '' }) },
   })
-
   const docDeleteMut = useMutation({
     mutationFn: deleteEmployeeDocument,
     onSuccess: () => { toast.success('Deleted.'); qc.invalidateQueries(['employee-docs', id]) },
   })
 
-  if (isLoading) return <div className="text-sm text-gray-600 py-8 text-center">Loading…</div>
+  if (isLoading) return <div className="text-sm text-gray-500 py-16 text-center">Loading…</div>
   if (!emp) return null
 
-  const gross = ['basic_salary', 'house_allowance', 'transport_allowance', 'medical_allowance', 'other_allowances']
+  const gross = ['basic_salary','house_allowance','transport_allowance','medical_allowance','other_allowances']
     .reduce((s, k) => s + Number(emp[k] || 0), 0)
-
-  const ef = k => ({
-    value: editData[k] ?? '',
-    onChange: e => setEditData(p => ({ ...p, [k]: e.target.value })),
-  })
-
+  const ef = k => ({ value: editData[k] ?? '', onChange: e => setEditData(p => ({ ...p, [k]: e.target.value })) })
   const handleSave = () => {
     const payload = { ...editData }
-    if (!payload.contract_end_date) delete payload.contract_end_date
-    if (!payload.date_of_birth) delete payload.date_of_birth
-    if (!payload.department) delete payload.department
-    if (!payload.position) delete payload.position
-    if (!payload.branch) delete payload.branch
-    if (!payload.reports_to) delete payload.reports_to
+    ;['contract_end_date','date_of_birth','department','position','branch','reports_to'].forEach(k => { if (!payload[k]) delete payload[k] })
     updateMut.mutate(payload)
   }
 
-  return (
-    <div className="space-y-5">
+  const initials = (emp.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const grad = avatarGradient(emp.full_name || '')
+  const isStaff = emp.employment_type === 'staff'
 
-      {/* ── Header ── */}
-      <div className="flex items-start gap-4">
-        <button onClick={() => navigate('/hr/employees')} className="text-gray-400 hover:text-brand-slate mt-1">
-          <ArrowLeftIcon className="h-4 w-4" />
-        </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="h-12 w-12 rounded-full bg-brand-slate text-white flex items-center justify-center text-lg font-bold">
-              {emp.full_name?.[0]}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-bold text-brand-slate text-lg">{emp.full_name}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[emp.employment_type]}`}>
-                  {emp.employment_type}
-                </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {emp.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600">
-                {emp.employee_number} · {emp.position_title || 'No position'} · {emp.department_name || 'No department'}
-              </p>
-            </div>
-            <div className="ml-auto flex gap-2">
-              {editing ? (
-                <>
-                  <button onClick={handleSave} disabled={updateMut.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-60">
-                    <CheckIcon className="h-3.5 w-3.5" /> Save Changes
-                  </button>
-                  <button onClick={() => setEditing(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg hover:bg-gray-50">
-                    <XMarkIcon className="h-3.5 w-3.5" /> Cancel
-                  </button>
-                </>
-              ) : canEdit ? (
-                <button onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg hover:bg-gray-50">
-                  <PencilIcon className="h-3.5 w-3.5" /> Edit Employee
-                </button>
-              ) : null}
-            </div>
+  const TABS = [
+    { key: 'profile',      label: 'Profile' },
+    { key: 'compensation', label: 'Compensation' },
+    { key: 'documents',    label: 'Documents' },
+    { key: 'leave',        label: 'Leave' },
+  ]
+
+  return (
+    <div className="space-y-0">
+
+      {/* ── Hero Header ── */}
+      <div className="bg-brand-slate rounded-2xl overflow-hidden mb-5 relative">
+        {/* decorative circles */}
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-5" />
+        <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white opacity-5" />
+
+        <div className="relative z-10 px-6 pt-5 pb-0 flex items-end gap-5 flex-wrap">
+          {/* Avatar */}
+          <div className={`h-20 w-20 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center text-2xl font-bold shadow-lg shrink-0 mb-0 border-2 border-white/20`}>
+            {initials}
           </div>
+
+          {/* Name + meta */}
+          <div className="flex-1 pb-4 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-white text-xl font-bold">{emp.full_name}</h2>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${isStaff ? 'bg-indigo-400/30 text-indigo-100' : 'bg-purple-400/30 text-purple-100'}`}>
+                {isStaff ? 'Staff' : 'Casual'}
+              </span>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${emp.is_active ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
+                {emp.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+            <p className="text-white/70 text-sm mt-0.5">
+              {emp.employee_number}{emp.position_title ? ` · ${emp.position_title}` : ''}{emp.department_name ? ` · ${emp.department_name}` : ''}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="pb-4 flex gap-2 flex-wrap">
+            <button onClick={() => navigate('/hr/employees')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg border border-white/20">
+              <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
+            </button>
+            {editing ? (
+              <>
+                <button onClick={handleSave} disabled={updateMut.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  <CheckIcon className="h-3.5 w-3.5" /> Save Changes
+                </button>
+                <button onClick={() => setEditing(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg border border-white/20">
+                  <XMarkIcon className="h-3.5 w-3.5" /> Cancel
+                </button>
+              </>
+            ) : canEdit ? (
+              <button onClick={() => setEditing(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red hover:bg-brand-red-dark text-white text-xs font-semibold rounded-lg">
+                <PencilIcon className="h-3.5 w-3.5" /> Edit Employee
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Tabs inside header */}
+        <div className="relative z-10 flex gap-0 px-6">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors
+                ${tab === t.key ? 'border-white text-white' : 'border-transparent text-white/50 hover:text-white/80'}`}>
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {['profile', 'compensation', 'documents', 'leave'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors
-              ${tab === t ? 'border-brand-red text-brand-red' : 'border-transparent text-gray-500 hover:text-brand-slate'}`}>
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Profile: view mode ── */}
+      {/* ── Profile: view ── */}
       {tab === 'profile' && !editing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <InfoCard title="Personal Information">
-            <Row label="Full Name"       value={emp.full_name} />
-            <Row label="Gender"          value={emp.gender} />
-            <Row label="Date of Birth"   value={emp.date_of_birth || '—'} />
-            <Row label="Marital Status"  value={emp.marital_status} />
-            <Row label="National ID"     value={emp.national_id || '—'} />
-            <Row label="KRA PIN"         value={emp.kra_pin || '—'} />
-            <Row label="NSSF No."        value={emp.nssf_number || '—'} />
-            <Row label="SHA/SHIF No." value={emp.nhif_number || '—'} />
-          </InfoCard>
-          <InfoCard title="Contact">
-            <Row label="Phone"             value={emp.phone} />
-            <Row label="Alt. Phone"        value={emp.alt_phone || '—'} />
-            <Row label="Email"             value={emp.email || '—'} />
-            <Row label="Emergency Contact" value={emp.emergency_contact_name || '—'} />
-            <Row label="Emergency Phone"   value={emp.emergency_contact_phone || '—'} />
-            <Row label="Relationship"      value={emp.emergency_contact_relation || '—'} />
-          </InfoCard>
-          <InfoCard title="Employment">
-            <Row label="Employee No."  value={emp.employee_number} />
-            <Row label="Type"          value={emp.employment_type} />
-            <Row label="Date Hired"    value={emp.date_hired} />
-            <Row label="Contract End"  value={emp.contract_end_date || 'Open-ended'} />
-            <Row label="Department"    value={emp.department_name || '—'} />
-            <Row label="Position"      value={emp.position_title || '—'} />
-            <Row label="Branch"        value={emp.branch_name || '—'} />
-          </InfoCard>
-          <InfoCard title="Bank Details">
-            <Row label="Bank"        value={emp.bank_name || '—'} />
-            <Row label="Account No." value={emp.bank_account || '—'} />
-            <Row label="Bank Branch" value={emp.bank_branch || '—'} />
-          </InfoCard>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Section icon={UserIcon} title="Personal Information" color="text-indigo-600" bg="bg-indigo-50" border="border-indigo-100">
+            <InfoRow label="Full Name"      value={emp.full_name} />
+            <InfoRow label="Gender"         value={emp.gender} />
+            <InfoRow label="Date of Birth"  value={emp.date_of_birth} />
+            <InfoRow label="Marital Status" value={emp.marital_status} />
+            <InfoRow label="National ID"    value={emp.national_id} />
+            <InfoRow label="KRA PIN"        value={emp.kra_pin} />
+            <InfoRow label="NSSF No."       value={emp.nssf_number} />
+            <InfoRow label="SHA/SHIF No."   value={emp.nhif_number} />
+          </Section>
+
+          <Section icon={PhoneIcon} title="Contact" color="text-cyan-600" bg="bg-cyan-50" border="border-cyan-100">
+            <InfoRow label="Phone"             value={emp.phone} />
+            <InfoRow label="Alt. Phone"        value={emp.alt_phone} />
+            <InfoRow label="Email"             value={emp.email} />
+            <InfoRow label="Emergency Contact" value={emp.emergency_contact_name} />
+            <InfoRow label="Emergency Phone"   value={emp.emergency_contact_phone} />
+            <InfoRow label="Relationship"      value={emp.emergency_contact_relation} />
+          </Section>
+
+          <Section icon={BriefcaseIcon} title="Employment" color="text-violet-600" bg="bg-violet-50" border="border-violet-100">
+            <InfoRow label="Employee No."  value={emp.employee_number} />
+            <InfoRow label="Type"          value={emp.employment_type} />
+            <InfoRow label="Date Hired"    value={emp.date_hired} />
+            <InfoRow label="Contract End"  value={emp.contract_end_date || 'Open-ended'} />
+            <InfoRow label="Department"    value={emp.department_name} />
+            <InfoRow label="Position"      value={emp.position_title} />
+            <InfoRow label="Branch"        value={emp.branch_name} />
+          </Section>
+
+          <Section icon={BanknotesIcon} title="Bank Details" color="text-green-600" bg="bg-green-50" border="border-green-100">
+            <InfoRow label="Bank"         value={emp.bank_name} />
+            <InfoRow label="Account No."  value={emp.bank_account} />
+            <InfoRow label="Bank Branch"  value={emp.bank_branch} />
+          </Section>
+
           {emp.notes && (
             <div className="md:col-span-2">
-              <InfoCard title="Notes"><p className="text-sm text-gray-600">{emp.notes}</p></InfoCard>
+              <Section icon={DocumentTextIcon} title="Notes" color="text-gray-500" bg="bg-gray-50" border="border-gray-100">
+                <p className="text-sm text-gray-600">{emp.notes}</p>
+              </Section>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Profile: edit mode ── */}
+      {/* ── Profile: edit ── */}
       {tab === 'profile' && editing && (
-        <div className="space-y-5">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h3 className="font-semibold text-brand-slate text-sm mb-4">Personal Information</h3>
+        <div className="space-y-4">
+          <EditCard title="Personal Information" icon={UserIcon} color="text-indigo-600">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="First Name *"><input required {...ef('first_name')} className={cls} /></Field>
               <Field label="Last Name *"><input required {...ef('last_name')} className={cls} /></Field>
@@ -298,10 +294,9 @@ export default function EmployeeDetailPage() {
               <Field label="NSSF Number"><input {...ef('nssf_number')} className={cls} /></Field>
               <Field label="SHA/SHIF Number"><input {...ef('nhif_number')} className={cls} /></Field>
             </div>
-          </div>
+          </EditCard>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h3 className="font-semibold text-brand-slate text-sm mb-4">Contact Details</h3>
+          <EditCard title="Contact Details" icon={PhoneIcon} color="text-cyan-600">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Phone *"><input required {...ef('phone')} className={cls} /></Field>
               <Field label="Alt. Phone"><input {...ef('alt_phone')} className={cls} /></Field>
@@ -310,12 +305,11 @@ export default function EmployeeDetailPage() {
               <Field label="Emergency Contact Phone"><input {...ef('emergency_contact_phone')} className={cls} /></Field>
               <Field label="Relationship"><input {...ef('emergency_contact_relation')} className={cls} /></Field>
             </div>
-          </div>
+          </EditCard>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h3 className="font-semibold text-brand-slate text-sm mb-4">Employment</h3>
+          <EditCard title="Employment" icon={BriefcaseIcon} color="text-violet-600">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Employee Number"><input {...ef('employee_number')} placeholder="e.g. LZ001" className={cls} /></Field>
+              <Field label="Employee Number"><input {...ef('employee_number')} className={cls} /></Field>
               <Field label="Department">
                 <select {...ef('department')} className={cls}>
                   <option value="">— None —</option>
@@ -337,279 +331,261 @@ export default function EmployeeDetailPage() {
               <Field label="Reports To">
                 <select {...ef('reports_to')} className={cls}>
                   <option value="">— None —</option>
-                  {users?.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.first_name} {u.last_name}{u.role ? ` (${u.role.replace(/_/g, ' ')})` : ''}
-                    </option>
-                  ))}
+                  {users?.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{u.role ? ` (${u.role.replace(/_/g,' ')})` : ''}</option>)}
                 </select>
               </Field>
               <Field label="Date Hired *"><input required type="date" {...ef('date_hired')} className={cls} /></Field>
               <Field label="Contract End Date"><input type="date" {...ef('contract_end_date')} className={cls} /></Field>
               <Field label="Status">
-                <select
-                  value={editData.is_active ? 'true' : 'false'}
-                  onChange={e => setEditData(p => ({ ...p, is_active: e.target.value === 'true' }))}
-                  className={cls}>
+                <select value={editData.is_active ? 'true' : 'false'} onChange={e => setEditData(p => ({ ...p, is_active: e.target.value === 'true' }))} className={cls}>
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
               </Field>
             </div>
-          </div>
+          </EditCard>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h3 className="font-semibold text-brand-slate text-sm mb-4">Bank Details</h3>
+          <EditCard title="Bank Details" icon={BanknotesIcon} color="text-green-600">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Bank Name"><input {...ef('bank_name')} className={cls} /></Field>
               <Field label="Account Number"><input {...ef('bank_account')} className={cls} /></Field>
               <Field label="Bank Branch"><input {...ef('bank_branch')} className={cls} /></Field>
             </div>
-          </div>
+          </EditCard>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h3 className="font-semibold text-brand-slate text-sm mb-3">Notes</h3>
-            <textarea {...ef('notes')} rows={3}
-              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
-          </div>
+          <EditCard title="Notes" icon={DocumentTextIcon} color="text-gray-500">
+            <textarea {...ef('notes')} rows={3} className={cls} />
+          </EditCard>
 
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={updateMut.isPending}
-              className="px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-60">
+              className="px-6 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60">
               Save Changes
             </button>
             <button onClick={() => setEditing(false)}
-              className="px-5 py-2 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50">
+              className="px-6 py-2.5 border border-gray-200 text-sm font-medium rounded-xl hover:bg-gray-50">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Compensation tab ── */}
+      {/* ── Compensation ── */}
       {tab === 'compensation' && (
         <div className="space-y-4">
           {emp.employment_type === 'staff' ? (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-brand-slate text-sm">Monthly Salary Breakdown</h3>
-                {!editing && (
-                  <button onClick={() => setEditing(true)}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-slate border border-gray-200 px-2.5 py-1 rounded-lg">
+            <div className="bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 bg-green-50 border-b border-green-100">
+                <div className="flex items-center gap-2">
+                  <div className="bg-green-100 p-1.5 rounded-lg"><BanknotesIcon className="h-4 w-4 text-green-600" /></div>
+                  <h3 className="font-bold text-sm text-green-800 uppercase tracking-wider">Monthly Salary Breakdown</h3>
+                </div>
+                {canEdit && !editing && (
+                  <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs text-green-700 border border-green-200 bg-white px-2.5 py-1 rounded-lg hover:bg-green-50">
                     <PencilIcon className="h-3 w-3" /> Edit
                   </button>
                 )}
               </div>
-              {!editing ? (
-                <div className="space-y-2 max-w-sm">
-                  {[
-                    ['Basic Salary',        emp.basic_salary],
-                    ['House Allowance',     emp.house_allowance],
-                    ['Transport Allowance', emp.transport_allowance],
-                    ['Medical Allowance',   emp.medical_allowance],
-                    ['Other Allowances',    emp.other_allowances],
-                  ].map(([label, val]) => (
-                    <div key={label} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{label}</span>
-                      <span className="font-medium">{fmt(val)}</span>
+              <div className="p-5">
+                {!editing ? (
+                  <div className="max-w-sm space-y-3">
+                    {[['Basic Salary','basic_salary'],['House Allowance','house_allowance'],['Transport Allowance','transport_allowance'],['Medical Allowance','medical_allowance'],['Other Allowances','other_allowances']].map(([label,key]) => (
+                      <div key={key} className="flex justify-between items-center text-sm py-1.5 border-b border-gray-50 last:border-0">
+                        <span className="text-gray-500">{label}</span>
+                        <span className="font-semibold text-gray-800">{fmt(emp[key])}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center text-sm font-bold pt-2 border-t-2 border-green-200">
+                      <span className="text-green-700">Gross Salary</span>
+                      <span className="text-green-700 text-lg">{fmt(gross)}</span>
                     </div>
-                  ))}
-                  <div className="flex justify-between text-sm font-bold pt-2 border-t border-gray-200">
-                    <span className="text-brand-slate">Gross Salary</span>
-                    <span className="text-brand-slate">{fmt(gross)}</span>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-lg">
-                    <Field label="Basic Salary"><input type="number" {...ef('basic_salary')} className={cls} /></Field>
-                    <Field label="House Allowance"><input type="number" {...ef('house_allowance')} className={cls} /></Field>
-                    <Field label="Transport Allowance"><input type="number" {...ef('transport_allowance')} className={cls} /></Field>
-                    <Field label="Medical Allowance"><input type="number" {...ef('medical_allowance')} className={cls} /></Field>
-                    <Field label="Other Allowances"><input type="number" {...ef('other_allowances')} className={cls} /></Field>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <button onClick={handleSave} disabled={updateMut.isPending}
-                      className="px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg disabled:opacity-60">
-                      Save
-                    </button>
-                    <button onClick={() => setEditing(false)}
-                      className="px-4 py-1.5 border border-gray-300 text-xs rounded-lg">Cancel</button>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-lg">
+                      <Field label="Basic Salary"><input type="number" {...ef('basic_salary')} className={cls} /></Field>
+                      <Field label="House Allowance"><input type="number" {...ef('house_allowance')} className={cls} /></Field>
+                      <Field label="Transport Allowance"><input type="number" {...ef('transport_allowance')} className={cls} /></Field>
+                      <Field label="Medical Allowance"><input type="number" {...ef('medical_allowance')} className={cls} /></Field>
+                      <Field label="Other Allowances"><input type="number" {...ef('other_allowances')} className={cls} /></Field>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button onClick={handleSave} disabled={updateMut.isPending} className="px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">Save</button>
+                      <button onClick={() => setEditing(false)} className="px-4 py-2 border border-gray-200 text-xs rounded-lg">Cancel</button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-brand-slate text-sm">Casual Rate</h3>
-                {!editing && (
-                  <button onClick={() => setEditing(true)}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-slate border border-gray-200 px-2.5 py-1 rounded-lg">
+            <div className="bg-white border border-amber-100 rounded-2xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 bg-amber-50 border-b border-amber-100">
+                <div className="flex items-center gap-2">
+                  <div className="bg-amber-100 p-1.5 rounded-lg"><BanknotesIcon className="h-4 w-4 text-amber-600" /></div>
+                  <h3 className="font-bold text-sm text-amber-800 uppercase tracking-wider">Casual Rate</h3>
+                </div>
+                {canEdit && !editing && (
+                  <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs text-amber-700 border border-amber-200 bg-white px-2.5 py-1 rounded-lg hover:bg-amber-50">
                     <PencilIcon className="h-3 w-3" /> Edit
                   </button>
                 )}
               </div>
-              {!editing ? (
-                <p className="text-2xl font-bold text-brand-slate">
-                  {fmt(emp.daily_rate)} <span className="text-sm font-normal text-gray-600">/ day</span>
-                </p>
-              ) : (
-                <div className="mt-2 max-w-xs">
-                  <Field label="Daily Rate (KES)">
-                    <input type="number" {...ef('daily_rate')} className={cls} />
-                  </Field>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={handleSave} disabled={updateMut.isPending}
-                      className="px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg disabled:opacity-60">
-                      Save
-                    </button>
-                    <button onClick={() => setEditing(false)}
-                      className="px-4 py-1.5 border border-gray-300 text-xs rounded-lg">Cancel</button>
+              <div className="p-5">
+                {!editing ? (
+                  <p className="text-3xl font-bold text-amber-700">{fmt(emp.daily_rate)} <span className="text-sm font-normal text-gray-500">/ day</span></p>
+                ) : (
+                  <div className="max-w-xs space-y-3">
+                    <Field label="Daily Rate (KES)"><input type="number" {...ef('daily_rate')} className={cls} /></Field>
+                    <div className="flex gap-2">
+                      <button onClick={handleSave} disabled={updateMut.isPending} className="px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">Save</button>
+                      <button onClick={() => setEditing(false)} className="px-4 py-2 border border-gray-200 text-xs rounded-lg">Cancel</button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Documents tab ── */}
+      {/* ── Documents ── */}
       {tab === 'documents' && (
         <div className="space-y-4">
-          <button onClick={() => setShowDocForm(s => !s)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-sm font-medium rounded-lg hover:bg-brand-red-dark">
-            <PlusIcon className="h-4 w-4" /> Add Document
-          </button>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-brand-slate">Employee Documents</h3>
+            <button onClick={() => setShowDocForm(s => !s)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
+              <PlusIcon className="h-3.5 w-3.5" /> Add Document
+            </button>
+          </div>
           {showDocForm && (
             <form onSubmit={e => { e.preventDefault(); docCreateMut.mutate(docForm) }}
-              className="bg-white border border-gray-200 rounded-xl p-4">
+              className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Type *</label>
-                  <select required value={docForm.doc_type}
-                    onChange={e => setDocForm(f => ({ ...f, doc_type: e.target.value }))} className={cls}>
-                    {DOC_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</option>)}
+                <Field label="Type *">
+                  <select required value={docForm.doc_type} onChange={e => setDocForm(f => ({ ...f, doc_type: e.target.value }))} className={cls}>
+                    {DOC_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g,' ').toUpperCase()}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Title *</label>
-                  <input required value={docForm.title}
-                    onChange={e => setDocForm(f => ({ ...f, title: e.target.value }))} className={cls} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">File Reference / URL</label>
-                  <input value={docForm.file_ref}
-                    onChange={e => setDocForm(f => ({ ...f, file_ref: e.target.value }))} className={cls} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Notes</label>
-                  <input value={docForm.notes}
-                    onChange={e => setDocForm(f => ({ ...f, notes: e.target.value }))} className={cls} />
-                </div>
+                </Field>
+                <Field label="Title *"><input required value={docForm.title} onChange={e => setDocForm(f => ({ ...f, title: e.target.value }))} className={cls} /></Field>
+                <Field label="File Reference / URL"><input value={docForm.file_ref} onChange={e => setDocForm(f => ({ ...f, file_ref: e.target.value }))} className={cls} /></Field>
+                <Field label="Notes"><input value={docForm.notes} onChange={e => setDocForm(f => ({ ...f, notes: e.target.value }))} className={cls} /></Field>
               </div>
               <div className="flex gap-2 mt-3">
-                <button type="submit" disabled={docCreateMut.isPending}
-                  className="px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg disabled:opacity-60">
-                  Save
-                </button>
-                <button type="button" onClick={() => setShowDocForm(false)}
-                  className="px-3 py-1.5 border border-gray-300 text-xs rounded-lg">Cancel</button>
+                <button type="submit" disabled={docCreateMut.isPending} className="px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg disabled:opacity-60">Save</button>
+                <button type="button" onClick={() => setShowDocForm(false)} className="px-4 py-2 border border-gray-200 text-xs rounded-lg">Cancel</button>
               </div>
             </form>
           )}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-            {!docs || docs.length === 0
-              ? <p className="text-sm text-gray-600 p-6 text-center">No documents uploaded.</p>
-              : <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      {['Type', 'Title', 'File Ref', 'Uploaded', ''].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {docs.map(d => (
-                      <tr key={d.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 text-xs uppercase text-gray-600">{d.doc_type.replace(/_/g, ' ')}</td>
-                        <td className="px-4 py-2.5 font-medium">{d.title}</td>
-                        <td className="px-4 py-2.5 text-xs text-brand-red">
-                          {d.file_ref
-                            ? <a href={d.file_ref} target="_blank" rel="noreferrer" className="hover:underline">{d.file_ref.slice(0, 40)}</a>
-                            : '—'}
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-gray-600">{d.uploaded_at?.slice(0, 10)}</td>
-                        <td className="px-4 py-2.5">
-                          <button onClick={() => docDeleteMut.mutate(d.id)}
-                            className="text-gray-500 hover:text-red-500">
-                            <TrashIcon className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            {!docs || docs.length === 0 ? (
+              <p className="text-sm text-gray-500 p-8 text-center">No documents uploaded.</p>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    {['Type','Title','File Ref','Uploaded',''].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</th>
                     ))}
-                  </tbody>
-                </table>
-            }
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {docs.map(d => (
+                    <tr key={d.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold uppercase">{d.doc_type.replace(/_/g,' ')}</span></td>
+                      <td className="px-4 py-3 font-medium text-gray-800 text-xs">{d.title}</td>
+                      <td className="px-4 py-3 text-xs text-brand-red">{d.file_ref ? <a href={d.file_ref} target="_blank" rel="noreferrer" className="hover:underline">{d.file_ref.slice(0,40)}</a> : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{d.uploaded_at?.slice(0,10)}</td>
+                      <td className="px-4 py-3"><button onClick={() => docDeleteMut.mutate(d.id)} className="text-gray-400 hover:text-red-500"><TrashIcon className="h-3.5 w-3.5" /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── Leave tab ── */}
+      {/* ── Leave ── */}
       {tab === 'leave' && (
         <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-            <div className="px-5 py-3 border-b border-gray-100">
-              <h3 className="font-semibold text-brand-slate text-sm">Leave Balances — {new Date().getFullYear()}</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+              <div className="bg-indigo-100 p-1.5 rounded-lg"><CalendarDaysIcon className="h-4 w-4 text-indigo-600" /></div>
+              <h3 className="font-bold text-sm text-indigo-800 uppercase tracking-wider">Leave Balances — {new Date().getFullYear()}</h3>
             </div>
-            {!leaveBalances || leaveBalances.length === 0
-              ? <p className="text-sm text-gray-600 p-6 text-center">No leave balances configured.</p>
-              : <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      {['Leave Type', 'Entitled', 'Carried Fwd', 'Taken', 'Balance'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {leaveBalances.map(b => (
-                      <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 font-medium">{b.leave_type_name}</td>
-                        <td className="px-4 py-2.5 text-gray-600">{b.entitled_days} days</td>
-                        <td className="px-4 py-2.5 text-gray-600">{b.carried_forward} days</td>
-                        <td className="px-4 py-2.5 text-red-600">{b.taken_days} days</td>
-                        <td className="px-4 py-2.5 font-bold text-green-600">{b.balance} days</td>
-                      </tr>
+            {!leaveBalances || leaveBalances.length === 0 ? (
+              <p className="text-sm text-gray-500 p-8 text-center">No leave balances configured.</p>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    {['Leave Type','Entitled','Carried Fwd','Taken','Balance'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</th>
                     ))}
-                  </tbody>
-                </table>
-            }
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {leaveBalances.map(b => (
+                    <tr key={b.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-semibold text-gray-800 text-xs">{b.leave_type_name}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{b.entitled_days} days</td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{b.carried_forward} days</td>
+                      <td className="px-4 py-3 text-xs"><span className="text-red-600 font-semibold">{b.taken_days} days</span></td>
+                      <td className="px-4 py-3 text-xs"><span className="px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">{b.balance} days</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-          <Link to="/hr/leave" className="text-xs text-brand-red hover:underline">View all leave applications →</Link>
+          <Link to="/hr/leave" className="text-xs text-brand-red hover:underline font-medium">View all leave applications →</Link>
         </div>
       )}
     </div>
   )
 }
 
-const InfoCard = ({ title, children }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-5">
-    <h3 className="font-semibold text-brand-slate text-sm mb-3">{title}</h3>
-    <div className="space-y-2">{children}</div>
-  </div>
-)
+function Section({ icon: Icon, title, color, bg, border, children }) {
+  return (
+    <div className={`bg-white border ${border} rounded-2xl shadow-sm overflow-hidden`}>
+      <div className={`flex items-center gap-2 px-5 py-3.5 ${bg} border-b ${border}`}>
+        <div className={`${bg} p-1.5 rounded-lg border ${border}`}>
+          <Icon className={`h-4 w-4 ${color}`} />
+        </div>
+        <h3 className={`font-bold text-[11px] uppercase tracking-wider ${color}`}>{title}</h3>
+      </div>
+      <div className="px-5 py-4 space-y-2.5">{children}</div>
+    </div>
+  )
+}
 
-const Row = ({ label, value }) => (
-  <div className="flex justify-between text-sm gap-4">
-    <span className="text-gray-600 shrink-0">{label}</span>
-    <span className="text-gray-800 font-medium text-right">{value}</span>
-  </div>
-)
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex justify-between items-baseline gap-4 text-sm border-b border-gray-50 pb-1.5 last:border-0 last:pb-0">
+      <span className="text-gray-400 text-xs shrink-0">{label}</span>
+      <span className="text-gray-800 font-medium text-right text-xs">{value || '—'}</span>
+    </div>
+  )
+}
 
-const Field = ({ label, children }) => (
-  <div>
-    <label className="block text-xs text-gray-600 mb-1">{label}</label>
-    {children}
-  </div>
-)
+function EditCard({ icon: Icon, title, color, children }) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3.5 bg-gray-50 border-b border-gray-100">
+        <Icon className={`h-4 w-4 ${color}`} />
+        <h3 className="font-semibold text-gray-700 text-sm">{title}</h3>
+      </div>
+      <div className="px-5 py-4">{children}</div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 font-medium mb-1">{label}</label>
+      {children}
+    </div>
+  )
+}
