@@ -15,6 +15,9 @@ class Notification(models.Model):
         IPC_ISSUED           = "ipc_issued",           "IPC Issued"
         COMPLIANCE_EXPIRY    = "compliance_expiry",    "Compliance Expired"
         COMPLIANCE_WARNING   = "compliance_warning",   "Compliance Expiring Soon"
+        EXPENSE_SUBMITTED    = "expense_submitted",    "Expense Claim Submitted"
+        EXPENSE_APPROVED     = "expense_approved",     "Expense Claim Approved"
+        EXPENSE_REJECTED     = "expense_rejected",     "Expense Claim Rejected"
         GENERAL              = "general",              "General"
 
     recipient = models.ForeignKey(

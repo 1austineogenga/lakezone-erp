@@ -16,6 +16,9 @@ const TYPE_COLORS = {
   ipc_issued:         'bg-teal-100 text-teal-700',
   compliance_expiry:  'bg-red-100 text-red-700',
   compliance_warning: 'bg-amber-100 text-amber-700',
+  expense_submitted:  'bg-blue-100 text-blue-700',
+  expense_approved:   'bg-green-100 text-green-700',
+  expense_rejected:   'bg-red-100 text-red-700',
   general:            'bg-gray-100 text-gray-600',
 }
 

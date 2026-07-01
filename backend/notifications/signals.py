@@ -187,6 +187,49 @@ def ipc_status_changed(sender, instance, created, **kwargs):
         )
 
 
+# ── Finance expense claim signals ────────────────────────────────────────────
+
+@receiver(post_save, sender="finance.ExpenseClaim")
+def expense_claim_status_changed(sender, instance, created, **kwargs):
+    from core.models import User
+    claim_link = f"/finance/expenses"
+
+    # Notify finance team when a claim is submitted for review
+    if instance.status == "submitted":
+        submitter_name = instance.submitted_by.get_full_name() or instance.submitted_by.email
+        finance_team = User.objects.filter(role__in=["finance_officer", "finance_manager", "system_admin"])
+        for user in finance_team:
+            if user == instance.submitted_by:
+                continue
+            notify(
+                user,
+                Notification.Type.EXPENSE_SUBMITTED,
+                f"Expense Claim {instance.reference} Submitted",
+                f"{submitter_name} submitted expense claim '{instance.title}' "
+                f"for KES {instance.total_amount:,.0f} — awaiting your review.",
+                claim_link,
+            )
+
+    # Notify the claimant when approved or rejected
+    elif instance.status == "approved" and not created:
+        notify(
+            instance.submitted_by,
+            Notification.Type.EXPENSE_APPROVED,
+            f"Expense Claim {instance.reference} Approved",
+            f"Your expense claim '{instance.title}' (KES {instance.total_amount:,.0f}) has been approved.",
+            claim_link,
+        )
+    elif instance.status == "rejected" and not created:
+        review_note = f" Reason: {instance.review_notes}" if instance.review_notes else ""
+        notify(
+            instance.submitted_by,
+            Notification.Type.EXPENSE_REJECTED,
+            f"Expense Claim {instance.reference} Rejected",
+            f"Your expense claim '{instance.title}' has been rejected.{review_note}",
+            claim_link,
+        )
+
+
 # ── Inventory low-stock signals ───────────────────────────────────────────────
 
 @receiver(post_save, sender="inventory.StockLevel")
