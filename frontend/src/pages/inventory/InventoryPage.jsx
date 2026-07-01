@@ -375,10 +375,13 @@ function AdjustStockModal({ item, stores, onClose }) {
   }, [stores])
 
   const diff = Number(newQty) - currentStock
-  const diffLabel = diff === 0 ? 'No change'
+  const diffLabel = diff === 0
+    ? (costChanged ? 'Qty unchanged — cost update only' : 'No change')
     : diff > 0 ? `+${diff} (stock will increase)`
     : `${diff} (stock will decrease)`
-  const diffColor = diff === 0 ? 'text-gray-400' : diff > 0 ? 'text-green-600' : 'text-red-600'
+  const diffColor = diff === 0
+    ? (costChanged ? 'text-indigo-500' : 'text-gray-400')
+    : diff > 0 ? 'text-green-600' : 'text-red-600'
 
   const adjMut = useMutation({
     mutationFn: () => createTransaction({
@@ -388,7 +391,9 @@ function AdjustStockModal({ item, stores, onClose }) {
       quantity: Number(newQty),
       unit_cost: unitCost !== '' ? Number(unitCost) : Number(item.weighted_avg_cost || 0),
       transaction_date: new Date().toISOString().slice(0, 10),
-      notes: notes || `Stock adjusted from ${currentStock} to ${newQty} ${item.unit}`,
+      notes: notes || (diff === 0
+        ? `Unit cost updated to KES ${unitCost}`
+        : `Stock adjusted from ${currentStock} to ${newQty} ${item.unit}`),
     }),
     onSuccess: () => {
       toast.success('Stock adjusted successfully')
@@ -403,7 +408,8 @@ function AdjustStockModal({ item, stores, onClose }) {
   })
 
   const needsStore = stores.length > 0
-  const canSave = (!needsStore || store) && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && diff !== 0
+  const costChanged = unitCost !== '' && Number(unitCost) !== currentCost
+  const canSave = (!needsStore || store) && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && (diff !== 0 || costChanged)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
