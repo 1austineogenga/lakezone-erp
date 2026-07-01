@@ -315,6 +315,113 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
   )
 }
 
+// ── Adjust Stock Modal ────────────────────────────────────────────────────────
+
+function AdjustStockModal({ item, stores, onClose }) {
+  const qc = useQueryClient()
+  const currentStock = Number(item.current_stock ?? 0)
+  const [store, setStore]   = useState(stores[0]?.id ?? '')
+  const [newQty, setNewQty] = useState(String(currentStock))
+  const [notes, setNotes]   = useState('')
+
+  const diff = Number(newQty) - currentStock
+  const diffLabel = diff === 0 ? 'No change'
+    : diff > 0 ? `+${diff} (stock will increase)`
+    : `${diff} (stock will decrease)`
+  const diffColor = diff === 0 ? 'text-gray-400' : diff > 0 ? 'text-green-600' : 'text-red-600'
+
+  const adjMut = useMutation({
+    mutationFn: () => createTransaction({
+      transaction_type: 'adjustment',
+      item: item.id,
+      store,
+      quantity: Number(newQty),
+      unit_cost: Number(item.weighted_avg_cost || 0),
+      transaction_date: new Date().toISOString().slice(0, 10),
+      notes: notes || `Stock adjusted from ${currentStock} to ${newQty} ${item.unit}`,
+    }),
+    onSuccess: () => {
+      toast.success('Stock adjusted successfully')
+      qc.invalidateQueries({ queryKey: ['stock-items'] })
+      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
+      onClose()
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.detail || d?.quantity?.[0] || JSON.stringify(d) || 'Adjustment failed')
+    },
+  })
+
+  const canSave = store && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && diff !== 0
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col">
+
+        {/* Header */}
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Adjust Stock</h2>
+            <p className="text-white/50 text-xs mt-0.5 font-mono">{item.item_code} — {item.name}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+
+          {/* Current stock display */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+            <span className="text-xs text-gray-500 font-semibold">Current Stock</span>
+            <span className="text-lg font-extrabold text-brand-slate">{currentStock.toLocaleString()} <span className="text-xs font-normal text-gray-400">{item.unit}</span></span>
+          </div>
+
+          {/* New quantity */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">New Quantity <span className="text-brand-red">*</span></label>
+            <input
+              type="number" min="0" step="any"
+              className={inp}
+              value={newQty}
+              onChange={e => setNewQty(e.target.value)}
+              autoFocus
+            />
+            <p className={`text-[11px] mt-1.5 font-semibold ${diffColor}`}>{diffLabel}</p>
+          </div>
+
+          {/* Store */}
+          {stores.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Store <span className="text-brand-red">*</span></label>
+              <select className={inp} value={store} onChange={e => setStore(e.target.value)}>
+                <option value="">— Select store —</option>
+                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Reason / Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input className={inp} value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. Physical count correction, damaged goods…" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button
+            onClick={() => adjMut.mutate()}
+            disabled={adjMut.isPending || !canSave}
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity">
+            {adjMut.isPending ? 'Saving…' : 'Save Adjustment'}
+          </button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
@@ -327,6 +434,7 @@ export default function InventoryPage() {
   const [filterCat, setFilterCat] = useState('')
   const [showAddItem, setShowAddItem] = useState(false)
   const [editItem, setEditItem] = useState(null)
+  const [adjustItem, setAdjustItem] = useState(null)
 
   // Issue form
   const [issueForm, setIssueForm] = useState({
@@ -714,6 +822,13 @@ export default function InventoryPage() {
                                 )}
                                 {canEdit && (
                                   <button
+                                    onClick={() => setAdjustItem(item)}
+                                    className="px-2 py-1 text-xs border border-amber-200 rounded hover:bg-amber-50 text-amber-700 font-medium">
+                                    Adjust
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <button
                                     onClick={() => setEditItem(item)}
                                     className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
                                     Edit
@@ -1093,6 +1208,12 @@ export default function InventoryPage() {
           stores={stores}
           departments={departments}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
+      )}
+      {adjustItem && (
+        <AdjustStockModal
+          item={adjustItem}
+          stores={stores}
+          onClose={() => setAdjustItem(null)} />
       )}
     </div>
   )
