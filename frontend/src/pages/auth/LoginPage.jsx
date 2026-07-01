@@ -53,18 +53,25 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:bg-gray-50 lg:px-6 lg:py-12">
 
-          {/* Mobile logo */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <div className="bg-white rounded-xl p-4 shadow-md">
-              <img src={logoFull} alt="Lake Zone Enterprises Ltd" className="h-12 w-auto" />
-            </div>
+        {/* Mobile header banner (sidebar colour) */}
+        <div className="lg:hidden bg-brand-slate-dark relative overflow-hidden px-6 pt-12 pb-10 flex flex-col items-center">
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-brand-red opacity-10" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-brand-red opacity-10" />
+          <div className="relative z-10 bg-white rounded-xl p-4 shadow-lg mb-4">
+            <img src={logoFull} alt="Lake Zone Enterprises Ltd" className="h-12 w-auto" />
           </div>
+          <p className="relative z-10 text-brand-gray text-xs opacity-70 text-center">
+            Enterprise Resource Planning
+          </p>
+        </div>
+
+        {/* Form card */}
+        <div className="flex-1 lg:flex-none w-full lg:max-w-sm bg-white lg:bg-transparent rounded-t-3xl lg:rounded-none -mt-4 lg:mt-0 px-6 pt-8 pb-10 lg:p-0 shadow-none">
 
           <h1 className="text-2xl font-bold text-brand-slate mb-1">Welcome back</h1>
-          <p className="text-sm text-gray-600 mb-8">Sign in to your ERP account</p>
+          <p className="text-sm text-gray-500 mb-8">Sign in to your ERP account</p>
 
           {error && (
             <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
