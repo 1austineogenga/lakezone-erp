@@ -116,19 +116,6 @@ export default function MDDashboard() {
         </div>
       </div>
 
-      {/* ── Operations KPI row — uniform 6-card grid ── */}
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Operations at a Glance</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard label="Active Projects" value={projects.active || 0} sub={`${projects.on_hold || 0} on hold`} valueColor="text-violet-800" bg="bg-violet-50" border="border-violet-100" accent="bg-violet-400" to="/projects?status=active" />
-          <KpiCard label="Pending PRs" value={procurement.pending_prs || 0} sub="awaiting approval" subOk={procurement.pending_prs === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/procurement" />
-          <KpiCard label="Open POs" value={procurement.open_pos || 0} sub={fmtK(procurement.po_value_open)} valueColor="text-purple-800" bg="bg-purple-50" border="border-purple-100" accent="bg-purple-400" to="/procurement" />
-          <KpiCard label="Fleet Online" value={`${fleet.online || 0}/${fleet.total || 0}`} sub={`${fleetOnlinePct}% availability`} subOk={fleetOnlinePct >= 60} valueColor="text-cyan-800" bg="bg-cyan-50" border="border-cyan-100" accent="bg-cyan-400" to="/fleet/vehicles" />
-          <KpiCard label="Total Workforce" value={hr.total_employees || 0} sub={`${hr.staff || 0} staff · ${hr.casuals || 0} casuals`} valueColor="text-indigo-800" bg="bg-indigo-50" border="border-indigo-100" accent="bg-indigo-400" to="/hr/employees" />
-          <KpiCard label="Stock Items" value={inventory.total_items || 0} sub={inventory.low_stock > 0 ? `${inventory.low_stock} low stock` : 'All stocked'} subOk={inventory.low_stock === 0} valueColor="text-orange-800" bg="bg-orange-50" border="border-orange-100" accent="bg-orange-400" to="/inventory" />
-        </div>
-      </div>
-
       {/* ── Detail panels — 3 columns, align to top ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
