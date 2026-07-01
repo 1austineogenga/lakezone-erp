@@ -6,6 +6,10 @@ class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = ["id", "name", "location", "storekeeper", "is_active"]
+        extra_kwargs = {
+            "storekeeper": {"required": False, "allow_null": True},
+            "location":    {"required": False, "allow_blank": True},
+        }
         read_only_fields = ["id"]
 
 

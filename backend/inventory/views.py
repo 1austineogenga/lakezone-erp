@@ -35,7 +35,11 @@ def _user_dept_name(user):
 class StoreListCreateView(generics.ListCreateAPIView):
     queryset = Store.objects.filter(is_active=True)
     serializer_class = StoreSerializer
-    permission_classes = [IsStorekeeper]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.IsAuthenticated()]
+        return [IsStorekeeper()]
 
 
 # ── Stock Items ───────────────────────────────────────────────────────────────
