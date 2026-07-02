@@ -1,58 +1,61 @@
 import { useState, useEffect } from 'react'
 import { ArrowDownTrayIcon, XMarkIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline'
 
-export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-  const [show, setShow]                     = useState(false)
-  const [isIOS, setIsIOS]                   = useState(false)
+// Shared state so both the banner and sidebar button stay in sync
+let _prompt = null
+const _listeners = new Set()
+const notify = () => _listeners.forEach(fn => fn(_prompt))
+
+if (typeof window !== 'undefined') {
+  const capture = (e) => { e.preventDefault(); _prompt = e; notify() }
+  if (window.__pwaInstallPrompt) {
+    _prompt = window.__pwaInstallPrompt
+  } else {
+    window.addEventListener('beforeinstallprompt', capture)
+  }
+}
+
+export function usePWAInstall() {
+  const isStandalone = typeof window !== 'undefined' &&
+    window.matchMedia('(display-mode: standalone)').matches
+  const isIOS = typeof window !== 'undefined' &&
+    /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
+
+  const [prompt, setPrompt] = useState(_prompt)
 
   useEffect(() => {
-    // Don't show if already running as installed PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) return
-    // Don't show if dismissed within last 7 days
-    const last = localStorage.getItem('pwa-prompt-dismissed')
-    if (last && Date.now() - Number(last) < 7 * 24 * 60 * 60 * 1000) return
-
-    // iOS — no beforeinstallprompt, show manual instructions
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
-    if (ios) {
-      setIsIOS(true)
-      setShow(true)
-      return
-    }
-
-    // Android/Chrome: event may have already fired before React mounted —
-    // pick it up from window where index.html captured it, or listen normally.
-    const attach = (e) => {
-      setDeferredPrompt(e)
-      setShow(true)
-    }
-
-    if (window.__pwaInstallPrompt) {
-      attach(window.__pwaInstallPrompt)
-    } else {
-      window.addEventListener('beforeinstallprompt', attach)
-      return () => window.removeEventListener('beforeinstallprompt', attach)
-    }
+    const update = (p) => setPrompt(p)
+    _listeners.add(update)
+    return () => _listeners.delete(update)
   }, [])
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') {
-      setShow(false)
-      window.__pwaInstallPrompt = null
-    }
-    setDeferredPrompt(null)
+  const install = async () => {
+    if (!prompt) return false
+    prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') { _prompt = null; notify() }
+    return outcome === 'accepted'
   }
+
+  return { prompt, isIOS, isStandalone, install }
+}
+
+// ── Bottom banner (auto-shows, dismissable) ───────────────────────────────────
+
+export default function InstallBanner() {
+  const { prompt, isIOS, isStandalone, install } = usePWAInstall()
+  const [dismissed, setDismissed] = useState(() => {
+    const last = localStorage.getItem('pwa-banner-dismissed')
+    return !!last && Date.now() - Number(last) < 7 * 24 * 60 * 60 * 1000
+  })
+
+  if (isStandalone || dismissed) return null
+  if (!prompt && !isIOS) return null   // Android: wait for the prompt event
 
   const handleDismiss = () => {
-    setShow(false)
-    localStorage.setItem('pwa-prompt-dismissed', String(Date.now()))
+    setDismissed(true)
+    localStorage.setItem('pwa-banner-dismissed', String(Date.now()))
   }
-
-  if (!show) return null
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
@@ -64,20 +67,19 @@ export default function InstallPrompt() {
           <p className="font-bold text-sm">Install LZ ERP</p>
           {isIOS ? (
             <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
-              Tap <strong className="text-white">Share</strong> then <strong className="text-white">Add to Home Screen</strong> to install this app on your iPhone.
+              Tap <strong className="text-white">Share</strong> then{' '}
+              <strong className="text-white">Add to Home Screen</strong>.
             </p>
           ) : (
-            <p className="text-xs text-white/70 mt-0.5">
-              Install for faster access, offline support and a native app feel.
-            </p>
-          )}
-          {!isIOS && (
-            <button
-              onClick={handleInstall}
-              className="mt-2 flex items-center gap-1.5 bg-brand-red text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90">
-              <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-              Install App
-            </button>
+            <>
+              <p className="text-xs text-white/70 mt-0.5">
+                Install for faster access and offline support.
+              </p>
+              <button onClick={install}
+                className="mt-2 flex items-center gap-1.5 bg-brand-red text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90">
+                <ArrowDownTrayIcon className="h-3.5 w-3.5" /> Install App
+              </button>
+            </>
           )}
         </div>
         <button onClick={handleDismiss} className="text-white/50 hover:text-white shrink-0 mt-0.5">
@@ -85,5 +87,84 @@ export default function InstallPrompt() {
         </button>
       </div>
     </div>
+  )
+}
+
+// ── Sidebar install button (always visible, manual trigger) ───────────────────
+
+export function SidebarInstallButton() {
+  const { prompt, isIOS, isStandalone, install } = usePWAInstall()
+  const [showGuide, setShowGuide] = useState(false)
+
+  if (isStandalone) return null   // already installed
+
+  const handleClick = async () => {
+    if (prompt) {
+      await install()
+    } else {
+      // No native prompt — show manual instructions
+      setShowGuide(true)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+        <ArrowDownTrayIcon className="h-4 w-4 shrink-0" />
+        Install App
+      </button>
+
+      {showGuide && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4"
+          onClick={() => setShowGuide(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-bold text-brand-slate">Install LZ ERP</p>
+              <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            {isIOS ? (
+              <ol className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
+                  Tap the <strong>Share</strong> button (box with arrow) at the bottom of Safari
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
+                  Scroll down and tap <strong>Add to Home Screen</strong>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                  Tap <strong>Add</strong> in the top right
+                </li>
+              </ol>
+            ) : (
+              <ol className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
+                  Tap the <strong>⋮ menu</strong> (three dots) in Chrome
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
+                  Tap <strong>Add to Home screen</strong>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                  Tap <strong>Add</strong> to confirm
+                </li>
+              </ol>
+            )}
+            <button onClick={() => setShowGuide(false)}
+              className="mt-5 w-full bg-brand-slate text-white py-2.5 rounded-xl text-sm font-semibold">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
