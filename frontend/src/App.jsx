@@ -33,7 +33,7 @@ import ProfilePage from './pages/profile/ProfilePage'
 import WorkspacePage from './pages/workspace/WorkspacePage'
 import AlertsPage from './pages/AlertsPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
-import InstallBanner from './components/pwa/InstallPrompt'
+import InstallBanner, { NudgeBanner } from './components/pwa/InstallPrompt'
 import OfflineBanner from './components/pwa/OfflineBanner'
 
 const queryClient = new QueryClient({
@@ -81,6 +81,7 @@ export default function App() {
       </BrowserRouter>
       <ToastContainer position="top-right" autoClose={3000} />
       <InstallBanner />
+      <NudgeBanner />
     </QueryClientProvider>
   )
 }

@@ -499,12 +499,33 @@ function AdjustStockModal({ item, stores, onClose }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const READONLY_ROLES = new Set([
+  'managing_director', 'finance_officer', 'finance_manager',
+  'general_manager', 'head_of_security',
+])
+const VIEW_ALL_ROLES = new Set([
+  'system_admin', 'admin_officer', 'managing_director', 'finance_officer',
+  'finance_manager', 'general_manager', 'head_of_security',
+])
+
 export default function InventoryPage() {
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
-  const canEdit = role === 'system_admin' || role === 'storekeeper' || role === 'procurement_officer' || role === 'admin_officer'
+
+  const isReadOnly   = READONLY_ROLES.has(role)
+  const canViewAll   = VIEW_ALL_ROLES.has(role)
+  const canWriteAll  = role === 'system_admin'
+
+  // Can this user edit a specific inventory item?
+  const canEditItem = (item) => {
+    if (isReadOnly) return false
+    if (canWriteAll) return true
+    // admin_officer and dept users: only their own department
+    return String(item.department) === String(user?.department)
+  }
 
   const [tab, setTab] = useState('items')
+  const [deptFilter, setDeptFilter] = useState('')
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
   const [showAddItem, setShowAddItem] = useState(false)
@@ -532,21 +553,23 @@ export default function InventoryPage() {
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
+  const deptParams = deptFilter ? { department: deptFilter } : {}
+
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['stock-items'],
-    queryFn: () => getStockItems({ page_size: 500 }),
+    queryKey: ['stock-items', deptFilter],
+    queryFn: () => getStockItems({ page_size: 500, ...deptParams }),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['stock-transactions'],
-    queryFn: () => getTransactions({ page_size: 500 }),
+    queryKey: ['stock-transactions', deptFilter],
+    queryFn: () => getTransactions({ page_size: 500, ...deptParams }),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
   const { data: lowStock = [] } = useQuery({
-    queryKey: ['low-stock'],
-    queryFn: getLowStockItems,
+    queryKey: ['low-stock', deptFilter],
+    queryFn: () => getLowStockItems(deptParams),
     select: r => r.data?.results ?? r.data ?? [],
   })
 
@@ -711,16 +734,31 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-lg font-bold text-brand-slate">Inventory</h1>
           <p className="text-xs text-gray-600 mt-0.5">
-            {user?.department_name ? `${user.department_name} · ` : ''}Stock management & transactions
+            {canViewAll
+              ? (deptFilter
+                  ? `${departments.find(d => d.id === deptFilter)?.name ?? 'Department'} · Stock management`
+                  : 'All Departments · Stock management')
+              : `${user?.department_name ?? ''} · Stock management`}
           </p>
         </div>
-        {canEdit && (
-          <button
-            onClick={() => setShowAddItem(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
-            <PlusIcon className="h-4 w-4" /> Add Item
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {canViewAll && (
+            <select
+              value={deptFilter}
+              onChange={e => setDeptFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+              <option value="">All Departments</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          )}
+          {!isReadOnly && (
+            <button
+              onClick={() => setShowAddItem(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
+              <PlusIcon className="h-4 w-4" /> Add Item
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Stats */}
@@ -781,7 +819,7 @@ export default function InventoryPage() {
 
         {/* Tab bar */}
         <div className="flex border-b border-gray-100 px-5 pt-4 gap-5 overflow-x-auto">
-          {TABS.map(t => (
+          {TABS.filter(t => isReadOnly ? !['issue', 'receive'].includes(t.key) : true).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`pb-3 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
                 tab === t.key
@@ -818,7 +856,7 @@ export default function InventoryPage() {
                   <option value="">All Categories</option>
                   {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
-                {canEdit && (
+                {!isReadOnly && (
                   <button
                     onClick={() => setTab('issue')}
                     className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 text-gray-600 ml-auto">
@@ -840,7 +878,7 @@ export default function InventoryPage() {
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50">
-                        {['Code', 'Name', 'Category', 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
+                        {['Code', 'Name', 'Category', ...(canViewAll && !deptFilter ? ['Department'] : []), 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -852,6 +890,7 @@ export default function InventoryPage() {
                         const wac = Number(item.weighted_avg_cost || 0)
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
+                        const canAct = canEditItem(item)
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5">
@@ -861,6 +900,9 @@ export default function InventoryPage() {
                             </td>
                             <td className="px-3 py-2.5 font-medium text-gray-800">{item.name}</td>
                             <td className="px-3 py-2.5 text-gray-600">{CATEGORY_LABELS[item.category] ?? item.category}</td>
+                            {canViewAll && !deptFilter && (
+                              <td className="px-3 py-2.5 text-gray-600">{item.department_name || '—'}</td>
+                            )}
                             <td className="px-3 py-2.5 text-gray-600">{item.unit}</td>
                             <td className={`px-3 py-2.5 font-semibold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-700'}`}>
                               {stock.toLocaleString()}
@@ -885,7 +927,7 @@ export default function InventoryPage() {
                             </td>
                             <td className="px-3 py-2.5 whitespace-nowrap">
                               <div className="flex items-center gap-1">
-                                {canEdit && (
+                                {canAct && (
                                   <button
                                     onClick={() => {
                                       setIssueForm(f => ({ ...f, item: String(item.id) }))
@@ -895,14 +937,14 @@ export default function InventoryPage() {
                                     Issue
                                   </button>
                                 )}
-                                {canEdit && (
+                                {canAct && (
                                   <button
                                     onClick={() => setAdjustItem(item)}
                                     className="px-2 py-1 text-xs border border-amber-200 rounded hover:bg-amber-50 text-amber-700 font-medium">
                                     Adjust
                                   </button>
                                 )}
-                                {canEdit && (
+                                {canAct && (
                                   <button
                                     onClick={() => setEditItem(item)}
                                     className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
@@ -1254,7 +1296,7 @@ export default function InventoryPage() {
                               className={`h-full rounded-full transition-all ${isOut ? 'bg-red-400' : 'bg-amber-400'}`}
                               style={{ width: `${pct}%` }} />
                           </div>
-                          {canEdit && (
+                          {canEditItem(item) && (
                             <button
                               onClick={() => {
                                 setReceiveForm(f => ({ ...f, item: String(item.id) }))

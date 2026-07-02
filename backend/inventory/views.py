@@ -14,16 +14,24 @@ from .serializers import (
 
 # ── Role sets ─────────────────────────────────────────────────────────────────
 
+# These roles can see all departments but cannot write anything
 VIEW_ALL_READONLY_ROLES = {
     'managing_director', 'finance_officer', 'finance_manager',
     'general_manager', 'head_of_security',
 }
-EDIT_ALL_ROLES = {'system_admin', 'admin_officer'}
+
+# These roles see all departments (includes both readonly and admin_officer + system_admin)
+VIEW_ALL_ROLES = {'system_admin', 'admin_officer'} | VIEW_ALL_READONLY_ROLES
 
 
 def _can_edit(user):
-    """True if the user may add/edit items (in their own dept, or all for system_admin)."""
-    return user.role in EDIT_ALL_ROLES or user.role not in VIEW_ALL_READONLY_ROLES
+    """True if the user may add/edit inventory records at all (within their permitted scope)."""
+    return user.role not in VIEW_ALL_READONLY_ROLES
+
+
+def _can_edit_anywhere(user):
+    """True only for system_admin — can write to any department."""
+    return user.role == 'system_admin'
 
 
 def _user_dept_name(user):
@@ -52,11 +60,13 @@ class StockItemListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
-        if role in EDIT_ALL_ROLES or role in VIEW_ALL_READONLY_ROLES:
+        if role in VIEW_ALL_ROLES:
+            # admin_officer, system_admin, MD, finance, etc. — see all, optional dept filter
             dept_id = self.request.query_params.get('department')
             if dept_id:
                 qs = qs.filter(department_id=dept_id)
         else:
+            # Everyone else: own department only
             qs = qs.filter(department=user.department)
         return qs
 
@@ -64,10 +74,12 @@ class StockItemListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to add stock items.')
-        if user.role not in EDIT_ALL_ROLES:
-            serializer.save(department=user.department)
-        else:
+        if _can_edit_anywhere(user):
+            # system_admin: department comes from the request body
             serializer.save()
+        else:
+            # admin_officer and all dept users: forced to their own department
+            serializer.save(department=user.department)
 
 
 class StockItemDetailView(generics.RetrieveUpdateAPIView):
@@ -82,7 +94,7 @@ class StockItemDetailView(generics.RetrieveUpdateAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to edit stock items.')
         item = self.get_object()
-        if user.role not in EDIT_ALL_ROLES and item.department != user.department:
+        if not _can_edit_anywhere(user) and item.department != user.department:
             raise PermissionDenied("You can only edit your own department's stock items.")
         return super().update(request, *args, **kwargs)
 
@@ -98,7 +110,7 @@ class StockLevelListView(generics.ListAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         qs = StockLevel.objects.select_related('item', 'store', 'item__department').all()
-        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+        if role not in VIEW_ALL_ROLES:
             qs = qs.filter(item__department=user.department)
         return qs
 
@@ -111,7 +123,7 @@ class LowStockItemsView(generics.ListAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         items = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
-        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+        if role not in VIEW_ALL_ROLES:
             items = items.filter(department=user.department)
         low_pks = [it.pk for it in items if float(it.current_stock()) <= float(it.reorder_level)]
         return StockItem.objects.filter(pk__in=low_pks).prefetch_related('stock_levels')
@@ -132,7 +144,7 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         qs = StockTransaction.objects.select_related(
             'item', 'store', 'project', 'processed_by', 'item__department'
         )
-        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+        if role not in VIEW_ALL_ROLES:
             qs = qs.filter(item__department=user.department)
         issued_to = self.request.query_params.get('issued_to')
         if issued_to:
@@ -144,7 +156,7 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to record stock movements.')
         item = serializer.validated_data.get('item')
-        if user.role not in EDIT_ALL_ROLES and item and item.department != user.department:
+        if not _can_edit_anywhere(user) and item and item.department != user.department:
             raise PermissionDenied("You can only record movements for your own department's items.")
         if not serializer.validated_data.get('reference_number'):
             prefix = serializer.validated_data.get('transaction_type', 'TXN').upper()
@@ -176,7 +188,7 @@ class AssetListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         qs = Asset.objects.prefetch_related('maintenance_logs').all()
-        if role in EDIT_ALL_ROLES or role in VIEW_ALL_READONLY_ROLES:
+        if role in VIEW_ALL_ROLES:
             dept_name = self.request.query_params.get('department')
             if dept_name:
                 qs = qs.filter(department=dept_name)
@@ -189,13 +201,14 @@ class AssetListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to add assets.')
-        if user.role not in EDIT_ALL_ROLES:
+        if _can_edit_anywhere(user):
+            serializer.save()
+        else:
+            # admin_officer and dept users: forced to own department
             dept_name = _user_dept_name(user)
             if not dept_name:
                 raise PermissionDenied('Your account is not linked to a department.')
             serializer.save(department=dept_name)
-        else:
-            serializer.save()
 
 
 class AssetDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -208,7 +221,7 @@ class AssetDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to edit assets.')
         asset = self.get_object()
-        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+        if not _can_edit_anywhere(user) and asset.department != _user_dept_name(user):
             raise PermissionDenied("You can only edit your own department's assets.")
         return super().update(request, *args, **kwargs)
 
@@ -217,7 +230,7 @@ class AssetDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to delete assets.')
         asset = self.get_object()
-        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+        if not _can_edit_anywhere(user) and asset.department != _user_dept_name(user):
             raise PermissionDenied("You can only delete your own department's assets.")
         return super().destroy(request, *args, **kwargs)
 
@@ -234,7 +247,7 @@ class AssetMaintenanceListCreateView(generics.ListCreateAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to add maintenance logs.')
         asset = Asset.objects.get(pk=self.kwargs['asset_pk'])
-        if user.role not in EDIT_ALL_ROLES and asset.department != _user_dept_name(user):
+        if not _can_edit_anywhere(user) and asset.department != _user_dept_name(user):
             raise PermissionDenied("You can only log maintenance for your own department's assets.")
         serializer.save(asset=asset)
 
@@ -246,7 +259,7 @@ class AssetDashboardView(APIView):
         user = request.user
         role = getattr(user, 'role', None)
         qs = Asset.objects.all()
-        if role not in EDIT_ALL_ROLES and role not in VIEW_ALL_READONLY_ROLES:
+        if role not in VIEW_ALL_ROLES:
             dept_name = _user_dept_name(user)
             qs = qs.filter(department=dept_name) if dept_name else qs.none()
 

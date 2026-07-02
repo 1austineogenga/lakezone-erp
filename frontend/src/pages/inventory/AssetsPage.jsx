@@ -43,10 +43,14 @@ function PaginationBar({ safePage, totalPages, total, setPage, border }) {
   )
 }
 
-const VIEW_ALL_READONLY = [
-  'managing_director', 'finance_officer', 'finance_manager',
-  'admin_officer', 'general_manager',
-]
+// Roles that see all departments but cannot write anything
+const ASSET_READONLY_ROLES = new Set([
+  'managing_director', 'finance_officer', 'finance_manager', 'general_manager', 'head_of_security',
+])
+// Roles that see all departments (including admin_officer who can write to their own)
+const ASSET_VIEW_ALL_ROLES = new Set([
+  'system_admin', 'admin_officer', ...ASSET_READONLY_ROLES,
+])
 
 const CATEGORY_OPTIONS = [
   { value: 'machinery',       label: 'Machinery & Plant',               color: 'bg-orange-100 text-orange-700' },
@@ -634,8 +638,18 @@ export default function AssetsPage() {
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
   const { canWrite } = usePermissions()
-  const canEdit = (role === 'system_admin' || !VIEW_ALL_READONLY.includes(role)) && canWrite('assets')
-  const canViewAll = role === 'system_admin' || VIEW_ALL_READONLY.includes(role)
+  const isReadOnly = ASSET_READONLY_ROLES.has(role)
+  const canViewAll = ASSET_VIEW_ALL_ROLES.has(role)
+
+  // Per-asset edit check: system_admin edits all; admin_officer edits own dept; readonly never
+  const canEditAsset = (asset) => {
+    if (isReadOnly || !canWrite('assets')) return false
+    if (role === 'system_admin') return true
+    const userDeptName = user?.department_name || ''
+    return asset.department === userDeptName
+  }
+  // canEdit used for "Add Asset" button — true if they can edit at least their own dept
+  const canEdit = !isReadOnly && canWrite('assets')
 
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -650,7 +664,7 @@ export default function AssetsPage() {
     queryKey: ['departments'],
     queryFn: () => api.get('/auth/departments/'),
     select: r => r.data?.results ?? r.data ?? [],
-    enabled: canViewAll,
+    enabled: canViewAll || !isReadOnly,
   })
 
   const assetParams = { page_size: 500 }
@@ -794,7 +808,7 @@ export default function AssetsPage() {
           <PaginationBar safePage={safePage} totalPages={totalPages} total={filtered.length} setPage={setPage} />
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginated.map(asset => (
-              <AssetCard key={asset.id} asset={asset} canEdit={canEdit}
+              <AssetCard key={asset.id} asset={asset} canEdit={canEditAsset(asset)}
                 onClick={() => navigate(`/assets/${asset.id}`)}
                 onEdit={a => { setEditAsset(a); setShowModal(true) }} />
             ))}
@@ -830,7 +844,7 @@ export default function AssetsPage() {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <button onClick={() => navigate(`/assets/${asset.id}`)} className="text-xs text-blue-600 hover:underline font-medium">View</button>
-                        {canEdit && <>
+                        {canEditAsset(asset) && <>
                           <span className="text-gray-300">|</span>
                           <button onClick={() => { setEditAsset(asset); setShowModal(true) }} className="text-xs text-amber-600 hover:underline font-medium">Edit</button>
                           <span className="text-gray-300">|</span>
