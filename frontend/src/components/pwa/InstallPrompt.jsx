@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ArrowDownTrayIcon, XMarkIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline'
 
 // Shared state so both the banner and sidebar button stay in sync
@@ -90,6 +90,58 @@ export default function InstallBanner() {
   )
 }
 
+// ── Timed nudge banner (appears 15 s after mount, guides users to Chrome menu) ─
+
+export function NudgeBanner() {
+  const { isStandalone, prompt } = usePWAInstall()
+  const isAndroid = typeof window !== 'undefined' &&
+    /android/i.test(navigator.userAgent)
+  const [visible, setVisible] = useState(false)
+  const timerRef = useRef(null)
+
+  const dismissed = () => {
+    const last = localStorage.getItem('pwa-nudge-dismissed')
+    return !!last && Date.now() - Number(last) < 3 * 24 * 60 * 60 * 1000
+  }
+
+  useEffect(() => {
+    // Only nudge Android users who haven't installed and haven't dismissed
+    if (isStandalone || !isAndroid || dismissed()) return
+    // If native prompt is already available, InstallBanner handles it
+    if (prompt) return
+    timerRef.current = setTimeout(() => setVisible(true), 15000)
+    return () => clearTimeout(timerRef.current)
+  }, [isStandalone, isAndroid, prompt])
+
+  if (!visible) return null
+
+  const handleDismiss = () => {
+    setVisible(false)
+    localStorage.setItem('pwa-nudge-dismissed', String(Date.now()))
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+      <div className="bg-brand-slate text-white rounded-2xl shadow-2xl p-4 flex items-start gap-3 max-w-md mx-auto">
+        <div className="p-2 bg-white/10 rounded-xl shrink-0">
+          <DevicePhoneMobileIcon className="h-6 w-6 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm">Install LZ ERP</p>
+          <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
+            Tap <strong className="text-white">⋮</strong> in Chrome, then tap{' '}
+            <strong className="text-white">Install app</strong> or{' '}
+            <strong className="text-white">Add to Home screen</strong>.
+          </p>
+        </div>
+        <button onClick={handleDismiss} className="text-white/50 hover:text-white shrink-0 mt-0.5">
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Sidebar install button (always visible, manual trigger) ───────────────────
 
 export function SidebarInstallButton() {
@@ -165,6 +217,9 @@ export function SidebarInstallButton() {
                   Tap <strong>Install</strong> or <strong>Add</strong> to confirm
                 </li>
               </ol>
+                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mt-3">
+                  Don't see <strong>Install app</strong>? Use the app for a few minutes and check again — Chrome enables this option after brief engagement with the site.
+                </p>
               </>
             )}
             <button onClick={() => setShowGuide(false)}
