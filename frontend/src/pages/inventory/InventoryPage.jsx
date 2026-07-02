@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import {
   PlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon,
   MagnifyingGlassIcon, ExclamationTriangleIcon,
-  ArrowsRightLeftIcon, DocumentTextIcon, UserIcon, ArrowPathIcon,
+  ArrowsRightLeftIcon, DocumentTextIcon, UserIcon,
 } from '@heroicons/react/24/outline'
 import {
   getStockItems, createStockItem, updateStockItem,
@@ -751,17 +751,7 @@ export default function InventoryPage() {
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
-          <button
-            onClick={() => {
-              qc.invalidateQueries({ queryKey: ['stock-items'] })
-              qc.invalidateQueries({ queryKey: ['stock-transactions'] })
-              qc.invalidateQueries({ queryKey: ['low-stock'] })
-              qc.invalidateQueries({ queryKey: ['stores'] })
-            }}
-            title="Refresh"
-            className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-brand-red transition-colors">
-            <ArrowPathIcon className="h-4 w-4" />
-          </button>
+
           {!isReadOnly && (
             <button
               onClick={() => setShowAddItem(true)}
