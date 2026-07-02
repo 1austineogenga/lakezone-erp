@@ -315,11 +315,20 @@ class Asset(models.Model):
     class Meta:
         ordering = ['department', 'category', 'asset_code']
 
+    def _cert_status(self, expiry_date):
+        from django.utils import timezone
+        if not expiry_date:
+            return 'not_in_system'
+        today = timezone.now().date()
+        return 'valid' if expiry_date >= today else 'expired'
+
     def save(self, *args, **kwargs):
         if not self.asset_code:
             prefix = self.category[:2].upper() if self.category else 'AS'
             count = Asset.objects.filter(category=self.category).count() + 1
             self.asset_code = f"LZ-{prefix.upper()}-{count:03d}"
+        self.inspection_cert_status   = self._cert_status(self.inspection_cert_expiry)
+        self.speed_governor_cert_status = self._cert_status(self.speed_governor_cert_expiry)
         super().save(*args, **kwargs)
 
     def __str__(self):

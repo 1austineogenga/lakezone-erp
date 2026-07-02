@@ -136,10 +136,10 @@ const EMPTY = {
   insurance_expiry: '', insurance_cert_number: '', insurance_policy_number: '',
   insurance_policy_type: '', insurance_insurer: '', insurance_chassis_number: '',
   insurance_commencement_date: '',
-  inspection_cert_number: '', inspection_cert_status: '',
+  inspection_cert_number: '',
   inspection_cert_issue_date: '', inspection_cert_expiry: '',
   inspection_issuing_authority: '',
-  speed_governor_cert_number: '', speed_governor_cert_status: '',
+  speed_governor_cert_number: '',
   speed_governor_device_serial: '', speed_governor_cert_issue_date: '',
   speed_governor_cert_expiry: '', speed_governor_issuing_authority: '',
 }
@@ -201,12 +201,10 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
     insurance_chassis_number: asset.insurance_chassis_number || '',
     insurance_commencement_date: asset.insurance_commencement_date || '',
     inspection_cert_number: asset.inspection_cert_number || '',
-    inspection_cert_status: asset.inspection_cert_status || '',
     inspection_cert_issue_date: asset.inspection_cert_issue_date || '',
     inspection_cert_expiry: asset.inspection_cert_expiry || '',
     inspection_issuing_authority: asset.inspection_issuing_authority || '',
     speed_governor_cert_number: asset.speed_governor_cert_number || '',
-    speed_governor_cert_status: asset.speed_governor_cert_status || '',
     speed_governor_device_serial: asset.speed_governor_device_serial || '',
     speed_governor_cert_issue_date: asset.speed_governor_cert_issue_date || '',
     speed_governor_cert_expiry: asset.speed_governor_cert_expiry || '',
@@ -401,22 +399,16 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <DocumentTextIcon className="h-3.5 w-3.5" /> Inspection Certificate
               </h3>
+              <p className="text-[11px] text-gray-400 mb-2">Status is calculated automatically from the expiry date.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Certificate No.</label>
                   <input className={inp} value={form.inspection_cert_number} onChange={e => set('inspection_cert_number', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select className={inp} value={form.inspection_cert_status} onChange={e => set('inspection_cert_status', e.target.value)}>
-                    {CERT_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Issuing Authority</label>
                   <input className={inp} value={form.inspection_issuing_authority} onChange={e => set('inspection_issuing_authority', e.target.value)} placeholder="e.g. NTSA" />
                 </div>
-                <div />
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Issue Date</label>
                   <input type="date" className={inp} value={form.inspection_cert_issue_date} onChange={e => set('inspection_cert_issue_date', e.target.value)} />
@@ -435,16 +427,11 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               <h3 className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <ShieldCheckIcon className="h-3.5 w-3.5" /> Speed Governor Certificate
               </h3>
+              <p className="text-[11px] text-gray-400 mb-2">Status is calculated automatically from the expiry date.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Certificate No.</label>
                   <input className={inp} value={form.speed_governor_cert_number} onChange={e => set('speed_governor_cert_number', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select className={inp} value={form.speed_governor_cert_status} onChange={e => set('speed_governor_cert_status', e.target.value)}>
-                    {CERT_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Device Serial No.</label>
