@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
@@ -126,6 +126,15 @@ export default function TopBar({ onToggleSidebar }) {
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">
+        {/* Global refresh */}
+        <button
+          onClick={() => window.location.reload()}
+          title="Refresh"
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-brand-red transition-colors"
+        >
+          <ArrowPathIcon className="h-5 w-5" />
+        </button>
+
         {/* Notification bell */}
         <div className="relative" ref={dropRef}>
           <button
