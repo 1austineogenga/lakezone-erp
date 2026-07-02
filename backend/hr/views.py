@@ -344,6 +344,7 @@ class LeaveTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
 class LeaveBalanceListView(generics.ListCreateAPIView):
     serializer_class   = LeaveBalanceSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class   = None  # always filtered by year, return all matching records
 
     def get_queryset(self):
         qs = LeaveBalance.objects.select_related('employee', 'leave_type').order_by(
