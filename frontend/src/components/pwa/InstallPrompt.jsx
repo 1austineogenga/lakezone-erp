@@ -15,12 +15,21 @@ if (typeof window !== 'undefined') {
   }
 }
 
+function detectBrowser() {
+  if (typeof window === 'undefined') return {}
+  const ua = navigator.userAgent
+  const isIOS     = /iphone|ipad|ipod/i.test(ua) && !window.MSStream
+  const isAndroid = /android/i.test(ua)
+  const isSamsung = /SamsungBrowser/i.test(ua)
+  const isFirefox = /firefox/i.test(ua)
+  const isChrome  = /chrome/i.test(ua) && !isSamsung && !isFirefox
+  return { isIOS, isAndroid, isSamsung, isFirefox, isChrome }
+}
+
 export function usePWAInstall() {
   const isStandalone = typeof window !== 'undefined' &&
     window.matchMedia('(display-mode: standalone)').matches
-  const isIOS = typeof window !== 'undefined' &&
-    /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
-
+  const { isIOS } = detectBrowser()
   const [prompt, setPrompt] = useState(_prompt)
 
   useEffect(() => {
@@ -40,7 +49,7 @@ export function usePWAInstall() {
   return { prompt, isIOS, isStandalone, install }
 }
 
-// ── Bottom banner (auto-shows, dismissable) ───────────────────────────────────
+// ── Bottom banner (auto-shows when native prompt fires) ───────────────────────
 
 export default function InstallBanner() {
   const { prompt, isIOS, isStandalone, install } = usePWAInstall()
@@ -50,7 +59,7 @@ export default function InstallBanner() {
   })
 
   if (isStandalone || dismissed) return null
-  if (!prompt && !isIOS) return null   // Android: wait for the prompt event
+  if (!prompt && !isIOS) return null
 
   const handleDismiss = () => {
     setDismissed(true)
@@ -90,28 +99,25 @@ export default function InstallBanner() {
   )
 }
 
-// ── Timed nudge banner (appears 15 s after mount, guides users to Chrome menu) ─
+// ── Timed nudge banner (appears 15 s after mount on mobile) ───────────────────
 
 export function NudgeBanner() {
   const { isStandalone, prompt } = usePWAInstall()
-  const isAndroid = typeof window !== 'undefined' &&
-    /android/i.test(navigator.userAgent)
+  const { isAndroid, isIOS } = detectBrowser()
   const [visible, setVisible] = useState(false)
   const timerRef = useRef(null)
 
-  const dismissed = () => {
+  const wasDismissed = () => {
     const last = localStorage.getItem('pwa-nudge-dismissed')
     return !!last && Date.now() - Number(last) < 3 * 24 * 60 * 60 * 1000
   }
 
   useEffect(() => {
-    // Only nudge Android users who haven't installed and haven't dismissed
-    if (isStandalone || !isAndroid || dismissed()) return
-    // If native prompt is already available, InstallBanner handles it
-    if (prompt) return
+    if (isStandalone || (!isAndroid && !isIOS) || wasDismissed()) return
+    if (prompt) return  // native prompt available — InstallBanner covers it
     timerRef.current = setTimeout(() => setVisible(true), 15000)
     return () => clearTimeout(timerRef.current)
-  }, [isStandalone, isAndroid, prompt])
+  }, [isStandalone, isAndroid, isIOS, prompt])
 
   if (!visible) return null
 
@@ -128,11 +134,17 @@ export function NudgeBanner() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm">Install LZ ERP</p>
-          <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
-            Tap <strong className="text-white">⋮</strong> in Chrome, then tap{' '}
-            <strong className="text-white">Install app</strong> or{' '}
-            <strong className="text-white">Add to Home screen</strong>.
-          </p>
+          {isIOS ? (
+            <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
+              Tap <strong className="text-white">Share ↑</strong> then{' '}
+              <strong className="text-white">Add to Home Screen</strong>.
+            </p>
+          ) : (
+            <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
+              Tap <strong className="text-white">Share</strong> in your browser, then{' '}
+              <strong className="text-white">Add to Home Screen</strong>.
+            </p>
+          )}
         </div>
         <button onClick={handleDismiss} className="text-white/50 hover:text-white shrink-0 mt-0.5">
           <XMarkIcon className="h-5 w-5" />
@@ -146,15 +158,15 @@ export function NudgeBanner() {
 
 export function SidebarInstallButton() {
   const { prompt, isIOS, isStandalone, install } = usePWAInstall()
+  const { isSamsung, isFirefox, isChrome, isAndroid } = detectBrowser()
   const [showGuide, setShowGuide] = useState(false)
 
-  if (isStandalone) return null   // already installed
+  if (isStandalone) return null
 
   const handleClick = async () => {
     if (prompt) {
       await install()
     } else {
-      // No native prompt — show manual instructions
       setShowGuide(true)
     }
   }
@@ -179,15 +191,17 @@ export function SidebarInstallButton() {
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
-            {isIOS ? (
+
+            {/* iOS Safari */}
+            {isIOS && (
               <ol className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
-                  Open this page in <strong>Safari</strong> (required on iPhone)
+                  Open this page in <strong>Safari</strong> (required on iPhone/iPad)
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                  Tap the <strong>Share</strong> button (box with arrow) at the bottom
+                  Tap the <strong>Share ↑</strong> button at the bottom of the screen
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
@@ -198,30 +212,73 @@ export function SidebarInstallButton() {
                   Tap <strong>Add</strong> in the top right
                 </li>
               </ol>
-            ) : (
-              <>
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                  Must be opened in <strong>Google Chrome</strong>. Other browsers (Firefox, Samsung Internet) do not support installation.
-                </p>
-                <ol className="space-y-3 text-sm text-gray-700">
+            )}
+
+            {/* Samsung Internet */}
+            {!isIOS && isSamsung && (
+              <ol className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
-                  Tap the <strong>⋮</strong> (three dots) menu in Chrome
+                  Tap the <strong>☰</strong> menu at the bottom right
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                  Look for <strong>Install app</strong> or <strong>Add to Home screen</strong>
+                  Tap <strong>Add page to</strong>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
-                  Tap <strong>Install</strong> or <strong>Add</strong> to confirm
+                  Tap <strong>Home screen</strong>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
+                  Tap <strong>Add</strong> to confirm
                 </li>
               </ol>
+            )}
+
+            {/* Firefox — no support */}
+            {!isIOS && isFirefox && (
+              <div className="space-y-3 text-sm text-gray-700">
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Firefox does not support installing web apps. Please open this page in <strong>Chrome</strong> or <strong>Samsung Internet</strong> to install.
+                </p>
+              </div>
+            )}
+
+            {/* Chrome / Edge / other Android browsers — Share method always works */}
+            {!isIOS && !isSamsung && !isFirefox && isAndroid && (
+              <>
+                <ol className="space-y-3 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
+                    Tap the <strong>⋮</strong> menu at the top right of Chrome
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
+                    Tap <strong>Share</strong>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                    In the share sheet, tap <strong>Add to Home screen</strong>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
+                    Tap <strong>Add</strong> to confirm
+                  </li>
+                </ol>
                 <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mt-3">
-                  Don't see <strong>Install app</strong>? Use the app for a few minutes and check again — Chrome enables this option after brief engagement with the site.
+                  You may also see <strong>Install app</strong> directly in the ⋮ menu — tap that if it appears.
                 </p>
               </>
             )}
+
+            {/* Desktop */}
+            {!isIOS && !isAndroid && (
+              <p className="text-sm text-gray-600">
+                Look for the <strong>install icon</strong> (⊕ or computer icon) in your browser's address bar, then click <strong>Install</strong>.
+              </p>
+            )}
+
             <button onClick={() => setShowGuide(false)}
               className="mt-5 w-full bg-brand-slate text-white py-2.5 rounded-xl text-sm font-semibold">
               Got it
