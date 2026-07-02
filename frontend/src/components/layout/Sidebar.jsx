@@ -17,6 +17,7 @@ import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import usePermissions from '../../hooks/usePermissions'
+import { SidebarInstallButton } from '../pwa/InstallPrompt'
 
 const TOP_LINKS = [
   { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true,  module: 'dashboard' },
@@ -274,8 +275,9 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-3 border-t border-white/10 shrink-0">
+      {/* Install + Logout */}
+      <div className="px-3 py-3 border-t border-white/10 shrink-0 space-y-1">
+        <SidebarInstallButton />
         <button onClick={handleLogout}
           className="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/8 hover:text-white transition-colors">
           <ArrowRightOnRectangleIcon className="h-4 w-4 shrink-0" />
