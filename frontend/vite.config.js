@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      manifestFilename: 'manifest.json',
       includeAssets: ['favicon.png', 'favicon.svg', 'apple-touch-icon.png', 'icons/*.png'],
       manifest: {
         name: 'Lake Zone ERP',
