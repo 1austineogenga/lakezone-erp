@@ -33,6 +33,8 @@ import ProfilePage from './pages/profile/ProfilePage'
 import WorkspacePage from './pages/workspace/WorkspacePage'
 import AlertsPage from './pages/AlertsPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
+import InstallPrompt from './components/pwa/InstallPrompt'
+import OfflineBanner from './components/pwa/OfflineBanner'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -41,6 +43,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <OfflineBanner />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -77,6 +80,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       <ToastContainer position="top-right" autoClose={3000} />
+      <InstallPrompt />
     </QueryClientProvider>
   )
 }
