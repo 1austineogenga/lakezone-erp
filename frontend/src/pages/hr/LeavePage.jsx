@@ -6,7 +6,7 @@ import { getLeaveApplications, reviewLeave, getLeaveTypes } from '../../api/hr'
 import api from '../../api/client'
 import {
   CheckCircleIcon, XCircleIcon, DocumentTextIcon,
-  PlusIcon, PencilSquareIcon, ArrowPathIcon,
+  PlusIcon, PencilSquareIcon, ArrowPathIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import { printLeaveApplication } from '../../utils/print'
 
@@ -225,23 +225,21 @@ export default function LeavePage() {
   )
 }
 
+const PER_PAGE = 12
+
 // ── Leave Balances Tab ─────────────────────────────────────────────────────────
 function LeaveBalancesTab() {
   const qc = useQueryClient()
   const currentYear = new Date().getFullYear()
-  const [year, setYear]       = useState(currentYear)
-  const [search, setSearch]   = useState('')
-  const [editModal, setEditModal] = useState(null) // balance object
+  const [year, setYear]           = useState(currentYear)
+  const [search, setSearch]       = useState('')
+  const [page, setPage]           = useState(1)
+  const [expanded, setExpanded]   = useState({}) // { [empId]: bool }
+  const [editModal, setEditModal] = useState(null)
 
-  const { data: leaveTypes = [] } = useQuery({
-    queryKey: ['leave-types'],
-    queryFn:  getLeaveTypes,
-    select:   r => r.data?.results ?? r.data ?? [],
-  })
-
-  const { data: balances = [], isLoading, refetch } = useQuery({
+  const { data: balances = [], isLoading } = useQuery({
     queryKey: ['leave-balances', year],
-    queryFn:  () => api.get('/hr/leave-balances/', { params: { year, page_size: 1000 } }),
+    queryFn:  () => api.get('/hr/leave-balances/', { params: { year } }),
     select:   r => r.data?.results ?? r.data ?? [],
   })
 
@@ -264,13 +262,11 @@ function LeaveBalancesTab() {
     onError: e => toast.error(e.response?.data?.detail || 'Update failed.'),
   })
 
-  // Group balances by employee
-  const employees = useMemo(() => {
+  // Group and filter by employee
+  const allEmployees = useMemo(() => {
     const map = {}
     balances.forEach(b => {
-      if (!map[b.employee]) {
-        map[b.employee] = { id: b.employee, name: b.employee_name, balances: [] }
-      }
+      if (!map[b.employee]) map[b.employee] = { id: b.employee, name: b.employee_name, balances: [] }
       map[b.employee].balances.push(b)
     })
     return Object.values(map).filter(e =>
@@ -278,7 +274,14 @@ function LeaveBalancesTab() {
     )
   }, [balances, search])
 
-  const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
+  const totalPages  = Math.ceil(allEmployees.length / PER_PAGE)
+  const safePage    = Math.min(page, totalPages || 1)
+  const pageEmployees = allEmployees.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
+
+  // Reset page when search changes
+  useMemo(() => setPage(1), [search])
+
+  const toggle = (id) => setExpanded(s => ({ ...s, [id]: !s[id] }))
 
   return (
     <div className="space-y-4">
@@ -288,7 +291,7 @@ function LeaveBalancesTab() {
           <label className="text-sm font-medium text-gray-700">Year:</label>
           <select
             value={year}
-            onChange={e => setYear(Number(e.target.value))}
+            onChange={e => { setYear(Number(e.target.value)); setPage(1) }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
             {[currentYear - 1, currentYear, currentYear + 1].map(y => (
               <option key={y} value={y}>{y}</option>
@@ -312,65 +315,125 @@ function LeaveBalancesTab() {
       </div>
 
       <p className="text-xs text-gray-500">
-        Click <strong>Initialize {year}</strong> to create default balances for all active employees using
-        each leave type's entitled days. Existing balances will not be overwritten. Carry-forward
-        is calculated automatically from the previous year.
+        Click <strong>Initialize {year}</strong> to create default balances for all active employees.
+        Existing balances will not be overwritten. Carry-forward is calculated automatically from the previous year.
       </p>
 
       {isLoading ? (
-        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}</div>
-      ) : employees.length === 0 ? (
+        <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : allEmployees.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-500">
           <p className="text-sm">No leave balances for {year}.</p>
           <p className="text-xs mt-1">Click <strong>Initialize {year}</strong> to create them.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {employees.map(emp => (
-            <div key={emp.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                <span className="font-semibold text-brand-slate text-sm">{emp.name}</span>
-                <span className="text-xs text-gray-500">{emp.balances.length} leave type{emp.balances.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      {['Leave Type', 'Entitled', 'Carry Fwd', 'Taken', 'Balance', ''].map(h => (
-                        <th key={h} className="px-4 py-2 text-left font-semibold text-gray-500">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {emp.balances.map(b => {
-                      const bal = Number(b.balance)
-                      const balColor = bal <= 0 ? 'text-red-600 font-bold' : bal <= 3 ? 'text-amber-600 font-semibold' : 'text-green-700 font-semibold'
-                      return (
-                        <tr key={b.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2.5">
-                            <span className="font-medium text-gray-800">{b.leave_type_name}</span>
-                            <span className="ml-1.5 text-gray-400 font-mono">{b.leave_type_code}</span>
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-700">{Number(b.entitled_days)} days</td>
-                          <td className="px-4 py-2.5 text-gray-600">{Number(b.carried_forward)} days</td>
-                          <td className="px-4 py-2.5 text-gray-600">{Number(b.taken_days)} days</td>
-                          <td className={`px-4 py-2.5 ${balColor}`}>{bal} days</td>
-                          <td className="px-4 py-2.5">
-                            <button
-                              onClick={() => setEditModal({ ...b })}
-                              className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
-                              <PencilSquareIcon className="h-3.5 w-3.5" /> Edit
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+        <>
+          <div className="space-y-2">
+            {pageEmployees.map(emp => {
+              const isOpen = !!expanded[emp.id]
+              const totalBalance = emp.balances.reduce((s, b) => s + Number(b.balance), 0)
+              const totalEntitled = emp.balances.reduce((s, b) => s + Number(b.entitled_days), 0)
+              const totalTaken = emp.balances.reduce((s, b) => s + Number(b.taken_days), 0)
+              return (
+                <div key={emp.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  {/* Collapsed header row */}
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 select-none"
+                    onClick={() => toggle(emp.id)}>
+                    <ChevronDownIcon className={`h-4 w-4 text-gray-400 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-semibold text-brand-slate text-sm">{emp.name}</span>
+                    </div>
+                    {/* Summary chips — hidden when open */}
+                    {!isOpen && (
+                      <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
+                        <span>Entitled: <strong className="text-gray-700">{totalEntitled}</strong></span>
+                        <span>Taken: <strong className="text-gray-700">{totalTaken}</strong></span>
+                        <span className={`font-semibold ${totalBalance <= 0 ? 'text-red-600' : totalBalance <= 5 ? 'text-amber-600' : 'text-green-700'}`}>
+                          Balance: {totalBalance}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-xs text-gray-400 shrink-0">{emp.balances.length} types</span>
+                  </div>
+
+                  {/* Expanded leave table */}
+                  {isOpen && (
+                    <div className="border-t border-gray-100 overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100">
+                            {['Leave Type', 'Entitled', 'Carry Fwd', 'Taken', 'Balance', ''].map(h => (
+                              <th key={h} className="px-4 py-2.5 text-left font-semibold text-gray-500">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {emp.balances.map(b => {
+                            const bal = Number(b.balance)
+                            const balColor = bal <= 0 ? 'text-red-600 font-bold' : bal <= 3 ? 'text-amber-600 font-semibold' : 'text-green-700 font-semibold'
+                            return (
+                              <tr key={b.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-2.5">
+                                  <span className="font-medium text-gray-800">{b.leave_type_name}</span>
+                                  <span className="ml-1.5 text-gray-400 font-mono">{b.leave_type_code}</span>
+                                </td>
+                                <td className="px-4 py-2.5 text-gray-700">{Number(b.entitled_days)}</td>
+                                <td className="px-4 py-2.5 text-gray-600">{Number(b.carried_forward)}</td>
+                                <td className="px-4 py-2.5 text-gray-600">{Number(b.taken_days)}</td>
+                                <td className={`px-4 py-2.5 ${balColor}`}>{bal}</td>
+                                <td className="px-4 py-2.5">
+                                  <button
+                                    onClick={() => setEditModal({ ...b })}
+                                    className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
+                                    <PencilSquareIcon className="h-3.5 w-3.5" /> Edit
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-gray-500">
+                Showing {(safePage - 1) * PER_PAGE + 1}–{Math.min(safePage * PER_PAGE, allEmployees.length)} of {allEmployees.length} employees
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50">
+                  ← Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      p === safePage ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 hover:bg-gray-50'
+                    }`}>
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={safePage === totalPages}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50">
+                  Next →
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* Edit modal */}
