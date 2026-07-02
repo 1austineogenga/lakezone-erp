@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import generics, status
@@ -340,17 +341,64 @@ class LeaveTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class LeaveBalanceListView(generics.ListAPIView):
+class LeaveBalanceListView(generics.ListCreateAPIView):
     serializer_class   = LeaveBalanceSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = LeaveBalance.objects.select_related('employee', 'leave_type')
+        qs = LeaveBalance.objects.select_related('employee', 'leave_type').order_by(
+            'employee__last_name', 'employee__first_name', 'leave_type__name'
+        )
         if emp := self.request.query_params.get('employee'):
             qs = qs.filter(employee_id=emp)
         if yr := self.request.query_params.get('year'):
             qs = qs.filter(year=yr)
         return qs
+
+
+class LeaveBalanceDetailView(generics.RetrieveUpdateAPIView):
+    queryset           = LeaveBalance.objects.select_related('employee', 'leave_type')
+    serializer_class   = LeaveBalanceSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class LeaveBalanceInitializeView(APIView):
+    """Bulk-create leave balances for all active employees for a given year.
+    Carries forward remaining days from the previous year when the leave type allows it.
+    Existing balances are not overwritten."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        year = int(request.data.get('year', datetime.now().year))
+        employees   = Employee.objects.filter(is_active=True)
+        leave_types = LeaveType.objects.filter(is_active=True)
+        created_count = 0
+
+        for emp in employees:
+            for lt in leave_types:
+                carried = Decimal('0')
+                if lt.carry_forward:
+                    try:
+                        prev = LeaveBalance.objects.get(employee=emp, leave_type=lt, year=year - 1)
+                        remaining = prev.entitled_days + prev.carried_forward - prev.taken_days
+                        carried = min(max(remaining, Decimal('0')), Decimal(str(lt.max_carry_forward)))
+                    except LeaveBalance.DoesNotExist:
+                        pass
+
+                _, created = LeaveBalance.objects.get_or_create(
+                    employee=emp,
+                    leave_type=lt,
+                    year=year,
+                    defaults={
+                        'entitled_days':   lt.days_entitled,
+                        'carried_forward': carried,
+                        'taken_days':      Decimal('0'),
+                    },
+                )
+                if created:
+                    created_count += 1
+
+        return Response({'created': created_count, 'year': year})
 
 
 class LeaveApplicationListCreateView(generics.ListCreateAPIView):
@@ -364,7 +412,7 @@ class LeaveApplicationListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(employee_id=emp)
         if st := params.get('status'):
             qs = qs.filter(status=st)
-        return qs.order_by('-created_at')
+        return qs.order_by('-applied_at')
 
 
 class LeaveApplicationDetailView(generics.RetrieveUpdateAPIView):

@@ -153,7 +153,9 @@ class LeaveTypeSerializer(serializers.ModelSerializer):
 
 class LeaveBalanceSerializer(serializers.ModelSerializer):
     leave_type_name = serializers.CharField(source='leave_type.name', read_only=True)
-    balance         = serializers.IntegerField(read_only=True)
+    leave_type_code = serializers.CharField(source='leave_type.code', read_only=True)
+    employee_name   = serializers.CharField(source='employee.full_name', read_only=True)
+    balance         = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
 
     class Meta:
         model  = LeaveBalance

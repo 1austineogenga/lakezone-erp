@@ -39,6 +39,8 @@ urlpatterns = [
 
     # Leave Balances
     path('leave-balances/',                      views.LeaveBalanceListView.as_view()),
+    path('leave-balances/initialize/',           views.LeaveBalanceInitializeView.as_view()),
+    path('leave-balances/<uuid:pk>/',            views.LeaveBalanceDetailView.as_view()),
 
     # Leave Applications
     path('leave-applications/',                  views.LeaveApplicationListCreateView.as_view()),
