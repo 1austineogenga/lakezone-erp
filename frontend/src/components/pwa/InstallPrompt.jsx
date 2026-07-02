@@ -131,32 +131,41 @@ export function SidebarInstallButton() {
               <ol className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
-                  Tap the <strong>Share</strong> button (box with arrow) at the bottom of Safari
+                  Open this page in <strong>Safari</strong> (required on iPhone)
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                  Scroll down and tap <strong>Add to Home Screen</strong>
+                  Tap the <strong>Share</strong> button (box with arrow) at the bottom
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
+                  Scroll down and tap <strong>Add to Home Screen</strong>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">4</span>
                   Tap <strong>Add</strong> in the top right
                 </li>
               </ol>
             ) : (
-              <ol className="space-y-3 text-sm text-gray-700">
+              <>
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                  Must be opened in <strong>Google Chrome</strong>. Other browsers (Firefox, Samsung Internet) do not support installation.
+                </p>
+                <ol className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">1</span>
-                  Tap the <strong>⋮ menu</strong> (three dots) in Chrome
+                  Tap the <strong>⋮</strong> (three dots) menu in Chrome
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">2</span>
-                  Tap <strong>Add to Home screen</strong>
+                  Look for <strong>Install app</strong> or <strong>Add to Home screen</strong>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="bg-brand-red text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0 mt-0.5">3</span>
-                  Tap <strong>Add</strong> to confirm
+                  Tap <strong>Install</strong> or <strong>Add</strong> to confirm
                 </li>
               </ol>
+              </>
             )}
             <button onClick={() => setShowGuide(false)}
               className="mt-5 w-full bg-brand-slate text-white py-2.5 rounded-xl text-sm font-semibold">
