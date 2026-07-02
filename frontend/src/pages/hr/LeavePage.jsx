@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getLeaveApplications, reviewLeave, getLeaveTypes } from '../../api/hr'
 import api from '../../api/client'
 import {
-  CheckCircleIcon, XCircleIcon, PrinterIcon, DocumentTextIcon,
-  PlusIcon, EyeIcon,
+  CheckCircleIcon, XCircleIcon, DocumentTextIcon,
+  PlusIcon, PencilSquareIcon, ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { printLeaveApplication } from '../../utils/print'
 
@@ -29,7 +29,7 @@ export default function LeavePage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
 
-  const [tab, setTab]           = useState('applications')
+  const [tab, setTab]           = useState('balances')
   const [statusFilter, setStatus] = useState('')
   const [reviewModal, setReviewModal] = useState(null) // { app, action }
   const [reviewNotes, setReviewNotes] = useState('')
@@ -66,8 +66,9 @@ export default function LeavePage() {
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap items-center">
         {[
-          { key: 'applications', label: 'Applications' },
-          { key: 'types',        label: 'Leave Types'  },
+          { key: 'balances',     label: 'Leave Balances' },
+          { key: 'applications', label: 'Applications'   },
+          { key: 'types',        label: 'Leave Types'    },
         ].map(opt => (
           <button key={opt.key} onClick={() => setTab(opt.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors
@@ -172,6 +173,9 @@ export default function LeavePage() {
         </div>
       )}
 
+      {/* Leave balances */}
+      {tab === 'balances' && <LeaveBalancesTab />}
+
       {/* Leave types */}
       {tab === 'types' && <LeaveTypesTab />}
 
@@ -217,6 +221,221 @@ export default function LeavePage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Leave Balances Tab ─────────────────────────────────────────────────────────
+function LeaveBalancesTab() {
+  const qc = useQueryClient()
+  const currentYear = new Date().getFullYear()
+  const [year, setYear]       = useState(currentYear)
+  const [search, setSearch]   = useState('')
+  const [editModal, setEditModal] = useState(null) // balance object
+
+  const { data: leaveTypes = [] } = useQuery({
+    queryKey: ['leave-types'],
+    queryFn:  getLeaveTypes,
+    select:   r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: balances = [], isLoading, refetch } = useQuery({
+    queryKey: ['leave-balances', year],
+    queryFn:  () => api.get('/hr/leave-balances/', { params: { year, page_size: 1000 } }),
+    select:   r => r.data?.results ?? r.data ?? [],
+  })
+
+  const initMut = useMutation({
+    mutationFn: () => api.post('/hr/leave-balances/initialize/', { year }),
+    onSuccess: (r) => {
+      toast.success(`Initialized ${r.data.created} new balance records for ${year}.`)
+      qc.invalidateQueries({ queryKey: ['leave-balances'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Initialization failed.'),
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/hr/leave-balances/${id}/`, data),
+    onSuccess: () => {
+      toast.success('Balance updated.')
+      qc.invalidateQueries({ queryKey: ['leave-balances'] })
+      setEditModal(null)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Update failed.'),
+  })
+
+  // Group balances by employee
+  const employees = useMemo(() => {
+    const map = {}
+    balances.forEach(b => {
+      if (!map[b.employee]) {
+        map[b.employee] = { id: b.employee, name: b.employee_name, balances: [] }
+      }
+      map[b.employee].balances.push(b)
+    })
+    return Object.values(map).filter(e =>
+      !search || e.name.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [balances, search])
+
+  const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
+
+  return (
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Year:</label>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
+            {[currentYear - 1, currentYear, currentYear + 1].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search employee…"
+          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red w-48" />
+
+        <button
+          onClick={() => initMut.mutate()}
+          disabled={initMut.isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-slate text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-60 ml-auto">
+          <ArrowPathIcon className="h-4 w-4" />
+          {initMut.isPending ? 'Initializing…' : `Initialize ${year}`}
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500">
+        Click <strong>Initialize {year}</strong> to create default balances for all active employees using
+        each leave type's entitled days. Existing balances will not be overwritten. Carry-forward
+        is calculated automatically from the previous year.
+      </p>
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : employees.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-500">
+          <p className="text-sm">No leave balances for {year}.</p>
+          <p className="text-xs mt-1">Click <strong>Initialize {year}</strong> to create them.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {employees.map(emp => (
+            <div key={emp.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <span className="font-semibold text-brand-slate text-sm">{emp.name}</span>
+                <span className="text-xs text-gray-500">{emp.balances.length} leave type{emp.balances.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      {['Leave Type', 'Entitled', 'Carry Fwd', 'Taken', 'Balance', ''].map(h => (
+                        <th key={h} className="px-4 py-2 text-left font-semibold text-gray-500">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {emp.balances.map(b => {
+                      const bal = Number(b.balance)
+                      const balColor = bal <= 0 ? 'text-red-600 font-bold' : bal <= 3 ? 'text-amber-600 font-semibold' : 'text-green-700 font-semibold'
+                      return (
+                        <tr key={b.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2.5">
+                            <span className="font-medium text-gray-800">{b.leave_type_name}</span>
+                            <span className="ml-1.5 text-gray-400 font-mono">{b.leave_type_code}</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-700">{Number(b.entitled_days)} days</td>
+                          <td className="px-4 py-2.5 text-gray-600">{Number(b.carried_forward)} days</td>
+                          <td className="px-4 py-2.5 text-gray-600">{Number(b.taken_days)} days</td>
+                          <td className={`px-4 py-2.5 ${balColor}`}>{bal} days</td>
+                          <td className="px-4 py-2.5">
+                            <button
+                              onClick={() => setEditModal({ ...b })}
+                              className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
+                              <PencilSquareIcon className="h-3.5 w-3.5" /> Edit
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editModal && (
+        <EditBalanceModal
+          balance={editModal}
+          onClose={() => setEditModal(null)}
+          onSave={(data) => updateMut.mutate({ id: editModal.id, data })}
+          saving={updateMut.isPending}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditBalanceModal({ balance, onClose, onSave, saving }) {
+  const [form, setForm] = useState({
+    entitled_days:   Number(balance.entitled_days),
+    carried_forward: Number(balance.carried_forward),
+    taken_days:      Number(balance.taken_days),
+  })
+  const f = k => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) })
+  const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
+  const bal = Number(form.entitled_days) + Number(form.carried_forward) - Number(form.taken_days)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h3 className="font-semibold text-brand-slate mb-0.5">{balance.employee_name}</h3>
+        <p className="text-xs text-gray-500 mb-4">{balance.leave_type_name} · {balance.year}</p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Entitled Days</label>
+            <input type="number" min="0" step="0.5" className={cls} {...f('entitled_days')} />
+            <p className="text-[10px] text-gray-400 mt-0.5">Standard entitlement for this year</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Carry Forward</label>
+            <input type="number" min="0" step="0.5" className={cls} {...f('carried_forward')} />
+            <p className="text-[10px] text-gray-400 mt-0.5">Days carried over from previous year</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Days Taken</label>
+            <input type="number" min="0" step="0.5" className={cls} {...f('taken_days')} />
+            <p className="text-[10px] text-gray-400 mt-0.5">Leave already consumed (updated automatically on approval)</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-600">Remaining Balance</span>
+            <span className={`text-lg font-bold ${bal <= 0 ? 'text-red-600' : bal <= 3 ? 'text-amber-600' : 'text-green-700'}`}>
+              {bal.toFixed(1)} days
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
+          <button
+            onClick={() => onSave({ entitled_days: form.entitled_days, carried_forward: form.carried_forward, taken_days: form.taken_days })}
+            disabled={saving}
+            className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-medium disabled:opacity-60">
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
