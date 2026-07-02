@@ -171,7 +171,7 @@ export function SidebarInstallButton() {
       {showGuide && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4"
           onClick={() => setShowGuide(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <p className="font-bold text-brand-slate">Install LZ ERP</p>
