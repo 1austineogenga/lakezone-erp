@@ -146,7 +146,8 @@ class AssetSerializer(serializers.ModelSerializer):
             'current_defects', 'requirements',
             'maintenance_count', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'asset_code', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'asset_code', 'created_at', 'updated_at',
+                            'inspection_cert_status', 'speed_governor_cert_status']
 
     def get_maintenance_count(self, obj):
         return obj.maintenance_logs.count()
