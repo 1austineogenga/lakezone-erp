@@ -20,6 +20,13 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
 
     <title>Lake Zone ERP</title>
+    <!-- Capture install prompt before React mounts -->
+    <script>
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

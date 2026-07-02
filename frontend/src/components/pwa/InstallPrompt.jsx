@@ -5,16 +5,15 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [show, setShow]                     = useState(false)
   const [isIOS, setIsIOS]                   = useState(false)
-  const [dismissed, setDismissed]           = useState(false)
 
   useEffect(() => {
-    // Don't show if already installed (standalone mode)
+    // Don't show if already running as installed PWA
     if (window.matchMedia('(display-mode: standalone)').matches) return
-    // Don't show if user dismissed within last 7 days
+    // Don't show if dismissed within last 7 days
     const last = localStorage.getItem('pwa-prompt-dismissed')
     if (last && Date.now() - Number(last) < 7 * 24 * 60 * 60 * 1000) return
 
-    // iOS detection
+    // iOS — no beforeinstallprompt, show manual instructions
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
     if (ios) {
       setIsIOS(true)
@@ -22,34 +21,41 @@ export default function InstallPrompt() {
       return
     }
 
-    // Android / Chrome — listen for beforeinstallprompt
-    const handler = (e) => {
-      e.preventDefault()
+    // Android/Chrome: event may have already fired before React mounted —
+    // pick it up from window where index.html captured it, or listen normally.
+    const attach = (e) => {
       setDeferredPrompt(e)
       setShow(true)
     }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    if (window.__pwaInstallPrompt) {
+      attach(window.__pwaInstallPrompt)
+    } else {
+      window.addEventListener('beforeinstallprompt', attach)
+      return () => window.removeEventListener('beforeinstallprompt', attach)
+    }
   }, [])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') setShow(false)
+    if (outcome === 'accepted') {
+      setShow(false)
+      window.__pwaInstallPrompt = null
+    }
     setDeferredPrompt(null)
   }
 
   const handleDismiss = () => {
     setShow(false)
-    setDismissed(true)
     localStorage.setItem('pwa-prompt-dismissed', String(Date.now()))
   }
 
-  if (!show || dismissed) return null
+  if (!show) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
       <div className="bg-brand-slate text-white rounded-2xl shadow-2xl p-4 flex items-start gap-3 max-w-md mx-auto">
         <div className="p-2 bg-white/10 rounded-xl shrink-0">
           <DevicePhoneMobileIcon className="h-6 w-6 text-white" />
@@ -62,7 +68,7 @@ export default function InstallPrompt() {
             </p>
           ) : (
             <p className="text-xs text-white/70 mt-0.5">
-              Install for faster access, offline support and a native app experience.
+              Install for faster access, offline support and a native app feel.
             </p>
           )}
           {!isIOS && (
