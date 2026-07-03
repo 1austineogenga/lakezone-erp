@@ -6,11 +6,13 @@ import {
   TruckIcon, PlusIcon, MagnifyingGlassIcon,
   MapPinIcon, WrenchScrewdriverIcon, ExclamationTriangleIcon,
   SignalIcon, PrinterIcon, ChevronUpDownIcon, ArrowPathIcon, XMarkIcon,
-  CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon,
+  CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig, previewAssetSync, syncAssetsToFleet } from '../../api/fleet'
+import { createRequisition } from '../../api/requisitions'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
+import useAuthStore from '../../store/authStore'
 
 // ── Icon: live GPS tracked ──────────────────────────────────────────────────
 function LiveIcon() {
@@ -270,6 +272,270 @@ function SyncModal({ onClose, qc }) {
   )
 }
 
+const SERVICE_TYPES = [
+  'Routine Service / Oil Change',
+  'Tyre Replacement / Repair',
+  'Engine Repair',
+  'Transmission / Gearbox',
+  'Brake System',
+  'Electrical / Wiring',
+  'Body Repair / Welding',
+  'Hydraulic System',
+  'Cooling System',
+  'Fuel System',
+  'Suspension / Steering',
+  'Pre-Inspection / Certification',
+  'Other',
+]
+
+const URGENCY_OPTIONS = [
+  { value: 'low',    label: 'Low — Scheduled maintenance' },
+  { value: 'medium', label: 'Medium — Needs attention soon' },
+  { value: 'high',   label: 'High — Affecting operations' },
+  { value: 'urgent', label: 'Urgent — Unit is grounded / unsafe' },
+]
+
+function MaintenanceReqModal({ vehicles, preselectedVehicleId, onClose }) {
+  const { user } = useAuthStore()
+  const qc = useQueryClient()
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red'
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const [form, setForm] = useState({
+    vehicle_id: preselectedVehicleId || '',
+    service_type: '',
+    other_service_type: '',
+    priority: 'medium',
+    date_required: '',
+    location: '',
+    odometer_hours: '',
+    last_service_date: '',
+    last_service_reading: '',
+    reported_by: user ? `${user.first_name} ${user.last_name}`.trim() : '',
+    problem_description: '',
+    defects_observed: '',
+    parts_required: '',
+    estimated_cost: '',
+    preferred_vendor: '',
+    notes: '',
+  })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const selectedVehicle = vehicles.find(v => String(v.id) === String(form.vehicle_id))
+
+  const mut = useMutation({
+    mutationFn: createRequisition,
+    onSuccess: (res) => {
+      toast.success(`Maintenance requisition ${res.data.reference_number} submitted.`)
+      qc.invalidateQueries({ queryKey: ['requisitions'] })
+      onClose()
+    },
+    onError: e => toast.error(e.response?.data?.detail || JSON.stringify(e.response?.data) || 'Failed to submit.'),
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!form.vehicle_id) { toast.error('Please select a vehicle.'); return }
+    if (!form.service_type) { toast.error('Please select a service type.'); return }
+
+    const v = selectedVehicle
+    const vehicleLabel = [v?.vehicle_no, v?.vehicle_name].filter(Boolean).join(' — ')
+    const svcLabel = form.service_type === 'Other' ? form.other_service_type : form.service_type
+
+    const lines = [
+      form.problem_description && `Problem: ${form.problem_description}`,
+      form.defects_observed    && `Defects: ${form.defects_observed}`,
+      form.location            && `Location / Site: ${form.location}`,
+      form.odometer_hours      && `Current Odometer / Hours: ${form.odometer_hours}`,
+      form.last_service_date   && `Last Service Date: ${form.last_service_date}`,
+      form.last_service_reading && `Last Service Reading: ${form.last_service_reading}`,
+      form.parts_required      && `Parts / Materials Required: ${form.parts_required}`,
+      form.estimated_cost      && `Estimated Cost (KES): ${form.estimated_cost}`,
+      form.preferred_vendor    && `Preferred Vendor / Garage: ${form.preferred_vendor}`,
+      form.reported_by         && `Reported By: ${form.reported_by}`,
+      form.notes               && `Additional Notes: ${form.notes}`,
+    ].filter(Boolean)
+
+    const payload = {
+      title: `${svcLabel} — ${vehicleLabel}`,
+      req_type: 'repair_maintenance',
+      priority: form.priority,
+      date_required: form.date_required || today,
+      description: lines.join('\n'),
+      items: [{
+        description: `${svcLabel} for ${vehicleLabel}`,
+        quantity: 1,
+        unit: 'job',
+        unit_price: form.estimated_cost ? parseFloat(form.estimated_cost) : 0,
+      }],
+    }
+    mut.mutate(payload)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[94vh] flex flex-col">
+        {/* Header */}
+        <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 rounded-t-2xl">
+          <div className="flex items-center gap-2">
+            <WrenchScrewdriverIcon className="h-4 w-4 text-purple-600" />
+            <div>
+              <h2 className="font-bold text-brand-slate text-sm">Maintenance Requisition</h2>
+              <p className="text-[10px] text-gray-500">Request service, maintenance or repair for a vehicle / machine</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+          {/* Vehicle selection */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Vehicle / Machine</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Select Vehicle / Machine *</label>
+                <select required className={inp} value={form.vehicle_id} onChange={e => set('vehicle_id', e.target.value)}>
+                  <option value="">— Select —</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.vehicle_no}{v.vehicle_name ? ` — ${v.vehicle_name}` : ''}{v.make || v.model_name ? ` (${[v.make, v.model_name].filter(Boolean).join(' ')})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {selectedVehicle && (
+                <div className="col-span-2 bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 grid grid-cols-3 gap-2 text-xs">
+                  <div><span className="text-gray-500">Reg / ID</span><p className="font-bold text-brand-slate">{selectedVehicle.vehicle_no}</p></div>
+                  <div><span className="text-gray-500">Make & Model</span><p className="font-medium text-gray-700">{[selectedVehicle.make, selectedVehicle.model_name].filter(Boolean).join(' ') || '—'}</p></div>
+                  <div><span className="text-gray-500">Current Site</span><p className="font-medium text-gray-700">{selectedVehicle.current_site || selectedVehicle.last_location || '—'}</p></div>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Current Location / Site</label>
+                <input className={inp} value={form.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Njambini Site" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Odometer / Hours Reading</label>
+                <input className={inp} value={form.odometer_hours} onChange={e => set('odometer_hours', e.target.value)} placeholder="e.g. 12,450 km or 3,200 hrs" />
+              </div>
+            </div>
+          </div>
+
+          {/* Service details */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service Details</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Type of Service / Repair *</label>
+                <select required className={inp} value={form.service_type} onChange={e => set('service_type', e.target.value)}>
+                  <option value="">— Select service type —</option>
+                  {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {form.service_type === 'Other' && (
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Specify Service Type *</label>
+                  <input required className={inp} value={form.other_service_type} onChange={e => set('other_service_type', e.target.value)} placeholder="Describe the service type" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Priority / Urgency *</label>
+                <select className={inp} value={form.priority} onChange={e => set('priority', e.target.value)}>
+                  {URGENCY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Date Required By</label>
+                <input type="date" className={inp} value={form.date_required} onChange={e => set('date_required', e.target.value)} />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Problem Description *</label>
+                <textarea required rows={3} className={`${inp} resize-none`} value={form.problem_description}
+                  onChange={e => set('problem_description', e.target.value)}
+                  placeholder="Describe the fault, symptoms, or what needs to be done in detail…" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Defects / Observations</label>
+                <textarea rows={2} className={`${inp} resize-none`} value={form.defects_observed}
+                  onChange={e => set('defects_observed', e.target.value)}
+                  placeholder="List any observed defects, warning lights, unusual sounds, leaks, etc." />
+              </div>
+            </div>
+          </div>
+
+          {/* Service history */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service History</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Last Service Date</label>
+                <input type="date" className={inp} value={form.last_service_date} onChange={e => set('last_service_date', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Last Service Odometer / Hours</label>
+                <input className={inp} value={form.last_service_reading} onChange={e => set('last_service_reading', e.target.value)} placeholder="e.g. 11,000 km or 3,000 hrs" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cost & vendor */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Parts & Cost</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Parts / Materials Required</label>
+                <textarea rows={2} className={`${inp} resize-none`} value={form.parts_required}
+                  onChange={e => set('parts_required', e.target.value)}
+                  placeholder="List any specific parts, fluids, or materials needed…" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Estimated Cost (KES)</label>
+                <input type="number" min="0" step="0.01" className={inp} value={form.estimated_cost}
+                  onChange={e => set('estimated_cost', e.target.value)} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Preferred Vendor / Garage</label>
+                <input className={inp} value={form.preferred_vendor} onChange={e => set('preferred_vendor', e.target.value)} placeholder="e.g. CMC Motors, local garage" />
+              </div>
+            </div>
+          </div>
+
+          {/* Reported by & notes */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Additional Info</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                <input className={inp} value={form.reported_by} onChange={e => set('reported_by', e.target.value)} placeholder="Name of person reporting" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Additional Notes</label>
+                <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
+                  onChange={e => set('notes', e.target.value)} placeholder="Any other relevant information…" />
+              </div>
+            </div>
+          </div>
+        </form>
+
+        {/* Footer */}
+        <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={mut.isPending}
+            className="flex items-center gap-1.5 px-5 py-2 bg-purple-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 disabled:opacity-60">
+            <ClipboardDocumentListIcon className="h-3.5 w-3.5" />
+            {mut.isPending ? 'Submitting…' : 'Submit Maintenance Requisition'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function VehiclesPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -279,6 +545,7 @@ export default function VehiclesPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showForm, setShowForm]       = useState(false)
   const [showSync, setShowSync]       = useState(false)
+  const [showMaintReq, setShowMaintReq] = useState(false)
   const [form, setForm]               = useState(EMPTY)
   const [sortKey, setSortKey]         = useState('asset_no')
   const [page, setPage]               = useState(1)
@@ -466,6 +733,10 @@ export default function VehiclesPage() {
             <PrinterIcon className="h-3.5 w-3.5" /> Print
           </button>
 
+          <button onClick={() => setShowMaintReq(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
+            <WrenchScrewdriverIcon className="h-3.5 w-3.5" /> Maintenance Request
+          </button>
           {canWrite('fleet') && (
             <>
               <button onClick={() => setShowSync(true)}
@@ -633,6 +904,7 @@ export default function VehiclesPage() {
                     <th className="px-4 py-2 text-center font-semibold text-gray-600">GPS</th>
                     <th className="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
                     <th className="px-4 py-2 text-left font-semibold text-gray-600">Compliance</th>
+                    <th className="px-4 py-2"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -705,6 +977,15 @@ export default function VehiclesPage() {
                             <span className="text-[10px] text-green-600 font-medium">OK</span>
                           )}
                         </td>
+                        {/* Actions */}
+                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => { setShowMaintReq(v.id) }}
+                            title="Request Maintenance"
+                            className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
+                            <WrenchScrewdriverIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     )
                   })}
@@ -717,6 +998,13 @@ export default function VehiclesPage() {
       )}
 
       {showSync && <SyncModal onClose={() => setShowSync(false)} qc={qc} />}
+      {showMaintReq && (
+        <MaintenanceReqModal
+          vehicles={vehicles}
+          preselectedVehicleId={typeof showMaintReq === 'string' ? showMaintReq : ''}
+          onClose={() => setShowMaintReq(false)}
+        />
+      )}
     </div>
   )
 }
