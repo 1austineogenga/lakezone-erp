@@ -66,10 +66,11 @@ class StockItemListCreateView(generics.ListCreateAPIView):
             if dept_id:
                 qs = qs.filter(department_id=dept_id)
         elif role == 'facility_manager':
-            # Facility manager sees only items they personally created
             qs = qs.filter(created_by=user)
+        elif role == 'admin_officer':
+            # Admin officer sees own dept items but NOT facility manager's items
+            qs = qs.filter(department=user.department).exclude(created_by__role='facility_manager')
         else:
-            # Everyone else: own department
             qs = qs.filter(department=user.department)
         return qs
 
@@ -115,6 +116,8 @@ class StockLevelListView(generics.ListAPIView):
             pass
         elif role == 'facility_manager':
             qs = qs.filter(item__created_by=user)
+        elif role == 'admin_officer':
+            qs = qs.filter(item__department=user.department).exclude(item__created_by__role='facility_manager')
         else:
             qs = qs.filter(item__department=user.department)
         return qs
@@ -132,6 +135,8 @@ class LowStockItemsView(generics.ListAPIView):
             pass
         elif role == 'facility_manager':
             items = items.filter(created_by=user)
+        elif role == 'admin_officer':
+            items = items.filter(department=user.department).exclude(created_by__role='facility_manager')
         else:
             items = items.filter(department=user.department)
         low_pks = [it.pk for it in items if float(it.current_stock()) <= float(it.reorder_level)]
@@ -156,6 +161,8 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         if role not in VIEW_ALL_ROLES:
             if role == 'facility_manager':
                 qs = qs.filter(item__created_by=user)
+            elif role == 'admin_officer':
+                qs = qs.filter(item__department=user.department).exclude(item__created_by__role='facility_manager')
             else:
                 qs = qs.filter(item__department=user.department)
         issued_to = self.request.query_params.get('issued_to')
