@@ -15,6 +15,7 @@ import secrets
 import string
 import logging
 from .models import User, Branch, Department
+from hr.models import Employee
 
 
 class LoginRateThrottle(AnonRateThrottle):
@@ -159,6 +160,15 @@ class UserListCreateView(generics.ListCreateAPIView):
         password = getattr(self._created_user, '_plain_password', None)
         if password:
             response.data['generated_password'] = password
+        # Link employee record if provided
+        employee_id = request.data.get('employee_id')
+        if employee_id:
+            try:
+                emp = Employee.objects.get(pk=employee_id)
+                emp.user = self._created_user
+                emp.save(update_fields=['user'])
+            except Employee.DoesNotExist:
+                pass
         return response
 
 
@@ -166,6 +176,20 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsSystemAdmin]
+
+    def perform_update(self, serializer):
+        user = serializer.save()
+        # Link or re-link employee record if provided
+        employee_id = self.request.data.get('employee_id')
+        if employee_id:
+            try:
+                # Clear any previous link for this user
+                Employee.objects.filter(user=user).exclude(pk=employee_id).update(user=None)
+                emp = Employee.objects.get(pk=employee_id)
+                emp.user = user
+                emp.save(update_fields=['user'])
+            except Employee.DoesNotExist:
+                pass
 
 
 class ResetUserPasswordView(APIView):
