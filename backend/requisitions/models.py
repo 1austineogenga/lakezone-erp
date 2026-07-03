@@ -63,6 +63,20 @@ class StaffRequisition(models.Model):
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
 
+    # Payment details (fuel, materials, general_purchase)
+    PAYMENT_METHOD_CHOICES = [
+        ('mpesa_paybill', 'M-Pesa Paybill'),
+        ('mpesa_till', 'M-Pesa Till'),
+        ('bank_transfer', 'Bank Transfer'),
+    ]
+    payment_method          = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, blank=True)
+    payment_business_number = models.CharField(max_length=50, blank=True, help_text='M-Pesa Paybill business number')
+    payment_account_number  = models.CharField(max_length=100, blank=True, help_text='M-Pesa Paybill account / bank account number')
+    payment_till_number     = models.CharField(max_length=50, blank=True, help_text='M-Pesa Till number')
+    payment_bank_name       = models.CharField(max_length=100, blank=True)
+    payment_account_name    = models.CharField(max_length=100, blank=True)
+    payment_branch_name     = models.CharField(max_length=100, blank=True)
+
     fulfilled_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                           null=True, blank=True, related_name='requisitions_fulfilled')
     fulfilled_at      = models.DateTimeField(null=True, blank=True)
