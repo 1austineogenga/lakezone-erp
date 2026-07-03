@@ -60,14 +60,16 @@ class StockItemListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'role', None)
-        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
+        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'created_by')
         if role in VIEW_ALL_ROLES:
-            # admin_officer, system_admin, MD, finance, etc. — see all, optional dept filter
             dept_id = self.request.query_params.get('department')
             if dept_id:
                 qs = qs.filter(department_id=dept_id)
+        elif role == 'facility_manager':
+            # Facility manager sees only items they personally created
+            qs = qs.filter(created_by=user)
         else:
-            # Everyone else: own department only
+            # Everyone else: own department
             qs = qs.filter(department=user.department)
         return qs
 
@@ -76,11 +78,9 @@ class StockItemListCreateView(generics.ListCreateAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to add stock items.')
         if _can_edit_anywhere(user):
-            # system_admin: department comes from the request body
-            serializer.save()
+            serializer.save(created_by=user)
         else:
-            # admin_officer and all dept users: forced to their own department
-            serializer.save(department=user.department)
+            serializer.save(department=user.department, created_by=user)
 
 
 class StockItemDetailView(generics.RetrieveUpdateAPIView):
@@ -110,8 +110,12 @@ class StockLevelListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'role', None)
-        qs = StockLevel.objects.select_related('item', 'store', 'item__department').all()
-        if role not in VIEW_ALL_ROLES:
+        qs = StockLevel.objects.select_related('item', 'store', 'item__department', 'item__created_by').all()
+        if role in VIEW_ALL_ROLES:
+            pass
+        elif role == 'facility_manager':
+            qs = qs.filter(item__created_by=user)
+        else:
             qs = qs.filter(item__department=user.department)
         return qs
 
@@ -124,7 +128,11 @@ class LowStockItemsView(generics.ListAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         items = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
-        if role not in VIEW_ALL_ROLES:
+        if role in VIEW_ALL_ROLES:
+            pass
+        elif role == 'facility_manager':
+            items = items.filter(created_by=user)
+        else:
             items = items.filter(department=user.department)
         low_pks = [it.pk for it in items if float(it.current_stock()) <= float(it.reorder_level)]
         return StockItem.objects.filter(pk__in=low_pks).prefetch_related('stock_levels')
@@ -146,7 +154,10 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
             'item', 'store', 'project', 'processed_by', 'item__department'
         )
         if role not in VIEW_ALL_ROLES:
-            qs = qs.filter(item__department=user.department)
+            if role == 'facility_manager':
+                qs = qs.filter(item__created_by=user)
+            else:
+                qs = qs.filter(item__department=user.department)
         issued_to = self.request.query_params.get('issued_to')
         if issued_to:
             qs = qs.filter(issued_to=issued_to)
