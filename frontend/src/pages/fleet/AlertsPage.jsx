@@ -46,9 +46,18 @@ export default function AlertsPage() {
   const [sevFilter, setSevFilter]   = useState('')
 
   const { data: vehicles = [] } = useQuery({
-    queryKey: ['fleet-vehicles'],
-    queryFn: getVehicles,
-    select: r => r.data?.results ?? r.data ?? [],
+    queryKey: ['fleet-vehicles-alerts'],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await getVehicles({ page_size: 200, page })
+        const data = r.data?.results ?? (Array.isArray(r.data) ? r.data : [])
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
   })
 
   const activeTypes = typeFilter ? [typeFilter] : ALLOWED_TYPES

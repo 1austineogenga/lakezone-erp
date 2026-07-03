@@ -39,7 +39,10 @@ class FleetDashboardView(APIView):
         online_count = vehicles.filter(last_seen__gte=online_cutoff).count()
 
         active_trips = TripRecord.objects.filter(ended_at__isnull=True).count()
-        unacknowledged_alerts = FleetAlert.objects.filter(acknowledged=False).count()
+        unacknowledged_alerts = FleetAlert.objects.filter(
+            acknowledged=False,
+            alert_type__in=['fuel_fill', 'fuel_drain', 'geofence'],
+        ).count()
         # Low fuel: < 30L or < 15% capacity (compare against absolute 30L for safety)
         low_fuel_count = vehicles.filter(last_fuel__isnull=False, last_fuel__lt=30).count()
 
