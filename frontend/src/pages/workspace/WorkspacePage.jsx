@@ -809,8 +809,9 @@ export default function WorkspacePage() {
   const employeeId = employee?.id
 
   const { data: leaveBalances = [] } = useQuery({
-    queryKey: ['leave-balances'],
-    queryFn: () => getLeaveBalances().then(r => r.data?.results ?? r.data ?? []),
+    queryKey: ['leave-balances', employeeId],
+    queryFn: () => api.get('/hr/leave-balances/', { params: { employee: employeeId, year: new Date().getFullYear(), page_size: 50 } }).then(r => r.data?.results ?? r.data ?? []),
+    enabled: !!employeeId,
   })
   const { data: leaves = [] } = useQuery({
     queryKey: ['my-leaves'],
