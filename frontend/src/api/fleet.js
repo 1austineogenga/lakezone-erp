@@ -52,6 +52,7 @@ export const updateFuelPrice       = (id, d)  => api.patch(`/fleet/fuel-prices/$
 export const deleteFuelPrice       = (id)     => api.delete(`/fleet/fuel-prices/${id}/`)
 
 // Asset Register sync & ERC prices
+export const previewAssetSync   = ()     => api.get('/fleet/sync-assets/')
 export const syncAssetsToFleet  = ()     => api.post('/fleet/sync-assets/')
 export const fetchErcFuelPrices = ()     => api.post('/fleet/fetch-erc-prices/')
 
