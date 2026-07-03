@@ -343,7 +343,7 @@ const LEAVE_STATUS_LABELS = {
   approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled',
 }
 
-function LeaveTab() {
+function LeaveTab({ employeeId }) {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' })
@@ -354,8 +354,9 @@ function LeaveTab() {
     queryFn:  () => getLeaveTypes().then(r => r.data?.results ?? r.data ?? []),
   })
   const { data: balances = [] } = useQuery({
-    queryKey: ['leave-balances'],
-    queryFn:  () => getLeaveBalances().then(r => r.data?.results ?? r.data ?? []),
+    queryKey: ['leave-balances', employeeId],
+    queryFn:  () => api.get('/hr/leave-balances/', { params: { employee: employeeId, year: new Date().getFullYear(), page_size: 50 } }).then(r => r.data?.results ?? r.data ?? []),
+    enabled:  !!employeeId,
   })
   const { data: leaves = [], isLoading } = useQuery({
     queryKey: ['my-leaves'],
@@ -846,7 +847,7 @@ export default function WorkspacePage() {
       {/* Tab content */}
       {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
-      {tab === 'leave'         && <LeaveTab />}
+      {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
     </div>
