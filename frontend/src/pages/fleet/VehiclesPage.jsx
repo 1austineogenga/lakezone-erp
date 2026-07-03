@@ -6,7 +6,7 @@ import {
   TruckIcon, PlusIcon, MagnifyingGlassIcon,
   MapPinIcon, WrenchScrewdriverIcon, ExclamationTriangleIcon,
   SignalIcon, PrinterIcon, ChevronUpDownIcon, ArrowPathIcon, XMarkIcon,
-  CheckCircleIcon,
+  CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 import { getVehicles, createVehicle, getFleetConfig, previewAssetSync, syncAssetsToFleet } from '../../api/fleet'
 import api from '../../api/client'
