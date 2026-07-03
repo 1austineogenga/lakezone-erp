@@ -14,8 +14,7 @@ import {
 import usePermissions from '../../hooks/usePermissions'
 import useAuthStore from '../../store/authStore'
 import api from '../../api/client'
-
-const getSystemUsers = () => api.get('/auth/users/?page_size=200')
+import { getEmployees } from '../../api/hr'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -579,10 +578,19 @@ export default function InventoryPage() {
     select: r => r.data?.results ?? r.data ?? [],
   })
 
-  const { data: systemUsers = [] } = useQuery({
-    queryKey: ['system-users'],
-    queryFn: getSystemUsers,
-    select: r => r.data?.results ?? r.data ?? [],
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-list'],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await getEmployees({ is_active: true, page_size: 200, page })
+        const data = r.data?.results ?? r.data ?? []
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
   })
 
   const { data: departments = [] } = useQuery({
@@ -598,8 +606,7 @@ export default function InventoryPage() {
     onSuccess: (_, vars) => {
       const item = items.find(i => String(i.id) === String(vars.item))
       const recipient = vars.issued_to_name ||
-        systemUsers.find(u => String(u.id) === String(vars.issued_to))?.full_name ||
-        systemUsers.find(u => String(u.id) === String(vars.issued_to))?.username ||
+        employees.find(e => String(e.user) === String(vars.issued_to))?.full_name ||
         'recipient'
       toast.success(`Issued ${vars.quantity} units of ${item?.name ?? 'item'} to ${recipient}`)
       qc.invalidateQueries({ queryKey: ['stock-items'] })
@@ -1010,19 +1017,31 @@ export default function InventoryPage() {
                     placeholder="0" />
                 </div>
 
-                {/* System user */}
+                {/* Employee */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> Issued To (System User)</span>
+                    <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> Issued To (Employee)</span>
                   </label>
                   <select
                     className={inp}
-                    value={issueForm.issued_to}
-                    onChange={e => setIssueForm(f => ({ ...f, issued_to: e.target.value, issued_to_name: '' }))}>
-                    <option value="">— Select system user —</option>
-                    {systemUsers.map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name || u.username} {u.role ? `(${u.role})` : ''}
+                    value={issueForm.issued_to || issueForm.issued_to_name}
+                    onChange={e => {
+                      const val = e.target.value
+                      const emp = employees.find(em => String(em.id) === val)
+                      if (emp) {
+                        setIssueForm(f => ({
+                          ...f,
+                          issued_to: emp.user ? String(emp.user) : '',
+                          issued_to_name: emp.user ? '' : emp.full_name,
+                        }))
+                      } else {
+                        setIssueForm(f => ({ ...f, issued_to: '', issued_to_name: '' }))
+                      }
+                    }}>
+                    <option value="">— Select employee —</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name}{emp.employee_number ? ` (${emp.employee_number})` : ''}
                       </option>
                     ))}
                   </select>
