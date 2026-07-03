@@ -109,11 +109,20 @@ function ResetPasswordModal({ user, onClose }) {
 
 function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments, branches, employees }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(() => {
+    // Pre-select the employee already linked to this user (edit mode)
+    if (initial?.id) {
+      const linked = employees.find(e => e.user === initial.id)
+      return linked?.id || ''
+    }
+    return ''
+  })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const isMD = form.role === 'managing_director'
 
   const handleEmployeeSelect = (empId) => {
+    setSelectedEmployeeId(empId)
     if (!empId) return
     const emp = employees.find(e => e.id === empId)
     if (!emp) return
@@ -154,7 +163,7 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
             {!isMD && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Employee {!isEdit && '*'}</label>
-                <select onChange={e => handleEmployeeSelect(e.target.value)} defaultValue=""
+                <select value={selectedEmployeeId} onChange={e => handleEmployeeSelect(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
                   <option value="">— Select employee —</option>
                   {employees.map(e => (
@@ -218,7 +227,7 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
         <div className="px-6 py-4 border-t border-gray-100 flex gap-2 justify-end">
           <button onClick={onClose} className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
           <button
-            onClick={() => onSave(form)}
+            onClick={() => onSave({ ...form, employee_id: selectedEmployeeId || undefined })}
             disabled={saving || !form.first_name || !form.last_name || !form.email}
             className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create User'}
