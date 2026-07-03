@@ -295,7 +295,7 @@ export default function UsersPage() {
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees-for-users'],
-    queryFn:  () => api.get('/hr/employees/', { params: { is_active: true, page_size: 200 } }),
+    queryFn:  () => api.get('/hr/employees/', { params: { is_active: true, page_size: 1000 } }),
     select:   r => r.data?.results ?? r.data ?? [],
   })
 
