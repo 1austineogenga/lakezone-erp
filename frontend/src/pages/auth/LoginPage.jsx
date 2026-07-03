@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { login, getMe } from '../../api/auth'
 import useAuthStore from '../../store/authStore'
 import logoFull from '../../assets/logo-full.png'
+import { getPermissions } from '../../utils/permissions'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -20,7 +21,8 @@ export default function LoginPage() {
       setTokens(data.access, data.refresh)
       const { data: me } = await getMe()
       setUser(me)
-      navigate(me.must_change_password ? '/change-password' : '/')
+      const perms = getPermissions(me.role)
+      navigate(me.must_change_password ? '/change-password' : (perms.dashboard ? '/' : '/workspace'))
     } catch {
       setError('Invalid email or password.')
     } finally {
