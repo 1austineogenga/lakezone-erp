@@ -284,8 +284,17 @@ export default function VehiclesPage() {
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['fleet-vehicles'],
-    queryFn: getVehicles,
-    select: r => r.data?.results ?? r.data ?? [],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await getVehicles({ page_size: 200, page })
+        const data = r.data?.results ?? (Array.isArray(r.data) ? r.data : [])
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
     refetchInterval: 120_000,
   })
 
