@@ -35,8 +35,17 @@ export default function MaintenancePage() {
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['fleet-vehicles'],
-    queryFn: getVehicles,
-    select: r => r.data?.results ?? r.data ?? [],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await getVehicles({ page_size: 200, page })
+        const data = r.data?.results ?? (Array.isArray(r.data) ? r.data : [])
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
   })
 
   const { data: records = [], isLoading } = useQuery({
@@ -226,6 +235,9 @@ export default function MaintenancePage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-bold text-brand-slate">{r.vehicle_no || r.vehicle}</p>
+                  {r.description?.startsWith('[Auto from') && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-700">Auto-logged</span>
+                  )}
                   {r.description && <p className="text-xs text-gray-600 truncate">{r.description}</p>}
                 </div>
                 {r.notes && <p className="text-xs text-gray-600 mt-1">{r.notes}</p>}

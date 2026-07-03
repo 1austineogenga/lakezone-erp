@@ -190,6 +190,50 @@ class RequisitionFulfillView(APIView):
         req.fulfilled_at      = timezone.now()
         req.fulfillment_notes = request.data.get('notes', '')
         req.save(update_fields=['status', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes'])
+
+        # Auto-log fleet maintenance when a repair_maintenance requisition is fulfilled
+        if req.req_type == StaffRequisition.ReqType.REPAIR_MAINTENANCE and req.fleet_vehicle_no:
+            try:
+                from fleet.models import Vehicle, VehicleMaintenance
+                vehicle = Vehicle.objects.filter(vehicle_no=req.fleet_vehicle_no).first()
+                if vehicle:
+                    # Map requisition priority/title to maintenance type
+                    title_lower = req.title.lower()
+                    if 'tyre' in title_lower or 'tire' in title_lower:
+                        maint_type = 'tyre'
+                    elif 'oil' in title_lower:
+                        maint_type = 'oil'
+                    elif 'inspect' in title_lower or 'certif' in title_lower:
+                        maint_type = 'inspection'
+                    elif 'repair' in title_lower or 'engine' in title_lower or 'brake' in title_lower \
+                            or 'hydraulic' in title_lower or 'electrical' in title_lower \
+                            or 'transmission' in title_lower or 'weld' in title_lower:
+                        maint_type = 'repair'
+                    elif 'service' in title_lower or 'routine' in title_lower:
+                        maint_type = 'service'
+                    else:
+                        maint_type = 'other'
+
+                    # Try to get cost and performed_by from the linked maintenance schedule
+                    sched = getattr(req, 'maintenance_schedule', None)
+                    cost = sched.payment_amount if sched and sched.payment_amount else req.total_amount
+                    performed_by = sched.assigned_to if sched and sched.assigned_to else (
+                        req.fulfillment_notes[:200] if req.fulfillment_notes else ''
+                    )
+                    description = req.description or req.title
+
+                    VehicleMaintenance.objects.create(
+                        vehicle=vehicle,
+                        maintenance_type=maint_type,
+                        description=f'[Auto from {req.reference_number}] {description}',
+                        date=req.fulfilled_at.date(),
+                        cost=cost or 0,
+                        performed_by=performed_by,
+                        notes=req.fulfillment_notes or '',
+                    )
+            except Exception:
+                pass  # Never block fulfillment if fleet logging fails
+
         return Response(StaffRequisitionSerializer(req).data)
 
 

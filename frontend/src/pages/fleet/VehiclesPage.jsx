@@ -364,6 +364,7 @@ function MaintenanceReqModal({ vehicles, preselectedVehicleId, onClose }) {
       priority: form.priority,
       date_required: form.date_required || today,
       description: lines.join('\n'),
+      fleet_vehicle_no: selectedVehicle?.vehicle_no || '',
       items: [{
         description: `${svcLabel} for ${vehicleLabel}`,
         quantity: 1,
