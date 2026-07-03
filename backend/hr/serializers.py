@@ -57,7 +57,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         model  = Employee
         fields = [
             'id', 'employee_number', 'full_name', 'employment_type',
-            'department_name', 'position_title', 'branch_name', 'is_active',
+            'department_name', 'position_title', 'branch_name', 'is_active', 'user',
         ]
 
     def get_full_name(self, obj):

@@ -9,6 +9,7 @@ import {
   ShieldCheckIcon, DocumentTextIcon, XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { getAssets, createAsset, updateAsset, deleteAsset, getAssetDashboard } from '../../api/inventory'
+import { getEmployees } from '../../api/hr'
 import useAuthStore from '../../store/authStore'
 import usePermissions from '../../hooks/usePermissions'
 import api from '../../api/client'
@@ -179,7 +180,7 @@ function StatCard({ icon: Icon, label, value, color = 'blue' }) {
   )
 }
 
-function AssetModal({ asset, deptName, isAdmin, onClose }) {
+function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   const isEdit = !!asset
   const { categories: availableCategories, default: defaultCategory } = isAdmin
     ? { categories: CATEGORY_OPTIONS, default: 'machinery' }
@@ -290,7 +291,12 @@ function AssetModal({ asset, deptName, isAdmin, onClose }) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                <input className={inp} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} />
+                <select className={inp} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
+                  <option value="">— Select employee —</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Condition</label>
@@ -683,6 +689,21 @@ export default function AssetsPage() {
     queryFn: () => getAssetDashboard().then(r => r.data),
   })
 
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-list'],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await getEmployees({ is_active: true, page_size: 200, page })
+        const data = r.data?.results ?? r.data ?? []
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
+  })
+
   const qc = useQueryClient()
   const deleteMut = useMutation({
     mutationFn: (id) => deleteAsset(id),
@@ -866,6 +887,7 @@ export default function AssetsPage() {
           asset={editAsset}
           deptName={editAsset?.department ?? ownDeptName}
           isAdmin={role === 'system_admin'}
+          employees={employees}
           onClose={() => { setShowModal(false); setEditAsset(null) }}
         />
       )}
