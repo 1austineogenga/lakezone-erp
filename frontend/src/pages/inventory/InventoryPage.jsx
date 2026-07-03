@@ -504,7 +504,7 @@ const READONLY_ROLES = new Set([
   'general_manager', 'head_of_security',
 ])
 const VIEW_ALL_ROLES = new Set([
-  'system_admin', 'admin_officer', 'managing_director', 'finance_officer',
+  'system_admin', 'managing_director', 'finance_officer',
   'finance_manager', 'general_manager', 'head_of_security',
 ])
 
@@ -520,11 +520,11 @@ export default function InventoryPage() {
   const canEditItem = (item) => {
     if (isReadOnly) return false
     if (canWriteAll) return true
-    // admin_officer and dept users: only their own department
     return String(item.department) === String(user?.department)
   }
 
   const [tab, setTab] = useState('items')
+  // admin_officer defaults to no dept filter (sees own dept from backend automatically)
   const [deptFilter, setDeptFilter] = useState('')
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')

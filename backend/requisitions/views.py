@@ -13,6 +13,7 @@ from .serializers import (
 
 # ── Role sets ──────────────────────────────────────────────────────────────────
 APPROVER_ROLES       = {'managing_director', 'system_admin'}
+STAGE1_APPROVER_ROLES = {'admin_officer', 'system_admin'}   # first-level review for facility_manager reqs
 ALL_VIEWER_ROLES     = {
     'managing_director', 'general_manager', 'admin_officer',
     'finance_officer', 'finance_manager', 'system_admin', 'procurement_officer',
@@ -72,28 +73,54 @@ class RequisitionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class RequisitionApproveView(APIView):
-    """Only the MD (managing_director) or system_admin can approve requisitions."""
+    """
+    Two-stage approval for facility_manager requisitions:
+      submitted → admin_officer approves → dept_review → MD approves → approved
+    All other requisitions go directly: submitted → MD approves → approved
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         user_role = getattr(request.user, 'role', None)
-        if user_role not in APPROVER_ROLES:
+        is_md     = user_role in APPROVER_ROLES
+        is_stage1 = user_role in STAGE1_APPROVER_ROLES
+
+        if not is_md and not is_stage1:
             return Response(
-                {'detail': 'Only the Managing Director can approve requisitions.'},
+                {'detail': 'You are not authorised to approve requisitions.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         try:
-            req = _req_queryset(request.user).get(pk=pk)
+            req = StaffRequisition.objects.get(pk=pk)
         except StaffRequisition.DoesNotExist:
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if req.status not in {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.MD_REVIEW,
-                               StaffRequisition.Status.DEPT_REVIEW, StaffRequisition.Status.FINANCE}:
-            return Response(
-                {'detail': f'Cannot act on a requisition with status: {req.status}.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        from_facility_manager = getattr(req.requested_by, 'role', None) == 'facility_manager'
+
+        # Determine what this user is allowed to act on
+        if is_stage1 and not is_md:
+            # Admin officer: can only act on facility_manager reqs at submitted stage
+            if not from_facility_manager or req.status != StaffRequisition.Status.SUBMITTED:
+                return Response(
+                    {'detail': 'You can only review submitted facility manager requisitions.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        elif is_md:
+            # MD: acts on dept_review (from facility_manager flow) or submitted (all others)
+            allowed = {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.MD_REVIEW,
+                       StaffRequisition.Status.DEPT_REVIEW, StaffRequisition.Status.FINANCE}
+            if req.status not in allowed:
+                return Response(
+                    {'detail': f'Cannot act on a requisition with status: {req.status}.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # MD should not act on facility_manager reqs still at submitted (admin_officer hasn't reviewed yet)
+            if from_facility_manager and req.status == StaffRequisition.Status.SUBMITTED:
+                return Response(
+                    {'detail': 'This requisition must first be reviewed by the Admin Officer.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = ApprovalActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -109,7 +136,11 @@ class RequisitionApproveView(APIView):
         )
 
         if action == RequisitionApproval.Action.APPROVED:
-            req.status = StaffRequisition.Status.APPROVED
+            if is_stage1 and not is_md and from_facility_manager:
+                # Stage 1 approved: pass to MD
+                req.status = StaffRequisition.Status.DEPT_REVIEW
+            else:
+                req.status = StaffRequisition.Status.APPROVED
         elif action == RequisitionApproval.Action.REJECTED:
             req.status = StaffRequisition.Status.REJECTED
             req.rejection_reason = comments
