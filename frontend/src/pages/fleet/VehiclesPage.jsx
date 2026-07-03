@@ -281,6 +281,8 @@ export default function VehiclesPage() {
   const [showSync, setShowSync]       = useState(false)
   const [form, setForm]               = useState(EMPTY)
   const [sortKey, setSortKey]         = useState('asset_no')
+  const [page, setPage]               = useState(1)
+  const PAGE_SIZE = 12
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['fleet-vehicles'],
@@ -380,6 +382,8 @@ export default function VehiclesPage() {
 
   const categories = [...new Set(vehicles.map(v => normCat(v.asset_category)))].filter(Boolean).sort()
 
+  const resetPage = () => setPage(1)
+
   const filtered = vehicles.filter(v => {
     const q = search.toLowerCase()
     const matchSearch = !q ||
@@ -403,14 +407,48 @@ export default function VehiclesPage() {
     return 0
   })
 
-  // Group by normalised category
+  // Pagination
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage    = Math.min(page, totalPages)
+  const paged       = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  // Group by normalised category (from current page slice)
   const grouped = {}
-  filtered.forEach(v => {
+  paged.forEach(v => {
     const cat = normCat(v.asset_category) || 'Other'
     if (!grouped[cat]) grouped[cat] = []
     grouped[cat].push(v)
   })
   const groupOrder = ['Plant Machines','Vehicles','Canters & Trucks','Prime Movers','Movers & Trailers','Tippers','Other']
+
+  function PageNav() {
+    if (totalPages <= 1) return null
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+    return (
+      <div className="flex items-center justify-between py-2 px-1">
+        <p className="text-xs text-gray-500">
+          Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+            className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">
+            <ChevronLeftIcon className="h-3.5 w-3.5" />
+          </button>
+          {pages.map(n => (
+            <button key={n} onClick={() => setPage(n)}
+              className={`min-w-[28px] h-7 rounded-lg text-xs font-medium transition-colors
+                ${safePage === n ? 'bg-brand-red text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              {n}
+            </button>
+          ))}
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+            className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors">
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -451,7 +489,7 @@ export default function VehiclesPage() {
           { label: 'Not Tracked',  val: totalCount - liveCount, color: 'text-gray-500', bg: 'bg-gray-50', filter: 'untracked' },
           { label: 'Compliance Issues', val: warnCount, color: 'text-red-600', bg: 'bg-red-50', filter: 'warn' },
         ].map(({ label, val, color, bg, filter }) => (
-          <button key={label} onClick={() => setStatusFilter(f => f === filter ? '' : filter)}
+          <button key={label} onClick={() => { setStatusFilter(f => f === filter ? '' : filter); resetPage() }}
             className={`${bg} rounded-xl px-4 py-2 text-left transition-all border ${statusFilter===filter ? 'border-brand-red shadow-sm' : 'border-transparent'}`}>
             <p className={`text-lg font-bold leading-none ${color}`}>{val}</p>
             <p className="text-[10px] text-gray-600 mt-0.5">{label}</p>
@@ -463,12 +501,12 @@ export default function VehiclesPage() {
       <div className="flex items-center gap-2 flex-wrap bg-white border border-gray-100 rounded-xl px-4 py-2.5">
         {/* Category filter */}
         <div className="flex gap-1 flex-wrap flex-1">
-          <button onClick={() => setCatFilter('')}
+          <button onClick={() => { setCatFilter(''); resetPage() }}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${!catFilter ? 'bg-brand-slate text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
             All
           </button>
           {categories.map(cat => (
-            <button key={cat} onClick={() => setCatFilter(c => c === cat ? '' : cat)}
+            <button key={cat} onClick={() => { setCatFilter(c => c === cat ? '' : cat); resetPage() }}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${catFilter === cat ? 'bg-brand-red text-white border-brand-red' : `${CAT_COLOR[cat]||'bg-gray-50 text-gray-600 border-gray-200'} hover:opacity-80`}`}>
               {cat}
             </button>
@@ -487,7 +525,7 @@ export default function VehiclesPage() {
           </div>
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => { setSearch(e.target.value); resetPage() }}
               placeholder="Search reg, make, site…"
               className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red w-44" />
           </div>
@@ -574,6 +612,7 @@ export default function VehiclesPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          <PageNav />
           {groupOrder.filter(g => grouped[g]?.length).map(groupName => (
             <div key={groupName} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
               {/* Group header */}
@@ -673,6 +712,7 @@ export default function VehiclesPage() {
               </table>
             </div>
           ))}
+          <PageNav />
         </div>
       )}
 
