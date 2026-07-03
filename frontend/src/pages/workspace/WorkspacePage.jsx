@@ -396,21 +396,22 @@ function LeaveTab({ employeeId }) {
     <div className="space-y-5">
       {/* Leave balances grid */}
       {balances.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex flex-wrap gap-2">
           {balances.map(b => {
             const entitled = Number(b.entitled_days ?? 0) + Number(b.carried_forward ?? 0)
             const taken    = Number(b.taken_days ?? 0)
             const balance  = Number(b.balance ?? 0)
             const pct      = entitled > 0 ? Math.min(100, (taken / entitled) * 100) : 0
             return (
-              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs font-medium text-gray-500 truncate mb-2">{b.leave_type_name}</p>
-                <p className="text-2xl font-bold text-brand-slate leading-none">{balance}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">days remaining</p>
-                <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+              <div key={b.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-3 min-w-0">
+                <div>
+                  <p className="text-[10px] font-medium text-gray-500 whitespace-nowrap">{b.leave_type_name}</p>
+                  <p className="text-lg font-bold text-brand-slate leading-none">{balance} <span className="text-[10px] font-normal text-gray-400">days</span></p>
+                  <p className="text-[10px] text-gray-400">{taken} used · {entitled} entitled</p>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">{taken} used · {entitled} entitled</p>
+                <div className="w-1 self-stretch rounded-full bg-gray-100 overflow-hidden">
+                  <div className="w-full bg-green-500 rounded-full" style={{ height: `${pct}%` }} />
+                </div>
               </div>
             )
           })}
