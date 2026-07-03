@@ -18,7 +18,7 @@ const patchMe          = (data) => api.patch('/auth/me/', data)
 const changePassword   = (d)    => api.post('/auth/change-password/', d)
 const getEmployees     = ()     => api.get('/hr/employees/', { params: { page_size: 200 } })
 const getLeaveTypes    = ()     => api.get('/hr/leave-types/', { params: { page_size: 50 } })
-const getLeaveBalances = ()     => api.get('/hr/leave-balances/', { params: { page_size: 50 } })
+const getLeaveBalances = ()     => api.get('/hr/leave-balances/', { params: { page_size: 50, year: new Date().getFullYear() } })
 const getMyLeaves      = ()     => api.get('/hr/leave-applications/', { params: { page_size: 50 } })
 const createLeave      = (d)    => api.post('/hr/leave-applications/', d)
 const submitLeave      = (id)   => api.post(`/hr/leave-applications/${id}/submit/`)
@@ -367,13 +367,6 @@ function LeaveTab() {
                        .then(r => r.data?.results ?? r.data ?? []),
   })
 
-  // Annual leave balance — 21 days/year as the primary display
-  const annualBalance = balances.find(b =>
-    b.leave_type_name?.toLowerCase().includes('annual') ||
-    b.leave_type_code === 'AL'
-  )
-  const annualDaysLeft = annualBalance ? Number(annualBalance.balance ?? 0) : 21
-  const annualUsed     = annualBalance ? Number(annualBalance.taken_days ?? annualBalance.used ?? 0) : 0
 
   const createMut = useMutation({
     mutationFn: async (data) => {
@@ -400,29 +393,33 @@ function LeaveTab() {
 
   return (
     <div className="space-y-5">
-      {/* Annual leave banner */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
-        <div className="flex-shrink-0 w-14 h-14 bg-green-100 rounded-full flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-green-700 leading-none">{annualDaysLeft}</p>
-          <p className="text-[9px] font-medium text-green-600 leading-none mt-0.5">DAYS</p>
-        </div>
-        <div>
-          <p className="font-semibold text-green-800">Annual Leave Balance</p>
-          <p className="text-xs text-green-600 mt-0.5">
-            {annualUsed} days used · {annualDaysLeft} days remaining out of 21 days entitlement
-          </p>
-        </div>
-        {balances.length > 1 && (
-          <div className="ml-auto hidden sm:flex gap-3">
-            {balances.filter(b => !b.leave_type_name?.toLowerCase().includes('annual')).map(b => (
-              <div key={b.id} className="text-center">
-                <p className="text-sm font-bold text-gray-700">{Number(b.balance ?? 0)}</p>
-                <p className="text-[10px] text-gray-600">{b.leave_type_name}</p>
+      {/* Leave balances grid */}
+      {balances.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {balances.map(b => {
+            const entitled = Number(b.entitled_days ?? 0) + Number(b.carried_forward ?? 0)
+            const taken    = Number(b.taken_days ?? 0)
+            const balance  = Number(b.balance ?? 0)
+            const pct      = entitled > 0 ? Math.min(100, (taken / entitled) * 100) : 0
+            return (
+              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4">
+                <p className="text-xs font-medium text-gray-500 truncate mb-2">{b.leave_type_name}</p>
+                <p className="text-2xl font-bold text-brand-slate leading-none">{balance}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">days remaining</p>
+                <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">{taken} used · {entitled} entitled</p>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+          <p className="text-sm text-gray-500">No leave balances found for this year.</p>
+          <p className="text-xs text-gray-400 mt-1">Contact HR to initialize your leave balances.</p>
+        </div>
+      )}
 
       {/* Apply button + form */}
       <div className="flex items-center justify-between">
