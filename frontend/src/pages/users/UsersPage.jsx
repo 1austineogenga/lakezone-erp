@@ -295,8 +295,17 @@ export default function UsersPage() {
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees-for-users'],
-    queryFn:  () => api.get('/hr/employees/', { params: { is_active: true, page_size: 1000 } }),
-    select:   r => r.data?.results ?? r.data ?? [],
+    queryFn: async () => {
+      let results = [], page = 1, hasMore = true
+      while (hasMore) {
+        const r = await api.get('/hr/employees/', { params: { is_active: true, page_size: 100, page } })
+        const data = r.data?.results ?? r.data ?? []
+        results = results.concat(data)
+        hasMore = !!r.data?.next
+        page++
+      }
+      return results
+    },
   })
 
   const saveMut = useMutation({
