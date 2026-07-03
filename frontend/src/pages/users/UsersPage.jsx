@@ -107,9 +107,26 @@ function ResetPasswordModal({ user, onClose }) {
   )
 }
 
-function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments, branches }) {
+function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments, branches, employees }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const isMD = form.role === 'managing_director'
+
+  const handleEmployeeSelect = (empId) => {
+    if (!empId) return
+    const emp = employees.find(e => e.id === empId)
+    if (!emp) return
+    const [firstName, ...rest] = (emp.full_name || '').split(' ')
+    setForm(f => ({
+      ...f,
+      first_name: firstName || f.first_name,
+      last_name:  rest.join(' ') || f.last_name,
+      phone:      emp.phone || f.phone,
+      department: emp.department || f.department,
+      branch:     emp.branch || f.branch,
+    }))
+  }
 
   if (!open) return null
   return (
@@ -121,6 +138,31 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+              <select value={form.role} onChange={e => set('role', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                {ROLE_GROUPS.map(group => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.roles.map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            {!isMD && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Employee {!isEdit && '*'}</label>
+                <select onChange={e => handleEmployeeSelect(e.target.value)} defaultValue=""
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                  <option value="">— Select employee —</option>
+                  {employees.map(e => (
+                    <option key={e.id} value={e.id}>{e.full_name} ({e.employee_number})</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">First Name *</label>
               <input value={form.first_name} onChange={e => set('first_name', e.target.value)}
@@ -140,19 +182,6 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
               <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
               <input value={form.phone} onChange={e => set('phone', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
-              <select value={form.role} onChange={e => set('role', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                {ROLE_GROUPS.map(group => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.roles.map(r => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
@@ -261,6 +290,12 @@ export default function UsersPage() {
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn:  () => getBranches(),
+    select:   r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-for-users'],
+    queryFn:  () => api.get('/hr/employees/', { params: { is_active: true, page_size: 200 } }),
     select:   r => r.data?.results ?? r.data ?? [],
   })
 
@@ -446,6 +481,7 @@ export default function UsersPage() {
         isEdit={!!modal?.user?.id}
         departments={departments}
         branches={branches}
+        employees={employees}
       />
 
       {resetUser && (
