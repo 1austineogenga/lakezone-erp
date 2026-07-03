@@ -77,6 +77,10 @@ class StaffRequisition(models.Model):
     payment_account_name    = models.CharField(max_length=100, blank=True)
     payment_branch_name     = models.CharField(max_length=100, blank=True)
 
+    # Fleet link — populated for repair_maintenance requisitions raised from the Fleet page
+    fleet_vehicle_no  = models.CharField(max_length=50, blank=True,
+                                         help_text='Vehicle Reg / ID from fleet register; used to auto-log maintenance on fulfillment')
+
     fulfilled_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                           null=True, blank=True, related_name='requisitions_fulfilled')
     fulfilled_at      = models.DateTimeField(null=True, blank=True)
