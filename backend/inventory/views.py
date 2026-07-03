@@ -20,8 +20,9 @@ VIEW_ALL_READONLY_ROLES = {
     'general_manager', 'head_of_security',
 }
 
-# These roles see all departments (includes both readonly and admin_officer + system_admin)
-VIEW_ALL_ROLES = {'system_admin', 'admin_officer'} | VIEW_ALL_READONLY_ROLES
+# Only system_admin sees all departments in inventory
+# admin_officer and facility_manager are scoped to their own department
+VIEW_ALL_ROLES = {'system_admin'} | VIEW_ALL_READONLY_ROLES
 
 
 def _can_edit(user):

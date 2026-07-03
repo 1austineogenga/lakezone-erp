@@ -65,8 +65,8 @@ const TABS = [
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
 const fmtDate = s => s ? new Date(s).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
-// ── Approve inline (MD only) ──────────────────────────────────────────────────
-function ApproveButtons({ reqId, onDone }) {
+// ── Approve inline ────────────────────────────────────────────────────────────
+function ApproveButtons({ reqId, onDone, label = 'Review' }) {
   const qc = useQueryClient()
   const [comments, setComments] = useState('')
   const [open, setOpen] = useState(false)
@@ -85,7 +85,7 @@ function ApproveButtons({ reqId, onDone }) {
     return (
       <button onClick={() => setOpen(true)}
         className="flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold rounded-lg hover:bg-green-100 transition-colors">
-        <CheckCircleIcon className="h-3.5 w-3.5" /> Review
+        <CheckCircleIcon className="h-3.5 w-3.5" /> {label}
       </button>
     )
   }
@@ -117,7 +117,7 @@ function ApproveButtons({ reqId, onDone }) {
 }
 
 // ── Requisition card ──────────────────────────────────────────────────────────
-function ReqCard({ req, canApprove, canSeeFuelPayment }) {
+function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver }) {
   const navigate = useNavigate()
   const meta = TYPE_META[req.req_type] || TYPE_META.store_item
   const Icon = meta.icon
@@ -172,8 +172,16 @@ function ReqCard({ req, canApprove, canSeeFuelPayment }) {
             </button>
           </div>
 
-          {canApprove && req.status === 'submitted' && (
+          {/* Stage-1: admin_officer reviews facility_manager submitted reqs */}
+          {isStage1Approver && req.status === 'submitted' && req.requested_by_role === 'facility_manager' && (
+            <ApproveButtons reqId={req.id} label="Stage 1 Review" />
+          )}
+          {/* MD: approves all submitted (non-facility-manager) or dept_review */}
+          {isMD && (req.status === 'submitted' && req.requested_by_role !== 'facility_manager') && (
             <ApproveButtons reqId={req.id} />
+          )}
+          {isMD && req.status === 'dept_review' && (
+            <ApproveButtons reqId={req.id} label="Final Approval" />
           )}
         </div>
       </div>
@@ -306,7 +314,10 @@ export default function RequisitionsPage() {
   const { user } = useAuthStore()
   const role = user?.role || ''
 
-  const canApprove        = ['managing_director', 'system_admin'].includes(role)
+  // MD/system_admin can approve everything; admin_officer can do stage-1 review of facility_manager reqs
+  const canApprove        = ['managing_director', 'system_admin', 'admin_officer'].includes(role)
+  const isMD              = ['managing_director', 'system_admin'].includes(role)
+  const isStage1Approver  = role === 'admin_officer'
   const canSeeFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
   const canLogSchedule    = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
   const canApproveSchedule = ['managing_director', 'system_admin'].includes(role)
@@ -470,7 +481,7 @@ export default function RequisitionsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map(req => (
-            <ReqCard key={req.id} req={req} canApprove={canApprove} canSeeFuelPayment={canSeeFuelPayment} />
+            <ReqCard key={req.id} req={req} canApprove={canApprove} canSeeFuelPayment={canSeeFuelPayment} isMD={isMD} isStage1Approver={isStage1Approver} />
           ))}
         </div>
       )}

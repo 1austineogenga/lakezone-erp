@@ -54,9 +54,9 @@ const PERMISSIONS = {
     users: false, reports: false,
   },
   facility_manager: {
-    dashboard: 'full', projects: 'read', procurement: 'read',
-    requisitions: 'full', inventory: 'read', assets: 'full',
-    crm: false, finance: false, hr: false, fleet: 'read',
+    dashboard: false, projects: false, procurement: false,
+    requisitions: 'write', inventory: 'write', assets: false,
+    crm: false, finance: false, hr: false, fleet: false,
     users: false, reports: false,
   },
   admin_officer: {
