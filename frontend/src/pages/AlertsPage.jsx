@@ -7,7 +7,7 @@ import {
   PlusIcon, ChevronDownIcon, ChevronUpIcon, CalendarDaysIcon,
   UserCircleIcon, ShieldExclamationIcon, BeakerIcon, CheckIcon,
   BellSlashIcon, ClockIcon, TruckIcon, WrenchScrewdriverIcon,
-  CubeIcon, BoltIcon, ArrowRightIcon, DocumentTextIcon,
+  CubeIcon, ArrowRightIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 
 const getComplianceAlerts  = () => api.get('/notifications/compliance-alerts/')
@@ -542,10 +542,8 @@ export default function AlertsPage() {
   const warningCount  = complianceAlerts.filter(a => a.alert_level === 'warning').length
   const compUrgent    = expiredCount + criticalCount + warningCount
 
-  const fuelAlerts    = fleetAlerts.filter(a => ['low_fuel','fuel_fill','fuel_drain'].includes(a.alert_type))
-  const safetyAlerts  = fleetAlerts.filter(a => ['sos','speeding','ignition_off_moving','idle_long','device_offline'].includes(a.alert_type))
+  const fuelAlerts    = fleetAlerts.filter(a => ['fuel_fill','fuel_drain','geofence'].includes(a.alert_type))
   const unAckedFuel   = fuelAlerts.filter(a => !a.acknowledged).length
-  const unAckedSafety = safetyAlerts.filter(a => !a.acknowledged).length
   const overdueCount  = actions.filter(a => a.is_overdue).length
   const lowStockCount = stockLevels.filter(s => s.is_below_reorder).length
 
@@ -608,7 +606,6 @@ export default function AlertsPage() {
   const TABS = [
     { key: 'compliance', label: 'Compliance',        icon: ShieldExclamationIcon,    badge: compUrgent },
     { key: 'fuel',       label: 'Fuel',               icon: BeakerIcon,               badge: unAckedFuel },
-    { key: 'safety',     label: 'Safety & Ops',       icon: ExclamationTriangleIcon,  badge: unAckedSafety },
     { key: 'stock',      label: 'Low Stock',           icon: CubeIcon,                 badge: lowStockCount },
     { key: 'actions',    label: 'Scheduled Actions',  icon: CalendarDaysIcon,         badge: overdueCount },
   ]
@@ -662,16 +659,6 @@ export default function AlertsPage() {
           color="text-blue-600"
           onClick={() => setTab('fuel')}
           active={tab === 'fuel'}
-        />
-        <SummaryCard
-          icon={BoltIcon}
-          label="Safety Alerts"
-          value={unAckedSafety}
-          sub="Unacknowledged"
-          bg="bg-slate-50"
-          color="text-slate-600"
-          onClick={() => setTab('safety')}
-          active={tab === 'safety'}
         />
         <SummaryCard
           icon={CubeIcon}
@@ -823,7 +810,7 @@ export default function AlertsPage() {
       {tab === 'fuel' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-600">Fuel refills, drain/theft events and low-fuel warnings.</p>
+            <p className="text-xs text-gray-600">Fuel refills, drain/theft events and geofence alerts.</p>
             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
               <input type="checkbox" checked={showAcked} onChange={e => setShowAcked(e.target.checked)} className="rounded border-gray-300 accent-brand-red" />
               Show acknowledged
@@ -832,22 +819,6 @@ export default function AlertsPage() {
           {fleetLoading
             ? <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse h-16" />)}</div>
             : renderFleetAlerts(fuelAlerts)}
-        </div>
-      )}
-
-      {/* ── Safety ── */}
-      {tab === 'safety' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-600">SOS, speeding, long idle, ignition-off-moving and device offline alerts.</p>
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-              <input type="checkbox" checked={showAcked} onChange={e => setShowAcked(e.target.checked)} className="rounded border-gray-300 accent-brand-red" />
-              Show acknowledged
-            </label>
-          </div>
-          {fleetLoading
-            ? <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse h-16" />)}</div>
-            : renderFleetAlerts(safetyAlerts)}
         </div>
       )}
 
