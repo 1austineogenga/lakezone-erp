@@ -8,6 +8,8 @@ import { getProjects } from '../../api/projects'
 
 const emptyItem = { description: '', quantity: '', unit: '', unit_price: '', notes: '' }
 
+const PAYMENT_TYPES = ['fuel', 'materials', 'general_purchase']
+
 const REQ_TYPES = [
   { value: 'fuel',               label: 'Fuel Requisition',      hint: 'Diesel / petrol for vehicles or equipment' },
   { value: 'materials',          label: 'Materials Requisition', hint: 'Construction or site materials for purchase' },
@@ -20,6 +22,10 @@ export default function NewRequisitionPage() {
   const [form, setForm] = useState({
     title: '', req_type: 'fuel', priority: 'medium',
     description: '', date_required: '', project: '',
+    payment_method: '',
+    payment_business_number: '', payment_account_number: '',
+    payment_till_number: '',
+    payment_bank_name: '', payment_account_name: '', payment_branch_name: '',
   })
   const [items, setItems] = useState([{ ...emptyItem }])
 
@@ -139,6 +145,80 @@ export default function NewRequisitionPage() {
             </div>
           </div>
         </div>
+
+        {/* Payment Details — fuel, materials, general_purchase only */}
+        {PAYMENT_TYPES.includes(form.req_type) && (
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-brand-slate mb-3">Payment Details <span className="text-gray-400 font-normal">(optional)</span></h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+                <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value, payment_business_number: '', payment_account_number: '', payment_till_number: '', payment_bank_name: '', payment_account_name: '', payment_branch_name: '' }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
+                  <option value="">— Select method —</option>
+                  <option value="mpesa_paybill">M-Pesa Paybill</option>
+                  <option value="mpesa_till">M-Pesa Till</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+
+              {form.payment_method === 'mpesa_paybill' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Business Number *</label>
+                    <input value={form.payment_business_number} onChange={e => setForm(f => ({ ...f, payment_business_number: e.target.value }))}
+                      placeholder="e.g. 400200"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
+                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))}
+                      placeholder="e.g. REQ-2026-0001"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                </div>
+              )}
+
+              {form.payment_method === 'mpesa_till' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Till Number *</label>
+                  <input value={form.payment_till_number} onChange={e => setForm(f => ({ ...f, payment_till_number: e.target.value }))}
+                    placeholder="e.g. 123456"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                </div>
+              )}
+
+              {form.payment_method === 'bank_transfer' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name *</label>
+                    <input value={form.payment_bank_name} onChange={e => setForm(f => ({ ...f, payment_bank_name: e.target.value }))}
+                      placeholder="e.g. Equity Bank"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Account Name *</label>
+                    <input value={form.payment_account_name} onChange={e => setForm(f => ({ ...f, payment_account_name: e.target.value }))}
+                      placeholder="Account holder name"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
+                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))}
+                      placeholder="e.g. 0123456789"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Branch Name *</label>
+                    <input value={form.payment_branch_name} onChange={e => setForm(f => ({ ...f, payment_branch_name: e.target.value }))}
+                      placeholder="e.g. Nairobi CBD"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Line items */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">

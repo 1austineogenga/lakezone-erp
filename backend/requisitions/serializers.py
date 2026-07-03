@@ -100,6 +100,8 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'requested_by', 'requested_by_name', 'requested_by_role',
             'department', 'department_name', 'project', 'project_name',
             'description', 'date_required', 'total_amount', 'rejection_reason',
+            'payment_method', 'payment_business_number', 'payment_account_number',
+            'payment_till_number', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
             'created_at', 'updated_at',
             'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
             'items', 'approvals',
@@ -135,7 +137,10 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = StaffRequisition
         fields = ['title', 'req_type', 'priority', 'department', 'project',
-                  'description', 'date_required', 'items']
+                  'description', 'date_required',
+                  'payment_method', 'payment_business_number', 'payment_account_number',
+                  'payment_till_number', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
+                  'items']
 
     def validate_items(self, value):
         if not value:

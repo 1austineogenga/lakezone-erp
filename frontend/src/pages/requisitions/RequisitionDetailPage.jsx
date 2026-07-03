@@ -45,6 +45,40 @@ function Field({ label, value }) {
   )
 }
 
+function PaymentDetailsBlock({ req }) {
+  const method = req.payment_method
+  if (!method) return null
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-2">Payment Details</p>
+      <dl className="grid grid-cols-2 gap-2">
+        {method === 'mpesa_paybill' && (
+          <>
+            <Field label="Method" value="M-Pesa Paybill" />
+            <Field label="Business Number" value={req.payment_business_number} />
+            <Field label="Account Number" value={req.payment_account_number} />
+          </>
+        )}
+        {method === 'mpesa_till' && (
+          <>
+            <Field label="Method" value="M-Pesa Till" />
+            <Field label="Till Number" value={req.payment_till_number} />
+          </>
+        )}
+        {method === 'bank_transfer' && (
+          <>
+            <Field label="Method" value="Bank Transfer" />
+            <Field label="Bank Name" value={req.payment_bank_name} />
+            <Field label="Account Name" value={req.payment_account_name} />
+            <Field label="Account Number" value={req.payment_account_number} />
+            <Field label="Branch" value={req.payment_branch_name} />
+          </>
+        )}
+      </dl>
+    </div>
+  )
+}
+
 // ── Maintenance schedule panel ────────────────────────────────────────────────
 function MaintenanceSchedulePanel({ req, schedule, canLog }) {
   const qc = useQueryClient()
@@ -418,6 +452,9 @@ export default function RequisitionDetailPage() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1">Description</p>
                 <p className="text-xs text-gray-700">{req.description}</p>
               </div>
+            )}
+            {['fuel', 'materials', 'general_purchase'].includes(req.req_type) && (
+              <PaymentDetailsBlock req={req} />
             )}
           </div>
 
