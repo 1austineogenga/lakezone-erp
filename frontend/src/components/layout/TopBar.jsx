@@ -289,6 +289,7 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
         </div>
       </div>
 
+      </div>
     </header>
   )
 }
