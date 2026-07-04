@@ -5,6 +5,7 @@ import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIc
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
+import logoFull from '../../assets/logo-full.png'
 
 const TYPE_COLORS = {
   pr_approved:        'bg-green-100 text-green-700',
@@ -116,13 +117,18 @@ export default function TopBar({ onToggleSidebar }) {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
-      {/* Hamburger — mobile only */}
-      <button
-        onClick={onToggleSidebar}
-        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 lg:hidden"
-      >
-        <Bars3Icon className="h-5 w-5" />
-      </button>
+      {/* Mobile: LakeZone logo | Desktop: hamburger hidden (sidebar always visible) */}
+      <div className="flex items-center gap-2">
+        {/* Hamburger — desktop sidebar toggle if ever needed; hidden on mobile */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hidden lg:hidden"
+        >
+          <Bars3Icon className="h-5 w-5" />
+        </button>
+        {/* Logo — mobile only */}
+        <img src={logoFull} alt="LakeZone ERP" className="h-8 object-contain lg:hidden" />
+      </div>
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">
