@@ -3,6 +3,15 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      fontSize: {
+        // Bump the whole scale up ~1–2px for better legibility
+        xs:   ['0.8125rem', { lineHeight: '1.25rem' }],   // 13px  (was 12)
+        sm:   ['0.9375rem', { lineHeight: '1.4375rem' }],  // 15px  (was 14)
+        base: ['1.0625rem', { lineHeight: '1.625rem' }],   // 17px  (was 16)
+        lg:   ['1.1875rem', { lineHeight: '1.75rem' }],    // 19px  (was 18)
+        xl:   ['1.3125rem', { lineHeight: '1.875rem' }],   // 21px  (was 20)
+        '2xl':['1.5625rem', { lineHeight: '2rem' }],       // 25px  (was 24)
+      },
       colors: {
         brand: {
           red:          '#BF2026',
