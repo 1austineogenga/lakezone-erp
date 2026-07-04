@@ -6,21 +6,41 @@
 
 body {
   @apply bg-gray-50 font-sans;
-  color: #1f2937;          /* gray-800 — strong readable default */
-  font-size: 15px;
+  color: #111827;                  /* near-black default — gray-900 */
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* ── Darken muted text so it meets WCAG AA contrast ── */
-.text-gray-600 { color: #374151 !important; }   /* was #4B5563 → now gray-700 */
-.text-gray-500 { color: #4B5563 !important; }   /* was #6B7280 → now gray-600 */
-.text-gray-400 { color: #6B7280 !important; }   /* was #9CA3AF → now gray-500 */
+/* ── Strong, accessible text colors ── */
+/* Secondary / muted text — dark enough for WCAG AA on white */
+.text-gray-600 { color: #1f2937 !important; }   /* effectively gray-800 — readable dark */
+.text-gray-500 { color: #374151 !important; }   /* gray-700 */
+.text-gray-400 { color: #4B5563 !important; }   /* gray-600 — still clearly secondary */
 
-/* Arbitrary tiny sizes used for badges — bump them up one step */
-.text-\[10px\] { font-size: 0.75rem !important; line-height: 1.1rem !important; }   /* 10→12px */
-.text-\[11px\] { font-size: 0.8125rem !important; line-height: 1.2rem !important; } /* 11→13px */
-.text-\[9px\]  { font-size: 0.6875rem !important; line-height: 1rem !important; }   /* 9→11px  */
+/* ── Bump arbitrary badge / caption sizes ── */
+.text-\[10px\] { font-size: 0.8125rem !important; line-height: 1.25rem !important; }  /* → 13px */
+.text-\[11px\] { font-size: 0.875rem  !important; line-height: 1.375rem !important; } /* → 14px */
+.text-\[9px\]  { font-size: 0.75rem   !important; line-height: 1.125rem !important; } /* → 12px */
+
+/* ── Input / select text — ensure readable weight ── */
+input, select, textarea {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* ── Table / list body text should be dark by default ── */
+p, span, li, td, th, label {
+  color: inherit;
+}
+
+/* ── Slightly heavier weight for all labels ── */
+label {
+  font-weight: 500;
+}
