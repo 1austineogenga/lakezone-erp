@@ -162,8 +162,8 @@ export default function TopBar({ onToggleSidebar }) {
 
         {/* Logo — desktop only */}
         <div className="hidden lg:flex items-center gap-3">
-          <div className="bg-white rounded-md px-2 py-1">
-            <img src={logoFull} alt="LakeZone" className="h-7 w-auto object-contain" />
+          <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center">
+            <img src={logoFull} alt="LakeZone" className="h-9 w-auto object-contain" />
           </div>
           {pageLabel && (
             <>
