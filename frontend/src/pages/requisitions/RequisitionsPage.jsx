@@ -7,13 +7,44 @@ import {
   WrenchScrewdriverIcon, ShoppingCartIcon, CubeIcon,
   CheckCircleIcon, XCircleIcon, ClockIcon, CalendarDaysIcon,
   ChevronRightIcon, BellAlertIcon, CurrencyDollarIcon,
-  UserIcon, ArrowPathIcon,
+  UserIcon, ArrowPathIcon, ChevronLeftIcon,
 } from '@heroicons/react/24/outline'
 import {
   getRequisitions, approveRequisition, getMaintenanceSchedules,
   approveMaintenanceSchedule,
 } from '../../api/requisitions'
 import useAuthStore from '../../store/authStore'
+
+const PAGE_SIZE = 5
+
+function PageNav({ page, total, onChange }) {
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  if (totalPages <= 1) return null
+  const start = (page - 1) * PAGE_SIZE + 1
+  const end   = Math.min(page * PAGE_SIZE, total)
+  return (
+    <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl shadow-sm px-4 py-2.5">
+      <p className="text-xs text-gray-600">{start}–{end} of {total}</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(page - 1)} disabled={page === 1}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => onChange(p)}
+            className={`w-8 h-8 rounded-lg text-xs font-semibold border transition-colors
+              ${p === page ? 'bg-brand-red text-white border-brand-red' : 'border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
+            {p}
+          </button>
+        ))}
+        <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_STYLE = {
@@ -325,6 +356,9 @@ export default function RequisitionsPage() {
   const [tab, setTab]           = useState('all')
   const [statusFilter, setStatus] = useState('')
   const [search, setSearch]     = useState('')
+  const [page, setPage]         = useState(1)
+
+  const resetPage = () => setPage(1)
 
   const params = {}
   if (tab !== 'all' && tab !== 'maintenance_schedule') params.req_type = tab
@@ -350,6 +384,9 @@ export default function RequisitionsPage() {
     r.reference_number?.toLowerCase().includes(search.toLowerCase()) ||
     r.requested_by_name?.toLowerCase().includes(search.toLowerCase())
   )
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
+  const paged    = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const pendingCount = reqs.filter(r => r.status === 'submitted').length
   const pendingSchedCount = schedules.filter(s => s.status === 'pending_approval').length
@@ -407,7 +444,7 @@ export default function RequisitionsPage() {
           const badge = t.key === 'maintenance_schedule' ? pendingSchedCount
                       : t.key === 'all' ? pendingCount : 0
           return (
-            <button key={t.key} onClick={() => { setTab(t.key); setStatus('') }}
+            <button key={t.key} onClick={() => { setTab(t.key); setStatus(''); resetPage() }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border
                 ${tab === t.key
                   ? 'bg-brand-red text-white border-brand-red'
@@ -428,7 +465,7 @@ export default function RequisitionsPage() {
       {tab !== 'maintenance_schedule' && (
         <div className="flex items-center gap-2 flex-wrap">
           {['', 'submitted', 'approved', 'rejected', 'fulfilled'].map(s => (
-            <button key={s} onClick={() => setStatus(s)}
+            <button key={s} onClick={() => { setStatus(s); resetPage() }}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize
                 ${statusFilter === s
                   ? 'bg-brand-slate text-white border-brand-slate'
@@ -437,8 +474,9 @@ export default function RequisitionsPage() {
             </button>
           ))}
           <div className="ml-auto">
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search}
               placeholder="Search…"
+              onChange={e => { setSearch(e.target.value); resetPage() }}
               className="px-3 py-1.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-brand-red" />
           </div>
         </div>
@@ -480,9 +518,11 @@ export default function RequisitionsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(req => (
+          <PageNav page={safePage} total={filtered.length} onChange={setPage} />
+          {paged.map(req => (
             <ReqCard key={req.id} req={req} canApprove={canApprove} canSeeFuelPayment={canSeeFuelPayment} isMD={isMD} isStage1Approver={isStage1Approver} />
           ))}
+          <PageNav page={safePage} total={filtered.length} onChange={setPage} />
         </div>
       )}
     </div>
