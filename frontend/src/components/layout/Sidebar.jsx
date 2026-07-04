@@ -33,10 +33,8 @@ const TOP_LINKS = [
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
 
-// Roles that may access QuickBooks
 const QB_ROLES = new Set(['system_admin', 'finance_officer', 'finance_manager'])
 
-// Primary module per role — shown first in the Management section
 const MODULE_PRIMARY = {
   finance_officer: 'finance', finance_manager: 'finance',
   hr_manager: 'hr',
@@ -164,7 +162,6 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const isAdmin = user?.role === 'system_admin'
   const role = user?.role || ''
 
-  // Sort modules: user's primary module first, then others
   const primaryKey = MODULE_PRIMARY[role]
   const sortedModules = [...MODULES].sort((a, b) => {
     if (a.key === primaryKey) return -1
@@ -174,14 +171,12 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
 
   const initialOpen = {}
   sortedModules.forEach(m => {
-    // Auto-open primary module or the one matching current path
     initialOpen[m.key] = m.key === primaryKey || location.pathname.startsWith(m.root)
   })
   const [open, setOpen] = useState(initialOpen)
 
   const toggle = key => setOpen(o => ({ ...o, [key]: !o[key] }))
 
-  // Resolve sections — may be a plain array or a function(role)
   const getSections = (mod) => typeof mod.sections === 'function' ? mod.sections(role) : mod.sections
 
   const handleLogout = async () => {
@@ -190,7 +185,8 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   }
 
   return (
-    <aside className={`flex flex-col bg-[#1a2332] text-white h-full shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'}`}>
+    <aside className={`flex flex-col bg-[#1a2332] text-white h-full shrink-0 transition-all duration-200 relative ${collapsed ? 'w-16' : 'w-60'}`}>
+      <div className="absolute top-0 right-0 bottom-0 w-[3px] bg-brand-red" />
 
       {/* Logo + collapse toggle */}
       <div className="px-3 py-4 border-b border-white/10 shrink-0 flex items-center justify-between gap-2">
@@ -211,7 +207,6 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
 
-        {/* Operations label */}
         {!collapsed && (
           <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Operations
@@ -232,7 +227,6 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
           </NavLink>
         ))}
 
-        {/* Management modules */}
         {sortedModules.filter(mod => can(mod.key)).length > 0 && (
           <>
             {!collapsed && (
