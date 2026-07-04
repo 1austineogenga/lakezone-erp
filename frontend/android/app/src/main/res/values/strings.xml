@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LakeZone ERP</string>
+    <string name="title_activity_main">LakeZone ERP</string>
+    <string name="package_name">ke.lakezone.erp</string>
+    <string name="custom_url_scheme">ke.lakezone.erp</string>
+</resources>
