@@ -12,6 +12,7 @@ import {
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
   BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
+  ChevronLeftIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -156,7 +157,7 @@ const MODULES = [
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const { logout, refreshToken, user } = useAuthStore()
   const location = useLocation()
   const { can } = usePermissions()
@@ -189,43 +190,59 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col w-60 bg-[#1a2332] text-white h-full shrink-0">
+    <aside className={`flex flex-col bg-[#1a2332] text-white h-full shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'}`}>
 
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-white/10 shrink-0">
-        <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center">
-          <img src={logoFull} alt="Lake Zone Enterprises" className="h-9 w-auto object-contain" />
-        </div>
+      {/* Logo + collapse toggle */}
+      <div className="px-3 py-4 border-b border-white/10 shrink-0 flex items-center justify-between gap-2">
+        {!collapsed && (
+          <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center flex-1">
+            <img src={logoFull} alt="Lake Zone Enterprises" className="h-9 w-auto object-contain" />
+          </div>
+        )}
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
 
-        {/* Operations */}
-        <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-          Operations
-        </p>
+        {/* Operations label */}
+        {!collapsed && (
+          <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Operations
+          </p>
+        )}
 
         {TOP_LINKS.filter(({ module, roles }) => (module === null || can(module)) && (!roles || roles.has(role))).map(({ to, icon: Icon, label, end }) => (
           <NavLink key={to} to={to} end={!!end}
+            title={collapsed ? label : undefined}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+               ${collapsed ? 'justify-center' : ''}
                ${isActive
                  ? 'bg-brand-red text-white'
                  : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
             <Icon className="h-4 w-4 shrink-0" />
-            <span>{label}</span>
+            {!collapsed && <span>{label}</span>}
           </NavLink>
         ))}
 
         {/* Management modules */}
         {sortedModules.filter(mod => can(mod.key)).length > 0 && (
           <>
-            <div className="pt-4 pb-2">
-              <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                Management
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="pt-4 pb-2">
+                <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                  Management
+                </p>
+              </div>
+            )}
+            {collapsed && <div className="pt-2" />}
 
             {sortedModules.filter(mod => can(mod.key)).map(mod => {
               const isActive = location.pathname.startsWith(mod.root)
@@ -235,15 +252,21 @@ export default function Sidebar() {
 
               return (
                 <div key={mod.key}>
-                  <button onClick={() => toggle(mod.key)}
+                  <button onClick={() => !collapsed && toggle(mod.key)}
+                    title={collapsed ? mod.label : undefined}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      ${collapsed ? 'justify-center' : ''}
                       ${isActive ? 'bg-brand-red text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 text-left">{mod.label}</span>
-                    <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                    {!collapsed && (
+                      <>
+                        <span className="flex-1 text-left">{mod.label}</span>
+                        <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
                   </button>
 
-                  {isOpen && (
+                  {!collapsed && isOpen && (
                     <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
                       {sections.filter(section =>
                         section.heading !== 'Config' || isAdmin
@@ -275,11 +298,12 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-3 border-t border-white/10 shrink-0" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+      <div className="px-2 py-3 border-t border-white/10 shrink-0" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
         <button onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/8 hover:text-white transition-colors">
+          title={collapsed ? 'Logout' : undefined}
+          className={`flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/8 hover:text-white transition-colors ${collapsed ? 'justify-center' : ''}`}>
           <ArrowRightOnRectangleIcon className="h-4 w-4 shrink-0" />
-          <span>Logout</span>
+          {!collapsed && <span>Logout</span>}
         </button>
       </div>
     </aside>

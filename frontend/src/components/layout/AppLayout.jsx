@@ -9,6 +9,7 @@ import useAuthStore from '../../store/authStore'
 export default function AppLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const user = useAuthStore(s => s.user)
 
   // Close mobile sidebar on route change
@@ -45,7 +46,7 @@ export default function AppLayout() {
       `}
         style={{ top: 'env(safe-area-inset-top)' }}
       >
-        <Sidebar />
+        <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(o => !o)} />
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
