@@ -1,0 +1,27 @@
+{
+  "appId": "ke.lakezone.erp",
+  "appName": "LakeZone ERP",
+  "webDir": "dist",
+  "server": {
+    "url": "https://erp.lakezone.ke",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#BF2026",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#BF2026"
+    }
+  }
+}
