@@ -2,12 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 body {
-  @apply bg-gray-50 text-gray-900 font-sans;
+  @apply bg-gray-50 font-sans;
+  color: #1f2937;          /* gray-800 — strong readable default */
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
   min-height: 100vh;
 }
+
+/* ── Darken muted text so it meets WCAG AA contrast ── */
+.text-gray-600 { color: #374151 !important; }   /* was #4B5563 → now gray-700 */
+.text-gray-500 { color: #4B5563 !important; }   /* was #6B7280 → now gray-600 */
+.text-gray-400 { color: #6B7280 !important; }   /* was #9CA3AF → now gray-500 */
+
+/* Arbitrary tiny sizes used for badges — bump them up one step */
+.text-\[10px\] { font-size: 0.75rem !important; line-height: 1.1rem !important; }   /* 10→12px */
+.text-\[11px\] { font-size: 0.8125rem !important; line-height: 1.2rem !important; } /* 11→13px */
+.text-\[9px\]  { font-size: 0.6875rem !important; line-height: 1rem !important; }   /* 9→11px  */
