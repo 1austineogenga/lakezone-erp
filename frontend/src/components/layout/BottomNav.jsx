@@ -1,22 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import {
-  HomeIcon, DocumentTextIcon, BriefcaseIcon,
+  HomeIcon, DocumentTextIcon, Squares2X2Icon,
   BellIcon, UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeSolid, DocumentTextIcon as DocumentSolid,
-  BriefcaseIcon as BriefcaseSolid, BellIcon as BellSolid,
+  Squares2X2Icon as GridSolid, BellIcon as BellSolid,
   UserCircleIcon as UserSolid,
 } from '@heroicons/react/24/solid'
 import { useQuery } from '@tanstack/react-query'
 import { getNotifications } from '../../api/notifications'
 
 const TABS = [
-  { to: '/',             label: 'Home',       Icon: HomeIcon,            ActiveIcon: HomeSolid,      end: true },
-  { to: '/workspace',    label: 'Workspace',  Icon: BriefcaseIcon,       ActiveIcon: BriefcaseSolid, end: true },
-  { to: '/requisitions', label: 'Requests',   Icon: DocumentTextIcon,    ActiveIcon: DocumentSolid },
-  { to: '/alerts',       label: 'Alerts',     Icon: BellIcon,            ActiveIcon: BellSolid,      bell: true },
-  { to: '/profile',      label: 'Account',    Icon: UserCircleIcon,      ActiveIcon: UserSolid },
+  { to: '/',             label: 'Home',     Icon: HomeIcon,         ActiveIcon: HomeSolid,    end: true },
+  { to: '/requisitions', label: 'Requests', Icon: DocumentTextIcon, ActiveIcon: DocumentSolid },
+  { to: '/menu',         label: 'Menu',     Icon: Squares2X2Icon,   ActiveIcon: GridSolid },
+  { to: '/alerts',       label: 'Alerts',   Icon: BellIcon,         ActiveIcon: BellSolid,    bell: true },
+  { to: '/profile',      label: 'Account',  Icon: UserCircleIcon,   ActiveIcon: UserSolid },
 ]
 
 export default function BottomNav() {
@@ -29,7 +29,7 @@ export default function BottomNav() {
   const unread = notifications.filter(n => !n.is_read).length
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 safe-bottom"
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200"
          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-stretch h-16">
         {TABS.map(({ to, label, Icon, ActiveIcon, end, bell }) => (
