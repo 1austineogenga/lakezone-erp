@@ -275,7 +275,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-3 border-t border-white/10 shrink-0">
+      <div className="px-3 py-3 border-t border-white/10 shrink-0" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
         <button onClick={handleLogout}
           className="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/8 hover:text-white transition-colors">
           <ArrowRightOnRectangleIcon className="h-4 w-4 shrink-0" />
