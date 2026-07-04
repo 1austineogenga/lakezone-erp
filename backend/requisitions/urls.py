@@ -5,6 +5,7 @@ from .views import (
     PendingApprovalsView, RequisitionRecallView,
     MaintenanceScheduleListCreateView, MaintenanceScheduleDetailView,
     MaintenanceScheduleApproveView, FuelPaymentView,
+    RequisitionConfirmPaymentView,
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path('<uuid:pk>/approve/',                   RequisitionApproveView.as_view(),           name='requisition-approve'),
     path('<uuid:pk>/recall/',                    RequisitionRecallView.as_view(),            name='requisition-recall'),
     path('<uuid:pk>/fulfill/',                   RequisitionFulfillView.as_view(),           name='requisition-fulfill'),
+    path('<uuid:pk>/confirm-payment/',           RequisitionConfirmPaymentView.as_view(),    name='requisition-confirm-payment'),
     path('<uuid:pk>/fuel-payment/',              FuelPaymentView.as_view(),                  name='fuel-payment'),
 
     # Maintenance Schedules

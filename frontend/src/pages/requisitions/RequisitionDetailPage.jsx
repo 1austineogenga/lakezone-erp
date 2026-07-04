@@ -10,7 +10,7 @@ import {
 import {
   getRequisition, approveRequisition, fulfillRequisition,
   createMaintenanceSchedule, updateMaintenanceSchedule,
-  recordFuelPayment,
+  recordFuelPayment, confirmPayment,
 } from '../../api/requisitions'
 import useAuthStore from '../../store/authStore'
 
@@ -19,10 +19,19 @@ const STATUS_STYLE = {
   submitted:   'bg-blue-100 text-blue-700',
   approved:    'bg-green-100 text-green-700',
   rejected:    'bg-red-100 text-red-700',
+  paid:        'bg-violet-100 text-violet-700',
   fulfilled:   'bg-teal-100 text-teal-700',
   dept_review: 'bg-yellow-100 text-yellow-700',
   finance:     'bg-orange-100 text-orange-700',
   md_review:   'bg-purple-100 text-purple-700',
+}
+
+const STATUS_LABEL = {
+  submitted: 'Pending',
+  approved:  'Approved',
+  paid:      'Paid',
+  fulfilled: 'Fulfilled',
+  rejected:  'Rejected',
 }
 
 const SCHED_STATUS_STYLE = {
@@ -35,6 +44,7 @@ const SCHED_STATUS_STYLE = {
 }
 
 const FLOW = ['submitted', 'approved', 'fulfilled']
+const FLOW_LABELS = { submitted: 'Pending', approved: 'Approved', fulfilled: 'Fulfilled' }
 
 function Field({ label, value }) {
   return (
@@ -342,13 +352,15 @@ export default function RequisitionDetailPage() {
   const { user } = useAuthStore()
   const role     = user?.role || ''
 
-  const canApprove     = ['managing_director', 'system_admin'].includes(role)
-  const canFulfill     = ['admin_officer', 'finance_officer', 'finance_manager', 'system_admin', 'managing_director', 'general_manager'].includes(role)
-  const canFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
-  const canLogSchedule = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
+  const canApprove         = ['managing_director', 'system_admin'].includes(role)
+  const canFulfill         = ['admin_officer', 'finance_officer', 'finance_manager', 'system_admin', 'managing_director', 'general_manager'].includes(role)
+  const canConfirmPayment  = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
+  const canFuelPayment     = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
+  const canLogSchedule     = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
 
-  const [comments, setComments]     = useState('')
+  const [comments, setComments]         = useState('')
   const [fulfillNotes, setFulfillNotes] = useState('')
+  const [payForm, setPayForm]           = useState({ paid_mode: 'finance_raised', notes: '' })
 
   const { data: req, isLoading } = useQuery({
     queryKey: ['requisition', id],
@@ -360,6 +372,15 @@ export default function RequisitionDetailPage() {
     mutationFn: (payload) => approveRequisition(id, payload),
     onSuccess: () => { toast.success('Action recorded.'); qc.invalidateQueries({ queryKey: ['requisition', id] }) },
     onError: e => toast.error(e.response?.data?.detail || 'Action failed.'),
+  })
+
+  const confirmPayMut = useMutation({
+    mutationFn: () => confirmPayment(id, payForm),
+    onSuccess: () => {
+      toast.success('Payment confirmed — requisition fulfilled.')
+      qc.invalidateQueries({ queryKey: ['requisition', id] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to confirm payment.'),
   })
 
   const fulfillMut = useMutation({
@@ -396,8 +417,8 @@ export default function RequisitionDetailPage() {
               {req.req_type.replace(/_/g, ' ')} · {req.priority} priority
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLE[req.status] || 'bg-gray-100 text-gray-600'}`}>
-            {req.status.replace(/_/g, ' ')}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLE[req.status] || 'bg-gray-100 text-gray-600'}`}>
+            {STATUS_LABEL[req.status] || req.status.replace(/_/g, ' ')}
           </span>
         </div>
 
@@ -411,9 +432,9 @@ export default function RequisitionDetailPage() {
                 <div className="flex flex-col items-center">
                   <div className={`h-2.5 w-2.5 rounded-full border-2 transition-colors
                     ${active ? 'border-brand-red bg-brand-red' : done ? 'border-green-600 bg-green-600' : 'border-gray-300 bg-white'}`} />
-                  <span className={`text-[10px] mt-1 whitespace-nowrap capitalize
+                  <span className={`text-[10px] mt-1 whitespace-nowrap
                     ${active ? 'text-brand-red font-bold' : done ? 'text-green-600' : 'text-gray-400'}`}>
-                    {stage}
+                    {FLOW_LABELS[stage] || stage}
                   </span>
                 </div>
                 {i < FLOW.length - 1 && (
@@ -562,17 +583,64 @@ export default function RequisitionDetailPage() {
             </div>
           )}
 
-          {/* Fulfill panel (admin / finance / MD) */}
-          {canFulfill && req.status === 'approved' && (
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-brand-slate mb-3">Mark as Fulfilled</h2>
-              <textarea rows={2} value={fulfillNotes} onChange={e => setFulfillNotes(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-red resize-none mb-3"
-                placeholder="Fulfillment notes…" />
-              <button onClick={() => fulfillMut.mutate()} disabled={fulfillMut.isPending}
-                className="w-full py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
-                {fulfillMut.isPending ? 'Processing…' : 'Mark Fulfilled'}
+          {/* Confirm Payment panel (finance / MD only) */}
+          {canConfirmPayment && req.status === 'approved' && (
+            <div className="bg-white border border-violet-200 rounded-2xl shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-brand-slate mb-1">Confirm Payment</h2>
+              <p className="text-xs text-gray-600 mb-4">
+                {req.expense_claim_ref
+                  ? <>Expense claim <span className="font-mono font-semibold text-violet-700">{req.expense_claim_ref}</span> is pending payment.</>
+                  : 'Confirm that payment has been made for this requisition.'}
+              </p>
+
+              {/* Payment mode */}
+              <div className="space-y-2 mb-4">
+                {[
+                  { value: 'finance_raised', label: 'Finance raised payment directly', desc: 'Your department initiated and paid this requisition.' },
+                  { value: 'md_paid',        label: 'MD paid directly',                desc: 'MD made the payment — you are recording and confirming it.' },
+                ].map(opt => (
+                  <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors
+                    ${payForm.paid_mode === opt.value ? 'border-violet-400 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="paid_mode" value={opt.value}
+                      checked={payForm.paid_mode === opt.value}
+                      onChange={() => setPayForm(f => ({ ...f, paid_mode: opt.value }))}
+                      className="mt-0.5 accent-violet-600" />
+                    <div>
+                      <p className="text-xs font-semibold text-brand-slate">{opt.label}</p>
+                      <p className="text-[11px] text-gray-600 mt-0.5">{opt.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <textarea rows={2} value={payForm.notes}
+                onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Payment reference, notes (optional)…"
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-violet-400 resize-none mb-3" />
+
+              <button onClick={() => confirmPayMut.mutate()} disabled={confirmPayMut.isPending}
+                className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg disabled:opacity-60 transition-colors">
+                {confirmPayMut.isPending ? 'Confirming…' : 'Confirm Payment & Fulfil'}
               </button>
+            </div>
+          )}
+
+          {/* Fulfilled confirmation info */}
+          {req.status === 'fulfilled' && req.paid_at && (
+            <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4">
+              <p className="text-xs font-semibold text-teal-700 mb-1">Payment Confirmed</p>
+              <p className="text-xs text-teal-600">
+                By {req.paid_by_name} · {new Date(req.paid_at).toLocaleString('en-KE')}
+              </p>
+              <p className="text-xs text-teal-600 capitalize mt-0.5">
+                {req.paid_mode === 'md_paid' ? 'MD paid directly' : 'Finance raised payment'}
+              </p>
+              {req.payment_confirmed_notes && (
+                <p className="text-xs text-teal-600 mt-1 italic">"{req.payment_confirmed_notes}"</p>
+              )}
+              {req.expense_claim_ref && (
+                <p className="text-xs text-teal-600 mt-1">Claim: <span className="font-mono font-semibold">{req.expense_claim_ref}</span></p>
+              )}
             </div>
           )}
 

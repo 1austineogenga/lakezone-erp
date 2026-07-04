@@ -148,6 +148,36 @@ class RequisitionApproveView(APIView):
             req.status = StaffRequisition.Status.SUBMITTED
 
         req.save(update_fields=['status', 'rejection_reason'])
+
+        # Auto-create ExpenseClaim in Finance when fully approved
+        if req.status == StaffRequisition.Status.APPROVED:
+            try:
+                from finance.models import ExpenseClaim
+                if not ExpenseClaim.objects.filter(requisition=req).exists():
+                    payment_note = ''
+                    if req.payment_method == 'mpesa_paybill':
+                        payment_note = (f'M-Pesa Paybill — Business No: {req.payment_business_number}, '
+                                        f'Account No: {req.payment_account_number}')
+                    elif req.payment_method == 'mpesa_till':
+                        payment_note = f'M-Pesa Till — Till No: {req.payment_till_number}'
+                    elif req.payment_method == 'bank_transfer':
+                        payment_note = (f'Bank Transfer — Bank: {req.payment_bank_name}, '
+                                        f'Account Name: {req.payment_account_name}, '
+                                        f'Account No: {req.payment_account_number}, '
+                                        f'Branch: {req.payment_branch_name}')
+                    notes = '\n'.join(filter(None, [payment_note, req.description]))
+                    ExpenseClaim.objects.create(
+                        title=req.title,
+                        submitted_by=req.requested_by,
+                        project=req.project,
+                        requisition=req,
+                        status='submitted',
+                        total_amount=req.total_amount,
+                        notes=notes or f'Auto-created from requisition {req.reference_number}',
+                    )
+            except Exception:
+                pass  # Never block approval if expense claim creation fails
+
         return Response(StaffRequisitionSerializer(req).data)
 
 
@@ -234,6 +264,98 @@ class RequisitionFulfillView(APIView):
             except Exception:
                 pass  # Never block fulfillment if fleet logging fails
 
+        return Response(StaffRequisitionSerializer(req).data)
+
+
+def _auto_log_fleet_maintenance(req):
+    """Shared helper — auto-create VehicleMaintenance when a repair_maintenance req is fulfilled."""
+    if req.req_type != StaffRequisition.ReqType.REPAIR_MAINTENANCE or not req.fleet_vehicle_no:
+        return
+    try:
+        from fleet.models import Vehicle, VehicleMaintenance
+        vehicle = Vehicle.objects.filter(vehicle_no=req.fleet_vehicle_no).first()
+        if not vehicle:
+            return
+        title_lower = req.title.lower()
+        if 'tyre' in title_lower or 'tire' in title_lower:
+            maint_type = 'tyre'
+        elif 'oil' in title_lower:
+            maint_type = 'oil'
+        elif 'inspect' in title_lower or 'certif' in title_lower:
+            maint_type = 'inspection'
+        elif any(k in title_lower for k in ('repair', 'engine', 'brake', 'hydraulic', 'electrical', 'transmission', 'weld')):
+            maint_type = 'repair'
+        elif 'service' in title_lower or 'routine' in title_lower:
+            maint_type = 'service'
+        else:
+            maint_type = 'other'
+        sched = getattr(req, 'maintenance_schedule', None)
+        cost = sched.payment_amount if sched and sched.payment_amount else req.total_amount
+        performed_by = sched.assigned_to if sched and sched.assigned_to else (req.fulfillment_notes[:200] if req.fulfillment_notes else '')
+        if not VehicleMaintenance.objects.filter(
+            vehicle=vehicle,
+            description__startswith=f'[Auto from {req.reference_number}]'
+        ).exists():
+            VehicleMaintenance.objects.create(
+                vehicle=vehicle,
+                maintenance_type=maint_type,
+                description=f'[Auto from {req.reference_number}] {req.description or req.title}',
+                date=req.fulfilled_at.date(),
+                cost=cost or 0,
+                performed_by=performed_by,
+                notes=req.fulfillment_notes or '',
+            )
+    except Exception:
+        pass
+
+
+class RequisitionConfirmPaymentView(APIView):
+    """Finance confirms payment → status: paid → auto fulfilled."""
+    permission_classes = [permissions.IsAuthenticated]
+    CONFIRM_ROLES = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director']
+
+    def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in self.CONFIRM_ROLES:
+            return Response({'detail': 'Only Finance or MD can confirm payment.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            req = StaffRequisition.objects.get(pk=pk, status=StaffRequisition.Status.APPROVED)
+        except StaffRequisition.DoesNotExist:
+            return Response({'detail': 'Requisition not found or not in approved state.'}, status=status.HTTP_404_NOT_FOUND)
+
+        paid_mode = request.data.get('paid_mode', 'finance_raised')
+        notes     = request.data.get('notes', '')
+        now       = timezone.now()
+
+        # Mark as paid then immediately fulfilled (single transaction)
+        req.paid_by                 = request.user
+        req.paid_at                 = now
+        req.paid_mode               = paid_mode
+        req.payment_confirmed_notes = notes
+        req.status                  = StaffRequisition.Status.FULFILLED
+        req.fulfilled_by            = request.user
+        req.fulfilled_at            = now
+        req.fulfillment_notes       = notes
+        req.save(update_fields=[
+            'paid_by', 'paid_at', 'paid_mode', 'payment_confirmed_notes',
+            'status', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
+        ])
+
+        # Mark the linked expense claim as paid
+        try:
+            from finance.models import ExpenseClaim
+            claim = ExpenseClaim.objects.filter(requisition=req).first()
+            if claim and claim.status not in ('paid',):
+                claim.status      = 'paid'
+                claim.reviewed_by = request.user
+                claim.reviewed_at = now
+                claim.review_notes = notes or f'Payment confirmed by {request.user.get_full_name()}'
+                claim.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'review_notes'])
+        except Exception:
+            pass
+
+        _auto_log_fleet_maintenance(req)
         return Response(StaffRequisitionSerializer(req).data)
 
 

@@ -92,6 +92,8 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
     has_maintenance_schedule = serializers.SerializerMethodField()
     maintenance_schedule = MaintenanceScheduleSerializer(read_only=True)
     fuel_payment         = FuelPaymentRecordSerializer(read_only=True)
+    paid_by_name         = serializers.CharField(source='paid_by.get_full_name', read_only=True)
+    expense_claim_ref    = serializers.SerializerMethodField()
 
     class Meta:
         model  = StaffRequisition
@@ -105,6 +107,8 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'fleet_vehicle_no',
             'created_at', 'updated_at',
             'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
+            'paid_by', 'paid_by_name', 'paid_at', 'paid_mode', 'payment_confirmed_notes',
+            'expense_claim_ref',
             'items', 'approvals',
             'has_maintenance_schedule', 'maintenance_schedule', 'fuel_payment',
         ]
@@ -112,6 +116,14 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
 
     def get_has_maintenance_schedule(self, obj):
         return hasattr(obj, 'maintenance_schedule')
+
+    def get_expense_claim_ref(self, obj):
+        try:
+            from finance.models import ExpenseClaim
+            claim = ExpenseClaim.objects.filter(requisition=obj).first()
+            return claim.reference if claim else None
+        except Exception:
+            return None
 
 
 class StaffRequisitionListSerializer(serializers.ModelSerializer):

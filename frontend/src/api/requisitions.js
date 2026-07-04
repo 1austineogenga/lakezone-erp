@@ -6,6 +6,7 @@ export const getRequisition     = (id)     => api.get(`/requisitions/${id}/`)
 export const createRequisition  = (data)   => api.post('/requisitions/', data)
 export const approveRequisition = (id, data) => api.post(`/requisitions/${id}/approve/`, data)
 export const fulfillRequisition = (id, data) => api.post(`/requisitions/${id}/fulfill/`, data)
+export const confirmPayment     = (id, data) => api.post(`/requisitions/${id}/confirm-payment/`, data)
 export const recallRequisition  = (id)     => api.post(`/requisitions/${id}/recall/`)
 export const getPendingApprovals = ()      => api.get('/requisitions/pending-approvals/')
 
