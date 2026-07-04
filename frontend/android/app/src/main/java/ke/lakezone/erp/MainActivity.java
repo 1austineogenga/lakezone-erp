@@ -14,7 +14,7 @@ public class MainActivity extends BridgeActivity {
 
         // Set status bar color to match topbar and make icons light (white)
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        getWindow().setStatusBarColor(Color.parseColor("#1a2332"));
+        getWindow().setStatusBarColor(Color.parseColor("#BF2026"));
 
         // Light icons = white — visible on dark background
         WindowInsetsControllerCompat insetsController =

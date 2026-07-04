@@ -5,7 +5,6 @@ import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIc
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
-import logoFull from '../../assets/logo-full.png'
 
 const PAGE_LABELS = {
   '/':                    'Dashboard',
@@ -145,13 +144,13 @@ export default function TopBar({ onToggleSidebar }) {
   const pageLabel = usePageLabel()
 
   return (
-    <header className="shrink-0 relative" style={{ background: 'linear-gradient(135deg, #1a2332 0%, #243044 100%)' }}>
-      {/* Red accent line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand-red via-red-400 to-brand-red opacity-80" />
+    <header className="shrink-0 relative" style={{ background: 'linear-gradient(90deg, #BF2026 0%, #9e1a1f 100%)' }}>
+      {/* Subtle dark bottom edge for depth */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/20" />
 
       <div className="h-16 flex items-center justify-between px-4">
 
-      {/* LEFT — mobile: hamburger | desktop: logo + page title */}
+      {/* LEFT — mobile: hamburger | desktop: page title */}
       <div className="flex items-center gap-3">
         {/* Hamburger — mobile only */}
         <button
@@ -161,16 +160,12 @@ export default function TopBar({ onToggleSidebar }) {
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Logo + divider + page title — desktop only */}
-        <div className="hidden lg:flex items-center gap-3">
-          <img src={logoFull} alt="LakeZone ERP" className="h-7 object-contain brightness-0 invert opacity-90" />
-          {pageLabel && (
-            <>
-              <div className="h-5 w-px bg-white/20" />
-              <span className="text-sm font-medium text-white/70 tracking-wide">{pageLabel}</span>
-            </>
-          )}
-        </div>
+        {/* Page title — desktop only */}
+        {pageLabel && (
+          <span className="hidden lg:block text-base font-semibold text-white tracking-wide">
+            {pageLabel}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
