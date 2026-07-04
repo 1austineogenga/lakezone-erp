@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
-import BottomNav from './BottomNav'
 import ErrorBoundary from '../ErrorBoundary'
 import logoIcon from '../../assets/logo-icon.png'
 import useAuthStore from '../../store/authStore'
@@ -19,7 +18,15 @@ export default function AppLayout() {
   if (user?.must_change_password) return <Navigate to="/change-password" replace />
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div
+      className="flex h-screen overflow-hidden bg-gray-50"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
 
       {/* Mobile backdrop */}
       {mobileOpen && (
@@ -35,21 +42,20 @@ export default function AppLayout() {
         transform transition-transform duration-200
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
-      `}>
+      `}
+        style={{ top: 'env(safe-area-inset-top)' }}
+      >
         <Sidebar />
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <TopBar onToggleSidebar={() => setMobileOpen(o => !o)} />
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
-
-        {/* Bottom navigation — mobile only */}
-        <BottomNav />
 
         {/* Footer */}
         <footer className="shrink-0 border-t border-gray-200">
