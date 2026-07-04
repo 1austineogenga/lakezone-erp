@@ -115,11 +115,11 @@ export default function TopBar({ onToggleSidebar }) {
   }
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+    <header className="h-16 bg-[#1a2332] border-b border-white/10 flex items-center justify-between px-4 shrink-0">
       {/* Hamburger — mobile only */}
       <button
         onClick={onToggleSidebar}
-        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 lg:hidden"
+        className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden"
       >
         <Bars3Icon className="h-5 w-5" />
       </button>
@@ -130,7 +130,7 @@ export default function TopBar({ onToggleSidebar }) {
         <button
           onClick={() => window.location.reload()}
           title="Refresh"
-          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-brand-red transition-colors"
+          className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
         >
           <ArrowPathIcon className="h-5 w-5" />
         </button>
@@ -139,7 +139,7 @@ export default function TopBar({ onToggleSidebar }) {
         <div className="relative" ref={dropRef}>
           <button
             onClick={() => setOpen(o => !o)}
-            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 relative"
+            className="p-2 rounded-lg text-white/70 hover:bg-white/10 relative"
           >
             <BellIcon className="h-5 w-5" />
             {unread > 0 && (
@@ -196,7 +196,7 @@ export default function TopBar({ onToggleSidebar }) {
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setUserMenuOpen(o => !o)}
-            className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
+            className="flex items-center gap-2 hover:bg-white/10 rounded-lg px-2 py-1 transition-colors"
           >
             {user?.profile_photo ? (
               <img
@@ -210,10 +210,10 @@ export default function TopBar({ onToggleSidebar }) {
               </div>
             )}
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-800 leading-tight">
+              <p className="text-sm font-medium text-white leading-tight">
                 {user ? `${user.first_name} ${user.last_name}` : 'User'}
               </p>
-              <p className="text-xs text-gray-600 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
+              <p className="text-xs text-white/60 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
             </div>
           </button>
 
