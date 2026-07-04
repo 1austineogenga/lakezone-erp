@@ -77,7 +77,7 @@ function timeAgo(dateStr) {
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'
 
-export default function TopBar({ onToggleSidebar }) {
+export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
   const { user, logout, refreshToken } = useAuthStore()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -148,33 +148,36 @@ export default function TopBar({ onToggleSidebar }) {
     <header className="shrink-0 relative bg-[#1a2332]">
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/30" />
 
-      <div className="h-16 flex items-center justify-between px-4">
+      <div className="h-16 flex items-center">
 
-      {/* LEFT — logo + divider + page title */}
-      <div className="flex items-center gap-3">
-        {/* Hamburger — mobile only */}
+        {/* Logo block — desktop: fixed width matching sidebar; mobile: hidden */}
+        <div className={`hidden lg:flex items-center shrink-0 px-3 h-full border-r border-white/10 transition-all duration-200 ${sidebarCollapsed ? 'w-16 justify-center' : 'w-60'}`}>
+          {!sidebarCollapsed && (
+            <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center w-full">
+              <img src={logoFull} alt="LakeZone" className="h-9 w-auto object-contain" />
+            </div>
+          )}
+        </div>
+
+        {/* Mobile hamburger */}
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden"
+          className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden ml-2"
         >
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Logo — desktop only */}
-        <div className="hidden lg:flex items-center gap-3">
-          <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center">
-            <img src={logoFull} alt="LakeZone" className="h-9 w-auto object-contain" />
-          </div>
-          {pageLabel && (
-            <>
-              <div className="h-6 w-px bg-white/20" />
-              <span className="text-base font-semibold text-white tracking-wide">{pageLabel}</span>
-            </>
-          )}
-        </div>
-      </div>
+        {/* Page name — desktop */}
+        {pageLabel && (
+          <span className="hidden lg:block text-base font-semibold text-white tracking-wide px-5">
+            {pageLabel}
+          </span>
+        )}
 
-      <div className="flex items-center gap-3">
+        {/* Spacer */}
+        <div className="flex-1" />
+
+      <div className="flex items-center gap-3 pr-4">
         {/* Global refresh */}
         <button
           onClick={() => window.location.reload()}
@@ -286,7 +289,6 @@ export default function TopBar({ onToggleSidebar }) {
         </div>
       </div>
 
-      </div>
     </header>
   )
 }

@@ -50,7 +50,7 @@ export default function AppLayout() {
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <TopBar onToggleSidebar={() => setMobileOpen(o => !o)} />
+        <TopBar onToggleSidebar={() => setMobileOpen(o => !o)} sidebarCollapsed={sidebarCollapsed} />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <ErrorBoundary>
