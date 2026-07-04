@@ -177,118 +177,119 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
         {/* Spacer */}
         <div className="flex-1" />
 
-      <div className="flex items-center gap-3 pr-4">
-        {/* Global refresh */}
-        <button
-          onClick={() => window.location.reload()}
-          title="Refresh"
-          className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <ArrowPathIcon className="h-5 w-5" />
-        </button>
-
-        {/* Notification bell */}
-        <div className="relative" ref={dropRef}>
+        <div className="flex items-center gap-3 pr-4">
+          {/* Global refresh */}
           <button
-            onClick={() => setOpen(o => !o)}
-            className="p-2 rounded-lg text-white/70 hover:bg-white/10 relative"
+            onClick={() => window.location.reload()}
+            title="Refresh"
+            className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
           >
-            <BellIcon className="h-5 w-5" />
-            {unread > 0 && (
-              <span className="absolute top-1 right-1 h-4 w-4 bg-brand-red text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {unread > 9 ? '9+' : unread}
-              </span>
-            )}
+            <ArrowPathIcon className="h-5 w-5" />
           </button>
 
-          {open && (
-            <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                <span className="font-semibold text-brand-slate text-sm">
-                  Notifications {unread > 0 && <span className="text-xs text-brand-red">({unread} new)</span>}
+          {/* Notification bell */}
+          <div className="relative" ref={dropRef}>
+            <button
+              onClick={() => setOpen(o => !o)}
+              className="p-2 rounded-lg text-white/70 hover:bg-white/10 relative"
+            >
+              <BellIcon className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute top-1 right-1 h-4 w-4 bg-brand-red text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {unread > 9 ? '9+' : unread}
                 </span>
-                {unread > 0 && (
-                  <button
-                    onClick={() => readAllMut.mutate()}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-slate"
-                  >
-                    <CheckIcon className="h-3 w-3" /> Mark all read
-                  </button>
-                )}
-              </div>
+              )}
+            </button>
 
-              {/* List */}
-              <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-gray-600 text-center py-8">No notifications</p>
-                ) : notifications.map(n => (
-                  <button
-                    key={n.id}
-                    onClick={() => handleNotifClick(n)}
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-blue-50/40' : ''}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${TYPE_COLORS[n.type] || TYPE_COLORS.general}`}>
-                        {n.type?.replace(/_/g, ' ')}
-                      </span>
-                      {!n.is_read && <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-red shrink-0" />}
-                    </div>
-                    <p className="text-xs font-semibold text-brand-slate mt-1 leading-tight">{n.title}</p>
-                    <p className="text-xs text-gray-600 mt-0.5 leading-snug line-clamp-2">{n.message}</p>
-                    <p className="text-[10px] text-gray-600 mt-1">{timeAgo(n.created_at)}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+            {open && (
+              <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <span className="font-semibold text-brand-slate text-sm">
+                    Notifications {unread > 0 && <span className="text-xs text-brand-red">({unread} new)</span>}
+                  </span>
+                  {unread > 0 && (
+                    <button
+                      onClick={() => readAllMut.mutate()}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-slate"
+                    >
+                      <CheckIcon className="h-3 w-3" /> Mark all read
+                    </button>
+                  )}
+                </div>
 
-        {/* User avatar + dropdown */}
-        <div className="relative" ref={userMenuRef}>
-          <button
-            onClick={() => setUserMenuOpen(o => !o)}
-            className="flex items-center gap-2 hover:bg-white/10 rounded-lg px-2 py-1 transition-colors"
-          >
-            {user?.profile_photo ? (
-              <img
-                src={user.profile_photo.startsWith('http') ? user.profile_photo : `${API_BASE}${user.profile_photo}`}
-                alt="Avatar"
-                className="h-8 w-8 rounded-full object-cover border border-gray-200"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                {user?.first_name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? 'U'}
+                {/* List */}
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-gray-600 text-center py-8">No notifications</p>
+                  ) : notifications.map(n => (
+                    <button
+                      key={n.id}
+                      onClick={() => handleNotifClick(n)}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-blue-50/40' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${TYPE_COLORS[n.type] || TYPE_COLORS.general}`}>
+                          {n.type?.replace(/_/g, ' ')}
+                        </span>
+                        {!n.is_read && <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-red shrink-0" />}
+                      </div>
+                      <p className="text-xs font-semibold text-brand-slate mt-1 leading-tight">{n.title}</p>
+                      <p className="text-xs text-gray-600 mt-0.5 leading-snug line-clamp-2">{n.message}</p>
+                      <p className="text-[10px] text-gray-600 mt-1">{timeAgo(n.created_at)}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-white leading-tight">
-                {user ? `${user.first_name} ${user.last_name}` : 'User'}
-              </p>
-              <p className="text-xs text-white/60 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
-            </div>
-          </button>
+          </div>
 
-          {userMenuOpen && (
-            <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-              <button
-                onClick={() => { navigate('/profile'); setUserMenuOpen(false) }}
-                className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <UserCircleIcon className="h-4 w-4 text-gray-400" /> My Profile
-              </button>
-              <div className="border-t border-gray-100" />
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50"
-              >
-                <ArrowRightOnRectangleIcon className="h-4 w-4" /> Logout
-              </button>
-            </div>
-          )}
+          {/* User avatar + dropdown */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen(o => !o)}
+              className="flex items-center gap-2 hover:bg-white/10 rounded-lg px-2 py-1 transition-colors"
+            >
+              {user?.profile_photo ? (
+                <img
+                  src={user.profile_photo.startsWith('http') ? user.profile_photo : `${API_BASE}${user.profile_photo}`}
+                  alt="Avatar"
+                  className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                  {user?.first_name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? 'U'}
+                </div>
+              )}
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-medium text-white leading-tight">
+                  {user ? `${user.first_name} ${user.last_name}` : 'User'}
+                </p>
+                <p className="text-xs text-white/60 capitalize leading-tight">{user?.role?.replace(/_/g, ' ')}</p>
+              </div>
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                <button
+                  onClick={() => { navigate('/profile'); setUserMenuOpen(false) }}
+                  className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <UserCircleIcon className="h-4 w-4 text-gray-400" /> My Profile
+                </button>
+                <div className="border-t border-gray-100" />
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4" /> Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
+      </div>
     </header>
   )
 }
