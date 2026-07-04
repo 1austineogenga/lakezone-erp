@@ -141,7 +141,7 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
   const pageLabel = usePageLabel()
 
   return (
-    <header className="shrink-0 relative bg-[#1a2332]">
+    <header className="shrink-0 relative bg-[#1a2332]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-brand-red" />
 
       <div className="h-16 flex items-center">

@@ -22,7 +22,6 @@ export default function AppLayout() {
     <div
       className="flex h-screen overflow-hidden bg-gray-50"
       style={{
-        paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
@@ -44,7 +43,7 @@ export default function AppLayout() {
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}
-        style={{ top: 'env(safe-area-inset-top)' }}
+        style={{ top: 0 }}
       >
         <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(o => !o)} />
       </div>
@@ -67,7 +66,7 @@ export default function AppLayout() {
             <div className="bg-brand-red h-full w-1" />
             <div className="flex-1 bg-white h-full flex items-center px-4 overflow-hidden">
               <p className="text-xs text-gray-600 truncate">
-                © {new Date().getFullYear()} <span className="text-brand-slate font-medium">Lake Zone Enterprises Ltd</span>
+                &copy; {new Date().getFullYear()} <span className="text-brand-slate font-medium">Lake Zone Enterprises Ltd</span>
                 <span className="mx-2 text-gray-600 hidden sm:inline">|</span>
                 <span className="text-gray-600 hidden sm:inline">Enterprise Resource Planning System</span>
               </p>
