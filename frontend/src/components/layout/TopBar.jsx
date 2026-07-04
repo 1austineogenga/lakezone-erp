@@ -141,12 +141,11 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
   const pageLabel = usePageLabel()
 
   return (
-    <header className="shrink-0 relative bg-[#1a2332]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="shrink-0 relative bg-[#1a2332]">
       <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-brand-red" />
 
       <div className="h-16 flex items-center">
 
-        {/* Mobile hamburger */}
         <button
           onClick={onToggleSidebar}
           className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden ml-2"
@@ -154,7 +153,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Page name */}
         {pageLabel && (
           <span className="hidden lg:block text-base font-semibold text-white tracking-wide px-5">
             {pageLabel}
@@ -164,7 +162,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3 pr-4">
-          {/* Global refresh */}
           <button
             onClick={() => window.location.reload()}
             title="Refresh"
@@ -173,7 +170,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
             <ArrowPathIcon className="h-5 w-5" />
           </button>
 
-          {/* Notification bell */}
           <div className="relative" ref={dropRef}>
             <button
               onClick={() => setOpen(o => !o)}
@@ -228,7 +224,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
             )}
           </div>
 
-          {/* User avatar + dropdown */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(o => !o)}

@@ -12,7 +12,6 @@ export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const user = useAuthStore(s => s.user)
 
-  // Close mobile sidebar on route change
   useEffect(() => setMobileOpen(false), [location.pathname])
 
   if (!localStorage.getItem('access_token')) return <Navigate to="/login" replace />
@@ -22,13 +21,13 @@ export default function AppLayout() {
     <div
       className="flex h-screen overflow-hidden bg-gray-50"
       style={{
+        paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
 
-      {/* Mobile backdrop */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
@@ -36,7 +35,6 @@ export default function AppLayout() {
         />
       )}
 
-      {/* Sidebar — off-canvas on mobile, always visible on lg+ */}
       <div className={`
         fixed inset-y-0 left-0 z-40 lg:static lg:z-auto
         transform transition-transform duration-200
@@ -57,7 +55,6 @@ export default function AppLayout() {
           </ErrorBoundary>
         </main>
 
-        {/* Footer */}
         <footer className="shrink-0 border-t border-gray-200">
           <div className="flex items-center h-9">
             <div className="bg-[#1a2332] h-full flex items-center px-4">

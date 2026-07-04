@@ -5,8 +5,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 body {
-  @apply bg-gray-50 font-sans;
-  color: #111827;                  /* near-black default — gray-900 */
+  background-color: #1a2332; /* fills status bar area on mobile APK */
+  @apply font-sans;
+  color: #111827;
   font-size: 16px;
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -16,31 +17,4 @@ body {
 
 #root {
   min-height: 100vh;
-}
-
-/* ── Strong, accessible text colors ── */
-/* Secondary / muted text — dark enough for WCAG AA on white */
-.text-gray-600 { color: #1f2937 !important; }   /* effectively gray-800 — readable dark */
-.text-gray-500 { color: #374151 !important; }   /* gray-700 */
-.text-gray-400 { color: #4B5563 !important; }   /* gray-600 — still clearly secondary */
-
-/* ── Bump arbitrary badge / caption sizes ── */
-.text-\[10px\] { font-size: 0.8125rem !important; line-height: 1.25rem !important; }  /* → 13px */
-.text-\[11px\] { font-size: 0.875rem  !important; line-height: 1.375rem !important; } /* → 14px */
-.text-\[9px\]  { font-size: 0.75rem   !important; line-height: 1.125rem !important; } /* → 12px */
-
-/* ── Input / select text — ensure readable weight ── */
-input, select, textarea {
-  font-weight: 500;
-  color: #111827;
-}
-
-/* ── Table / list body text should be dark by default ── */
-p, span, li, td, th, label {
-  color: inherit;
-}
-
-/* ── Slightly heavier weight for all labels ── */
-label {
-  font-weight: 500;
 }
