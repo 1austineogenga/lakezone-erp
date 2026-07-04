@@ -5,7 +5,6 @@ import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIc
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
-import logoFull from '../../assets/logo-full.png'
 
 const PAGE_LABELS = {
   '/':                    'Dashboard',
@@ -50,7 +49,6 @@ const TYPE_COLORS = {
   general:            'bg-gray-100 text-gray-600',
 }
 
-// Beep sound for new critical notifications
 function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -109,7 +107,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
 
   const unread = notifications.filter(n => !n.is_read).length
 
-  // Play sound when new notifications arrive
   useEffect(() => {
     if (unread > prevUnreadRef.current) playBeep()
     prevUnreadRef.current = unread
@@ -125,7 +122,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
-  // Close notification dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false)
@@ -146,18 +142,9 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
 
   return (
     <header className="shrink-0 relative bg-[#1a2332]">
-      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-black/30" />
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-brand-red" />
 
       <div className="h-16 flex items-center">
-
-        {/* Logo block — desktop: fixed width matching sidebar; mobile: hidden */}
-        <div className={`hidden lg:flex items-center shrink-0 px-3 h-full border-r border-white/10 transition-all duration-200 ${sidebarCollapsed ? 'w-16 justify-center' : 'w-60'}`}>
-          {!sidebarCollapsed && (
-            <div className="bg-white rounded-lg px-3 py-2 flex items-center justify-center w-full">
-              <img src={logoFull} alt="LakeZone" className="h-9 w-auto object-contain" />
-            </div>
-          )}
-        </div>
 
         {/* Mobile hamburger */}
         <button
@@ -167,14 +154,13 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Page name — desktop */}
+        {/* Page name */}
         {pageLabel && (
           <span className="hidden lg:block text-base font-semibold text-white tracking-wide px-5">
             {pageLabel}
           </span>
         )}
 
-        {/* Spacer */}
         <div className="flex-1" />
 
         <div className="flex items-center gap-3 pr-4">
@@ -203,7 +189,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
 
             {open && (
               <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <span className="font-semibold text-brand-slate text-sm">
                     Notifications {unread > 0 && <span className="text-xs text-brand-red">({unread} new)</span>}
@@ -218,7 +203,6 @@ export default function TopBar({ onToggleSidebar, sidebarCollapsed }) {
                   )}
                 </div>
 
-                {/* List */}
                 <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
                   {notifications.length === 0 ? (
                     <p className="text-sm text-gray-600 text-center py-8">No notifications</p>
