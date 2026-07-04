@@ -52,10 +52,20 @@ const STATUS_STYLE = {
   submitted:   'bg-blue-100 text-blue-700',
   approved:    'bg-green-100 text-green-700',
   rejected:    'bg-red-100 text-red-700',
+  paid:        'bg-violet-100 text-violet-700',
   fulfilled:   'bg-teal-100 text-teal-700',
   dept_review: 'bg-yellow-100 text-yellow-700',
   finance:     'bg-orange-100 text-orange-700',
   md_review:   'bg-purple-100 text-purple-700',
+}
+
+const STATUS_LABEL = {
+  submitted:   'Pending',
+  dept_review: 'Pending (Review)',
+  approved:    'Approved',
+  paid:        'Paid',
+  fulfilled:   'Fulfilled',
+  rejected:    'Rejected',
 }
 
 const PRIORITY_STYLE = {
@@ -166,8 +176,8 @@ function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver })
               <p className="text-sm font-semibold text-brand-slate mt-0.5 truncate max-w-xs">{req.title}</p>
             </div>
             <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${STATUS_STYLE[req.status] || 'bg-gray-100 text-gray-600'}`}>
-                {req.status.replace(/_/g, ' ')}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[req.status] || 'bg-gray-100 text-gray-600'}`}>
+                {STATUS_LABEL[req.status] || req.status.replace(/_/g, ' ')}
               </span>
               <span className={`text-[10px] font-medium capitalize ${PRIORITY_STYLE[req.priority]}`}>
                 {req.priority}

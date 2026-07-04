@@ -29,11 +29,16 @@ class StaffRequisition(models.Model):
         SUBMITTED = 'submitted',   'Submitted'
         APPROVED  = 'approved',    'Approved'
         REJECTED  = 'rejected',    'Rejected'
+        PAID      = 'paid',        'Paid'
         FULFILLED = 'fulfilled',   'Fulfilled'
         # Legacy statuses retained for backward compatibility
         DEPT_REVIEW = 'dept_review', 'Department Review'
         FINANCE     = 'finance',     'Finance Review'
         MD_REVIEW   = 'md_review',   'MD Review'
+
+    class PaidMode(models.TextChoices):
+        FINANCE_RAISED = 'finance_raised', 'Finance Raised Payment'
+        MD_PAID        = 'md_paid',        'MD Paid Directly'
 
     class Priority(models.TextChoices):
         LOW    = 'low',    'Low'
@@ -85,6 +90,13 @@ class StaffRequisition(models.Model):
                                           null=True, blank=True, related_name='requisitions_fulfilled')
     fulfilled_at      = models.DateTimeField(null=True, blank=True)
     fulfillment_notes = models.TextField(blank=True)
+
+    # Payment confirmation (set by finance when confirming payment)
+    paid_by                  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                                 null=True, blank=True, related_name='requisitions_paid')
+    paid_at                  = models.DateTimeField(null=True, blank=True)
+    paid_mode                = models.CharField(max_length=20, choices=PaidMode.choices, blank=True)
+    payment_confirmed_notes  = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-created_at']
