@@ -6,6 +6,7 @@ import {
   PlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon,
   MagnifyingGlassIcon, ExclamationTriangleIcon,
   ArrowsRightLeftIcon, DocumentTextIcon, UserIcon,
+  ChevronLeftIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 import {
   getStockItems, createStockItem, updateStockItem,
@@ -19,6 +20,37 @@ import { getEmployees } from '../../api/hr'
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const today = new Date().toISOString().slice(0, 10)
+
+const INV_PAGE_SIZE = 12
+
+function InvPageNav({ page, total, onChange }) {
+  const totalPages = Math.ceil(total / INV_PAGE_SIZE)
+  if (totalPages <= 1) return null
+  const start = (page - 1) * INV_PAGE_SIZE + 1
+  const end   = Math.min(page * INV_PAGE_SIZE, total)
+  return (
+    <div className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-2.5">
+      <p className="text-xs text-gray-600">{start}–{end} of {total} items</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(page - 1)} disabled={page === 1}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => onChange(p)}
+            className={`w-8 h-8 rounded-lg text-xs font-semibold border transition-colors
+              ${p === page ? 'bg-brand-red text-white border-brand-red' : 'border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
+            {p}
+          </button>
+        ))}
+        <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const CATEGORY_LABELS = {
   office_consumables: 'Office Consumables',
@@ -523,10 +555,11 @@ export default function InventoryPage() {
   }
 
   const [tab, setTab] = useState('items')
-  // admin_officer defaults to no dept filter (sees own dept from backend automatically)
   const [deptFilter, setDeptFilter] = useState('')
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
+  const [itemPage, setItemPage] = useState(1)
+  const resetItemPage = () => setItemPage(1)
   const [showAddItem, setShowAddItem] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [adjustItem, setAdjustItem] = useState(null)
@@ -662,6 +695,9 @@ export default function InventoryPage() {
       return matchSearch && matchCat
     }),
   [items, search, filterCat])
+
+  const safeItemPage = Math.min(itemPage, Math.max(1, Math.ceil(filteredItems.length / INV_PAGE_SIZE)))
+  const pagedItems   = filteredItems.slice((safeItemPage - 1) * INV_PAGE_SIZE, safeItemPage * INV_PAGE_SIZE)
 
   const filteredHistory = useMemo(() =>
     transactions.filter(tx => {
@@ -853,13 +889,13 @@ export default function InventoryPage() {
                   <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                   <input
                     value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    onChange={e => { setSearch(e.target.value); resetItemPage() }}
                     placeholder="Search name or code…"
                     className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red" />
                 </div>
                 <select
                   value={filterCat}
-                  onChange={e => setFilterCat(e.target.value)}
+                  onChange={e => { setFilterCat(e.target.value); resetItemPage() }}
                   className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
                   <option value="">All Categories</option>
                   {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -882,6 +918,8 @@ export default function InventoryPage() {
                   <p className="text-sm">No items found.</p>
                 </div>
               ) : (
+                <div className="space-y-3">
+                  <InvPageNav page={safeItemPage} total={filteredItems.length} onChange={setItemPage} />
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-xs">
                     <thead>
@@ -892,7 +930,7 @@ export default function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {filteredItems.map(item => {
+                      {pagedItems.map(item => {
                         const stock = Number(item.current_stock)
                         const reorder = Number(item.reorder_level ?? 0)
                         const wac = Number(item.weighted_avg_cost || 0)
@@ -966,6 +1004,8 @@ export default function InventoryPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+                  <InvPageNav page={safeItemPage} total={filteredItems.length} onChange={setItemPage} />
                 </div>
               )}
             </div>
