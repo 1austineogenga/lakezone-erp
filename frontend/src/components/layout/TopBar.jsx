@@ -1,10 +1,38 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bars3Icon, BellIcon, CheckIcon, UserCircleIcon, ArrowRightOnRectangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import { getNotifications, markRead, markAllRead } from '../../api/notifications'
+import logoFull from '../../assets/logo-full.png'
+
+const PAGE_LABELS = {
+  '/':                    'Dashboard',
+  '/workspace':           'My Workspace',
+  '/projects':            'Projects',
+  '/procurement':         'Procurement',
+  '/requisitions':        'Requisitions',
+  '/inventory':           'Inventory',
+  '/assets':              'Assets',
+  '/crm':                 'CRM',
+  '/alerts':              'Alerts',
+  '/users':               'Users',
+  '/profile':             'My Profile',
+  '/reports':             'Site Reporting',
+  '/finance':             'Finance',
+  '/hr':                  'Human Resources',
+  '/fleet':               'Fleet Management',
+  '/menu':                'All Modules',
+}
+
+function usePageLabel() {
+  const { pathname } = useLocation()
+  const key = Object.keys(PAGE_LABELS)
+    .filter(k => pathname === k || (k !== '/' && pathname.startsWith(k)))
+    .sort((a, b) => b.length - a.length)[0]
+  return PAGE_LABELS[key] ?? ''
+}
 
 const TYPE_COLORS = {
   pr_approved:        'bg-green-100 text-green-700',
@@ -114,16 +142,36 @@ export default function TopBar({ onToggleSidebar }) {
     }
   }
 
+  const pageLabel = usePageLabel()
+
   return (
-    <header className="h-16 bg-[#1a2332] border-b border-white/10 flex items-center justify-between px-4 shrink-0">
-      {/* Hamburger — mobile only */}
-      <button
-        onClick={onToggleSidebar}
-        className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden"
-      >
-        <Bars3Icon className="h-5 w-5" />
-      </button>
-      <div className="hidden lg:block" />
+    <header className="shrink-0 relative" style={{ background: 'linear-gradient(135deg, #1a2332 0%, #243044 100%)' }}>
+      {/* Red accent line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand-red via-red-400 to-brand-red opacity-80" />
+
+      <div className="h-16 flex items-center justify-between px-4">
+
+      {/* LEFT — mobile: hamburger | desktop: logo + page title */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 rounded-lg text-white/70 hover:bg-white/10 lg:hidden"
+        >
+          <Bars3Icon className="h-5 w-5" />
+        </button>
+
+        {/* Logo + divider + page title — desktop only */}
+        <div className="hidden lg:flex items-center gap-3">
+          <img src={logoFull} alt="LakeZone ERP" className="h-7 object-contain brightness-0 invert opacity-90" />
+          {pageLabel && (
+            <>
+              <div className="h-5 w-px bg-white/20" />
+              <span className="text-sm font-medium text-white/70 tracking-wide">{pageLabel}</span>
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
         {/* Global refresh */}
@@ -235,6 +283,8 @@ export default function TopBar({ onToggleSidebar }) {
             </div>
           )}
         </div>
+      </div>
+
       </div>
     </header>
   )
