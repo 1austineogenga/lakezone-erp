@@ -33,6 +33,7 @@ import ProfilePage from './pages/profile/ProfilePage'
 import WorkspacePage from './pages/workspace/WorkspacePage'
 import AlertsPage from './pages/AlertsPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
+import MobileMenuPage from './pages/MobileMenuPage'
 import OfflineBanner from './components/pwa/OfflineBanner'
 
 const queryClient = new QueryClient({
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/workspace"          element={<WorkspacePage />} />
             <Route path="/reports/*"             element={<PrivateRoute module="reports"><SiteReportingPage /></PrivateRoute>} />
             <Route path="/alerts"             element={<AlertsPage />} />
+            <Route path="/menu"              element={<MobileMenuPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
