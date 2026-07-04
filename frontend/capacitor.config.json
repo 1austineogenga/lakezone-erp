@@ -20,7 +20,7 @@
       "androidScaleType": "CENTER_CROP"
     },
     "StatusBar": {
-      "style": "LIGHT",
+      "style": "DARK",
       "backgroundColor": "#1a2332",
       "overlaysWebView": false
     }
