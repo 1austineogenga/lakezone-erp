@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Notification, ScheduledAction, ActionComment, ComplianceRenewalCase, ComplianceCaseStep
+from .models import Notification, ScheduledAction, ActionComment, ComplianceRenewalCase, ComplianceCaseStep, DeviceToken
 from .serializers import (
     NotificationSerializer, ScheduledActionSerializer, ActionCommentSerializer,
     ComplianceRenewalCaseSerializer,
@@ -45,6 +45,17 @@ def delete_notification(request, pk):
 @permission_classes([IsAuthenticated])
 def mark_all_read(request):
     Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return Response({"status": "ok"})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def register_device_token(request):
+    token = request.data.get("token")
+    platform = request.data.get("platform", "android")
+    if not token:
+        return Response({"error": "token required"}, status=status.HTTP_400_BAD_REQUEST)
+    DeviceToken.objects.update_or_create(token=token, defaults={"user": request.user, "platform": platform})
     return Response({"status": "ok"})
 
 

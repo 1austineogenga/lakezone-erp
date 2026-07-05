@@ -8,6 +8,7 @@ urlpatterns = [
     path("compliance-cases/<uuid:pk>/advance/",views.advance_compliance_case,                name="compliance-case-advance"),
     path("compliance-cases/<uuid:pk>/bill/",   views.create_compliance_bill,                 name="compliance-case-bill"),
 
+    path("device-token/",        views.register_device_token,                 name="device-token-register"),
     path("",                    views.NotificationListView.as_view(),        name="notification-list"),
     path("unread/",             views.unread_count,                          name="notification-unread-count"),
     path("mark-all/",           views.mark_all_read,                         name="notification-mark-all"),

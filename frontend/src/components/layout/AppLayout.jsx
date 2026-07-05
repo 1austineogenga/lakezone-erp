@@ -5,12 +5,14 @@ import TopBar from './TopBar'
 import ErrorBoundary from '../ErrorBoundary'
 import logoIcon from '../../assets/logo-icon.png'
 import useAuthStore from '../../store/authStore'
+import usePushNotifications from '../../hooks/usePushNotifications'
 
 export default function AppLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const user = useAuthStore(s => s.user)
+  usePushNotifications()
 
   // Close mobile sidebar on route change
   useEffect(() => setMobileOpen(false), [location.pathname])

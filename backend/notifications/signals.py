@@ -29,13 +29,20 @@ def send_notification_email(user, subject, message):
 # ── Internal helper ───────────────────────────────────────────────────────────
 
 def notify(recipient, type_, title, message, link=""):
-    """Create a Notification record and dispatch an email."""
+    """Create a Notification record, dispatch an email, and send push."""
     if not recipient:
         return
     Notification.objects.create(
         recipient=recipient, type=type_, title=title, message=message, link=link
     )
     send_notification_email(recipient, title, message)
+    try:
+        from .models import DeviceToken
+        from .push import send_push
+        tokens = list(DeviceToken.objects.filter(user=recipient).values_list("token", flat=True))
+        send_push(tokens, title, message, link)
+    except Exception as exc:
+        logger.error("Push notification failed for %s: %s", recipient, exc)
 
 
 # ── Procurement PR signals ────────────────────────────────────────────────────
