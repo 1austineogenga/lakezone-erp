@@ -3,11 +3,9 @@ import { registerDeviceToken } from '../api/notifications'
 
 export default function usePushNotifications() {
   useEffect(() => {
-    // Only runs inside the Capacitor APK — plugin not available on web
     const cap = window?.Capacitor
     if (!cap?.isNativePlatform()) return
 
-    // Access the plugin via the global registry (no import needed)
     const PushNotifications = cap.Plugins?.PushNotifications
     if (!PushNotifications) return
 
