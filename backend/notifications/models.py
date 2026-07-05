@@ -94,6 +94,16 @@ class ActionComment(models.Model):
 
 # ── Compliance Renewal Workflow ────────────────────────────────────────────────
 
+class DeviceToken(models.Model):
+    user      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="device_tokens")
+    token     = models.TextField(unique=True)
+    platform  = models.CharField(max_length=20, default="android")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} — {self.platform}"
+
+
 class ComplianceRenewalCase(models.Model):
     STEP_OPEN       = 'open'
     STEP_ACK        = 'acknowledged'
