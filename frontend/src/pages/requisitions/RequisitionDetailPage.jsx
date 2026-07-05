@@ -354,8 +354,8 @@ export default function RequisitionDetailPage() {
 
   const canApprove         = ['managing_director', 'system_admin'].includes(role)
   const canFulfill         = ['admin_officer', 'finance_officer', 'finance_manager', 'system_admin', 'managing_director', 'general_manager'].includes(role)
-  const canConfirmPayment  = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
-  const canFuelPayment     = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
+  const canConfirmPayment  = ['finance_officer', 'finance_manager', 'system_admin'].includes(role)
+  const canFuelPayment     = ['finance_officer', 'finance_manager', 'system_admin'].includes(role)
   const canLogSchedule     = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
 
   const [comments, setComments]         = useState('')
