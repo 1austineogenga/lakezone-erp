@@ -58,6 +58,6 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lakezone-erp-debug
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: LakeZone-ERP
+          path: frontend/android/app/build/outputs/apk/debug/LakeZone-ERP-v*.apk
           retention-days: 30
