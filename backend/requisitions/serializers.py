@@ -171,6 +171,23 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
         for item in items_data:
             RequisitionItem.objects.create(requisition=req, **item)
         req.recalculate_total()
+
+        # Notify approvers (MD / system_admin) of new requisition
+        try:
+            from notifications.signals import notify
+            from notifications.models import Notification
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            req_link = f"/requisitions/{req.pk}"
+            approvers = User.objects.filter(role__in=['managing_director', 'system_admin'], is_active=True)
+            for approver in approvers:
+                notify(approver, Notification.Type.REQ_SUBMITTED,
+                       f"New Requisition {req.reference_number}",
+                       f"{req.requested_by.get_full_name() or req.requested_by.username} submitted a requisition: '{req.title}'.",
+                       req_link)
+        except Exception:
+            pass
+
         return req
 
 

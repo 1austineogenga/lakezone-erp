@@ -18,6 +18,11 @@ class Notification(models.Model):
         EXPENSE_SUBMITTED    = "expense_submitted",    "Expense Claim Submitted"
         EXPENSE_APPROVED     = "expense_approved",     "Expense Claim Approved"
         EXPENSE_REJECTED     = "expense_rejected",     "Expense Claim Rejected"
+        REQ_SUBMITTED        = "req_submitted",        "Requisition Submitted"
+        REQ_APPROVED         = "req_approved",         "Requisition Approved"
+        REQ_REJECTED         = "req_rejected",         "Requisition Rejected"
+        REQ_DEPT_REVIEW      = "req_dept_review",      "Requisition Sent to MD"
+        REQ_FULFILLED        = "req_fulfilled",        "Requisition Fulfilled"
         GENERAL              = "general",              "General"
 
     recipient = models.ForeignKey(
