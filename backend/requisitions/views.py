@@ -149,6 +149,27 @@ class RequisitionApproveView(APIView):
 
         req.save(update_fields=['status', 'rejection_reason'])
 
+        # Notify relevant parties of status change
+        try:
+            from notifications.signals import notify
+            from notifications.models import Notification
+            req_link = f"/requisitions/{req.pk}"
+            requester = req.requested_by
+            if req.status == StaffRequisition.Status.APPROVED:
+                notify(requester, Notification.Type.REQ_APPROVED,
+                       f"Requisition {req.reference_number} Approved",
+                       f"Your requisition '{req.title}' has been approved.", req_link)
+            elif req.status == StaffRequisition.Status.REJECTED:
+                notify(requester, Notification.Type.REQ_REJECTED,
+                       f"Requisition {req.reference_number} Rejected",
+                       f"Your requisition '{req.title}' was rejected. Reason: {comments or 'No reason given.'}", req_link)
+            elif req.status == StaffRequisition.Status.DEPT_REVIEW:
+                notify(requester, Notification.Type.REQ_DEPT_REVIEW,
+                       f"Requisition {req.reference_number} Forwarded to MD",
+                       f"Your requisition '{req.title}' has been reviewed and forwarded to the MD for final approval.", req_link)
+        except Exception:
+            pass
+
         # Auto-create ExpenseClaim in Finance when fully approved
         if req.status == StaffRequisition.Status.APPROVED:
             try:
@@ -220,6 +241,16 @@ class RequisitionFulfillView(APIView):
         req.fulfilled_at      = timezone.now()
         req.fulfillment_notes = request.data.get('notes', '')
         req.save(update_fields=['status', 'fulfilled_by', 'fulfilled_at', 'fulfillment_notes'])
+
+        try:
+            from notifications.signals import notify
+            from notifications.models import Notification
+            notify(req.requested_by, Notification.Type.REQ_FULFILLED,
+                   f"Requisition {req.reference_number} Fulfilled",
+                   f"Your requisition '{req.title}' has been fulfilled.",
+                   f"/requisitions/{req.pk}")
+        except Exception:
+            pass
 
         # Auto-log fleet maintenance when a repair_maintenance requisition is fulfilled
         if req.req_type == StaffRequisition.ReqType.REPAIR_MAINTENANCE and req.fleet_vehicle_no:
@@ -312,7 +343,7 @@ def _auto_log_fleet_maintenance(req):
 class RequisitionConfirmPaymentView(APIView):
     """Finance confirms payment → status: paid → auto fulfilled."""
     permission_classes = [permissions.IsAuthenticated]
-    CONFIRM_ROLES = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director']
+    CONFIRM_ROLES = ['finance_officer', 'finance_manager', 'system_admin']
 
     def post(self, request, pk):
         user_role = getattr(request.user, 'role', None)
@@ -356,6 +387,17 @@ class RequisitionConfirmPaymentView(APIView):
             pass
 
         _auto_log_fleet_maintenance(req)
+
+        try:
+            from notifications.signals import notify
+            from notifications.models import Notification
+            notify(req.requested_by, Notification.Type.REQ_FULFILLED,
+                   f"Requisition {req.reference_number} Payment Confirmed",
+                   f"Payment for your requisition '{req.title}' has been confirmed and it is now fulfilled.",
+                   f"/requisitions/{req.pk}")
+        except Exception:
+            pass
+
         return Response(StaffRequisitionSerializer(req).data)
 
 
