@@ -54,12 +54,12 @@ function ResetPasswordModal({ user, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-brand-slate">Reset Password</h3>
-          <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h3 className="text-white font-bold text-base">Reset Password</h3>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {!generatedPassword ? (
             <>
               <p className="text-xs text-gray-600">
@@ -140,12 +140,12 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-brand-slate">{isEdit ? 'Edit User' : 'Add New User'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h3 className="text-white font-bold text-base">{isEdit ? 'Edit User' : 'Add New User'}</h3>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
@@ -224,12 +224,12 @@ function UserModal({ open, onClose, initial, onSave, saving, isEdit, departments
             )}
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button onClick={onClose} className="px-4 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
           <button
             onClick={() => onSave({ ...form, employee_id: selectedEmployeeId || undefined })}
             disabled={saving || !form.first_name || !form.last_name || !form.email}
-            className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            className="px-4 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create User'}
           </button>
         </div>
@@ -508,12 +508,12 @@ export default function UsersPage() {
 
       {newUserPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-brand-slate">User Created</h3>
-              <button onClick={() => setNewUserPassword(null)}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">User Created</h3>
+              <button onClick={() => setNewUserPassword(null)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-xs text-green-700 font-medium mb-2">Account created successfully</p>
                 <p className="text-[10px] text-green-600 mb-3">Copy this password and share it with the user. It will not be shown again.</p>
@@ -536,12 +536,12 @@ export default function UsersPage() {
 
       {/* ── Credentials Modal ── */}
       {credentials && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-brand-slate text-base">Pilot Login Credentials</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{credentials.length} users reset · All will be prompted to change password on first login</p>
+                <h3 className="text-white font-bold text-base">Pilot Login Credentials</h3>
+                <p className="text-white/50 text-xs mt-0.5">{credentials.length} users reset · All will be prompted to change password on first login</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -588,9 +588,7 @@ export default function UsersPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-white text-xs font-medium rounded-lg hover:opacity-90">
                   <PrinterIcon className="h-3.5 w-3.5" /> Print
                 </button>
-                <button onClick={() => setCredentials(null)} className="text-gray-400 hover:text-gray-700 ml-1">
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
+                <button onClick={() => setCredentials(null)} className="text-white/60 hover:text-white text-2xl font-bold leading-none ml-1">&times;</button>
               </div>
             </div>
 

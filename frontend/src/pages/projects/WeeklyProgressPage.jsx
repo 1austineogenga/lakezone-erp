@@ -188,12 +188,12 @@ export default function WeeklyProgressPage() {
 
       {/* Log Progress Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-brand-slate">Log Weekly Progress</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Log Weekly Progress</h3>
               <button onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
             <form onSubmit={e => {
               e.preventDefault()
@@ -208,7 +208,7 @@ export default function WeeklyProgressPage() {
                 casual_headcount: Number(form.casual_headcount || 0),
                 casual_person_days: Number(form.casual_person_days || 0),
               })
-            }} className="p-6 space-y-4">
+            }} id="weekly-progress-form" className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Week #', key: 'week_no', type: 'number' },
@@ -218,7 +218,7 @@ export default function WeeklyProgressPage() {
                   <div key={key}>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                     <input type={type} value={form[key]} onChange={e => field(key, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                   </div>
                 ))}
               </div>
@@ -227,7 +227,7 @@ export default function WeeklyProgressPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Work Focus</label>
                 <textarea rows={2} value={form.work_focus} onChange={e => field('work_focus', e.target.value)}
                   placeholder="Main activities this week…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
@@ -243,7 +243,7 @@ export default function WeeklyProgressPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                       <input type="number" value={form[key]} onChange={e => field(key, e.target.value)}
                         placeholder="0"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                     </div>
                   ))}
                 </div>
@@ -261,7 +261,7 @@ export default function WeeklyProgressPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                     <input type={type} value={form[key]} onChange={e => field(key, e.target.value)}
                       placeholder="0"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                   </div>
                 ))}
               </div>
@@ -275,21 +275,21 @@ export default function WeeklyProgressPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                   <textarea rows={2} value={form[key]} onChange={e => field(key, e.target.value)}
                     placeholder={placeholder}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
               ))}
 
-              <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={createMut.isPending || !form.week_no}
-                  className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+            </form>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+                <button type="submit" form="weekly-progress-form" disabled={createMut.isPending || !form.week_no}
+                  className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                   {createMut.isPending ? 'Saving…' : 'Log Progress'}
                 </button>
                 <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                  className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                  className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
                   Cancel
                 </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

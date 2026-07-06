@@ -46,14 +46,14 @@ export default function FleetRegisterImportModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-brand-slate">Import Fleet Master Register</h2>
-          <button onClick={onClose}><XMarkIcon className="w-4 h-4 text-gray-400 hover:text-brand-slate" /></button>
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h2 className="text-white font-bold text-base">Import Fleet Master Register</h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {/* Drop zone */}
           {!result && (
             <div
@@ -114,9 +114,9 @@ export default function FleetRegisterImportModal({ onClose, onSuccess }) {
           )}
         </div>
 
-        <div className="px-5 pb-4 flex justify-end">
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
           <button onClick={onClose}
-            className="px-4 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:border-gray-300">
+            className="px-4 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
             {result ? 'Close' : 'Cancel'}
           </button>
         </div>

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
-import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PencilSquareIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-toastify'
 import { getProjectDashboard, updateProject } from '../../api/projects'
 import usePermissions from '../../hooks/usePermissions'
@@ -76,12 +76,12 @@ function EditProjectModal({ project, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-brand-slate">Edit Project Details</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h2 className="text-white font-bold text-base">Edit Project Details</h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
-        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           {field('Project Name', 'name')}
           <div className="grid grid-cols-2 gap-4">
             {field('Client', 'client')}
@@ -102,12 +102,12 @@ function EditProjectModal({ project, onClose }) {
           </div>
           {field('Description', 'description', 'textarea')}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button onClick={onClose} className="px-4 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
           <button
             onClick={() => mut.mutate(form)}
             disabled={mut.isPending}
-            className="px-5 py-2 text-sm bg-brand-red text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90"
           >
             {mut.isPending ? 'Saving…' : 'Save Changes'}
           </button>

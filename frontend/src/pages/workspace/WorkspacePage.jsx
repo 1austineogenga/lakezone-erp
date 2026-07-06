@@ -166,7 +166,7 @@ function RequestItemsModal({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
 
-        <div className="bg-[#1a2332] rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-white font-bold text-base">Request Items from Store</h2>
             <p className="text-white/50 text-xs mt-0.5">Select a store and the item you need</p>

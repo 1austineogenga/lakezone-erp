@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { TruckIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { TruckIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { getProjectVehicles, assignVehicle } from '../../api/projects'
 import { getVehicles } from '../../api/fleet'
 import usePermissions from '../../hooks/usePermissions'
@@ -125,17 +125,17 @@ export default function FleetAssignmentPage() {
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-brand-slate">Assign Vehicle</h3>
-              <button onClick={() => setModal(false)}><XMarkIcon className="h-5 w-5 text-gray-400" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Assign Vehicle</h3>
+              <button onClick={() => setModal(false)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle</label>
                 <select value={form.vehicle} onChange={e => field('vehicle', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
                   <option value="">Select vehicle...</option>
                   {fleetVehicles.map(v => (
                     <option key={v.id} value={v.id}>{v.vehicle_no} — {v.last_status || 'Unknown'}</option>
@@ -146,24 +146,24 @@ export default function FleetAssignmentPage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
                   <input type="date" value={form.assigned_from} onChange={e => field('assigned_from', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">To (optional)</label>
                   <input type="date" value={form.assigned_to} onChange={e => field('assigned_to', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Daily Rate (KES)</label>
                 <input type="number" value={form.daily_rate} onChange={e => field('daily_rate', e.target.value)}
                   placeholder="0"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                 <input value={form.notes} onChange={e => field('notes', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
               <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
                 <input type="checkbox" checked={form.is_active} onChange={e => field('is_active', e.target.checked)}
@@ -171,11 +171,11 @@ export default function FleetAssignmentPage() {
                 Currently active on this project
               </label>
             </div>
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
               <button onClick={() => setModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
               <button onClick={() => assignMut.mutate(form)} disabled={!form.vehicle || !form.assigned_from || assignMut.isPending}
-                className="flex-1 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                 {assignMut.isPending ? 'Assigning…' : 'Assign Vehicle'}
               </button>
             </div>

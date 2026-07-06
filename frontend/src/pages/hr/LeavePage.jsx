@@ -332,29 +332,36 @@ export default function LeavePage() {
       {/* Reject modal */}
       {rejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="font-semibold text-brand-slate mb-1">Reject Leave Application</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              <span className="font-medium">{rejectModal.employee_name}</span>
-              {' — '}{rejectModal.leave_type_name}
-              {' · '}{rejectModal.start_date} → {rejectModal.end_date}
-              {' · '}{rejectModal.days} day{rejectModal.days !== 1 ? 's' : ''}
-            </p>
-            <label className="block text-xs text-gray-600 mb-1">Reason for rejection <span className="text-red-500">*</span></label>
-            <textarea
-              value={rejectNotes}
-              onChange={e => setRejectNotes(e.target.value)}
-              rows={3}
-              autoFocus
-              placeholder="Explain why this leave is being rejected…"
-              className="w-full px-2.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setRejectModal(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <p className="text-white font-bold text-base">Reject Leave Application</p>
+              <button onClick={() => setRejectModal(null)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">{rejectModal.employee_name}</span>
+                {' — '}{rejectModal.leave_type_name}
+                {' · '}{rejectModal.start_date} → {rejectModal.end_date}
+                {' · '}{rejectModal.days} day{rejectModal.days !== 1 ? 's' : ''}
+              </p>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Reason for rejection <span className="text-red-500">*</span></label>
+                <textarea
+                  value={rejectNotes}
+                  onChange={e => setRejectNotes(e.target.value)}
+                  rows={3}
+                  autoFocus
+                  placeholder="Explain why this leave is being rejected…"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <button onClick={() => setRejectModal(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
               <button
                 onClick={confirmReject}
                 disabled={reviewMut.isPending || !rejectNotes.trim()}
-                className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-medium disabled:opacity-60"
+                className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90"
               >
                 {reviewMut.isPending ? 'Rejecting…' : 'Reject'}
               </button>
@@ -597,16 +604,21 @@ function EditBalanceModal({ balance, onClose, onSave, saving }) {
     taken_days:      Number(balance.taken_days),
   })
   const f = k => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) })
-  const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
+  const cls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
   const bal = Number(form.entitled_days) + Number(form.carried_forward) - Number(form.taken_days)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-        <h3 className="font-semibold text-brand-slate mb-0.5">{balance.employee_name}</h3>
-        <p className="text-xs text-gray-500 mb-4">{balance.leave_type_name} · {balance.year}</p>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <p className="text-white font-bold text-base">{balance.employee_name}</p>
+            <p className="text-white/50 text-xs mt-0.5">{balance.leave_type_name} · {balance.year}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
 
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <div>
             <label className="block text-xs text-gray-600 mb-1">Entitled Days</label>
             <input type="number" min="0" step="0.5" className={cls} {...f('entitled_days')} />
@@ -630,12 +642,12 @@ function EditBalanceModal({ balance, onClose, onSave, saving }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
           <button
             onClick={() => onSave({ entitled_days: form.entitled_days, carried_forward: form.carried_forward, taken_days: form.taken_days })}
             disabled={saving}
-            className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-medium disabled:opacity-60">
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
             {saving ? 'Saving…' : 'Save'}
           </button>
         </div>

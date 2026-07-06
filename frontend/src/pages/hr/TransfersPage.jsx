@@ -342,34 +342,38 @@ export default function TransfersPage() {
 
       {/* Review modal */}
       {reviewModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-brand-slate mb-1 capitalize">
-              {reviewModal.action} Transfer
-            </h3>
-            <p className="text-sm text-gray-600 mb-1">
-              {reviewModal.transfer.employee_name} → {reviewModal.transfer.to_location}
-            </p>
-            {reviewModal.action === 'approved' && parseFloat(reviewModal.transfer.total_allowance) > 0 && (
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-3 text-xs text-green-800">
-                <BanknotesIcon className="h-4 w-4 text-green-600 shrink-0" />
-                An Expense Claim of <strong className="mx-1">KES {parseFloat(reviewModal.transfer.total_allowance).toLocaleString()}</strong> will be auto-raised in Finance → Expenses.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <p className="text-white font-bold text-base capitalize">{reviewModal.action} Transfer</p>
+              <button onClick={() => setReviewModal(null)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+              <p className="text-sm text-gray-600">
+                {reviewModal.transfer.employee_name} → {reviewModal.transfer.to_location}
+              </p>
+              {reviewModal.action === 'approved' && parseFloat(reviewModal.transfer.total_allowance) > 0 && (
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-800">
+                  <BanknotesIcon className="h-4 w-4 text-green-600 shrink-0" />
+                  An Expense Claim of <strong className="mx-1">KES {parseFloat(reviewModal.transfer.total_allowance).toLocaleString()}</strong> will be auto-raised in Finance → Expenses.
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Review Notes</label>
+                <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                  rows={3} placeholder="Optional notes…"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
-            )}
-            <label className="block text-xs font-medium text-gray-700 mb-1">Review Notes</label>
-            <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
-              rows={3} placeholder="Optional notes…"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red mb-4" />
-            <div className="flex gap-2 justify-end">
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
               <button onClick={() => setReviewModal(null)}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
                 Cancel
               </button>
               <button
                 onClick={() => reviewMut.mutate({ id: reviewModal.transfer.id, data: { action: reviewModal.action, review_notes: reviewNotes } })}
                 disabled={reviewMut.isPending}
-                className={`px-4 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50
-                  ${reviewModal.action === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-red hover:bg-brand-red-dark'}`}>
+                className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                 {reviewMut.isPending ? 'Saving…' : (reviewModal.action === 'approved' ? 'Approve & Raise Expense' : 'Reject')}
               </button>
             </div>

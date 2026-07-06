@@ -208,14 +208,14 @@ export default function ProjectsPage() {
 
       {/* Import Excel Modal */}
       {showImport && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-brand-slate">Import Projects from Excel</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Import Projects from Excel</h3>
               <button onClick={() => { setShowImport(false); setImportFile(null) }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="p-6">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               {/* Template guide */}
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
                 <p className="font-semibold mb-1">Excel column headers required:</p>
@@ -230,7 +230,7 @@ export default function ProjectsPage() {
                 <p><span className="font-mono bg-blue-100 px-1 rounded">Status</span> — planning / active / on hold / completed</p>
               </div>
 
-              <form onSubmit={handleImport} className="space-y-4">
+              <form id="import-form" onSubmit={handleImport} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Excel File (.xlsx) *</label>
                   <div
@@ -245,17 +245,17 @@ export default function ProjectsPage() {
                       onChange={e => setImportFile(e.target.files[0] || null)} />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" disabled={importMut.isPending || !importFile}
-                    className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-                    {importMut.isPending ? 'Importing…' : 'Import Projects'}
-                  </button>
-                  <button type="button" onClick={() => { setShowImport(false); setImportFile(null) }}
-                    className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-                    Cancel
-                  </button>
-                </div>
               </form>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <button type="submit" form="import-form" disabled={importMut.isPending || !importFile}
+                className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+                {importMut.isPending ? 'Importing…' : 'Import Projects'}
+              </button>
+              <button type="button" onClick={() => { setShowImport(false); setImportFile(null) }}
+                className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -263,14 +263,14 @@ export default function ProjectsPage() {
 
       {/* New Project Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-brand-slate">New Project</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">New Project</h3>
               <button onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form id="new-project-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { label: 'Project Code *', key: 'code',             placeholder: 'e.g. LZ-2026-001' },
@@ -288,13 +288,13 @@ export default function ProjectsPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                     <input type={type || 'text'} value={form[key]}
                       onChange={e => field(key, e.target.value)} placeholder={placeholder}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                   </div>
                 ))}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                   <select value={form.status} onChange={e => field('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
                     {Object.entries(STATUS_LABELS).map(([val, label]) => (
                       <option key={val} value={val}>{label}</option>
                     ))}
@@ -305,33 +305,33 @@ export default function ProjectsPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
                 <textarea rows={3} value={form.description} onChange={e => field('description', e.target.value)}
                   placeholder="Brief project description…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={createMut.isPending || !form.code || !form.name}
-                  className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-                  {createMut.isPending ? 'Creating…' : 'Create Project'}
-                </button>
-                <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                  className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-                  Cancel
-                </button>
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
             </form>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <button type="submit" form="new-project-form" disabled={createMut.isPending || !form.code || !form.name}
+                className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+                {createMut.isPending ? 'Creating…' : 'Create Project'}
+              </button>
+              <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
+                className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Import Budget Workbook Modal */}
       {showBudgetImport && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-brand-slate">Import Budget Workbook</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Import Budget Workbook</h3>
               <button onClick={() => { setShowBudget(false); setBudgetFile(null) }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="p-6">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
                 <p className="font-semibold mb-1">Combined MN + NS Budget Workbook format</p>
                 <p>The system will automatically detect projects from sheet prefixes (e.g. <span className="font-mono bg-blue-100 px-1 rounded">MN_Materials</span>, <span className="font-mono bg-blue-100 px-1 rounded">NS_FuelPlant</span>).</p>
@@ -343,32 +343,32 @@ export default function ProjectsPage() {
                 </ul>
                 <p className="mt-2 text-blue-600 font-medium">After import, go to the project to upload its BOQ separately.</p>
               </div>
-              <form onSubmit={handleBudgetImport} className="space-y-4">
+              <form id="budget-import-form" onSubmit={handleBudgetImport} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Budget Workbook (.xlsx) *</label>
                   <div
                     onClick={() => budgetRef.current?.click()}
-                    className="w-full border-2 border-dashed border-blue-200 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                    className="w-full border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-brand-red transition-colors"
                   >
                     {budgetFile
                       ? <p className="text-sm font-medium text-brand-slate">{budgetFile.name}</p>
-                      : <><TableCellsIcon className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                      : <><TableCellsIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                          <p className="text-sm text-gray-600">Click to select workbook</p></>}
                     <input ref={budgetRef} type="file" accept=".xlsx" className="hidden"
                       onChange={e => setBudgetFile(e.target.files[0] || null)} />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" disabled={budgetImportMut.isPending || !budgetFile}
-                    className="px-5 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-                    {budgetImportMut.isPending ? 'Importing…' : 'Import Budget Workbook'}
-                  </button>
-                  <button type="button" onClick={() => { setShowBudget(false); setBudgetFile(null) }}
-                    className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
-                    Cancel
-                  </button>
-                </div>
               </form>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <button type="submit" form="budget-import-form" disabled={budgetImportMut.isPending || !budgetFile}
+                className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+                {budgetImportMut.isPending ? 'Importing…' : 'Import Budget Workbook'}
+              </button>
+              <button type="button" onClick={() => { setShowBudget(false); setBudgetFile(null) }}
+                className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+                Cancel
+              </button>
             </div>
           </div>
         </div>

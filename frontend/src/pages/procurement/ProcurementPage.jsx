@@ -8,7 +8,6 @@ import {
   ShoppingBagIcon,
   MagnifyingGlassIcon,
   BuildingStorefrontIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -143,56 +142,60 @@ function AddSupplierModal({ onClose }) {
     mutation.mutate({ ...form, supply_categories: cats })
   }
 
-  const inp = 'w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red'
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
   const lbl = 'block text-xs font-medium text-gray-500 mb-1'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">Add Supplier</h2>
-          <button onClick={onClose}><XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h2 className="text-white font-bold text-base">Add Supplier</h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <label className={lbl}>Company Name *</label>
-            <input required className={inp} value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className={lbl}>Company Name *</label>
+                <input required className={inp} value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>KRA PIN *</label>
+                <input required className={inp} value={form.kra_pin} onChange={e => setForm({ ...form, kra_pin: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>VAT Number</label>
+                <input className={inp} value={form.vat_number} onChange={e => setForm({ ...form, vat_number: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>Contact Person *</label>
+                <input required className={inp} value={form.contact_person} onChange={e => setForm({ ...form, contact_person: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>Email *</label>
+                <input required type="email" className={inp} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>Phone *</label>
+                <input required className={inp} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>Payment Terms *</label>
+                <input required className={inp} value={form.payment_terms} onChange={e => setForm({ ...form, payment_terms: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <label className={lbl}>Supply Categories (comma-separated)</label>
+                <input className={inp} placeholder="e.g. materials, fuel, services" value={form.supply_categories} onChange={e => setForm({ ...form, supply_categories: e.target.value })} />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className={lbl}>KRA PIN *</label>
-            <input required className={inp} value={form.kra_pin} onChange={e => setForm({ ...form, kra_pin: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>VAT Number</label>
-            <input className={inp} value={form.vat_number} onChange={e => setForm({ ...form, vat_number: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>Contact Person *</label>
-            <input required className={inp} value={form.contact_person} onChange={e => setForm({ ...form, contact_person: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>Email *</label>
-            <input required type="email" className={inp} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>Phone *</label>
-            <input required className={inp} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>Payment Terms *</label>
-            <input required className={inp} value={form.payment_terms} onChange={e => setForm({ ...form, payment_terms: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <label className={lbl}>Supply Categories (comma-separated)</label>
-            <input className={inp} placeholder="e.g. materials, fuel, services" value={form.supply_categories} onChange={e => setForm({ ...form, supply_categories: e.target.value })} />
-          </div>
-          <div className="col-span-2 flex gap-3 pt-2">
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
             <button type="submit" disabled={mutation.isPending}
-              className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60">
+              className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
               {mutation.isPending ? 'Saving…' : 'Save Supplier'}
             </button>
             <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">
+              className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
               Cancel
             </button>
           </div>
