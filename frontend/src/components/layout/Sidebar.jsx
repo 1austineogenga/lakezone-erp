@@ -125,14 +125,15 @@ const MODULES = [
       {
         heading: 'Vehicles',
         links: [
-          { to: '/fleet/vehicles',    label: 'Vehicles',    icon: TruckIcon },
-          { to: '/fleet/receiving',     label: 'Receiving',     icon: DocumentCheckIcon },
-          { to: '/fleet/key-issuance', label: 'Key Issuance',  icon: KeyIcon },
-          { to: '/fleet/maintenance',  label: 'Maintenance',   icon: WrenchScrewdriverIcon },
+          { to: '/fleet/vehicles',     label: 'Vehicles',     icon: TruckIcon },
+          { to: '/fleet/receiving',    label: 'Receiving',    icon: DocumentCheckIcon },
+          { to: '/fleet/key-issuance', label: 'Key Issuance', icon: KeyIcon, hideRoles: new Set(['site_manager', 'site_engineer', 'site_foreman']) },
+          { to: '/fleet/maintenance',  label: 'Maintenance',  icon: WrenchScrewdriverIcon },
         ],
       },
       {
         heading: 'Monitoring',
+        hideRoles: new Set(['facility_manager']),
         links: [
           { to: '/fleet/alerts', label: 'Alerts',      icon: ExclamationTriangleIcon },
           { to: '/fleet/fuel',   label: 'Fuel Report', icon: BeakerIcon },
@@ -142,6 +143,7 @@ const MODULES = [
       },
       {
         heading: 'Control',
+        hideRoles: new Set(['facility_manager']),
         links: [
           { to: '/fleet/geofences', label: 'Geofences', icon: MapIcon },
         ],
@@ -264,16 +266,18 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
 
                   {!collapsed && isOpen && (
                     <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
-                      {sections.filter(section =>
-                        section.heading !== 'Config' || isAdmin
-                      ).map((section, si) => (
+                      {sections.filter(section => {
+                        if (section.heading === 'Config' && !isAdmin) return false
+                        if (section.hideRoles && section.hideRoles.has(role)) return false
+                        return true
+                      }).map((section, si) => (
                         <div key={si}>
                           {section.heading && (
                             <p className="px-2 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-widest text-slate-600">
                               {section.heading}
                             </p>
                           )}
-                          {section.links.map(({ to, label: lbl, icon: LIcon, end }) => (
+                          {section.links.filter(({ hideRoles }) => !hideRoles || !hideRoles.has(role)).map(({ to, label: lbl, icon: LIcon, end }) => (
                             <NavLink key={to} to={to} end={!!end}
                               className={({ isActive }) =>
                                 `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
