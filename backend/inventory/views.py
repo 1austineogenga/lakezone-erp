@@ -129,7 +129,7 @@ class StockItemListCreateView(generics.ListCreateAPIView):
         # Auto-create a StockLevel for the user's store (qty=0) if one doesn't exist
         user_store = get_user_store(user)
         if user_store:
-            StockLevel.objects.get_or_create(item=item, store=user_store, defaults={'quantity': 0})
+            StockLevel.objects.get_or_create(item=item, store=user_store, defaults={'quantity_on_hand': 0})
 
 
 class StockItemDetailView(generics.RetrieveUpdateAPIView):
@@ -365,3 +365,390 @@ class AssetDashboardView(APIView):
             'by_category': by_category,
             'by_condition': by_condition,
         })
+
+
+# ── Store Request views ───────────────────────────────────────────────────────
+
+import uuid as _uuid_mod
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from .models import StoreRequest
+from .serializers import (
+    StoreItemBrowseSerializer,
+    StoreRequestSerializer, StoreRequestListSerializer,
+    StoreRequestCreateSerializer, StoreRequestApproveSerializer,
+    StoreRequestRejectSerializer, StoreRequestDispatchSerializer,
+    StoreRequestReceiveSerializer, StoreRequestReturnSerializer,
+)
+
+
+def _notify_sr(users, ntype, title, message, link):
+    """Fire a notification to a list of users, swallowing errors."""
+    try:
+        from notifications.signals import notify
+        from notifications.models import Notification
+        for u in users:
+            notify(u, ntype, title, message, link)
+    except Exception:
+        pass
+
+
+def _storekeepers_for_store(store):
+    """Return users who are storekeepers for the given store."""
+    User = get_user_model()
+    roles = [r for r, sname in ROLE_STORE_MAP.items() if sname == store.name]
+    roles.append('system_admin')
+    return list(User.objects.filter(role__in=roles, is_active=True))
+
+
+# Read-only item list for any store — used by the request form
+class StoreItemsBrowseView(generics.ListAPIView):
+    serializer_class = StoreItemBrowseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        store_pk = self.kwargs['store_pk']
+        return (
+            StockItem.objects
+            .filter(is_active=True, stock_levels__store_id=store_pk)
+            .prefetch_related('stock_levels')
+            .distinct()
+            .order_by('name')
+        )
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['store_pk'] = str(self.kwargs['store_pk'])
+        return ctx
+
+
+class StoreRequestListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return StoreRequestCreateSerializer
+        return StoreRequestListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        view = self.request.query_params.get('view', '')
+
+        qs = StoreRequest.objects.select_related(
+            'item', 'source_store', 'destination_store',
+            'requested_by', 'approved_by', 'dispatched_by', 'received_by',
+        )
+
+        if role in VIEW_ALL_ROLES:
+            # MD / system_admin see everything; filter by view param
+            if view == 'incoming':
+                user_store = get_user_store(user)
+                if user_store:
+                    qs = qs.filter(source_store=user_store)
+            elif view == 'outgoing':
+                qs = qs.filter(requested_by=user)
+            elif view == 'receipts':
+                qs = qs.filter(requested_by=user, status=StoreRequest.Status.DISPATCHED)
+            # else return all
+            return qs
+
+        user_store = get_user_store(user)
+        can_write = _can_edit(user)
+
+        if view == 'incoming' and can_write and user_store:
+            return qs.filter(source_store=user_store)
+        if view == 'outgoing':
+            return qs.filter(requested_by=user)
+        if view == 'receipts':
+            return qs.filter(requested_by=user, status=StoreRequest.Status.DISPATCHED)
+
+        # default: storekeeper sees incoming to their store + their own requests
+        if can_write and user_store:
+            from django.db.models import Q
+            return qs.filter(
+                Q(source_store=user_store) | Q(requested_by=user)
+            ).distinct()
+
+        # regular employee: their own requests only
+        return qs.filter(requested_by=user)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        source_store = serializer.validated_data['source_store']
+        # Auto-resolve destination store from requester's role
+        user_store = get_user_store(user)
+        dest = user_store if (user_store and user_store != source_store) else None
+
+        req = serializer.save(
+            requested_by=user,
+            destination_store=dest,
+            status=StoreRequest.Status.SUBMITTED,
+        )
+        # Notify storekeepers
+        link = f'/inventory/requests/{req.id}'
+        keepers = _storekeepers_for_store(source_store)
+        from notifications.models import Notification
+        _notify_sr(
+            keepers,
+            Notification.Type.SR_SUBMITTED,
+            f'New Store Request {req.reference}',
+            f'{user.get_full_name() or user.username} requested {req.quantity_requested} {req.item.unit} of {req.item.name}.',
+            link,
+        )
+
+
+class StoreRequestDetailView(generics.RetrieveAPIView):
+    serializer_class = StoreRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        qs = StoreRequest.objects.select_related(
+            'item', 'source_store', 'destination_store',
+            'requested_by', 'approved_by', 'dispatched_by', 'received_by',
+        )
+        if role in VIEW_ALL_ROLES:
+            return qs
+        from django.db.models import Q
+        user_store = get_user_store(user)
+        if user_store and _can_edit(user):
+            return qs.filter(Q(source_store=user_store) | Q(requested_by=user))
+        return qs.filter(requested_by=user)
+
+
+def _get_request_or_403(pk, user):
+    from rest_framework.exceptions import NotFound
+    try:
+        req = StoreRequest.objects.select_related(
+            'item', 'source_store', 'destination_store', 'requested_by'
+        ).get(pk=pk)
+    except StoreRequest.DoesNotExist:
+        raise NotFound()
+    return req
+
+
+class StoreRequestApproveView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status != StoreRequest.Status.SUBMITTED:
+            return Response({'detail': 'Request is not in submitted state.'}, status=400)
+        user = request.user
+        user_store = get_user_store(user)
+        if not (_can_edit_anywhere(user) or (user_store and user_store == req.source_store)):
+            raise PermissionDenied('You are not a storekeeper for this store.')
+        serializer = StoreRequestApproveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+        if d['quantity_approved'] > req.quantity_requested:
+            return Response({'detail': 'Approved quantity cannot exceed requested quantity.'}, status=400)
+        req.quantity_approved = d['quantity_approved']
+        req.storekeeper_notes = d.get('storekeeper_notes', '')
+        req.approved_by = user
+        req.approved_at = timezone.now()
+        req.status = StoreRequest.Status.APPROVED
+        req.save()
+        from notifications.models import Notification
+        _notify_sr(
+            [req.requested_by],
+            Notification.Type.SR_APPROVED,
+            f'Store Request {req.reference} Approved',
+            f'Your request for {req.quantity_approved} {req.item.unit} of {req.item.name} has been approved.',
+            f'/inventory/requests/{req.id}',
+        )
+        return Response(StoreRequestSerializer(req).data)
+
+
+class StoreRequestRejectView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status not in (StoreRequest.Status.SUBMITTED, StoreRequest.Status.APPROVED):
+            return Response({'detail': 'Cannot reject at this stage.'}, status=400)
+        user = request.user
+        user_store = get_user_store(user)
+        if not (_can_edit_anywhere(user) or (user_store and user_store == req.source_store)):
+            raise PermissionDenied('You are not a storekeeper for this store.')
+        serializer = StoreRequestRejectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        req.rejection_reason = serializer.validated_data['rejection_reason']
+        req.approved_by = user
+        req.status = StoreRequest.Status.REJECTED
+        req.save()
+        from notifications.models import Notification
+        _notify_sr(
+            [req.requested_by],
+            Notification.Type.SR_REJECTED,
+            f'Store Request {req.reference} Rejected',
+            f'Your request for {req.item.name} was rejected. Reason: {req.rejection_reason}',
+            f'/inventory/requests/{req.id}',
+        )
+        return Response(StoreRequestSerializer(req).data)
+
+
+class StoreRequestDispatchView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status != StoreRequest.Status.APPROVED:
+            return Response({'detail': 'Request must be approved before dispatching.'}, status=400)
+        user = request.user
+        user_store = get_user_store(user)
+        if not (_can_edit_anywhere(user) or (user_store and user_store == req.source_store)):
+            raise PermissionDenied('You are not a storekeeper for this store.')
+        serializer = StoreRequestDispatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Deduct from source store via StockTransaction (which updates StockLevel automatically)
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        ref = f'SR-OUT-{_uuid_mod.uuid4().hex[:8].upper()}'
+        try:
+            level = StockLevel.objects.get(item=req.item, store=req.source_store)
+            unit_cost = float(level.weighted_avg_cost)
+            StockTransaction.objects.create(
+                transaction_type='issue',
+                item=req.item,
+                store=req.source_store,
+                quantity=req.quantity_approved,
+                unit_cost=unit_cost,
+                reference_number=ref,
+                processed_by=user,
+                transaction_date=timezone.now(),
+                issued_to=req.requested_by,
+                notes=f'Dispatch for store request {req.reference}',
+            )
+        except (StockLevel.DoesNotExist, DjangoValidationError) as e:
+            return Response({'detail': str(e)}, status=400)
+
+        if serializer.validated_data.get('storekeeper_notes'):
+            req.storekeeper_notes = serializer.validated_data['storekeeper_notes']
+        req.dispatched_by = user
+        req.dispatched_at = timezone.now()
+        req.status = StoreRequest.Status.DISPATCHED
+        req.save()
+        from notifications.models import Notification
+        _notify_sr(
+            [req.requested_by],
+            Notification.Type.SR_DISPATCHED,
+            f'Items Dispatched — {req.reference}',
+            f'{req.quantity_approved} {req.item.unit} of {req.item.name} have been dispatched to you. Please confirm receipt.',
+            f'/inventory/requests/{req.id}',
+        )
+        return Response(StoreRequestSerializer(req).data)
+
+
+class StoreRequestReceiveView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status != StoreRequest.Status.DISPATCHED:
+            return Response({'detail': 'No pending dispatch to confirm.'}, status=400)
+        if req.requested_by != request.user and not _can_edit_anywhere(request.user):
+            raise PermissionDenied('Only the requester can confirm receipt.')
+        serializer = StoreRequestReceiveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        qty_recv = serializer.validated_data['quantity_received']
+
+        # Credit destination store (if any) via StockTransaction
+        if req.destination_store:
+            try:
+                src_level = StockLevel.objects.get(item=req.item, store=req.source_store)
+                unit_cost = float(src_level.weighted_avg_cost)
+            except StockLevel.DoesNotExist:
+                unit_cost = 0
+            ref = f'SR-IN-{_uuid_mod.uuid4().hex[:8].upper()}'
+            StockTransaction.objects.create(
+                transaction_type='grn',
+                item=req.item,
+                store=req.destination_store,
+                quantity=qty_recv,
+                unit_cost=unit_cost,
+                reference_number=ref,
+                processed_by=request.user,
+                transaction_date=timezone.now(),
+                notes=f'Receipt for store request {req.reference}',
+            )
+
+        req.quantity_received = qty_recv
+        req.received_by = request.user
+        req.received_at = timezone.now()
+        req.status = StoreRequest.Status.RECEIVED
+        req.save()
+        from notifications.models import Notification
+        keepers = _storekeepers_for_store(req.source_store)
+        _notify_sr(
+            keepers,
+            Notification.Type.SR_RECEIVED,
+            f'Store Request {req.reference} Received',
+            f'{request.user.get_full_name() or request.user.username} confirmed receipt of {qty_recv} {req.item.unit} of {req.item.name}.',
+            f'/inventory/requests/{req.id}',
+        )
+        return Response(StoreRequestSerializer(req).data)
+
+
+class StoreRequestReturnView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status != StoreRequest.Status.DISPATCHED:
+            return Response({'detail': 'Can only return dispatched items.'}, status=400)
+        if req.requested_by != request.user and not _can_edit_anywhere(request.user):
+            raise PermissionDenied('Only the requester can return items.')
+        serializer = StoreRequestReturnSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Re-credit source store
+        try:
+            level = StockLevel.objects.get(item=req.item, store=req.source_store)
+            unit_cost = float(level.weighted_avg_cost)
+        except StockLevel.DoesNotExist:
+            unit_cost = 0
+        ref = f'SR-RET-{_uuid_mod.uuid4().hex[:8].upper()}'
+        StockTransaction.objects.create(
+            transaction_type='return',
+            item=req.item,
+            store=req.source_store,
+            quantity=req.quantity_approved,
+            unit_cost=unit_cost,
+            reference_number=ref,
+            processed_by=request.user,
+            transaction_date=timezone.now(),
+            notes=f'Return for store request {req.reference}: {serializer.validated_data["return_reason"]}',
+        )
+        req.return_reason = serializer.validated_data['return_reason']
+        req.received_by = request.user
+        req.received_at = timezone.now()
+        req.status = StoreRequest.Status.RETURNED
+        req.save()
+        from notifications.models import Notification
+        keepers = _storekeepers_for_store(req.source_store)
+        _notify_sr(
+            keepers,
+            Notification.Type.SR_RETURNED,
+            f'Store Request {req.reference} Returned',
+            f'{request.user.get_full_name() or request.user.username} returned {req.quantity_approved} {req.item.unit} of {req.item.name}. Reason: {req.return_reason}',
+            f'/inventory/requests/{req.id}',
+        )
+        return Response(StoreRequestSerializer(req).data)
+
+
+class StoreRequestCancelView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        req = _get_request_or_403(pk, request.user)
+        if req.status in (StoreRequest.Status.DISPATCHED, StoreRequest.Status.RECEIVED,
+                          StoreRequest.Status.RETURNED, StoreRequest.Status.CANCELLED):
+            return Response({'detail': 'Cannot cancel at this stage.'}, status=400)
+        if req.requested_by != request.user and not _can_edit_anywhere(request.user):
+            raise PermissionDenied('Only the requester can cancel their request.')
+        req.status = StoreRequest.Status.CANCELLED
+        req.save()
+        return Response(StoreRequestSerializer(req).data)

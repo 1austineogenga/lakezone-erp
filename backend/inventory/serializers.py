@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Store, StockItem, StockLevel, StockTransaction, Asset, AssetMaintenanceLog
+from .models import Store, StockItem, StockLevel, StockTransaction, Asset, AssetMaintenanceLog, StoreRequest
 
 
 class StoreSerializer(serializers.ModelSerializer):
@@ -151,3 +151,123 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_maintenance_count(self, obj):
         return obj.maintenance_logs.count()
+
+
+# ── Store Item Browse (for request form — any user, read-only) ────────────────
+
+class StoreItemBrowseSerializer(serializers.ModelSerializer):
+    stock_in_store = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockItem
+        fields = ['id', 'item_code', 'name', 'category', 'unit', 'reorder_level',
+                  'weighted_avg_cost', 'stock_in_store']
+
+    def get_stock_in_store(self, obj):
+        store_pk = self.context.get('store_pk')
+        for sl in obj.stock_levels.all():
+            if str(sl.store_id) == str(store_pk):
+                return float(sl.quantity_on_hand)
+        return 0
+
+    def get_weighted_avg_cost(self, obj):
+        store_pk = self.context.get('store_pk')
+        for sl in obj.stock_levels.all():
+            if str(sl.store_id) == str(store_pk):
+                return float(sl.weighted_avg_cost)
+        return 0
+
+    # declare the field as SerializerMethodField too
+    weighted_avg_cost = serializers.SerializerMethodField()
+
+
+# ── Store Request serializers ─────────────────────────────────────────────────
+
+class StoreRequestSerializer(serializers.ModelSerializer):
+    requested_by_name   = serializers.CharField(source='requested_by.get_full_name',  read_only=True)
+    requested_by_role   = serializers.CharField(source='requested_by.role',            read_only=True)
+    approved_by_name    = serializers.CharField(source='approved_by.get_full_name',    read_only=True)
+    dispatched_by_name  = serializers.CharField(source='dispatched_by.get_full_name',  read_only=True)
+    received_by_name    = serializers.CharField(source='received_by.get_full_name',    read_only=True)
+    source_store_name   = serializers.CharField(source='source_store.name',            read_only=True)
+    destination_store_name = serializers.CharField(source='destination_store.name',    read_only=True)
+    item_name           = serializers.CharField(source='item.name',                    read_only=True)
+    item_code           = serializers.CharField(source='item.item_code',               read_only=True)
+    item_unit           = serializers.CharField(source='item.unit',                    read_only=True)
+
+    class Meta:
+        model  = StoreRequest
+        fields = [
+            'id', 'reference', 'status',
+            'item', 'item_name', 'item_code', 'item_unit',
+            'quantity_requested', 'quantity_approved', 'quantity_received',
+            'source_store', 'source_store_name',
+            'destination_store', 'destination_store_name',
+            'requested_by', 'requested_by_name', 'requested_by_role',
+            'approved_by', 'approved_by_name',
+            'dispatched_by', 'dispatched_by_name',
+            'received_by', 'received_by_name',
+            'justification', 'storekeeper_notes', 'rejection_reason', 'return_reason',
+            'requested_at', 'approved_at', 'dispatched_at', 'received_at',
+        ]
+        read_only_fields = fields
+
+
+class StoreRequestListSerializer(serializers.ModelSerializer):
+    requested_by_name = serializers.CharField(source='requested_by.get_full_name', read_only=True)
+    source_store_name = serializers.CharField(source='source_store.name',           read_only=True)
+    item_name         = serializers.CharField(source='item.name',                   read_only=True)
+    item_unit         = serializers.CharField(source='item.unit',                   read_only=True)
+
+    class Meta:
+        model  = StoreRequest
+        fields = [
+            'id', 'reference', 'status',
+            'item', 'item_name', 'item_unit',
+            'quantity_requested', 'quantity_approved', 'quantity_received',
+            'source_store', 'source_store_name',
+            'requested_by_name', 'justification',
+            'requested_at', 'approved_at', 'dispatched_at', 'received_at',
+        ]
+
+
+class StoreRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = StoreRequest
+        fields = ['item', 'quantity_requested', 'source_store', 'justification']
+
+    def validate_quantity_requested(self, v):
+        if v <= 0:
+            raise serializers.ValidationError('Quantity must be greater than 0.')
+        return v
+
+
+class StoreRequestApproveSerializer(serializers.Serializer):
+    quantity_approved  = serializers.DecimalField(max_digits=14, decimal_places=4)
+    storekeeper_notes  = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_quantity_approved(self, v):
+        if v <= 0:
+            raise serializers.ValidationError('Approved quantity must be greater than 0.')
+        return v
+
+
+class StoreRequestRejectSerializer(serializers.Serializer):
+    rejection_reason = serializers.CharField()
+
+
+class StoreRequestDispatchSerializer(serializers.Serializer):
+    storekeeper_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class StoreRequestReceiveSerializer(serializers.Serializer):
+    quantity_received = serializers.DecimalField(max_digits=14, decimal_places=4)
+
+    def validate_quantity_received(self, v):
+        if v <= 0:
+            raise serializers.ValidationError('Received quantity must be greater than 0.')
+        return v
+
+
+class StoreRequestReturnSerializer(serializers.Serializer):
+    return_reason = serializers.CharField()

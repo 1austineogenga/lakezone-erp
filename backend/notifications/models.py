@@ -23,6 +23,12 @@ class Notification(models.Model):
         REQ_REJECTED         = "req_rejected",         "Requisition Rejected"
         REQ_DEPT_REVIEW      = "req_dept_review",      "Requisition Sent to MD"
         REQ_FULFILLED        = "req_fulfilled",        "Requisition Fulfilled"
+        SR_SUBMITTED  = "sr_submitted",  "Store Request Submitted"
+        SR_APPROVED   = "sr_approved",   "Store Request Approved"
+        SR_REJECTED   = "sr_rejected",   "Store Request Rejected"
+        SR_DISPATCHED = "sr_dispatched", "Store Request Dispatched"
+        SR_RECEIVED   = "sr_received",   "Store Request Received"
+        SR_RETURNED   = "sr_returned",   "Store Request Returned"
         GENERAL              = "general",              "General"
 
     recipient = models.ForeignKey(
