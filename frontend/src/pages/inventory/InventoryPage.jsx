@@ -31,16 +31,17 @@ const ROLE_STORE_MAP = {
   driver:               'General Store',
   head_of_security:     'General Store',
   surveillance_officer: 'General Store',
-  chef:                 'General Store',
   cleaner:              'General Store',
   storekeeper:          'General Store',
   fleet_manager:        'General Store',
+  procurement_officer:  'General Store',
   admin_officer:        'Admin Store',
   sales_officer:        'Admin Store',
-  hr_manager:           'HR Store',
-  finance_officer:      'Finance Store',
-  finance_manager:      'Finance Store',
+  hr_manager:           'Admin Store',
+  finance_officer:      'Admin Store',
+  finance_manager:      'Admin Store',
   system_admin:         null, // all stores, full rights
+  chef:                 'Kitchen Store',
   site_manager:         'Site Store',
   site_engineer:        'Site Store',
   site_foreman:         'Site Store',
@@ -48,7 +49,6 @@ const ROLE_STORE_MAP = {
   mechanic:             'Site Store',
   welder:               'Site Store',
   project_manager:      'Site Store',
-  procurement_officer:  'Procurement Store',
   managing_director:    null, // all stores, view-only
 }
 
@@ -487,9 +487,9 @@ export default function InventoryPage() {
 
   const [tab, setTab]             = useState('items')
   const [activeStore, setActiveStore] = useState(null)
-  const [search, setSearch]       = useState('')
-  const [filterCat, setFilterCat] = useState('')
-  const [itemPage, setItemPage]   = useState(1)
+  const [search, setSearch]         = useState('')
+  const [filterStore, setFilterStore] = useState('')
+  const [itemPage, setItemPage]     = useState(1)
   const resetItemPage = () => setItemPage(1)
   const [showAddItem, setShowAddItem] = useState(false)
   const [editItem, setEditItem]   = useState(null)
@@ -642,10 +642,11 @@ export default function InventoryPage() {
       const matchSearch = !search ||
         i.name.toLowerCase().includes(search.toLowerCase()) ||
         (i.item_code || '').toLowerCase().includes(search.toLowerCase())
-      const matchCat = !filterCat || i.category === filterCat
-      return matchSearch && matchCat
+      const matchStore = !filterStore ||
+        (i.stock_levels || []).some(sl => String(sl.store) === String(filterStore) || String(sl.store_name) === filterStore)
+      return matchSearch && matchStore
     }),
-  [items, search, filterCat])
+  [items, search, filterStore])
 
   const safeItemPage = Math.min(itemPage, Math.max(1, Math.ceil(filteredItems.length / INV_PAGE_SIZE)))
   const pagedItems   = filteredItems.slice((safeItemPage - 1) * INV_PAGE_SIZE, safeItemPage * INV_PAGE_SIZE)
@@ -757,7 +758,7 @@ export default function InventoryPage() {
         <div className="flex gap-2 overflow-x-auto pb-1">
           {visibleStores.map(s => (
             <button key={s.id}
-              onClick={() => setActiveStore(s)}
+              onClick={() => { setActiveStore(s); setFilterStore('') }}
               className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors
                 ${activeStore?.id === s.id
                   ? 'bg-brand-slate text-white'
@@ -856,13 +857,15 @@ export default function InventoryPage() {
                     placeholder="Search name or code…"
                     className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red" />
                 </div>
-                <select
-                  value={filterCat}
-                  onChange={e => { setFilterCat(e.target.value); resetItemPage() }}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
-                  <option value="">All Categories</option>
-                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                {showAllStores && (
+                  <select
+                    value={filterStore}
+                    onChange={e => { setFilterStore(e.target.value); resetItemPage() }}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                    <option value="">All Stores</option>
+                    {visibleStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                )}
                 {!isReadOnly && (
                   <button
                     onClick={() => setTab('issue')}
