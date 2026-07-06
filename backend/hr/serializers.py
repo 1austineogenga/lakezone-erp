@@ -179,7 +179,9 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
         return obj.employee.full_name if obj.employee else ''
 
     def get_employee_designation(self, obj):
-        return (obj.employee.position_title or '') if obj.employee else ''
+        if obj.employee and obj.employee.position:
+            return obj.employee.position.title or ''
+        return ''
 
     def get_employee_department(self, obj):
         if obj.employee and obj.employee.department:
