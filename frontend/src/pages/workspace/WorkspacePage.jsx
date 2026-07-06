@@ -6,11 +6,12 @@ import {
   UserCircleIcon, KeyIcon, CalendarDaysIcon, CurrencyDollarIcon,
   ClipboardDocumentListIcon, DocumentTextIcon, CameraIcon,
   CheckCircleIcon, ClockIcon, BanknotesIcon, PlusIcon,
-  PrinterIcon, ChartBarIcon, ArrowRightIcon,
+  PrinterIcon, ChartBarIcon, ArrowRightIcon, ArchiveBoxArrowDownIcon,
 } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import useAuthStore from '../../store/authStore'
 import { printDoc } from '../../utils/print'
+import { getStores, getStoreItems, createStoreRequest, getStoreRequests, cancelStoreRequest } from '../../api/inventory'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 const getMe            = ()     => api.get('/auth/me/')
@@ -43,6 +44,28 @@ const STATUS_COLORS = {
 }
 
 const fmt = (n) => `KES ${Number(n || 0).toLocaleString()}`
+
+const SR_STATUS_COLORS = {
+  submitted:  'bg-yellow-100 text-yellow-700',
+  approved:   'bg-blue-100 text-blue-700',
+  rejected:   'bg-red-100 text-red-700',
+  dispatched: 'bg-purple-100 text-purple-700',
+  received:   'bg-green-100 text-green-700',
+  returned:   'bg-amber-100 text-amber-700',
+  cancelled:  'bg-gray-100 text-gray-500',
+}
+
+const SR_STATUS_LABELS = {
+  submitted:  'Submitted',
+  approved:   'Approved',
+  rejected:   'Rejected',
+  dispatched: 'Dispatched',
+  received:   'Received',
+  returned:   'Returned',
+  cancelled:  'Cancelled',
+}
+
+const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 
 const TABS = [
   { id: 'overview',      label: 'Overview',        icon: ChartBarIcon },
@@ -100,8 +123,132 @@ function printPayslip(entry, user) {
   })
 }
 
+// ── Request Items Modal ───────────────────────────────────────────────────────
+function RequestItemsModal({ onClose }) {
+  const qc = useQueryClient()
+  const [selectedStoreId, setSelectedStoreId] = useState('')
+  const [form, setForm] = useState({ item: '', quantity: '', justification: '' })
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: getStores,
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  const { data: storeItems = [], isFetching: fetchingItems } = useQuery({
+    queryKey: ['store-browse-items', selectedStoreId],
+    queryFn: () => getStoreItems(selectedStoreId),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!selectedStoreId,
+  })
+
+  const createMut = useMutation({
+    mutationFn: (d) => createStoreRequest(d),
+    onSuccess: () => {
+      toast.success('Store request submitted')
+      qc.invalidateQueries({ queryKey: ['my-store-requests'] })
+      onClose()
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.detail || d?.item?.[0] || d?.quantity_requested?.[0] || 'Failed to submit request')
+    },
+  })
+
+  const canSubmit = selectedStoreId && form.item && form.quantity && form.justification.trim()
+  const selectedItem = storeItems.find(i => String(i.id) === String(form.item))
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+
+        <div className="bg-[#1a2332] rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Request Items from Store</h2>
+            <p className="text-white/50 text-xs mt-0.5">Select a store and the item you need</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Store <span className="text-red-500">*</span></label>
+            <select className={inp} value={selectedStoreId}
+              onChange={e => { setSelectedStoreId(e.target.value); setForm(f => ({ ...f, item: '' })) }}>
+              <option value="">— Select a store —</option>
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {selectedStoreId && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Item <span className="text-red-500">*</span></label>
+              {fetchingItems ? (
+                <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
+              ) : storeItems.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">No items found in this store.</p>
+              ) : (
+                <>
+                  <select className={inp} value={form.item}
+                    onChange={e => setForm(f => ({ ...f, item: e.target.value }))}>
+                    <option value="">— Select an item —</option>
+                    {storeItems.map(i => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.item_code}) — {Number(i.stock_in_store).toLocaleString()} {i.unit} in stock
+                      </option>
+                    ))}
+                  </select>
+                  {selectedItem && (
+                    <div className="mt-1.5 flex items-center gap-3 text-xs">
+                      <span className="text-gray-500">In stock:</span>
+                      <span className={`font-semibold ${Number(selectedItem.stock_in_store) === 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        {Number(selectedItem.stock_in_store).toLocaleString()} {selectedItem.unit}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Quantity Requested <span className="text-red-500">*</span></label>
+            <input type="number" min="0.01" step="any" className={inp}
+              value={form.quantity}
+              onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+              placeholder="0" />
+            {selectedItem && form.quantity && Number(form.quantity) > Number(selectedItem.stock_in_store) && (
+              <p className="text-[11px] text-amber-600 mt-1">⚠ Requested qty exceeds current stock — storekeeper may approve a partial quantity.</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Justification <span className="text-red-500">*</span></label>
+            <textarea rows={3} className={`${inp} resize-none`}
+              value={form.justification}
+              onChange={e => setForm(f => ({ ...f, justification: e.target.value }))}
+              placeholder="Explain why you need this item (e.g. Site works — Thika Road, replacing damaged equipment…)" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button
+            onClick={() => createMut.mutate({ item: form.item, quantity_requested: Number(form.quantity), source_store: selectedStoreId, justification: form.justification })}
+            disabled={createMut.isPending || !canSubmit}
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+            {createMut.isPending ? 'Submitting…' : 'Submit Request'}
+          </button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab }) {
+function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab, onRequestItems }) {
   const navigate = useNavigate()
 
   const photoUrl = user?.profile_photo
@@ -113,9 +260,10 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
   const totalLeaveLeft  = leaveBalances.reduce((s, b) => s + Number(b.balance || 0), 0)
 
   const quickActions = [
-    { label: 'Apply for Leave',    icon: CalendarDaysIcon,   color: 'text-green-600 bg-green-50',  tab: 'leave' },
-    { label: 'Request Advance',    icon: CurrencyDollarIcon, color: 'text-blue-600 bg-blue-50',    tab: 'advance' },
-    { label: 'View Payslips',      icon: DocumentTextIcon,   color: 'text-purple-600 bg-purple-50', tab: 'payslips' },
+    { label: 'Apply for Leave',    icon: CalendarDaysIcon,         color: 'text-green-600 bg-green-50',   tab: 'leave' },
+    { label: 'Request Advance',    icon: CurrencyDollarIcon,       color: 'text-blue-600 bg-blue-50',     tab: 'advance' },
+    { label: 'Request Items',      icon: ArchiveBoxArrowDownIcon,  color: 'text-orange-600 bg-orange-50', action: onRequestItems },
+    { label: 'View Payslips',      icon: DocumentTextIcon,         color: 'text-purple-600 bg-purple-50', tab: 'payslips' },
   ]
 
   const recentActivity = [
@@ -794,6 +942,7 @@ function PayslipsTab({ employeeId, user }) {
 export default function WorkspacePage() {
   const { user: authUser } = useAuthStore()
   const [tab, setTab] = useState('overview')
+  const [showRequestModal, setShowRequestModal] = useState(false)
 
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['me'],
@@ -847,11 +996,13 @@ export default function WorkspacePage() {
       </div>
 
       {/* Tab content */}
-      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} />}
+      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
+
+      {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
   )
 }

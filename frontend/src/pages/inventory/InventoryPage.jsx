@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import {
   PlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon,
   MagnifyingGlassIcon, ExclamationTriangleIcon,
-  ArrowsRightLeftIcon, DocumentTextIcon, UserIcon,
+  ArrowsRightLeftIcon, DocumentTextIcon,
   ChevronLeftIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 import {
@@ -125,7 +125,6 @@ const TABS = [
   { key: 'items',    label: 'Items' },
   { key: 'requests', label: 'Requests' },
   { key: 'receipts', label: 'Receipts' },
-  { key: 'issue',    label: 'Issue' },
   { key: 'receive',  label: 'Receive' },
   { key: 'history',  label: 'History' },
   { key: 'lowstock', label: 'Low Stock' },
@@ -887,11 +886,6 @@ export default function InventoryPage() {
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [srAction, setSrAction] = useState(null) // { type, req } for inline action modals
 
-  // Issue form
-  const [issueForm, setIssueForm] = useState({
-    item: '', quantity: '', issued_to: '', issued_to_name: '', notes: '', date: today,
-  })
-
   // Receive form
   const [receiveForm, setReceiveForm] = useState({
     item: '', quantity: '', unit_cost: '', notes: '', date: today, supplier: '',
@@ -998,25 +992,6 @@ export default function InventoryPage() {
 
   // ── Mutations ────────────────────────────────────────────────────────────────
 
-  const issueMut = useMutation({
-    mutationFn: createTransaction,
-    onSuccess: (_, vars) => {
-      const item = items.find(i => String(i.id) === String(vars.item))
-      const recipient = vars.issued_to_name ||
-        employees.find(e => String(e.user) === String(vars.issued_to))?.full_name ||
-        'recipient'
-      toast.success(`Issued ${vars.quantity} units of ${item?.name ?? 'item'} to ${recipient}`)
-      qc.invalidateQueries({ queryKey: ['stock-items'] })
-      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
-      qc.invalidateQueries({ queryKey: ['low-stock'] })
-      setIssueForm({ item: '', quantity: '', issued_to: '', issued_to_name: '', notes: '', date: today })
-    },
-    onError: e => {
-      const d = e.response?.data
-      toast.error(d?.non_field_errors?.[0] || d?.detail || JSON.stringify(d) || 'Issue failed')
-    },
-  })
-
   const receiveMut = useMutation({
     mutationFn: createTransaction,
     onSuccess: (_, vars) => {
@@ -1090,33 +1065,6 @@ export default function InventoryPage() {
       return true
     }),
   [transactions, hType, hItem, hDateFrom, hDateTo, hSearch])
-
-  // ── Issue submit ─────────────────────────────────────────────────────────────
-
-  const handleIssue = () => {
-    if (!issueForm.item || !issueForm.quantity) {
-      toast.error('Item and quantity are required')
-      return
-    }
-    if (!issueForm.issued_to && !issueForm.issued_to_name.trim()) {
-      toast.error('Please select a system user or enter a recipient name')
-      return
-    }
-    const selectedItem = items.find(i => String(i.id) === String(issueForm.item))
-    const payload = {
-      transaction_type: 'issue',
-      item: issueForm.item,
-      store: activeStore?.id,
-      quantity: Number(issueForm.quantity),
-      unit_cost: Number(selectedItem?.weighted_avg_cost || 0),
-      issued_to: issueForm.issued_to || undefined,
-      issued_to_name: issueForm.issued_to_name.trim() || undefined,
-      transaction_date: issueForm.date,
-      notes: issueForm.notes,
-      reference_number: '',
-    }
-    issueMut.mutate(payload)
-  }
 
   // ── Receive submit ────────────────────────────────────────────────────────────
 
@@ -1258,7 +1206,7 @@ export default function InventoryPage() {
 
         {/* Tab bar */}
         <div className="flex border-b border-gray-100 px-5 pt-4 gap-5 overflow-x-auto">
-          {TABS.filter(t => isReadOnly ? !['issue', 'receive'].includes(t.key) : true).map(t => (
+          {TABS.filter(t => isReadOnly ? t.key !== 'receive' : true).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`pb-3 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
                 tab === t.key
@@ -1312,13 +1260,6 @@ export default function InventoryPage() {
                     <option key={v} value={v}>{l}</option>
                   ))}
                 </select>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => setTab('issue')}
-                    className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 text-gray-600 ml-auto">
-                    <ArrowUpTrayIcon className="h-3.5 w-3.5" /> Issue Stock
-                  </button>
-                )}
               </div>
 
               {/* Table */}
@@ -1384,16 +1325,6 @@ export default function InventoryPage() {
                               <div className="flex items-center gap-1">
                                 {canAct && (
                                   <button
-                                    onClick={() => {
-                                      setIssueForm(f => ({ ...f, item: String(item.id) }))
-                                      setTab('issue')
-                                    }}
-                                    className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
-                                    Issue
-                                  </button>
-                                )}
-                                {canAct && (
-                                  <button
                                     onClick={() => setAdjustItem(item)}
                                     className="px-2 py-1 text-xs border border-amber-200 rounded hover:bg-amber-50 text-amber-700 font-medium">
                                     Adjust
@@ -1440,134 +1371,6 @@ export default function InventoryPage() {
               refetch={refetchReceipts}
               qc={qc}
             />
-          )}
-
-          {/* ── TAB: Issue ───────────────────────────────────────────────────── */}
-          {tab === 'issue' && (
-            <div className="max-w-xl mx-auto">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-                <div>
-                  <h2 className="text-sm font-bold text-brand-slate uppercase tracking-wide">Issue Stock to Person</h2>
-                  <div className="mt-2 border-b border-gray-100" />
-                </div>
-
-                {/* Item */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Item *</label>
-                  <select
-                    className={inp}
-                    value={issueForm.item}
-                    onChange={e => setIssueForm(f => ({ ...f, item: e.target.value }))}>
-                    <option value="">— Select item —</option>
-                    {items.map(i => (
-                      <option key={i.id} value={i.id}>
-                        {i.name} ({i.item_code}) — {Number(i.current_stock).toLocaleString()} {i.unit} in stock
-                      </option>
-                    ))}
-                  </select>
-                  {issueForm.item && (() => {
-                    const sel = items.find(i => String(i.id) === String(issueForm.item))
-                    return sel ? (
-                      <p className="mt-1 text-xs text-gray-600">
-                        Current stock: <span className="font-semibold text-gray-700">{Number(sel.current_stock).toLocaleString()} {sel.unit}</span>
-                      </p>
-                    ) : null
-                  })()}
-                </div>
-
-                {/* Quantity */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    className={inp}
-                    value={issueForm.quantity}
-                    onChange={e => setIssueForm(f => ({ ...f, quantity: e.target.value }))}
-                    placeholder="0" />
-                </div>
-
-                {/* Employee */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> Issued To (Employee)</span>
-                  </label>
-                  <select
-                    className={inp}
-                    value={issueForm.issued_to || issueForm.issued_to_name}
-                    onChange={e => {
-                      const val = e.target.value
-                      const emp = employees.find(em => String(em.id) === val)
-                      if (emp) {
-                        setIssueForm(f => ({
-                          ...f,
-                          issued_to: emp.user ? String(emp.user) : '',
-                          issued_to_name: emp.user ? '' : emp.full_name,
-                        }))
-                      } else {
-                        setIssueForm(f => ({ ...f, issued_to: '', issued_to_name: '' }))
-                      }
-                    }}>
-                    <option value="">— Select employee —</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name}{emp.employee_number ? ` (${emp.employee_number})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Divider */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 border-b border-gray-100" />
-                  <span className="text-xs text-gray-600 font-medium">— OR —</span>
-                  <div className="flex-1 border-b border-gray-100" />
-                </div>
-
-                {/* External recipient */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Recipient Name (External)</label>
-                  <input
-                    className={inp}
-                    value={issueForm.issued_to_name}
-                    onChange={e => setIssueForm(f => ({ ...f, issued_to_name: e.target.value, issued_to: '' }))}
-                    placeholder="Enter name if not in system" />
-                </div>
-
-                {/* Date */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
-                  <input
-                    type="date"
-                    className={inp}
-                    value={issueForm.date}
-                    onChange={e => setIssueForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                  <textarea
-                    rows={3}
-                    className={`${inp} resize-none`}
-                    value={issueForm.notes}
-                    onChange={e => setIssueForm(f => ({ ...f, notes: e.target.value }))}
-                    placeholder="Optional notes or purpose" />
-                </div>
-
-                {/* Submit */}
-                <div className="pt-1">
-                  <button
-                    onClick={handleIssue}
-                    disabled={issueMut.isPending || !issueForm.item || !issueForm.quantity}
-                    className="w-full flex items-center justify-center gap-2 bg-brand-red text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-60 hover:opacity-90">
-                    <ArrowUpTrayIcon className="h-4 w-4" />
-                    {issueMut.isPending ? 'Processing…' : 'Issue Stock →'}
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* ── TAB: Receive ─────────────────────────────────────────────────── */}
