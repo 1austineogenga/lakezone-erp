@@ -69,6 +69,10 @@ class StockItem(models.Model):
         'core.Department', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='stock_items',
     )
+    branch = models.ForeignKey(
+        'core.Branch', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='stock_items',
+    )
     created_by = models.ForeignKey(
         'core.User', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='created_stock_items',

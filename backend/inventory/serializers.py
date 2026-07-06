@@ -14,9 +14,10 @@ class StoreSerializer(serializers.ModelSerializer):
 
 
 class StockItemSerializer(serializers.ModelSerializer):
-    current_stock = serializers.SerializerMethodField()
+    current_stock     = serializers.SerializerMethodField()
     weighted_avg_cost = serializers.SerializerMethodField()
-    department_name = serializers.CharField(source='department.name', read_only=True)
+    department_name   = serializers.CharField(source='department.name', read_only=True)
+    branch_name       = serializers.CharField(source='branch.name', read_only=True)
 
     class Meta:
         model = StockItem
@@ -24,6 +25,7 @@ class StockItemSerializer(serializers.ModelSerializer):
             "id", "item_code", "name", "category", "unit",
             "reorder_level", "valuation_method", "description",
             "is_active", "department", "department_name",
+            "branch", "branch_name",
             "current_stock", "weighted_avg_cost", "created_at",
         ]
         read_only_fields = ["id", "item_code", "created_at"]

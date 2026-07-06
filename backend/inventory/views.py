@@ -87,6 +87,18 @@ def _user_dept_name(user):
     return user.department.name if user.department else None
 
 
+# ── Branches (for site filter) ────────────────────────────────────────────────
+
+from core.models import Branch
+
+class BranchListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        branches = Branch.objects.filter(is_active=True).values('id', 'name', 'location')
+        return Response(list(branches))
+
+
 # ── Store ─────────────────────────────────────────────────────────────────────
 
 class StoreListCreateView(generics.ListCreateAPIView):
@@ -115,7 +127,7 @@ class StockItemListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'role', None)
-        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'created_by')
+        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'branch', 'created_by')
         if role in VIEW_ALL_STORES:
             store_id = self.request.query_params.get('store')
             if store_id:
@@ -126,6 +138,8 @@ class StockItemListCreateView(generics.ListCreateAPIView):
                 qs = qs.filter(stock_levels__store=user_store).distinct()
             else:
                 qs = qs.none()
+        if branch_id := self.request.query_params.get('branch'):
+            qs = qs.filter(branch_id=branch_id)
         return qs
 
     def perform_create(self, serializer):
