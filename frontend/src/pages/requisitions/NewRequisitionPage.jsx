@@ -153,11 +153,12 @@ export default function NewRequisitionPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
-                <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value, payment_business_number: '', payment_account_number: '', payment_till_number: '', payment_bank_name: '', payment_account_name: '', payment_branch_name: '' }))}
+                <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value, payment_business_number: '', payment_account_number: '', payment_till_number: '', payment_send_money_phone: '', payment_bank_name: '', payment_account_name: '', payment_branch_name: '' }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
                   <option value="">— Select method —</option>
                   <option value="mpesa_paybill">M-Pesa Paybill</option>
                   <option value="mpesa_till">M-Pesa Till</option>
+                  <option value="mpesa_send_money">M-Pesa Send Money</option>
                   <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
@@ -184,6 +185,16 @@ export default function NewRequisitionPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Till Number *</label>
                   <input value={form.payment_till_number} onChange={e => setForm(f => ({ ...f, payment_till_number: e.target.value }))}
                     placeholder="e.g. 123456"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                </div>
+              )}
+
+              {form.payment_method === 'mpesa_send_money' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number *</label>
+                  <input value={form.payment_send_money_phone || ''} onChange={e => setForm(f => ({ ...f, payment_send_money_phone: e.target.value }))}
+                    placeholder="e.g. 0712 345 678"
+                    type="tel"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
               )}

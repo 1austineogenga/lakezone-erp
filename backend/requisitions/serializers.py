@@ -103,7 +103,7 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'department', 'department_name', 'project', 'project_name',
             'description', 'date_required', 'total_amount', 'rejection_reason',
             'payment_method', 'payment_business_number', 'payment_account_number',
-            'payment_till_number', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
+            'payment_till_number', 'payment_send_money_phone', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
             'fleet_vehicle_no',
             'created_at', 'updated_at',
             'fulfilled_by', 'fulfilled_at', 'fulfillment_notes',
@@ -152,7 +152,7 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
         fields = ['title', 'req_type', 'priority', 'department', 'project',
                   'description', 'date_required',
                   'payment_method', 'payment_business_number', 'payment_account_number',
-                  'payment_till_number', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
+                  'payment_till_number', 'payment_send_money_phone', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
                   'fleet_vehicle_no',
                   'items']
 
