@@ -557,13 +557,23 @@ function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments
               </select>
             </div>
           </div>
-          {storeName === 'Site Store' && sites.length > 0 && (
+          {storeName === 'Site Store' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Site Location <span className="text-gray-400 font-normal">(optional)</span></label>
-              <select className={inp} value={form.site_location || ''} onChange={e => set('site_location', e.target.value)}>
-                <option value="">— All sites —</option>
-                {sites.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Site Location <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              {sites.length > 0 ? (
+                <select className={inp} value={form.site_location || ''} onChange={e => set('site_location', e.target.value)}>
+                  <option value="">— Select site —</option>
+                  {sites.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                </select>
+              ) : (
+                <input
+                  className={inp}
+                  value={form.site_location || ''}
+                  onChange={e => set('site_location', e.target.value)}
+                  placeholder="e.g. Thika Road Project" />
+              )}
             </div>
           )}
 
