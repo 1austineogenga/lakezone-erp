@@ -87,16 +87,22 @@ def _user_dept_name(user):
     return user.department.name if user.department else None
 
 
-# ── Branches (for site filter) ────────────────────────────────────────────────
+# ── Site locations (from projects) ────────────────────────────────────────────
 
-from core.models import Branch
-
-class BranchListView(generics.ListAPIView):
+class SiteListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        branches = Branch.objects.filter(is_active=True).values('id', 'name', 'location')
-        return Response(list(branches))
+        from projects.models import Project
+        locations = (
+            Project.objects
+            .exclude(location='')
+            .exclude(location__isnull=True)
+            .values_list('location', flat=True)
+            .distinct()
+            .order_by('location')
+        )
+        return Response([{'name': loc} for loc in locations])
 
 
 # ── Store ─────────────────────────────────────────────────────────────────────
@@ -138,8 +144,8 @@ class StockItemListCreateView(generics.ListCreateAPIView):
                 qs = qs.filter(stock_levels__store=user_store).distinct()
             else:
                 qs = qs.none()
-        if branch_id := self.request.query_params.get('branch'):
-            qs = qs.filter(branch_id=branch_id)
+        if site := self.request.query_params.get('site_location'):
+            qs = qs.filter(site_location=site)
         return qs
 
     def perform_create(self, serializer):
