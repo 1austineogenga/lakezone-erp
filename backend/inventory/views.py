@@ -5,6 +5,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+
+
+class InventoryPagination(PageNumberPagination):
+    page_size = 500
+    page_size_query_param = 'page_size'
+    max_page_size = 2000
 from core.permissions import IsStorekeeper
 from .models import Store, StockItem, StockLevel, StockTransaction, Asset, AssetMaintenanceLog
 from .serializers import (
@@ -102,8 +108,9 @@ class StoreDetailView(generics.RetrieveAPIView):
 # ── Stock Items ───────────────────────────────────────────────────────────────
 
 class StockItemListCreateView(generics.ListCreateAPIView):
-    serializer_class = StockItemSerializer
+    serializer_class   = StockItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = InventoryPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -176,8 +183,9 @@ class StockLevelListView(generics.ListAPIView):
 
 
 class LowStockItemsView(generics.ListAPIView):
-    serializer_class = StockItemSerializer
+    serializer_class   = StockItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = InventoryPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -200,10 +208,11 @@ class LowStockItemsView(generics.ListAPIView):
 # ── Stock Transactions ────────────────────────────────────────────────────────
 
 class StockTransactionListCreateView(generics.ListCreateAPIView):
-    serializer_class = StockTransactionSerializer
+    serializer_class   = StockTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['transaction_type', 'store', 'project', 'item']
-    search_fields = ['reference_number']
+    pagination_class   = InventoryPagination
+    filterset_fields   = ['transaction_type', 'store', 'project', 'item']
+    search_fields      = ['reference_number']
     ordering_fields = ['transaction_date']
 
     def get_queryset(self):
@@ -403,8 +412,9 @@ def _storekeepers_for_store(store):
 
 # Read-only item list for any store — used by the request form
 class StoreItemsBrowseView(generics.ListAPIView):
-    serializer_class = StoreItemBrowseSerializer
+    serializer_class   = StoreItemBrowseSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = InventoryPagination
 
     def get_queryset(self):
         store_pk = self.kwargs['store_pk']
@@ -424,6 +434,7 @@ class StoreItemsBrowseView(generics.ListAPIView):
 
 class StoreRequestListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = InventoryPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
