@@ -19,3 +19,15 @@ export const deleteAsset         = (id)         => api.delete(`/inventory/assets
 export const getAssetMaintenance = (assetId)    => api.get(`/inventory/assets/${assetId}/maintenance/`)
 export const addAssetMaintenance = (assetId, d) => api.post(`/inventory/assets/${assetId}/maintenance/`, d)
 export const getAssetDashboard   = ()           => api.get('/inventory/assets/dashboard/')
+
+// Store Requests
+export const getStoreItems      = (storeId)    => api.get(`/inventory/stores/${storeId}/items/`)
+export const getStoreRequests   = (params)     => api.get('/inventory/store-requests/', { params })
+export const getStoreRequest    = (id)         => api.get(`/inventory/store-requests/${id}/`)
+export const createStoreRequest = (d)          => api.post('/inventory/store-requests/', d)
+export const approveStoreRequest = (id, d)     => api.post(`/inventory/store-requests/${id}/approve/`, d)
+export const rejectStoreRequest  = (id, d)     => api.post(`/inventory/store-requests/${id}/reject/`, d)
+export const dispatchStoreRequest = (id, d)    => api.post(`/inventory/store-requests/${id}/dispatch/`, d)
+export const receiveStoreRequest  = (id, d)    => api.post(`/inventory/store-requests/${id}/receive/`, d)
+export const returnStoreRequest   = (id, d)    => api.post(`/inventory/store-requests/${id}/return/`, d)
+export const cancelStoreRequest   = (id)       => api.post(`/inventory/store-requests/${id}/cancel/`)

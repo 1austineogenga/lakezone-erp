@@ -11,6 +11,9 @@ import {
 import {
   getStockItems, createStockItem, updateStockItem,
   getTransactions, createTransaction, getLowStockItems, getStores,
+  getStoreItems, getStoreRequests, createStoreRequest,
+  approveStoreRequest, rejectStoreRequest, dispatchStoreRequest,
+  receiveStoreRequest, returnStoreRequest, cancelStoreRequest,
 } from '../../api/inventory'
 import usePermissions from '../../hooks/usePermissions'
 import useAuthStore from '../../store/authStore'
@@ -119,12 +122,34 @@ const TX_COLORS = {
 }
 
 const TABS = [
-  { key: 'items', label: 'Items' },
-  { key: 'issue', label: 'Issue' },
-  { key: 'receive', label: 'Receive' },
-  { key: 'history', label: 'History' },
+  { key: 'items',    label: 'Items' },
+  { key: 'requests', label: 'Requests' },
+  { key: 'receipts', label: 'Receipts' },
+  { key: 'issue',    label: 'Issue' },
+  { key: 'receive',  label: 'Receive' },
+  { key: 'history',  label: 'History' },
   { key: 'lowstock', label: 'Low Stock' },
 ]
+
+const SR_STATUS_COLORS = {
+  submitted:  'bg-yellow-100 text-yellow-700',
+  approved:   'bg-blue-100 text-blue-700',
+  rejected:   'bg-red-100 text-red-700',
+  dispatched: 'bg-purple-100 text-purple-700',
+  received:   'bg-green-100 text-green-700',
+  returned:   'bg-amber-100 text-amber-700',
+  cancelled:  'bg-gray-100 text-gray-500',
+}
+
+const SR_STATUS_LABELS = {
+  submitted:  'Submitted',
+  approved:   'Approved',
+  rejected:   'Rejected',
+  dispatched: 'Dispatched',
+  received:   'Received',
+  returned:   'Returned',
+  cancelled:  'Cancelled',
+}
 
 // ── Input style ───────────────────────────────────────────────────────────────
 
@@ -714,6 +739,130 @@ function AdjustStockModal({ item, activeStoreId, onClose }) {
   )
 }
 
+// ── Request Items Modal (any employee) ───────────────────────────────────────
+
+function RequestItemsModal({ onClose, stores }) {
+  const qc = useQueryClient()
+  const [selectedStoreId, setSelectedStoreId] = useState('')
+  const [form, setForm] = useState({ item: '', quantity: '', justification: '' })
+
+  const { data: storeItems = [], isFetching: fetchingItems } = useQuery({
+    queryKey: ['store-browse-items', selectedStoreId],
+    queryFn: () => getStoreItems(selectedStoreId),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!selectedStoreId,
+  })
+
+  const createMut = useMutation({
+    mutationFn: (d) => createStoreRequest(d),
+    onSuccess: () => {
+      toast.success('Store request submitted')
+      qc.invalidateQueries({ queryKey: ['store-requests-outgoing'] })
+      onClose()
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.detail || d?.item?.[0] || d?.quantity_requested?.[0] || 'Failed to submit request')
+    },
+  })
+
+  const canSubmit = selectedStoreId && form.item && form.quantity && form.justification.trim()
+  const selectedItem = storeItems.find(i => String(i.id) === String(form.item))
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Request Items from Store</h2>
+            <p className="text-white/50 text-xs mt-0.5">Select a store and the item you need</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+
+          {/* Store picker */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Store <span className="text-brand-red">*</span></label>
+            <select className={inp} value={selectedStoreId}
+              onChange={e => { setSelectedStoreId(e.target.value); setForm(f => ({ ...f, item: '' })) }}>
+              <option value="">— Select a store —</option>
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {/* Item picker */}
+          {selectedStoreId && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Item <span className="text-brand-red">*</span></label>
+              {fetchingItems ? (
+                <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
+              ) : storeItems.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">No items found in this store.</p>
+              ) : (
+                <>
+                  <select className={inp} value={form.item}
+                    onChange={e => setForm(f => ({ ...f, item: e.target.value }))}>
+                    <option value="">— Select an item —</option>
+                    {storeItems.map(i => (
+                      <option key={i.id} value={i.id}>
+                        {i.name} ({i.item_code}) — {Number(i.stock_in_store).toLocaleString()} {i.unit} in stock
+                      </option>
+                    ))}
+                  </select>
+                  {selectedItem && (
+                    <div className="mt-1.5 flex items-center gap-3 text-xs">
+                      <span className="text-gray-500">In stock:</span>
+                      <span className={`font-semibold ${Number(selectedItem.stock_in_store) === 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        {Number(selectedItem.stock_in_store).toLocaleString()} {selectedItem.unit}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Quantity */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Quantity Requested <span className="text-brand-red">*</span></label>
+            <input type="number" min="0.01" step="any" className={inp}
+              value={form.quantity}
+              onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+              placeholder="0" />
+            {selectedItem && form.quantity && Number(form.quantity) > Number(selectedItem.stock_in_store) && (
+              <p className="text-[11px] text-amber-600 mt-1">⚠ Requested qty exceeds current stock — storekeeper may approve a partial quantity.</p>
+            )}
+          </div>
+
+          {/* Justification */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Justification <span className="text-brand-red">*</span></label>
+            <textarea rows={3} className={`${inp} resize-none`}
+              value={form.justification}
+              onChange={e => setForm(f => ({ ...f, justification: e.target.value }))}
+              placeholder="Explain why you need this item (e.g. Site works — Thika Road, replacing damaged equipment…)" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button
+            onClick={() => createMut.mutate({ item: form.item, quantity_requested: Number(form.quantity), source_store: selectedStoreId, justification: form.justification })}
+            disabled={createMut.isPending || !canSubmit}
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+            {createMut.isPending ? 'Submitting…' : 'Submit Request'}
+          </button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
@@ -735,6 +884,8 @@ export default function InventoryPage() {
   const [showAddItem, setShowAddItem] = useState(false)
   const [editItem, setEditItem]   = useState(null)
   const [adjustItem, setAdjustItem] = useState(null)
+  const [showRequestModal, setShowRequestModal] = useState(false)
+  const [srAction, setSrAction] = useState(null) // { type, req } for inline action modals
 
   // Issue form
   const [issueForm, setIssueForm] = useState({
@@ -820,6 +971,31 @@ export default function InventoryPage() {
     select: r => r.data?.results ?? r.data ?? [],
   })
 
+  // Determine if the current user is a storekeeper (has write access to some store)
+  const isStorekeeper = !isReadOnly && !!ROLE_STORE_MAP[role]
+
+  // Incoming requests to my store (storekeeper view)
+  const { data: incomingRequests = [], refetch: refetchIncoming } = useQuery({
+    queryKey: ['store-requests-incoming'],
+    queryFn: () => getStoreRequests({ view: 'incoming', page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: isStorekeeper,
+  })
+
+  // My own submitted requests
+  const { data: myRequests = [], refetch: refetchMine } = useQuery({
+    queryKey: ['store-requests-outgoing'],
+    queryFn: () => getStoreRequests({ view: 'outgoing', page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  // Items dispatched to me, pending receipt confirmation
+  const { data: pendingReceipts = [], refetch: refetchReceipts } = useQuery({
+    queryKey: ['store-requests-receipts'],
+    queryFn: () => getStoreRequests({ view: 'receipts', page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
   // ── Mutations ────────────────────────────────────────────────────────────────
 
   const issueMut = useMutation({
@@ -889,6 +1065,9 @@ export default function InventoryPage() {
       return matchSearch && matchStore && matchCat
     }),
   [items, search, filterStore, filterCat])
+
+  const pendingIncomingCount = incomingRequests.filter(r => ['submitted', 'approved'].includes(r.status)).length
+  const pendingReceiptsCount = pendingReceipts.length
 
   const safeItemPage = Math.min(itemPage, Math.max(1, Math.ceil(filteredItems.length / INV_PAGE_SIZE)))
   const pagedItems   = filteredItems.slice((safeItemPage - 1) * INV_PAGE_SIZE, safeItemPage * INV_PAGE_SIZE)
@@ -985,6 +1164,16 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowRequestModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 border border-brand-red text-brand-red text-xs font-semibold rounded-xl hover:bg-red-50 relative">
+            <ArrowUpTrayIcon className="h-4 w-4" /> Request Items
+            {pendingReceiptsCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-brand-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {pendingReceiptsCount}
+              </span>
+            )}
+          </button>
           {!isReadOnly && (
             <button
               onClick={() => setShowAddItem(true)}
@@ -1079,6 +1268,12 @@ export default function InventoryPage() {
               {t.label}
               {t.key === 'lowstock' && lowStock.length > 0 && (
                 <span className="ml-1.5 bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full font-bold">{lowStock.length}</span>
+              )}
+              {t.key === 'requests' && pendingIncomingCount > 0 && (
+                <span className="ml-1.5 bg-yellow-100 text-yellow-700 text-xs px-1.5 py-0.5 rounded-full font-bold">{pendingIncomingCount}</span>
+              )}
+              {t.key === 'receipts' && pendingReceiptsCount > 0 && (
+                <span className="ml-1.5 bg-purple-100 text-purple-700 text-xs px-1.5 py-0.5 rounded-full font-bold">{pendingReceiptsCount}</span>
               )}
             </button>
           ))}
@@ -1223,6 +1418,28 @@ export default function InventoryPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ── TAB: Requests ────────────────────────────────────────────────── */}
+          {tab === 'requests' && (
+            <StoreRequestsTab
+              isStorekeeper={isStorekeeper}
+              incomingRequests={incomingRequests}
+              myRequests={myRequests}
+              refetchIncoming={refetchIncoming}
+              refetchMine={refetchMine}
+              onNewRequest={() => setShowRequestModal(true)}
+              qc={qc}
+            />
+          )}
+
+          {/* ── TAB: Receipts ─────────────────────────────────────────────────── */}
+          {tab === 'receipts' && (
+            <StoreReceiptsTab
+              receipts={pendingReceipts}
+              refetch={refetchReceipts}
+              qc={qc}
+            />
           )}
 
           {/* ── TAB: Issue ───────────────────────────────────────────────────── */}
@@ -1606,6 +1823,300 @@ export default function InventoryPage() {
           item={adjustItem}
           activeStoreId={activeStore?.id}
           onClose={() => setAdjustItem(null)} />
+      )}
+      {showRequestModal && (
+        <RequestItemsModal
+          stores={stores}
+          onClose={() => setShowRequestModal(false)} />
+      )}
+    </div>
+  )
+}
+
+// ── Store Requests Tab ────────────────────────────────────────────────────────
+
+function StoreRequestsTab({ isStorekeeper, incomingRequests, myRequests, refetchIncoming, refetchMine, onNewRequest, qc }) {
+  const [view, setView]           = useState(isStorekeeper ? 'incoming' : 'mine')
+  const [actionModal, setActionModal] = useState(null) // { type, req }
+
+  const list = view === 'incoming' ? incomingRequests : myRequests
+
+  const mutOpts = (successMsg, refetch) => ({
+    onSuccess: () => { toast.success(successMsg); refetch(); setActionModal(null) },
+    onError: e => toast.error(e.response?.data?.detail || 'Action failed'),
+  })
+
+  const approveMut  = useMutation({ mutationFn: ({ id, d }) => approveStoreRequest(id, d),  ...mutOpts('Request approved', refetchIncoming) })
+  const rejectMut   = useMutation({ mutationFn: ({ id, d }) => rejectStoreRequest(id, d),   ...mutOpts('Request rejected', refetchIncoming) })
+  const dispatchMut = useMutation({ mutationFn: ({ id, d }) => dispatchStoreRequest(id, d), ...mutOpts('Dispatched', () => { refetchIncoming(); qc.invalidateQueries({ queryKey: ['stock-items'] }) }) })
+  const cancelMut   = useMutation({ mutationFn: ({ id }) => cancelStoreRequest(id),         ...mutOpts('Request cancelled', refetchMine) })
+
+  const [approveForm, setApproveForm] = useState({ qty: '', notes: '' })
+  const [rejectForm,  setRejectForm]  = useState({ reason: '' })
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-nav */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+          {isStorekeeper && (
+            <button onClick={() => setView('incoming')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${view === 'incoming' ? 'bg-white shadow text-brand-slate' : 'text-gray-500 hover:text-gray-700'}`}>
+              Incoming Requests
+            </button>
+          )}
+          <button onClick={() => setView('mine')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${view === 'mine' ? 'bg-white shadow text-brand-slate' : 'text-gray-500 hover:text-gray-700'}`}>
+            My Requests
+          </button>
+        </div>
+        <button onClick={onNewRequest}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90">
+          <PlusIcon className="h-3.5 w-3.5" /> New Request
+        </button>
+      </div>
+
+      {/* List */}
+      {list.length === 0 ? (
+        <div className="text-center py-16 text-gray-500">
+          <DocumentTextIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">{view === 'incoming' ? 'No requests for your store.' : 'You have no requests yet.'}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {list.map(req => (
+            <div key={req.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-bold text-brand-red">{req.reference}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${SR_STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
+                      {SR_STATUS_LABELS[req.status] || req.status}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 mt-1">{req.item_name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {req.quantity_requested} {req.item_unit} requested
+                    {req.quantity_approved ? ` · ${req.quantity_approved} approved` : ''}
+                    {' · '}{req.source_store_name}
+                    {view === 'incoming' && ` · from ${req.requested_by_name}`}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5 italic truncate max-w-xs">{req.justification}</p>
+                </div>
+                <div className="flex gap-1.5 flex-wrap shrink-0">
+                  {/* Storekeeper actions on incoming */}
+                  {view === 'incoming' && req.status === 'submitted' && (
+                    <>
+                      <button onClick={() => { setApproveForm({ qty: String(req.quantity_requested), notes: '' }); setActionModal({ type: 'approve', req }) }}
+                        className="px-2.5 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700">Approve</button>
+                      <button onClick={() => { setRejectForm({ reason: '' }); setActionModal({ type: 'reject', req }) }}
+                        className="px-2.5 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700">Reject</button>
+                    </>
+                  )}
+                  {view === 'incoming' && req.status === 'approved' && (
+                    <button
+                      onClick={() => dispatchMut.mutate({ id: req.id, d: {} })}
+                      disabled={dispatchMut.isPending}
+                      className="px-2.5 py-1 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                      {dispatchMut.isPending ? '…' : 'Mark Dispatched'}
+                    </button>
+                  )}
+                  {/* Requester actions on own requests */}
+                  {view === 'mine' && ['submitted', 'approved'].includes(req.status) && (
+                    <button
+                      onClick={() => cancelMut.mutate({ id: req.id })}
+                      disabled={cancelMut.isPending}
+                      className="px-2.5 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+              {req.rejection_reason && (
+                <p className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-1.5">Rejected: {req.rejection_reason}</p>
+              )}
+              {req.storekeeper_notes && (
+                <p className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5">Note: {req.storekeeper_notes}</p>
+              )}
+              <p className="text-[10px] text-gray-400 mt-2">
+                {new Date(req.requested_at).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Approve modal */}
+      {actionModal?.type === 'approve' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-brand-slate">Approve Request</h3>
+            <p className="text-xs text-gray-500">{actionModal.req.item_name} — {actionModal.req.requested_by_name}</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Quantity to Approve</label>
+              <input type="number" min="0.01" step="any" className={inp}
+                value={approveForm.qty} onChange={e => setApproveForm(f => ({ ...f, qty: e.target.value }))} />
+              <p className="text-[10px] text-gray-400 mt-1">Requested: {actionModal.req.quantity_requested} {actionModal.req.item_unit}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Notes (optional)</label>
+              <input className={inp} value={approveForm.notes} onChange={e => setApproveForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any notes for the requester…" />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => approveMut.mutate({ id: actionModal.req.id, d: { quantity_approved: Number(approveForm.qty), storekeeper_notes: approveForm.notes } })}
+                disabled={approveMut.isPending || !approveForm.qty}
+                className="flex-1 bg-green-600 text-white text-sm font-bold py-2 rounded-xl disabled:opacity-50">
+                {approveMut.isPending ? '…' : 'Approve'}
+              </button>
+              <button onClick={() => setActionModal(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-xl hover:bg-gray-50">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject modal */}
+      {actionModal?.type === 'reject' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-brand-slate">Reject Request</h3>
+            <p className="text-xs text-gray-500">{actionModal.req.item_name} — {actionModal.req.requested_by_name}</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Reason for Rejection <span className="text-brand-red">*</span></label>
+              <textarea rows={3} className={`${inp} resize-none`} value={rejectForm.reason}
+                onChange={e => setRejectForm({ reason: e.target.value })} placeholder="Explain why this request is being rejected…" />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => rejectMut.mutate({ id: actionModal.req.id, d: { rejection_reason: rejectForm.reason } })}
+                disabled={rejectMut.isPending || !rejectForm.reason.trim()}
+                className="flex-1 bg-red-600 text-white text-sm font-bold py-2 rounded-xl disabled:opacity-50">
+                {rejectMut.isPending ? '…' : 'Reject'}
+              </button>
+              <button onClick={() => setActionModal(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-xl hover:bg-gray-50">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Store Receipts Tab ────────────────────────────────────────────────────────
+
+function StoreReceiptsTab({ receipts, refetch, qc }) {
+  const [receiveModal, setReceiveModal] = useState(null) // req
+  const [returnModal,  setReturnModal]  = useState(null) // req
+  const [receiveQty,   setReceiveQty]   = useState('')
+  const [returnReason, setReturnReason] = useState('')
+
+  const mutOpts = (msg) => ({
+    onSuccess: () => { toast.success(msg); refetch(); qc.invalidateQueries({ queryKey: ['stock-items'] }); setReceiveModal(null); setReturnModal(null) },
+    onError: e => toast.error(e.response?.data?.detail || 'Action failed'),
+  })
+
+  const receiveMut = useMutation({ mutationFn: ({ id, d }) => receiveStoreRequest(id, d), ...mutOpts('Receipt confirmed — stock updated') })
+  const returnMut  = useMutation({ mutationFn: ({ id, d }) => returnStoreRequest(id, d),  ...mutOpts('Items returned to store') })
+
+  if (receipts.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <ArrowDownTrayIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+        <p className="text-sm font-medium">No pending receipts.</p>
+        <p className="text-xs mt-1 text-gray-400">Items dispatched to you will appear here for confirmation.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">{receipts.length} item{receipts.length !== 1 ? 's' : ''} dispatched to you — please confirm receipt.</p>
+      {receipts.map(req => (
+        <div key={req.id} className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-purple-700">{req.reference}</span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Awaiting Receipt</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-800 mt-1">{req.item_name}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {req.quantity_approved} {req.item_unit} dispatched from {req.source_store_name}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5 italic">{req.justification}</p>
+              {req.dispatched_at && (
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Dispatched: {new Date(req.dispatched_at).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => { setReceiveQty(String(req.quantity_approved)); setReceiveModal(req) }}
+                className="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700">
+                Confirm Receipt
+              </button>
+              <button
+                onClick={() => { setReturnReason(''); setReturnModal(req) }}
+                className="px-3 py-1.5 border border-red-300 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50">
+                Return
+              </button>
+            </div>
+          </div>
+          {req.storekeeper_notes && (
+            <p className="mt-2 text-xs text-blue-600 bg-blue-100 rounded-lg px-3 py-1.5">Storekeeper note: {req.storekeeper_notes}</p>
+          )}
+        </div>
+      ))}
+
+      {/* Confirm receipt modal */}
+      {receiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-brand-slate">Confirm Receipt</h3>
+            <p className="text-xs text-gray-500">{receiveModal.item_name}</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Quantity Actually Received</label>
+              <input type="number" min="0.01" step="any" className={inp}
+                value={receiveQty} onChange={e => setReceiveQty(e.target.value)} />
+              <p className="text-[10px] text-gray-400 mt-1">Dispatched qty: {receiveModal.quantity_approved} {receiveModal.item_unit}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => receiveMut.mutate({ id: receiveModal.id, d: { quantity_received: Number(receiveQty) } })}
+                disabled={receiveMut.isPending || !receiveQty}
+                className="flex-1 bg-green-600 text-white text-sm font-bold py-2 rounded-xl disabled:opacity-50">
+                {receiveMut.isPending ? '…' : 'Confirm'}
+              </button>
+              <button onClick={() => setReceiveModal(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-xl hover:bg-gray-50">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return modal */}
+      {returnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-brand-slate">Return Items</h3>
+            <p className="text-xs text-gray-500">{returnModal.item_name} — {returnModal.quantity_approved} {returnModal.item_unit}</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Reason for Return <span className="text-brand-red">*</span></label>
+              <textarea rows={3} className={`${inp} resize-none`} value={returnReason}
+                onChange={e => setReturnReason(e.target.value)}
+                placeholder="e.g. Wrong item delivered, items damaged, no longer needed…" />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => returnMut.mutate({ id: returnModal.id, d: { return_reason: returnReason } })}
+                disabled={returnMut.isPending || !returnReason.trim()}
+                className="flex-1 bg-red-600 text-white text-sm font-bold py-2 rounded-xl disabled:opacity-50">
+                {returnMut.isPending ? '…' : 'Return Items'}
+              </button>
+              <button onClick={() => setReturnModal(null)} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-xl hover:bg-gray-50">Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

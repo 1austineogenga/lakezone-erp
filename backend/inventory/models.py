@@ -360,3 +360,66 @@ class AssetMaintenanceLog(models.Model):
 
     def __str__(self):
         return f"{self.asset.asset_code} - {self.date}"
+
+
+# ---------------------------------------------------------------------------
+# Store Request (employee requests items from any store)
+# ---------------------------------------------------------------------------
+
+class StoreRequest(models.Model):
+    class Status(models.TextChoices):
+        SUBMITTED  = 'submitted',  'Submitted'
+        APPROVED   = 'approved',   'Approved'
+        REJECTED   = 'rejected',   'Rejected'
+        DISPATCHED = 'dispatched', 'Dispatched'
+        RECEIVED   = 'received',   'Received'
+        RETURNED   = 'returned',   'Returned'
+        CANCELLED  = 'cancelled',  'Cancelled'
+
+    id                 = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference          = models.CharField(max_length=50, unique=True, editable=False)
+    item               = models.ForeignKey(StockItem, on_delete=models.PROTECT, related_name='store_requests')
+    quantity_requested = models.DecimalField(max_digits=14, decimal_places=4)
+    quantity_approved  = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    quantity_received  = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    source_store       = models.ForeignKey(Store, on_delete=models.PROTECT, related_name='outgoing_requests')
+    destination_store  = models.ForeignKey(
+        Store, on_delete=models.SET_NULL, null=True, blank=True, related_name='incoming_requests'
+    )
+    requested_by  = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='store_requests_made'
+    )
+    approved_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='store_requests_approved'
+    )
+    dispatched_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='store_requests_dispatched'
+    )
+    received_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='store_requests_received'
+    )
+    justification     = models.TextField()
+    storekeeper_notes = models.TextField(blank=True)
+    rejection_reason  = models.TextField(blank=True)
+    return_reason     = models.TextField(blank=True)
+    status            = models.CharField(max_length=20, choices=Status.choices, default=Status.SUBMITTED)
+    requested_at  = models.DateTimeField(auto_now_add=True)
+    approved_at   = models.DateTimeField(null=True, blank=True)
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+    received_at   = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = f'SR-{uuid.uuid4().hex[:8].upper()}'
+            while StoreRequest.objects.filter(reference=self.reference).exists():
+                self.reference = f'SR-{uuid.uuid4().hex[:8].upper()}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.reference} — {self.item.name}"
