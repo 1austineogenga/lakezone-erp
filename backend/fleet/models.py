@@ -375,3 +375,64 @@ class GeofenceEvent(models.Model):
 
     def __str__(self):
         return f"{self.vehicle.vehicle_no} {self.event_type} {self.geofence.name} @ {self.occurred_at}"
+
+
+class VehicleReceivingForm(models.Model):
+    CHECKLIST = [('ok', 'OK'), ('not_ok', 'Not OK'), ('na', 'N/A')]
+    MV_CERT = [('present', 'Present'), ('not_found', 'Not Found'), ('expired', 'Expired')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Vehicle details
+    vehicle = models.ForeignKey(
+        Vehicle, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='receiving_forms',
+    )
+    vehicle_make_model     = models.CharField(max_length=200)
+    registration_number    = models.CharField(max_length=50)
+    chassis_number         = models.CharField(max_length=100, blank=True, default='')
+    date_of_inspection     = models.DateField()
+    log_number             = models.CharField(max_length=50, blank=True, default='')
+    mileage                = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
+
+    # Inspection checklist
+    engine_oil_level       = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    brake_system           = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    steering_suspension    = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    headlights_indicators  = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    tires_condition        = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    battery_condition      = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    cooling_system         = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    fuel_system            = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    exhaust_system         = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    body_frame_condition   = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    wipers_washers_mirrors = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    horn                   = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    tipping_hydraulic_system = models.CharField(max_length=10, choices=CHECKLIST, default='na')
+    inspection_notes       = models.TextField(blank=True, default='')
+
+    # Compliance certificates
+    compliance_certificate        = models.CharField(max_length=10, choices=CHECKLIST, default='ok')
+    compliance_certificate_expiry = models.DateField(null=True, blank=True)
+    insurance_expiry              = models.DateField(null=True, blank=True)
+    speed_governor_expiry         = models.DateField(null=True, blank=True)
+    mv_inspection_cert            = models.CharField(max_length=20, choices=MV_CERT, default='present')
+    mv_inspection_cert_expiry     = models.DateField(null=True, blank=True)
+
+    # Spare parts & tools as JSON lists [{name, quantity}]
+    spare_parts = models.JSONField(default=list, blank=True)
+    tools       = models.JSONField(default=list, blank=True)
+
+    # Submission
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='vehicle_receiving_forms',
+    )
+    notes      = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Receiving — {self.registration_number} ({self.date_of_inspection})"

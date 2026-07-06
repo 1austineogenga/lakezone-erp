@@ -45,4 +45,6 @@ urlpatterns += [
     path("geofences/", views.GeofenceListCreateView.as_view(), name="fleet-geofence-list"),
     path("geofences/<uuid:pk>/", views.GeofenceDetailView.as_view(), name="fleet-geofence-detail"),
     path("geofence-events/", views.GeofenceEventListView.as_view(), name="fleet-geofence-event-list"),
+    path("receiving/", views.VehicleReceivingListCreateView.as_view(), name="fleet-receiving-list"),
+    path("receiving/<uuid:pk>/", views.VehicleReceivingDetailView.as_view(), name="fleet-receiving-detail"),
 ]

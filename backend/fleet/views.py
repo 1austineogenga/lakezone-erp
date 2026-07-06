@@ -12,11 +12,13 @@ from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
     VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
+    VehicleReceivingForm,
 )
 from .serializers import (
     FleetAPIConfigSerializer, VehicleSerializer, VehicleLiveDataSerializer,
     FuelEventSerializer, TripRecordSerializer, FleetAlertSerializer,
     MaintenanceRecordSerializer, FuelPriceSerializer, GeofenceSerializer, GeofenceEventSerializer,
+    VehicleReceivingFormSerializer,
 )
 from .services import FleetSyncService
 
@@ -1255,3 +1257,26 @@ class GeofenceEventListView(generics.ListAPIView):
         if date_to:
             qs = qs.filter(occurred_at__date__lte=date_to)
         return qs
+
+
+class VehicleReceivingListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehicleReceivingFormSerializer
+
+    def get_queryset(self):
+        qs = VehicleReceivingForm.objects.select_related('submitted_by', 'vehicle').all()
+        reg = self.request.query_params.get('registration_number')
+        if reg:
+            qs = qs.filter(registration_number__icontains=reg)
+        return qs
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class VehicleReceivingDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehicleReceivingFormSerializer
+    queryset = VehicleReceivingForm.objects.select_related('submitted_by', 'vehicle').all()
