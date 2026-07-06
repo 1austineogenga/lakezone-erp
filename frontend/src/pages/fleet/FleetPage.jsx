@@ -13,6 +13,7 @@ import EnhancedFuelReportPage from './EnhancedFuelReportPage'
 import GeofenceManagementPage from './GeofenceManagementPage'
 import FuelPriceManagementPage from './FuelPriceManagementPage'
 import VehicleReceivingPage from './VehicleReceivingPage'
+import KeyIssuancePage from './KeyIssuancePage'
 
 export default function FleetPage() {
   return (
@@ -30,6 +31,7 @@ export default function FleetPage() {
       <Route path="geofences" element={<GeofenceManagementPage />} />
       <Route path="fuel-prices" element={<FuelPriceManagementPage />} />
       <Route path="receiving" element={<VehicleReceivingPage />} />
+      <Route path="key-issuance" element={<KeyIssuancePage />} />
       <Route path="settings" element={<FleetSettingsPage />} />
       <Route path="*" element={<Navigate to="" replace />} />
     </Routes>
