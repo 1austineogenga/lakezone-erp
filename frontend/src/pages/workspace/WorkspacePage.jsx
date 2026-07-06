@@ -73,6 +73,7 @@ const TABS = [
   { id: 'leave',         label: 'Leave',           icon: CalendarDaysIcon },
   { id: 'advance',       label: 'Salary Advance',  icon: CurrencyDollarIcon },
   { id: 'payslips',      label: 'Payslips',        icon: DocumentTextIcon },
+  { id: 'storerequests', label: 'Store Requests',  icon: ArchiveBoxArrowDownIcon },
 ]
 
 // ── Print payslip ─────────────────────────────────────────────────────────────
@@ -938,6 +939,108 @@ function PayslipsTab({ employeeId, user }) {
   )
 }
 
+// ── Store Requests Tab ────────────────────────────────────────────────────────
+function MyStoreRequestsTab({ onNewRequest }) {
+  const qc = useQueryClient()
+
+  const { data: requests = [], isLoading, refetch } = useQuery({
+    queryKey: ['my-store-requests'],
+    queryFn: () => getStoreRequests({ view: 'outgoing', page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  const cancelMut = useMutation({
+    mutationFn: (id) => cancelStoreRequest(id),
+    onSuccess: () => { toast.success('Request cancelled'); refetch() },
+    onError: e => toast.error(e.response?.data?.detail || 'Cancel failed'),
+  })
+
+  const pending   = requests.filter(r => ['submitted', 'approved'].includes(r.status)).length
+  const dispatched = requests.filter(r => r.status === 'dispatched').length
+  const received  = requests.filter(r => r.status === 'received').length
+
+  return (
+    <div className="space-y-5">
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Pending',    value: pending,    color: 'text-amber-600' },
+          { label: 'Dispatched', value: dispatched, color: 'text-purple-600' },
+          { label: 'Received',   value: received,   color: 'text-green-700' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-brand-slate text-sm">My Requests ({requests.length})</h3>
+        <button onClick={onNewRequest}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+          <PlusIcon className="h-3.5 w-3.5" /> New Request
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[...Array(4)].map((_,i) => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
+      ) : requests.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+          <ArchiveBoxArrowDownIcon className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+          <p className="text-sm text-gray-500">No store requests yet.</p>
+          <p className="text-xs text-gray-400 mt-1">Use "New Request" to request items from any store.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {requests.map(req => (
+            <div key={req.id} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-mono text-xs font-bold text-brand-red">{req.reference}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${SR_STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
+                      {SR_STATUS_LABELS[req.status] || req.status}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">{req.item_name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {req.quantity_requested} {req.item_unit} requested
+                    {req.quantity_approved ? ` · ${req.quantity_approved} approved` : ''}
+                    {' · '}{req.source_store_name}
+                  </p>
+                  {req.justification && (
+                    <p className="text-xs text-gray-400 mt-0.5 italic truncate max-w-sm">{req.justification}</p>
+                  )}
+                  {req.rejection_reason && (
+                    <p className="mt-1.5 text-xs text-red-600 bg-red-50 rounded-lg px-2.5 py-1">Rejected: {req.rejection_reason}</p>
+                  )}
+                  {req.storekeeper_notes && (
+                    <p className="mt-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg px-2.5 py-1">Note: {req.storekeeper_notes}</p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {['submitted', 'approved'].includes(req.status) && (
+                    <button
+                      onClick={() => cancelMut.mutate(req.id)}
+                      disabled={cancelMut.isPending}
+                      className="px-2.5 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                      Cancel
+                    </button>
+                  )}
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(req.requested_at).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkspacePage() {
   const { user: authUser } = useAuthStore()
@@ -972,6 +1075,13 @@ export default function WorkspacePage() {
     queryFn: () => getMyAdvances(employeeId).then(r => r.data?.results ?? r.data ?? []),
     enabled: !!employeeId,
   })
+  const { data: myStoreRequests = [] } = useQuery({
+    queryKey: ['my-store-requests'],
+    queryFn: () => getStoreRequests({ view: 'outgoing', page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+  })
+  const pendingSRCount = myStoreRequests.filter(r => ['submitted', 'approved', 'dispatched'].includes(r.status)).length
+
   const currentUser = user || authUser
 
   return (
@@ -991,6 +1101,11 @@ export default function WorkspacePage() {
             <Icon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{label}</span>
             <span className="sm:hidden">{label.split(' ')[0]}</span>
+            {id === 'storerequests' && pendingSRCount > 0 && (
+              <span className="ml-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {pendingSRCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1001,6 +1116,7 @@ export default function WorkspacePage() {
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
+      {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
 
       {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
