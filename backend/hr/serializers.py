@@ -163,9 +163,11 @@ class LeaveBalanceSerializer(serializers.ModelSerializer):
 
 
 class LeaveApplicationSerializer(serializers.ModelSerializer):
-    employee_name   = serializers.SerializerMethodField()
-    leave_type_name = serializers.CharField(source='leave_type.name', read_only=True)
-    days            = serializers.IntegerField(read_only=True)
+    employee_name        = serializers.SerializerMethodField()
+    employee_designation = serializers.SerializerMethodField()
+    employee_department  = serializers.SerializerMethodField()
+    leave_type_name      = serializers.CharField(source='leave_type.name', read_only=True)
+    days                 = serializers.IntegerField(read_only=True)
 
     class Meta:
         model  = LeaveApplication
@@ -174,6 +176,12 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
 
     def get_employee_name(self, obj):
         return obj.employee.full_name
+
+    def get_employee_designation(self, obj):
+        return obj.employee.position_title or ''
+
+    def get_employee_department(self, obj):
+        return obj.employee.department.name if obj.employee.department else ''
 
     def validate(self, data):
         start = data.get('start_date') or (self.instance.start_date if self.instance else None)

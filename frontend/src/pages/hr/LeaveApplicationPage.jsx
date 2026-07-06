@@ -109,8 +109,8 @@ export default function LeaveApplicationPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             ['Name', leave?.employee_name],
-            ['Designation', user?.role_display || '—'],
-            ['Department', user?.department || '—'],
+            ['Designation', leave?.employee_designation || '—'],
+            ['Department', leave?.employee_department || '—'],
             ['Date', new Date().toLocaleDateString()],
           ].map(([label, value]) => (
             <div key={label}>
