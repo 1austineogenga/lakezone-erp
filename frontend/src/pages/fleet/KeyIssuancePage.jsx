@@ -6,13 +6,15 @@ import {
   ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, EyeIcon,
 } from '@heroicons/react/24/outline'
 import api from '../../api/client'
-import useAuthStore from '../../store/authStore'
+import { getEmployees } from '../../api/hr'
 import usePermissions from '../../hooks/usePermissions'
 
-const getKeyIssuances  = (p) => api.get('/fleet/key-issuances/', { params: p })
+const getKeyIssuances   = (p) => api.get('/fleet/key-issuances/', { params: p })
 const createKeyIssuance = (d) => api.post('/fleet/key-issuances/', d)
 const updateKeyIssuance = (id, d) => api.patch(`/fleet/key-issuances/${id}/`, d)
 const getVehicles       = (p) => api.get('/fleet/vehicles/', { params: p })
+
+const DRIVER_POSITIONS = ['driver', 'equipment operator', 'machine operator', 'operator']
 
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 const lbl = 'block text-xs font-medium text-gray-600 mb-1'
@@ -25,14 +27,14 @@ const FUEL_OPTS = [
   { value: 'empty', label: 'Empty' },
 ]
 
-const REQUESTOR_ROLES = [
-  { value: 'managing_director', label: 'Managing Director' },
-  { value: 'hr_manager', label: 'HR Manager' },
-  { value: 'admin_officer', label: 'Admin Officer' },
-  { value: 'project_manager', label: 'Project Manager' },
-  { value: 'site_manager', label: 'Site Manager' },
-  { value: 'other', label: 'Other' },
-]
+const REQUESTOR_ROLE_LABELS = {
+  managing_director: 'Managing Director',
+  hr_manager: 'HR Manager',
+  admin_officer: 'Admin Officer',
+  project_manager: 'Project Manager',
+  site_manager: 'Site Manager',
+  other: 'Other',
+}
 
 function CondPill({ value, onChange }) {
   return (
@@ -64,7 +66,7 @@ const BLANK_ISSUE = {
   vehicle: '',
   issued_to_name: '',
   requested_by_name: '',
-  requested_by_role: 'managing_director',
+  requested_by_role: 'other',
   destination: '',
   purpose: '',
   issue_datetime: '',
@@ -98,6 +100,20 @@ const BLANK_RETURN = {
 function IssueKeyModal({ vehicles, onClose, qc }) {
   const [form, setForm] = useState(BLANK_ISSUE)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['employees-drivers'],
+    queryFn: () => getEmployees({ page_size: 500, is_active: true }),
+    select: r => {
+      const list = r.data?.results ?? r.data ?? []
+      return Array.isArray(list)
+        ? list.filter(e => {
+            const pos = (e.position_title || '').toLowerCase()
+            return DRIVER_POSITIONS.some(d => pos.includes(d))
+          })
+        : []
+    },
+  })
 
   const mut = useMutation({
     mutationFn: createKeyIssuance,
@@ -172,18 +188,23 @@ function IssueKeyModal({ vehicles, onClose, qc }) {
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Personnel</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className={lbl}>Driver / Operator Name *</label>
-                <input required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)} placeholder="Full name of driver or operator" />
+                <label className={lbl}>Driver / Operator *</label>
+                {allEmployees.length > 0 ? (
+                  <select required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)}>
+                    <option value="">— Select driver / operator —</option>
+                    {allEmployees.map(e => (
+                      <option key={e.id} value={`${e.first_name} ${e.last_name}`.trim()}>
+                        {e.first_name} {e.last_name}{e.position_title ? ` — ${e.position_title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)} placeholder="Full name of driver or operator" />
+                )}
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className={lbl}>Requested By *</label>
-                <input required className={inp} value={form.requested_by_name} onChange={e => set('requested_by_name', e.target.value)} placeholder="Name of authorizing person" />
-              </div>
-              <div>
-                <label className={lbl}>Role / Position *</label>
-                <select required className={inp} value={form.requested_by_role} onChange={e => set('requested_by_role', e.target.value)}>
-                  {REQUESTOR_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                <input required className={inp} value={form.requested_by_name} onChange={e => set('requested_by_name', e.target.value)} placeholder="Name of authorizing person (MD, HR, Admin…)" />
               </div>
             </div>
           </div>
@@ -377,7 +398,7 @@ function DetailModal({ record, onClose }) {
   const condLabel = (v) => ({ ok: 'OK', not_ok: 'FAIL', na: 'N/A' })[v] || '—'
   const condColor = (v) => ({ ok: 'text-emerald-600 bg-emerald-50', not_ok: 'text-red-600 bg-red-50', na: 'text-gray-500 bg-gray-100' })[v] || 'text-gray-500 bg-gray-100'
 
-  const roleLabel = REQUESTOR_ROLES.find(r => r.value === record.requested_by_role)?.label || record.requested_by_role
+  const roleLabel = REQUESTOR_ROLE_LABELS[record.requested_by_role] || record.requested_by_role
 
   const printRecord = () => {
     const win = window.open('', '_blank')
@@ -572,8 +593,12 @@ function StatusBadge({ record }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function KeyIssuancePage() {
-  const { canWrite } = usePermissions()
+  const { canWrite, role } = usePermissions()
   const qc = useQueryClient()
+
+  // Facility manager and fleet manager have full rights; MD views only; site_manager hidden
+  const canIssue = canIssue
+  const isMDView = role === 'managing_director' || role === 'general_manager'
 
   const [search, setSearch]         = useState('')
   const [statusFilter, setStatus]   = useState('')
@@ -614,7 +639,7 @@ export default function KeyIssuancePage() {
           <h1 className="text-lg font-bold text-brand-slate">Key Issuance Log</h1>
           <p className="text-xs text-gray-500 mt-0.5">Track vehicle & machine key releases and returns</p>
         </div>
-        {canWrite('fleet') && (
+        {canIssue && (
           <button onClick={() => setShowIssue(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90">
             <PlusIcon className="h-4 w-4" /> Issue Key
@@ -664,7 +689,7 @@ export default function KeyIssuancePage() {
           <div className="text-center py-16 text-gray-500">
             <KeyIcon className="h-10 w-10 text-gray-200 mx-auto mb-3" />
             <p className="text-sm font-semibold">No Key Issuances Found</p>
-            {canWrite('fleet') && <p className="text-xs mt-1">Click "Issue Key" to record a new issuance.</p>}
+            {canIssue && <p className="text-xs mt-1">Click "Issue Key" to record a new issuance.</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -685,7 +710,7 @@ export default function KeyIssuancePage() {
                       <td className="px-4 py-3 text-gray-700">{r.issued_to_name}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         <div>{r.requested_by_name}</div>
-                        <div className="text-[10px] text-gray-400 capitalize">{REQUESTOR_ROLES.find(x => x.value === r.requested_by_role)?.label || r.requested_by_role}</div>
+                        <div className="text-[10px] text-gray-400 capitalize">{REQUESTOR_ROLE_LABELS[r.requested_by_role] || r.requested_by_role}</div>
                       </td>
                       <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate">{r.destination}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(r.issue_datetime).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' })}</td>
@@ -699,7 +724,7 @@ export default function KeyIssuancePage() {
                             className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-brand-slate">
                             <EyeIcon className="h-3.5 w-3.5" />
                           </button>
-                          {r.status !== 'returned' && canWrite('fleet') && (
+                          {r.status !== 'returned' && canIssue && (
                             <button onClick={() => setReturnRec(r)} title="Record Return"
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold hover:bg-emerald-200">
                               <ArrowPathIcon className="h-3 w-3" /> Return
