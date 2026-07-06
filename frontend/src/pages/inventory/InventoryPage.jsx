@@ -743,7 +743,7 @@ function AdjustStockModal({ item, activeStoreId, onClose }) {
 function RequestItemsModal({ onClose, stores }) {
   const qc = useQueryClient()
   const [selectedStoreId, setSelectedStoreId] = useState('')
-  const [form, setForm] = useState({ item: '', quantity: '', justification: '' })
+  const [form, setForm] = useState({ item: '', quantity: '', justification: '', date_required: '' })
 
   const { data: storeItems = [], isFetching: fetchingItems } = useQuery({
     queryKey: ['store-browse-items', selectedStoreId],
@@ -844,11 +844,20 @@ function RequestItemsModal({ onClose, stores }) {
               onChange={e => setForm(f => ({ ...f, justification: e.target.value }))}
               placeholder="Explain why you need this item (e.g. Site works — Thika Road, replacing damaged equipment…)" />
           </div>
+
+          {/* Date Required */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Date Required <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="date" className={inp} min={today}
+              value={form.date_required}
+              onChange={e => setForm(f => ({ ...f, date_required: e.target.value }))} />
+            <p className="text-[10px] text-gray-400 mt-1">When do you need this by? Used to flag overdue requests.</p>
+          </div>
         </div>
 
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
           <button
-            onClick={() => createMut.mutate({ item: form.item, quantity_requested: Number(form.quantity), source_store: selectedStoreId, justification: form.justification })}
+            onClick={() => createMut.mutate({ item: form.item, quantity_requested: Number(form.quantity), source_store: selectedStoreId, justification: form.justification, date_required: form.date_required || undefined })}
             disabled={createMut.isPending || !canSubmit}
             className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
             {createMut.isPending ? 'Submitting…' : 'Submit Request'}
@@ -1687,8 +1696,12 @@ function StoreRequestsTab({ isStorekeeper, incomingRequests, myRequests, refetch
         </div>
       ) : (
         <div className="space-y-2">
-          {list.map(req => (
-            <div key={req.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+          {list.map(req => {
+            const todayStr = new Date().toISOString().slice(0, 10)
+            const isOverdue = req.date_required && req.date_required < todayStr &&
+              ['submitted', 'approved', 'dispatched'].includes(req.status)
+            return (
+            <div key={req.id} className={`border rounded-xl p-4 shadow-sm ${isOverdue ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1696,6 +1709,9 @@ function StoreRequestsTab({ isStorekeeper, incomingRequests, myRequests, refetch
                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${SR_STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
                       {SR_STATUS_LABELS[req.status] || req.status}
                     </span>
+                    {isOverdue && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Overdue</span>
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-gray-800 mt-1">{req.item_name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -1704,6 +1720,11 @@ function StoreRequestsTab({ isStorekeeper, incomingRequests, myRequests, refetch
                     {' · '}{req.source_store_name}
                     {view === 'incoming' && ` · from ${req.requested_by_name}`}
                   </p>
+                  {req.date_required && (
+                    <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+                      Needed by: {new Date(req.date_required + 'T00:00:00').toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-400 mt-0.5 italic truncate max-w-xs">{req.justification}</p>
                 </div>
                 <div className="flex gap-1.5 flex-wrap shrink-0">
@@ -1745,7 +1766,8 @@ function StoreRequestsTab({ isStorekeeper, incomingRequests, myRequests, refetch
                 {new Date(req.requested_at).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
