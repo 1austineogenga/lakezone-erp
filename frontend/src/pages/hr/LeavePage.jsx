@@ -29,7 +29,7 @@ export default function LeavePage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
 
-  const [tab, setTab]           = useState('balances')
+  const [tab, setTab]           = useState('applications')
   const [statusFilter, setStatus] = useState('')
   const [reviewModal, setReviewModal] = useState(null) // { app, action }
   const [reviewNotes, setReviewNotes] = useState('')
