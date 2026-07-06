@@ -678,7 +678,7 @@ export default function VehicleReceivingPage() {
           <div className="p-6 space-y-2">{[1,2,3].map(i => <div key={i} className="h-9 bg-gray-100 rounded-lg animate-pulse" />)}</div>
         ) : forms.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
-            <p className="text-sm font-semibold">No vehicle receiving forms yet.</p>
+            <p className="text-sm font-semibold">No Vehicle Received Yet</p>
             {canReceive && <p className="text-xs mt-1">Click "Receive Vehicle" to record one.</p>}
           </div>
         ) : (
