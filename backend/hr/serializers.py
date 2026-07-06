@@ -169,6 +169,7 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
     leave_type_name      = serializers.CharField(source='leave_type.name', read_only=True)
     days                 = serializers.IntegerField(read_only=True)
     reviewed_by_name     = serializers.SerializerMethodField()
+    handover_to_name     = serializers.SerializerMethodField()
 
     class Meta:
         model  = LeaveApplication
@@ -191,6 +192,11 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
     def get_reviewed_by_name(self, obj):
         if obj.reviewed_by:
             return obj.reviewed_by.get_full_name() or obj.reviewed_by.email
+        return None
+
+    def get_handover_to_name(self, obj):
+        if obj.handover_to:
+            return obj.handover_to.full_name
         return None
 
     def validate(self, data):

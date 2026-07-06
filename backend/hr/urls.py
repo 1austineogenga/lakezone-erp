@@ -47,6 +47,7 @@ urlpatterns = [
     path('leave-applications/<uuid:pk>/',        views.LeaveApplicationDetailView.as_view()),
     path('leave-applications/<uuid:pk>/submit/', views.LeaveSubmitView.as_view()),
     path('leave-applications/<uuid:pk>/review/', views.LeaveReviewView.as_view()),
+    path('leave-applications/<uuid:pk>/cancel/', views.LeaveCancelView.as_view()),
 
     # Payroll Periods
     path('payroll/periods/',                     views.PayrollPeriodListCreateView.as_view()),
