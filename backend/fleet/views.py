@@ -12,13 +12,13 @@ from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
     VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
-    VehicleReceivingForm,
+    VehicleReceivingForm, KeyIssuance,
 )
 from .serializers import (
     FleetAPIConfigSerializer, VehicleSerializer, VehicleLiveDataSerializer,
     FuelEventSerializer, TripRecordSerializer, FleetAlertSerializer,
     MaintenanceRecordSerializer, FuelPriceSerializer, GeofenceSerializer, GeofenceEventSerializer,
-    VehicleReceivingFormSerializer,
+    VehicleReceivingFormSerializer, KeyIssuanceSerializer,
 )
 from .services import FleetSyncService
 
@@ -1280,3 +1280,41 @@ class VehicleReceivingDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VehicleReceivingFormSerializer
     queryset = VehicleReceivingForm.objects.select_related('submitted_by', 'vehicle').all()
+
+
+class KeyIssuanceListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = KeyIssuanceSerializer
+
+    def get_queryset(self):
+        qs = KeyIssuance.objects.select_related('vehicle', 'issued_by').all()
+        status = self.request.query_params.get('status')
+        vehicle = self.request.query_params.get('vehicle')
+        search = self.request.query_params.get('search')
+        if status:
+            qs = qs.filter(status=status)
+        if vehicle:
+            qs = qs.filter(vehicle=vehicle)
+        if search:
+            qs = qs.filter(
+                models.Q(issued_to_name__icontains=search) |
+                models.Q(destination__icontains=search) |
+                models.Q(vehicle__vehicle_no__icontains=search)
+            )
+        return qs
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class KeyIssuanceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = KeyIssuanceSerializer
+    queryset = KeyIssuance.objects.select_related('vehicle', 'issued_by').all()
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx

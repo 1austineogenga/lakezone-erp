@@ -126,8 +126,9 @@ const MODULES = [
         heading: 'Vehicles',
         links: [
           { to: '/fleet/vehicles',    label: 'Vehicles',    icon: TruckIcon },
-          { to: '/fleet/receiving',   label: 'Receiving',   icon: DocumentCheckIcon },
-          { to: '/fleet/maintenance', label: 'Maintenance', icon: WrenchScrewdriverIcon },
+          { to: '/fleet/receiving',     label: 'Receiving',     icon: DocumentCheckIcon },
+          { to: '/fleet/key-issuance', label: 'Key Issuance',  icon: KeyIcon },
+          { to: '/fleet/maintenance',  label: 'Maintenance',   icon: WrenchScrewdriverIcon },
         ],
       },
       {

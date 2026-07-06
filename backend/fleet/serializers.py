@@ -4,7 +4,7 @@ from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
     VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
-    VehicleReceivingForm,
+    VehicleReceivingForm, KeyIssuance,
 )
 
 
@@ -172,4 +172,34 @@ class VehicleReceivingFormSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             validated_data['submitted_by'] = request.user
+        return super().create(validated_data)
+
+
+class KeyIssuanceSerializer(serializers.ModelSerializer):
+    issued_by_name = serializers.SerializerMethodField()
+    vehicle_label = serializers.SerializerMethodField()
+    is_overdue = serializers.SerializerMethodField()
+
+    class Meta:
+        model = KeyIssuance
+        fields = '__all__'
+        read_only_fields = ['id', 'issued_by', 'created_at']
+
+    def get_issued_by_name(self, obj):
+        if obj.issued_by:
+            return obj.issued_by.get_full_name() or obj.issued_by.email
+        return None
+
+    def get_vehicle_label(self, obj):
+        if obj.vehicle:
+            return f"{obj.vehicle.vehicle_no}{' — ' + obj.vehicle.vehicle_name if obj.vehicle.vehicle_name else ''}"
+        return None
+
+    def get_is_overdue(self, obj):
+        return obj.is_overdue()
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['issued_by'] = request.user
         return super().create(validated_data)

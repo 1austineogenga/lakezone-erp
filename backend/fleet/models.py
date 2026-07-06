@@ -436,3 +436,70 @@ class VehicleReceivingForm(models.Model):
 
     def __str__(self):
         return f"Receiving — {self.registration_number} ({self.date_of_inspection})"
+
+
+class KeyIssuance(models.Model):
+    CONDITION = [('ok', 'OK'), ('not_ok', 'Not OK'), ('na', 'N/A')]
+    FUEL_LEVEL = [('full', 'Full'), ('three_quarter', '3/4'), ('half', '1/2'), ('quarter', '1/4'), ('empty', 'Empty')]
+    REQUESTOR_CHOICES = [
+        ('managing_director', 'Managing Director'),
+        ('hr_manager', 'HR Manager'),
+        ('admin_officer', 'Admin Officer'),
+        ('project_manager', 'Project Manager'),
+        ('site_manager', 'Site Manager'),
+        ('other', 'Other'),
+    ]
+    STATUS = [('out', 'Out'), ('returned', 'Returned'), ('overdue', 'Overdue')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vehicle = models.ForeignKey('Vehicle', null=True, blank=True, on_delete=models.SET_NULL, related_name='key_issuances')
+
+    # Who & why
+    issued_to_name = models.CharField(max_length=200)
+    requested_by_name = models.CharField(max_length=200)
+    requested_by_role = models.CharField(max_length=50, choices=REQUESTOR_CHOICES, default='other')
+    destination = models.CharField(max_length=300)
+    purpose = models.TextField(blank=True, default='')
+
+    # Issue
+    issue_datetime = models.DateTimeField()
+    expected_return_datetime = models.DateTimeField()
+    issue_mileage = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
+
+    # Pre-departure checklist
+    pre_fuel_level = models.CharField(max_length=20, choices=FUEL_LEVEL, default='full')
+    pre_engine_oil = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_tire_condition = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_body_condition = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_lights = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_brakes = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_wipers = models.CharField(max_length=10, choices=CONDITION, default='ok')
+    pre_notes = models.TextField(blank=True, default='')
+
+    # Return
+    actual_return_datetime = models.DateTimeField(null=True, blank=True)
+    return_mileage = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
+    return_fuel_level = models.CharField(max_length=20, choices=FUEL_LEVEL, blank=True, default='')
+    return_engine_oil = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_tire_condition = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_body_condition = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_lights = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_brakes = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_wipers = models.CharField(max_length=10, choices=CONDITION, blank=True, default='')
+    return_notes = models.TextField(blank=True, default='')
+    delay_justification = models.TextField(blank=True, default='')
+
+    status = models.CharField(max_length=20, choices=STATUS, default='out')
+    issued_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='key_issuances_issued')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Key — {self.vehicle} → {self.issued_to_name} ({self.issue_datetime:%Y-%m-%d})"
+
+    def is_overdue(self):
+        if self.status == 'out' and self.expected_return_datetime:
+            return timezone.now() > self.expected_return_datetime
+        return False
