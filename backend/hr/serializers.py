@@ -168,6 +168,7 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
     employee_department  = serializers.SerializerMethodField()
     leave_type_name      = serializers.CharField(source='leave_type.name', read_only=True)
     days                 = serializers.IntegerField(read_only=True)
+    reviewed_by_name     = serializers.SerializerMethodField()
 
     class Meta:
         model  = LeaveApplication
@@ -175,13 +176,20 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = ['reference', 'reviewed_by', 'reviewed_at']
 
     def get_employee_name(self, obj):
-        return obj.employee.full_name
+        return obj.employee.full_name if obj.employee else ''
 
     def get_employee_designation(self, obj):
-        return obj.employee.position_title or ''
+        return (obj.employee.position_title or '') if obj.employee else ''
 
     def get_employee_department(self, obj):
-        return obj.employee.department.name if obj.employee.department else ''
+        if obj.employee and obj.employee.department:
+            return obj.employee.department.name
+        return ''
+
+    def get_reviewed_by_name(self, obj):
+        if obj.reviewed_by:
+            return obj.reviewed_by.get_full_name() or obj.reviewed_by.email
+        return None
 
     def validate(self, data):
         start = data.get('start_date') or (self.instance.start_date if self.instance else None)

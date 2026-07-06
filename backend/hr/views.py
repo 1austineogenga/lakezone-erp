@@ -402,18 +402,41 @@ class LeaveBalanceInitializeView(APIView):
         return Response({'created': created_count, 'year': year})
 
 
+HR_ROLES = {'system_admin', 'hr_manager', 'hr_officer', 'md', 'ceo', 'director'}
+
 class LeaveApplicationListCreateView(generics.ListCreateAPIView):
     serializer_class   = LeaveApplicationSerializer
     permission_classes = [IsAuthenticated]
 
+    def _is_hr(self):
+        return getattr(self.request.user, 'role', None) in HR_ROLES or self.request.user.is_staff
+
     def get_queryset(self):
-        qs = LeaveApplication.objects.select_related('employee', 'leave_type')
+        qs = LeaveApplication.objects.select_related('employee', 'leave_type', 'reviewed_by')
         params = self.request.query_params
-        if emp := params.get('employee'):
-            qs = qs.filter(employee_id=emp)
+
+        if self._is_hr():
+            if emp := params.get('employee'):
+                qs = qs.filter(employee_id=emp)
+        else:
+            try:
+                emp_profile = self.request.user.employee_profile
+                qs = qs.filter(employee=emp_profile)
+            except Exception:
+                return qs.none()
+
         if st := params.get('status'):
             qs = qs.filter(status=st)
         return qs.order_by('-applied_at')
+
+    def perform_create(self, serializer):
+        if 'employee' not in serializer.validated_data:
+            try:
+                serializer.save(employee=self.request.user.employee_profile)
+            except Exception:
+                serializer.save()
+        else:
+            serializer.save()
 
 
 class LeaveApplicationDetailView(generics.RetrieveUpdateAPIView):
