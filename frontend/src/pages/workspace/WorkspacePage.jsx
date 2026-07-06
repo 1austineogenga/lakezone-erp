@@ -529,7 +529,7 @@ function LeaveTab({ employeeId }) {
 
   const createMut = useMutation({
     mutationFn: async (data) => {
-      const payload = { ...data }
+      const payload = { ...data, employee: employeeId }
       if (!payload.handover_to) delete payload.handover_to
       const res = await createLeave(payload)
       await submitLeave(res.data.id)
