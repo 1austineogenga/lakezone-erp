@@ -23,6 +23,35 @@ const today = new Date().toISOString().slice(0, 10)
 
 const INV_PAGE_SIZE = 12
 
+// Maps each role to its store name (null = all stores)
+const ROLE_STORE_MAP = {
+  facility_manager:     'General Store',
+  general_manager:      'General Store',
+  equipment_operator:   'General Store',
+  driver:               'General Store',
+  head_of_security:     'General Store',
+  surveillance_officer: 'General Store',
+  chef:                 'General Store',
+  cleaner:              'General Store',
+  storekeeper:          'General Store',
+  fleet_manager:        'General Store',
+  admin_officer:        'Admin Store',
+  sales_officer:        'Admin Store',
+  hr_manager:           'HR Store',
+  finance_officer:      'Finance Store',
+  finance_manager:      'Finance Store',
+  system_admin:         null, // all stores, full rights
+  site_manager:         'Site Store',
+  site_engineer:        'Site Store',
+  site_foreman:         'Site Store',
+  site_surveyor:        'Site Store',
+  mechanic:             'Site Store',
+  welder:               'Site Store',
+  project_manager:      'Site Store',
+  procurement_officer:  'Procurement Store',
+  managing_director:    null, // all stores, view-only
+}
+
 function InvPageNav({ page, total, onChange }) {
   const totalPages = Math.ceil(total / INV_PAGE_SIZE)
   if (totalPages <= 1) return null
@@ -99,42 +128,6 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ou
 
 const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags', 'tubes', 'packets', 'drums', 'bales', 'tonnes']
 
-// ── Quick Create Store (inline, used when no stores exist) ────────────────────
-
-function QuickCreateStore({ onCreated }) {
-  const [name, setName]         = useState('')
-  const [location, setLocation] = useState('')
-  const [saving, setSaving]     = useState(false)
-
-  const handleCreate = async () => {
-    if (!name.trim()) return toast.error('Store name is required')
-    setSaving(true)
-    try {
-      const res = await api.post('/inventory/stores/', { name, location })
-      toast.success(`Store "${name}" created`)
-      onCreated(res.data)
-    } catch {
-      toast.error('Failed to create store')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-semibold text-amber-800">No stores configured — create one to continue</p>
-      <input value={name} onChange={e => setName(e.target.value)}
-        className={inp} placeholder="Store name (e.g. Main Storeroom)" />
-      <input value={location} onChange={e => setLocation(e.target.value)}
-        className={inp} placeholder="Location (optional)" />
-      <button onClick={handleCreate} disabled={saving || !name.trim()}
-        className="w-full py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50">
-        {saving ? 'Creating…' : 'Create Store & Continue'}
-      </button>
-    </div>
-  )
-}
-
 const CATEGORY_GROUPS = [
   { label: 'Office & Admin',    items: ['office_consumables', 'stationery'] },
   { label: 'Facilities',        items: ['cleaning', 'kitchen'] },
@@ -143,7 +136,8 @@ const CATEGORY_GROUPS = [
   { label: 'Other',             items: ['other'] },
 ]
 
-function AddItemModal({ onClose, editItem, stores, departments }) {
+// activeStoreId is passed in so opening stock GRN uses the currently selected store
+function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
   const qc = useQueryClient()
   const [form, setForm] = useState(editItem ? {
     name:              editItem.name              || '',
@@ -158,9 +152,8 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
     name: '', category: 'office_consumables', unit: '', reorder_level: '',
     description: '', valuation_method: 'wac', department: '', is_active: true,
   })
-  const [openingQty,   setOpeningQty]   = useState('')
-  const [openingCost,  setOpeningCost]  = useState('')
-  const [openingStore, setOpeningStore] = useState(stores[0]?.id ?? '')
+  const [openingQty,  setOpeningQty]  = useState('')
+  const [openingCost, setOpeningCost] = useState('')
 
   const hasOpening = !editItem && Number(openingQty) > 0
 
@@ -171,12 +164,11 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
         : await createStockItem(data)
       const newItem = itemRes.data
       if (hasOpening) {
-        const storeId = openingStore || stores[0]?.id
-        if (!storeId) throw new Error('Please select a store for the opening stock.')
+        if (!activeStoreId) throw new Error('No active store selected.')
         await createTransaction({
           transaction_type: 'grn',
           item: newItem.id,
-          store: storeId,
+          store: activeStoreId,
           quantity: Number(openingQty),
           unit_cost: Number(openingCost || 0),
           transaction_date: new Date().toISOString().slice(0, 10),
@@ -199,7 +191,7 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const canSubmit = form.name.trim() && form.unit.trim() && (!hasOpening || openingStore)
+  const canSubmit = form.name.trim() && form.unit.trim()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -331,33 +323,10 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
                 </div>
               </div>
 
-              {/* Store picker */}
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Store {hasOpening && <span className="text-brand-red">*</span>}
-                </label>
-                {stores.length === 0 ? (
-                  <QuickCreateStore onCreated={(newStore) => {
-                    qc.invalidateQueries({ queryKey: ['stores'] })
-                    setOpeningStore(newStore.id)
-                  }} />
-                ) : (
-                  <>
-                    <select className={inp} value={openingStore} onChange={e => setOpeningStore(e.target.value)}>
-                      <option value="">— Select store —</option>
-                      {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    {hasOpening && !openingStore && (
-                      <p className="text-[11px] text-red-500 mt-1">A store is required when adding opening stock.</p>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {hasOpening && openingStore && (
+              {hasOpening && (
                 <p className="text-[11px] text-indigo-600">
                   Will record a GRN of <strong>{openingQty}</strong> units
-                  {openingCost ? ` @ KES ${Number(openingCost).toLocaleString()} each` : ''} into selected store.
+                  {openingCost ? ` @ KES ${Number(openingCost).toLocaleString()} each` : ''} into the current store.
                 </p>
               )}
             </div>
@@ -391,21 +360,14 @@ function AddItemModal({ onClose, editItem, stores, departments }) {
 
 // ── Adjust Stock Modal ────────────────────────────────────────────────────────
 
-function AdjustStockModal({ item, stores, onClose }) {
+function AdjustStockModal({ item, activeStoreId, onClose }) {
   const qc = useQueryClient()
   const currentStock = Number(item.current_stock ?? 0)
   const currentCost  = Number(item.weighted_avg_cost ?? 0)
-  const [store, setStore]       = useState(stores[0]?.id ?? '')
   const [newQty, setNewQty]     = useState(String(currentStock))
   const [unitCost, setUnitCost] = useState(currentCost > 0 ? String(currentCost) : '')
   const [notes, setNotes]       = useState('')
 
-  // Auto-select first store when stores load asynchronously
-  useEffect(() => {
-    if (!store && stores[0]?.id) setStore(stores[0].id)
-  }, [stores])
-
-  const needsStore = stores.length > 0
   const costChanged = unitCost !== '' && Number(unitCost) !== currentCost
   const diff = Number(newQty) - currentStock
   const diffLabel = diff === 0
@@ -420,7 +382,7 @@ function AdjustStockModal({ item, stores, onClose }) {
     mutationFn: () => createTransaction({
       transaction_type: 'adjustment',
       item: item.id,
-      store,
+      store: activeStoreId,
       quantity: Number(newQty),
       unit_cost: unitCost !== '' ? Number(unitCost) : Number(item.weighted_avg_cost || 0),
       transaction_date: new Date().toISOString().slice(0, 10),
@@ -440,7 +402,7 @@ function AdjustStockModal({ item, stores, onClose }) {
     },
   })
 
-  const canSave = (!needsStore || store) && newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && (diff !== 0 || costChanged)
+  const canSave = newQty !== '' && !isNaN(Number(newQty)) && Number(newQty) >= 0 && (diff !== 0 || costChanged)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -489,22 +451,6 @@ function AdjustStockModal({ item, stores, onClose }) {
             </div>
           </div>
 
-          {/* Store */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Store <span className="text-brand-red">*</span></label>
-            {stores.length === 0 ? (
-              <QuickCreateStore onCreated={(newStore) => {
-                qc.invalidateQueries({ queryKey: ['stores'] })
-                setStore(newStore.id)
-              }} />
-            ) : (
-              <select className={inp} value={store} onChange={e => setStore(e.target.value)}>
-                <option value="">— Select store —</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            )}
-          </div>
-
           {/* Notes */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Reason / Notes <span className="text-gray-400 font-normal">(optional)</span></label>
@@ -530,38 +476,23 @@ function AdjustStockModal({ item, stores, onClose }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-const READONLY_ROLES = new Set([
-  'managing_director', 'finance_officer', 'finance_manager',
-  'general_manager', 'head_of_security',
-])
-const VIEW_ALL_ROLES = new Set([
-  'system_admin', 'managing_director', 'finance_officer',
-  'finance_manager', 'general_manager', 'head_of_security',
-])
-
 export default function InventoryPage() {
   const user = useAuthStore(s => s.user)
   const role = user?.role || ''
 
-  const isReadOnly   = READONLY_ROLES.has(role)
-  const canViewAll   = VIEW_ALL_ROLES.has(role)
-  const canWriteAll  = role === 'system_admin'
+  // MD is read-only across all stores; everyone else has write access to their store
+  const isReadOnly  = role === 'managing_director'
+  // MD and system_admin see all stores (tab bar); others see only their own store
+  const showAllStores = role === 'managing_director' || role === 'system_admin'
 
-  // Can this user edit a specific inventory item?
-  const canEditItem = (item) => {
-    if (isReadOnly) return false
-    if (canWriteAll) return true
-    return String(item.department) === String(user?.department)
-  }
-
-  const [tab, setTab] = useState('items')
-  const [deptFilter, setDeptFilter] = useState('')
-  const [search, setSearch] = useState('')
+  const [tab, setTab]             = useState('items')
+  const [activeStore, setActiveStore] = useState(null)
+  const [search, setSearch]       = useState('')
   const [filterCat, setFilterCat] = useState('')
-  const [itemPage, setItemPage] = useState(1)
+  const [itemPage, setItemPage]   = useState(1)
   const resetItemPage = () => setItemPage(1)
   const [showAddItem, setShowAddItem] = useState(false)
-  const [editItem, setEditItem] = useState(null)
+  const [editItem, setEditItem]   = useState(null)
   const [adjustItem, setAdjustItem] = useState(null)
 
   // Issue form
@@ -576,39 +507,55 @@ export default function InventoryPage() {
 
   // History filters
   const [hDateFrom, setHDateFrom] = useState('')
-  const [hDateTo, setHDateTo] = useState('')
-  const [hType, setHType] = useState('')
-  const [hItem, setHItem] = useState('')
-  const [hSearch, setHSearch] = useState('')
+  const [hDateTo, setHDateTo]     = useState('')
+  const [hType, setHType]         = useState('')
+  const [hItem, setHItem]         = useState('')
+  const [hSearch, setHSearch]     = useState('')
 
   const qc = useQueryClient()
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
-  const deptParams = deptFilter ? { department: deptFilter } : {}
-
-  const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['stock-items', deptFilter],
-    queryFn: () => getStockItems({ page_size: 500, ...deptParams }),
-    select: r => r.data?.results ?? r.data ?? [],
-  })
-
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['stock-transactions', deptFilter],
-    queryFn: () => getTransactions({ page_size: 500, ...deptParams }),
-    select: r => r.data?.results ?? r.data ?? [],
-  })
-
-  const { data: lowStock = [] } = useQuery({
-    queryKey: ['low-stock', deptFilter],
-    queryFn: () => getLowStockItems(deptParams),
-    select: r => r.data?.results ?? r.data ?? [],
-  })
-
-  const { data: stores = [] } = useQuery({
+  const { data: stores = [], isLoading: loadingStores } = useQuery({
     queryKey: ['stores'],
     queryFn: getStores,
     select: r => r.data?.results ?? r.data ?? [],
+  })
+
+  // Initialise activeStore once stores are loaded
+  useEffect(() => {
+    if (!stores.length) return
+    if (activeStore) return // already set
+    if (showAllStores) {
+      setActiveStore(stores[0])
+    } else {
+      const storeName = ROLE_STORE_MAP[role]
+      const match = stores.find(s => s.name === storeName)
+      setActiveStore(match || stores[0])
+    }
+  }, [stores]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const storeParam = activeStore ? { store: activeStore.id } : {}
+
+  const { data: items = [], isLoading: loadingItems } = useQuery({
+    queryKey: ['stock-items', activeStore?.id],
+    queryFn: () => getStockItems({ page_size: 500, ...storeParam }),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!activeStore,
+  })
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['stock-transactions', activeStore?.id],
+    queryFn: () => getTransactions({ page_size: 500, ...storeParam }),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!activeStore,
+  })
+
+  const { data: lowStock = [] } = useQuery({
+    queryKey: ['low-stock', activeStore?.id],
+    queryFn: () => getLowStockItems(storeParam),
+    select: r => r.data?.results ?? r.data ?? [],
+    enabled: !!activeStore,
   })
 
   const { data: employees = [] } = useQuery({
@@ -671,7 +618,11 @@ export default function InventoryPage() {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
 
-  const firstStoreId = stores[0]?.id ?? ''
+  const visibleStores = useMemo(() => {
+    if (showAllStores) return stores
+    const storeName = ROLE_STORE_MAP[role]
+    return stores.filter(s => s.name === storeName)
+  }, [stores, role, showAllStores])
 
   const totalValue = useMemo(() =>
     items.reduce((s, i) => s + Number(i.current_stock) * Number(i.weighted_avg_cost || 0), 0),
@@ -733,7 +684,7 @@ export default function InventoryPage() {
     const payload = {
       transaction_type: 'issue',
       item: issueForm.item,
-      store: firstStoreId,
+      store: activeStore?.id,
       quantity: Number(issueForm.quantity),
       unit_cost: Number(selectedItem?.weighted_avg_cost || 0),
       issued_to: issueForm.issued_to || undefined,
@@ -755,7 +706,7 @@ export default function InventoryPage() {
     const payload = {
       transaction_type: 'grn',
       item: receiveForm.item,
-      store: firstStoreId,
+      store: activeStore?.id,
       quantity: Number(receiveForm.quantity),
       unit_cost: Number(receiveForm.unit_cost),
       transaction_date: receiveForm.date,
@@ -765,6 +716,16 @@ export default function InventoryPage() {
       reference_number: '',
     }
     receiveMut.mutate(payload)
+  }
+
+  // ── Loading state while stores haven't loaded yet ─────────────────────────────
+
+  if (loadingStores || (stores.length > 0 && !activeStore)) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+      </div>
+    )
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -777,24 +738,10 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-lg font-bold text-brand-slate">Inventory</h1>
           <p className="text-xs text-gray-600 mt-0.5">
-            {canViewAll
-              ? (deptFilter
-                  ? `${departments.find(d => d.id === deptFilter)?.name ?? 'Department'} · Stock management`
-                  : 'All Departments · Stock management')
-              : `${user?.department_name ?? ''} · Stock management`}
+            {activeStore ? `${activeStore.name} · Stock management` : 'Stock management'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {canViewAll && (
-            <select
-              value={deptFilter}
-              onChange={e => setDeptFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
-              <option value="">All Departments</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          )}
-
           {!isReadOnly && (
             <button
               onClick={() => setShowAddItem(true)}
@@ -804,6 +751,22 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      {/* Store tab bar — shown for MD and system_admin only */}
+      {showAllStores && visibleStores.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {visibleStores.map(s => (
+            <button key={s.id}
+              onClick={() => setActiveStore(s)}
+              className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors
+                ${activeStore?.id === s.id
+                  ? 'bg-brand-slate text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -924,7 +887,7 @@ export default function InventoryPage() {
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50">
-                        {['Code', 'Name', 'Category', ...(canViewAll && !deptFilter ? ['Department'] : []), 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
+                        {['Code', 'Name', 'Category', 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -936,7 +899,7 @@ export default function InventoryPage() {
                         const wac = Number(item.weighted_avg_cost || 0)
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
-                        const canAct = canEditItem(item)
+                        const canAct = !isReadOnly
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5">
@@ -946,9 +909,6 @@ export default function InventoryPage() {
                             </td>
                             <td className="px-3 py-2.5 font-medium text-gray-800">{item.name}</td>
                             <td className="px-3 py-2.5 text-gray-600">{CATEGORY_LABELS[item.category] ?? item.category}</td>
-                            {canViewAll && !deptFilter && (
-                              <td className="px-3 py-2.5 text-gray-600">{item.department_name || '—'}</td>
-                            )}
                             <td className="px-3 py-2.5 text-gray-600">{item.unit}</td>
                             <td className={`px-3 py-2.5 font-semibold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-700'}`}>
                               {stock.toLocaleString()}
@@ -1356,7 +1316,7 @@ export default function InventoryPage() {
                               className={`h-full rounded-full transition-all ${isOut ? 'bg-red-400' : 'bg-amber-400'}`}
                               style={{ width: `${pct}%` }} />
                           </div>
-                          {canEditItem(item) && (
+                          {!isReadOnly && (
                             <button
                               onClick={() => {
                                 setReceiveForm(f => ({ ...f, item: String(item.id) }))
@@ -1382,14 +1342,14 @@ export default function InventoryPage() {
       {(showAddItem || editItem) && (
         <AddItemModal
           editItem={editItem}
-          stores={stores}
+          activeStoreId={activeStore?.id}
           departments={departments}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
       {adjustItem && (
         <AdjustStockModal
           item={adjustItem}
-          stores={stores}
+          activeStoreId={activeStore?.id}
           onClose={() => setAdjustItem(null)} />
       )}
     </div>

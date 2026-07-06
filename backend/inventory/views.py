@@ -24,6 +24,48 @@ VIEW_ALL_READONLY_ROLES = {
 # admin_officer and facility_manager are scoped to their own department
 VIEW_ALL_ROLES = {'system_admin'} | VIEW_ALL_READONLY_ROLES
 
+# Maps user role → store name they own
+ROLE_STORE_MAP = {
+    'facility_manager':     'General Store',
+    'general_manager':      'General Store',
+    'equipment_operator':   'General Store',
+    'driver':               'General Store',
+    'head_of_security':     'General Store',
+    'surveillance_officer': 'General Store',
+    'chef':                 'General Store',
+    'cleaner':              'General Store',
+    'storekeeper':          'General Store',
+    'fleet_manager':        'General Store',
+    'admin_officer':        'Admin Store',
+    'sales_officer':        'Admin Store',
+    'hr_manager':           'HR Store',
+    'finance_officer':      'Finance Store',
+    'finance_manager':      'Finance Store',
+    'system_admin':         'IT Store',
+    'site_manager':         'Site Store',
+    'site_engineer':        'Site Store',
+    'site_foreman':         'Site Store',
+    'site_surveyor':        'Site Store',
+    'mechanic':             'Site Store',
+    'welder':               'Site Store',
+    'project_manager':      'Site Store',
+    'procurement_officer':  'Procurement Store',
+}
+
+# Roles that can see all stores (no store restriction)
+VIEW_ALL_STORES = {'managing_director', 'system_admin'}
+
+
+def get_user_store(user):
+    """Return the Store object for this user's role, or None if not found."""
+    store_name = ROLE_STORE_MAP.get(getattr(user, 'role', None))
+    if not store_name:
+        return None
+    try:
+        return Store.objects.get(name=store_name, is_active=True)
+    except Store.DoesNotExist:
+        return None
+
 
 def _can_edit(user):
     """True if the user may add/edit inventory records at all (within their permitted scope)."""
@@ -51,6 +93,12 @@ class StoreListCreateView(generics.ListCreateAPIView):
         return [IsStorekeeper()]
 
 
+class StoreDetailView(generics.RetrieveAPIView):
+    queryset = Store.objects.filter(is_active=True)
+    serializer_class = StoreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
 # ── Stock Items ───────────────────────────────────────────────────────────────
 
 class StockItemListCreateView(generics.ListCreateAPIView):
@@ -61,27 +109,27 @@ class StockItemListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'created_by')
-        if role in VIEW_ALL_ROLES:
-            dept_id = self.request.query_params.get('department')
-            if dept_id:
-                qs = qs.filter(department_id=dept_id)
-        elif role == 'facility_manager':
-            qs = qs.filter(created_by=user)
-        elif role == 'admin_officer':
-            # Admin officer sees own dept items but NOT facility manager's items
-            qs = qs.filter(department=user.department).exclude(created_by__role='facility_manager')
+        if role in VIEW_ALL_STORES:
+            store_id = self.request.query_params.get('store')
+            if store_id:
+                qs = qs.filter(stock_levels__store_id=store_id).distinct()
         else:
-            qs = qs.filter(department=user.department)
+            user_store = get_user_store(user)
+            if user_store:
+                qs = qs.filter(stock_levels__store=user_store).distinct()
+            else:
+                qs = qs.none()
         return qs
 
     def perform_create(self, serializer):
         user = self.request.user
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to add stock items.')
-        if _can_edit_anywhere(user):
-            serializer.save(created_by=user)
-        else:
-            serializer.save(department=user.department, created_by=user)
+        item = serializer.save(created_by=user)
+        # Auto-create a StockLevel for the user's store (qty=0) if one doesn't exist
+        user_store = get_user_store(user)
+        if user_store:
+            StockLevel.objects.get_or_create(item=item, store=user_store, defaults={'quantity': 0})
 
 
 class StockItemDetailView(generics.RetrieveUpdateAPIView):
@@ -96,8 +144,10 @@ class StockItemDetailView(generics.RetrieveUpdateAPIView):
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to edit stock items.')
         item = self.get_object()
-        if not _can_edit_anywhere(user) and item.department != user.department:
-            raise PermissionDenied("You can only edit your own department's stock items.")
+        if not _can_edit_anywhere(user):
+            user_store = get_user_store(user)
+            if not user_store or not item.stock_levels.filter(store=user_store).exists():
+                raise PermissionDenied("You can only edit stock items in your own store.")
         return super().update(request, *args, **kwargs)
 
 
@@ -112,14 +162,16 @@ class StockLevelListView(generics.ListAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         qs = StockLevel.objects.select_related('item', 'store', 'item__department', 'item__created_by').all()
-        if role in VIEW_ALL_ROLES:
-            pass
-        elif role == 'facility_manager':
-            qs = qs.filter(item__created_by=user)
-        elif role == 'admin_officer':
-            qs = qs.filter(item__department=user.department).exclude(item__created_by__role='facility_manager')
+        if role in VIEW_ALL_STORES:
+            store_id = self.request.query_params.get('store')
+            if store_id:
+                qs = qs.filter(store_id=store_id)
         else:
-            qs = qs.filter(item__department=user.department)
+            user_store = get_user_store(user)
+            if user_store:
+                qs = qs.filter(store=user_store)
+            else:
+                qs = qs.none()
         return qs
 
 
@@ -131,14 +183,16 @@ class LowStockItemsView(generics.ListAPIView):
         user = self.request.user
         role = getattr(user, 'role', None)
         items = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department')
-        if role in VIEW_ALL_ROLES:
-            pass
-        elif role == 'facility_manager':
-            items = items.filter(created_by=user)
-        elif role == 'admin_officer':
-            items = items.filter(department=user.department).exclude(created_by__role='facility_manager')
+        if role in VIEW_ALL_STORES:
+            store_id = self.request.query_params.get('store')
+            if store_id:
+                items = items.filter(stock_levels__store_id=store_id).distinct()
         else:
-            items = items.filter(department=user.department)
+            user_store = get_user_store(user)
+            if user_store:
+                items = items.filter(stock_levels__store=user_store).distinct()
+            else:
+                return StockItem.objects.none()
         low_pks = [it.pk for it in items if float(it.current_stock()) <= float(it.reorder_level)]
         return StockItem.objects.filter(pk__in=low_pks).prefetch_related('stock_levels')
 
@@ -158,13 +212,16 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         qs = StockTransaction.objects.select_related(
             'item', 'store', 'project', 'processed_by', 'item__department'
         )
-        if role not in VIEW_ALL_ROLES:
-            if role == 'facility_manager':
-                qs = qs.filter(item__created_by=user)
-            elif role == 'admin_officer':
-                qs = qs.filter(item__department=user.department).exclude(item__created_by__role='facility_manager')
+        if role in VIEW_ALL_STORES:
+            store_id = self.request.query_params.get('store')
+            if store_id:
+                qs = qs.filter(store_id=store_id)
+        else:
+            user_store = get_user_store(user)
+            if user_store:
+                qs = qs.filter(store=user_store)
             else:
-                qs = qs.filter(item__department=user.department)
+                qs = qs.none()
         issued_to = self.request.query_params.get('issued_to')
         if issued_to:
             qs = qs.filter(issued_to=issued_to)
@@ -174,9 +231,12 @@ class StockTransactionListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if not _can_edit(user):
             raise PermissionDenied('You do not have permission to record stock movements.')
-        item = serializer.validated_data.get('item')
-        if not _can_edit_anywhere(user) and item and item.department != user.department:
-            raise PermissionDenied("You can only record movements for your own department's items.")
+        # Auto-set store to user's store unless system_admin passed an explicit store
+        if not _can_edit_anywhere(user) or not serializer.validated_data.get('store'):
+            user_store = get_user_store(user)
+            if not user_store:
+                raise PermissionDenied('Your role is not assigned to a store.')
+            serializer.validated_data['store'] = user_store
         if not serializer.validated_data.get('reference_number'):
             prefix = serializer.validated_data.get('transaction_type', 'TXN').upper()
             serializer.validated_data['reference_number'] = f"{prefix}-{_uuid.uuid4().hex[:8].upper()}"
