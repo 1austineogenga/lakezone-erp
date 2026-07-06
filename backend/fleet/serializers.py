@@ -4,6 +4,7 @@ from .models import (
     FleetAPIConfig, Vehicle, VehicleLiveData, FuelEvent,
     TripRecord, FleetAlert, MaintenanceRecord,
     VehicleCompliance, VehicleAssignment, FuelPrice, Geofence, GeofenceEvent,
+    VehicleReceivingForm,
 )
 
 
@@ -152,3 +153,23 @@ class GeofenceEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = GeofenceEvent
         fields = '__all__'
+
+
+class VehicleReceivingFormSerializer(serializers.ModelSerializer):
+    submitted_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleReceivingForm
+        fields = '__all__'
+        read_only_fields = ['id', 'submitted_by', 'created_at']
+
+    def get_submitted_by_name(self, obj):
+        if obj.submitted_by:
+            return obj.submitted_by.get_full_name() or obj.submitted_by.email
+        return None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['submitted_by'] = request.user
+        return super().create(validated_data)
