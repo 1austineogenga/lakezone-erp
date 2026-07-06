@@ -596,8 +596,8 @@ export default function KeyIssuancePage() {
   const { canWrite, role } = usePermissions()
   const qc = useQueryClient()
 
-  // Facility manager and fleet manager have full rights; MD views only; site_manager hidden
-  const canIssue = canIssue
+  // facility_manager has fleet 'write' via permissions; MD views only; site_manager hidden
+  const canIssue = canWrite('fleet')
   const isMDView = role === 'managing_director' || role === 'general_manager'
 
   const [search, setSearch]         = useState('')
