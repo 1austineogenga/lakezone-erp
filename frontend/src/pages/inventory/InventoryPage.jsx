@@ -15,6 +15,7 @@ import {
   approveStoreRequest, rejectStoreRequest, dispatchStoreRequest,
   receiveStoreRequest, returnStoreRequest, cancelStoreRequest,
 } from '../../api/inventory'
+const getBranches = () => api.get('/inventory/branches/')
 import usePermissions from '../../hooks/usePermissions'
 import useAuthStore from '../../store/authStore'
 import api from '../../api/client'
@@ -325,7 +326,7 @@ function getStoreConfig(storeName) {
 
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
 
-function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments }) {
+function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments, branches = [] }) {
   const cfg = getStoreConfig(storeName)
   const defaultCategory = cfg.categoryGroups[0]?.items[0]?.value || 'other'
 
@@ -338,10 +339,11 @@ function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments
     description:      editItem.description       || '',
     valuation_method: editItem.valuation_method  || 'wac',
     department:       editItem.department         || '',
+    branch:           editItem.branch             || '',
     is_active:        editItem.is_active != null ? editItem.is_active : true,
   } : {
     name: '', category: defaultCategory, unit: '', reorder_level: '',
-    description: '', valuation_method: 'wac', department: '', is_active: true,
+    description: '', valuation_method: 'wac', department: '', branch: '', is_active: true,
   })
 
   // track selected card label separately since multiple cards can share a value
@@ -555,6 +557,15 @@ function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments
               </select>
             </div>
           </div>
+          {storeName === 'Site Store' && branches.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Site / Branch <span className="text-gray-400 font-normal">(optional)</span></label>
+              <select className={inp} value={form.branch || ''} onChange={e => set('branch', e.target.value || null)}>
+                <option value="">— All sites —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.location ? ` — ${b.location}` : ''}</option>)}
+              </select>
+            </div>
+          )}
 
           {/* ── Active toggle (edit only) ── */}
           {editItem && (
@@ -604,6 +615,7 @@ function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments
                 ...form,
                 reorder_level: form.reorder_level === '' ? 0 : Number(form.reorder_level),
                 department: form.department || null,
+                branch: form.branch || null,
               }
               itemMut.mutate(payload)
             }}
@@ -884,6 +896,7 @@ export default function InventoryPage() {
 
   const [tab, setTab]             = useState('items')
   const [activeStore, setActiveStore] = useState(null)
+  const [selectedBranch, setSelectedBranch] = useState('')
   const [search, setSearch]         = useState('')
   const [filterStore, setFilterStore] = useState('')
   const [filterCat, setFilterCat]   = useState('')
@@ -930,11 +943,19 @@ export default function InventoryPage() {
     }
   }, [stores]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isSiteStore = activeStore?.name === 'Site Store'
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['inventory-branches'],
+    queryFn: () => getBranches().then(r => r.data),
+    enabled: isSiteStore,
+  })
+
   const storeParam = activeStore ? { store: activeStore.id } : {}
 
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['stock-items', activeStore?.id],
-    queryFn: () => getStockItems({ page_size: 500, ...storeParam }),
+    queryKey: ['stock-items', activeStore?.id, selectedBranch],
+    queryFn: () => getStockItems({ page_size: 500, ...storeParam, ...(isSiteStore && selectedBranch ? { branch: selectedBranch } : {}) }),
     select: r => r.data?.results ?? r.data ?? [],
     enabled: !!activeStore,
   })
@@ -1146,7 +1167,7 @@ export default function InventoryPage() {
         <div className="flex gap-2 overflow-x-auto pb-1">
           {visibleStores.map(s => (
             <button key={s.id}
-              onClick={() => { setActiveStore(s); setFilterStore('') }}
+              onClick={() => { setActiveStore(s); setFilterStore(''); setSelectedBranch('') }}
               className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors
                 ${activeStore?.id === s.id
                   ? 'bg-brand-slate text-white'
@@ -1269,6 +1290,15 @@ export default function InventoryPage() {
                     <option key={v} value={v}>{l}</option>
                   ))}
                 </select>
+                {isSiteStore && branches.length > 0 && (
+                  <select
+                    value={selectedBranch}
+                    onChange={e => { setSelectedBranch(e.target.value); resetItemPage() }}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                    <option value="">All Sites</option>
+                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                )}
               </div>
 
               {/* Table */}
@@ -1286,7 +1316,7 @@ export default function InventoryPage() {
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50">
-                        {['Code', 'Name', 'Category', 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
+                        {['Code', 'Name', 'Category', ...(isSiteStore ? ['Site'] : []), 'Unit', 'In Stock', 'Reorder', 'Unit Cost', 'Value', 'Status', ''].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -1308,6 +1338,13 @@ export default function InventoryPage() {
                             </td>
                             <td className="px-3 py-2.5 font-medium text-gray-800">{item.name}</td>
                             <td className="px-3 py-2.5 text-gray-600">{CATEGORY_LABELS[item.category] ?? item.category}</td>
+                            {isSiteStore && (
+                              <td className="px-3 py-2.5 text-gray-600">
+                                {item.branch_name
+                                  ? <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 font-medium">{item.branch_name}</span>
+                                  : <span className="text-gray-400">—</span>}
+                              </td>
+                            )}
                             <td className="px-3 py-2.5 text-gray-600">{item.unit}</td>
                             <td className={`px-3 py-2.5 font-semibold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-700'}`}>
                               {stock.toLocaleString()}
@@ -1628,6 +1665,7 @@ export default function InventoryPage() {
           activeStoreId={activeStore?.id}
           storeName={activeStore?.name}
           departments={departments}
+          branches={branches}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
       {adjustItem && (
