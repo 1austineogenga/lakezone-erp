@@ -729,6 +729,7 @@ export default function InventoryPage() {
   const [activeStore, setActiveStore] = useState(null)
   const [search, setSearch]         = useState('')
   const [filterStore, setFilterStore] = useState('')
+  const [filterCat, setFilterCat]   = useState('')
   const [itemPage, setItemPage]     = useState(1)
   const resetItemPage = () => setItemPage(1)
   const [showAddItem, setShowAddItem] = useState(false)
@@ -884,9 +885,10 @@ export default function InventoryPage() {
         (i.item_code || '').toLowerCase().includes(search.toLowerCase())
       const matchStore = !filterStore ||
         (i.stock_levels || []).some(sl => String(sl.store) === String(filterStore) || String(sl.store_name) === filterStore)
-      return matchSearch && matchStore
+      const matchCat = !filterCat || i.category === filterCat
+      return matchSearch && matchStore && matchCat
     }),
-  [items, search, filterStore])
+  [items, search, filterStore, filterCat])
 
   const safeItemPage = Math.min(itemPage, Math.max(1, Math.ceil(filteredItems.length / INV_PAGE_SIZE)))
   const pagedItems   = filteredItems.slice((safeItemPage - 1) * INV_PAGE_SIZE, safeItemPage * INV_PAGE_SIZE)
@@ -1106,6 +1108,15 @@ export default function InventoryPage() {
                     {visibleStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 )}
+                <select
+                  value={filterCat}
+                  onChange={e => { setFilterCat(e.target.value); resetItemPage() }}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                  <option value="">All Categories</option>
+                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
                 {!isReadOnly && (
                   <button
                     onClick={() => setTab('issue')}
