@@ -7,19 +7,21 @@ import api from '../../api/client'
 import {
   CheckCircleIcon, XCircleIcon, DocumentTextIcon,
   PlusIcon, PencilSquareIcon, ArrowPathIcon, ChevronDownIcon,
+  ClockIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon,
+  UserCircleIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
 import { printLeaveApplication } from '../../utils/print'
 
 const STATUS_COLORS = {
   draft:     'bg-gray-100 text-gray-600',
-  submitted: 'bg-blue-100 text-blue-700',
+  submitted: 'bg-amber-100 text-amber-700',
   approved:  'bg-green-100 text-green-700',
   rejected:  'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-400',
 }
 const STATUS_LABELS = {
   draft:     'Draft',
-  submitted: 'Submitted',
+  submitted: 'Pending Review',
   approved:  'Approved',
   rejected:  'Rejected',
   cancelled: 'Cancelled',
@@ -31,35 +33,47 @@ export default function LeavePage() {
 
   const [tab, setTab]           = useState('applications')
   const [statusFilter, setStatus] = useState('')
-  const [reviewModal, setReviewModal] = useState(null) // { app, action }
-  const [reviewNotes, setReviewNotes] = useState('')
+  const [search, setSearch]     = useState('')
+  const [selected, setSelected] = useState(null)   // app opened in slide-over
+  const [rejectModal, setRejectModal] = useState(null)
+  const [rejectNotes, setRejectNotes] = useState('')
 
-  const { data: applications, isLoading } = useQuery({
+  const { data: applications = [], isLoading } = useQuery({
     queryKey: ['leave-applications', statusFilter],
     queryFn:  () => getLeaveApplications(statusFilter ? { status: statusFilter } : undefined),
-    select:   r  => r.data?.results ?? r.data,
+    select:   r  => r.data?.results ?? r.data ?? [],
   })
 
   const reviewMut = useMutation({
     mutationFn: ({ id, action, notes }) => reviewLeave(id, { action, review_notes: notes }),
-    onSuccess: () => {
-      toast.success('Decision saved.')
+    onSuccess: (_, vars) => {
+      toast.success(vars.action === 'approved' ? 'Leave approved.' : 'Leave rejected.')
       qc.invalidateQueries(['leave-applications'])
-      setReviewModal(null)
-      setReviewNotes('')
+      setSelected(s => s?.id === vars.id ? { ...s, status: vars.action, review_notes: vars.notes } : s)
+      setRejectModal(null)
+      setRejectNotes('')
     },
-    onError: e => toast.error(e.response?.data?.detail || 'Failed.'),
+    onError: e => toast.error(e.response?.data?.detail || 'Action failed.'),
   })
 
-  const openReview = (app, action) => {
-    setReviewModal({ app, action })
-    setReviewNotes('')
+  const approve = (app) => reviewMut.mutate({ id: app.id, action: 'approved', notes: '' })
+  const openReject = (app) => { setRejectModal(app); setRejectNotes('') }
+  const confirmReject = () => {
+    if (!rejectModal) return
+    reviewMut.mutate({ id: rejectModal.id, action: 'rejected', notes: rejectNotes })
   }
 
-  const confirmReview = () => {
-    if (!reviewModal) return
-    reviewMut.mutate({ id: reviewModal.app.id, action: reviewModal.action, notes: reviewNotes })
-  }
+  const filtered = useMemo(() => {
+    if (!search) return applications
+    const q = search.toLowerCase()
+    return applications.filter(a =>
+      a.employee_name?.toLowerCase().includes(q) ||
+      a.leave_type_name?.toLowerCase().includes(q) ||
+      a.reference?.toLowerCase().includes(q)
+    )
+  }, [applications, search])
+
+  const pending = applications.filter(a => a.status === 'submitted').length
 
   return (
     <div className="space-y-5">
@@ -67,110 +81,142 @@ export default function LeavePage() {
       <div className="flex gap-2 flex-wrap items-center">
         {[
           { key: 'balances',     label: 'Leave Balances' },
-          { key: 'applications', label: 'Applications'   },
+          { key: 'applications', label: 'Applications', badge: pending },
           { key: 'types',        label: 'Leave Types'    },
         ].map(opt => (
           <button key={opt.key} onClick={() => setTab(opt.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors
+            className={`relative px-4 py-2 rounded-lg text-sm font-medium border transition-colors
               ${tab === opt.key
                 ? 'bg-brand-slate text-white border-brand-slate'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-brand-slate'}`}>
             {opt.label}
-          </button>
-        ))}
-
-        {tab === 'applications' && (
-          <select
-            value={statusFilter}
-            onChange={e => setStatus(e.target.value)}
-            className="ml-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
-          >
-            <option value="">All Statuses</option>
-            {Object.entries(STATUS_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {/* Applications list */}
-      {tab === 'applications' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-brand-slate text-sm">Leave Applications</h3>
-            {applications && (
-              <span className="text-xs text-gray-600">
-                {applications.filter(a => a.status === 'submitted').length} pending review
+            {opt.badge > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {opt.badge}
               </span>
             )}
+          </button>
+        ))}
+      </div>
+
+      {/* Applications tab */}
+      {tab === 'applications' && (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total',    value: applications.length,                                        color: 'text-brand-slate', bg: 'bg-gray-50' },
+              { label: 'Pending',  value: applications.filter(a => a.status === 'submitted').length,  color: 'text-amber-600',   bg: 'bg-amber-50' },
+              { label: 'Approved', value: applications.filter(a => a.status === 'approved').length,   color: 'text-green-600',   bg: 'bg-green-50' },
+              { label: 'Rejected', value: applications.filter(a => a.status === 'rejected').length,   color: 'text-red-600',     bg: 'bg-red-50' },
+            ].map(c => (
+              <div key={c.label} className={`${c.bg} rounded-xl px-4 py-3 border border-gray-100`}>
+                <p className="text-xs text-gray-500">{c.label}</p>
+                <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
+              </div>
+            ))}
           </div>
 
-          {isLoading ? (
-            <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
-          ) : !applications?.length ? (
-            <p className="text-sm text-gray-600 p-8 text-center">No leave applications.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    {['Ref', 'Employee', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {applications.map(app => (
-                    <tr key={app.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs font-medium text-brand-slate">{app.reference}</td>
-                      <td className="px-4 py-3 text-gray-700 text-xs font-medium">{app.employee_name}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{app.leave_type_name}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{app.start_date}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{app.end_date}</td>
-                      <td className="px-4 py-3 font-medium text-xs">{app.days}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[app.status]}`}>
-                          {STATUS_LABELS[app.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {app.status === 'submitted' && (
-                            <>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-48">
+              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search employee, leave type, ref…"
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={e => setStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
+            >
+              <option value="">All Statuses</option>
+              {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            {isLoading ? (
+              <div className="p-8 text-center text-sm text-gray-500">Loading…</div>
+            ) : !filtered.length ? (
+              <div className="p-12 text-center text-gray-400">
+                <CalendarDaysIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No leave applications found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      {['Employee', 'Leave Type', 'Period', 'Days', 'Applied', 'Status', ''].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filtered.map(app => (
+                      <tr
+                        key={app.id}
+                        onClick={() => setSelected(app)}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-semibold text-brand-slate">{app.employee_name}</p>
+                          <p className="text-[10px] text-gray-400">{app.employee_designation || app.employee_department || app.reference}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-700">{app.leave_type_name}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                          {app.start_date} → {app.end_date}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-brand-slate">{app.days}</td>
+                        <td className="px-4 py-3 text-xs text-gray-400">{app.applied_at ? app.applied_at.slice(0, 10) : '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[app.status]}`}>
+                            {STATUS_LABELS[app.status]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          {app.status === 'submitted' ? (
+                            <div className="flex items-center gap-1.5">
                               <button
-                                onClick={() => openReview(app, 'approved')}
-                                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium"
+                                onClick={() => approve(app)}
+                                disabled={reviewMut.isPending}
+                                title="Approve"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-green-600 text-white text-xs rounded-lg font-medium hover:bg-green-700 disabled:opacity-60"
                               >
                                 <CheckCircleIcon className="h-3.5 w-3.5" /> Approve
                               </button>
                               <button
-                                onClick={() => openReview(app, 'rejected')}
-                                className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium"
+                                onClick={() => openReject(app)}
+                                title="Reject"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 text-xs rounded-lg font-medium hover:bg-red-100"
                               >
                                 <XCircleIcon className="h-3.5 w-3.5" /> Reject
                               </button>
-                            </>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => navigate(`/hr/leave/${app.id}/application`)}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-slate"
+                            >
+                              <DocumentTextIcon className="h-3.5 w-3.5" /> View Form
+                            </button>
                           )}
-                          {app.review_notes && (
-                            <span className="text-xs text-gray-600 italic truncate max-w-[120px]" title={app.review_notes}>
-                              "{app.review_notes}"
-                            </span>
-                          )}
-                          <button
-                            onClick={() => navigate(`/hr/leave/${app.id}/application`)}
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-slate font-medium"
-                          >
-                            <DocumentTextIcon className="h-3.5 w-3.5" /> Form
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Leave balances */}
@@ -179,43 +225,130 @@ export default function LeavePage() {
       {/* Leave types */}
       {tab === 'types' && <LeaveTypesTab />}
 
-      {/* Approve / Reject modal */}
-      {reviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="font-semibold text-brand-slate mb-1">
-              {reviewModal.action === 'approved' ? 'Approve Leave' : 'Reject Leave'}
-            </h3>
+      {/* Slide-over detail panel */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
+          <div className="relative w-full max-w-md bg-white shadow-xl flex flex-col h-full overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div>
+                <h3 className="font-semibold text-brand-slate text-sm">{selected.employee_name}</h3>
+                <p className="text-xs text-gray-400">{selected.reference}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="p-1 rounded-full hover:bg-gray-100">
+                <XMarkIcon className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 flex-1">
+              {/* Status badge */}
+              <div className="flex items-center justify-between">
+                <span className={`text-sm px-3 py-1 rounded-full font-semibold ${STATUS_COLORS[selected.status]}`}>
+                  {STATUS_LABELS[selected.status]}
+                </span>
+                <button
+                  onClick={() => navigate(`/hr/leave/${selected.id}/application`)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-slate border border-gray-200 px-2.5 py-1 rounded-lg"
+                >
+                  <DocumentTextIcon className="h-3.5 w-3.5" /> Print Form
+                </button>
+              </div>
+
+              {/* Employee info */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-1">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Applicant</p>
+                <p className="text-sm font-semibold text-brand-slate">{selected.employee_name}</p>
+                {selected.employee_designation && <p className="text-xs text-gray-600">{selected.employee_designation}</p>}
+                {selected.employee_department  && <p className="text-xs text-gray-400">{selected.employee_department}</p>}
+              </div>
+
+              {/* Leave details */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ['Leave Type', selected.leave_type_name],
+                  ['Days',       `${selected.days} day${selected.days !== 1 ? 's' : ''}`],
+                  ['From',       selected.start_date],
+                  ['To',         selected.end_date],
+                  ['Applied On', selected.applied_at?.slice(0, 10) || '—'],
+                  ['Ref',        selected.reference],
+                ].map(([l, v]) => (
+                  <div key={l} className="bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-[10px] text-gray-400 mb-0.5">{l}</p>
+                    <p className="text-xs font-semibold text-brand-slate">{v}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Reason */}
+              {selected.reason && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-1">Reason</p>
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-4 py-3">{selected.reason}</p>
+                </div>
+              )}
+
+              {/* Review info (if already reviewed) */}
+              {selected.reviewed_by_name && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1">
+                  <p className="text-xs font-bold text-blue-700">Review Decision</p>
+                  <p className="text-xs text-blue-700">By: <span className="font-semibold">{selected.reviewed_by_name}</span></p>
+                  {selected.reviewed_at && <p className="text-xs text-blue-500">{selected.reviewed_at.slice(0, 10)}</p>}
+                  {selected.review_notes && <p className="text-xs text-gray-600 italic mt-1">"{selected.review_notes}"</p>}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {selected.status === 'submitted' && (
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => { approve(selected); setSelected(null) }}
+                    disabled={reviewMut.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60"
+                  >
+                    <CheckCircleIcon className="h-4 w-4" /> Approve
+                  </button>
+                  <button
+                    onClick={() => { openReject(selected); setSelected(null) }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-red-50 text-red-600 border border-red-200 text-sm font-semibold rounded-xl hover:bg-red-100"
+                  >
+                    <XCircleIcon className="h-4 w-4" /> Reject
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="font-semibold text-brand-slate mb-1">Reject Leave Application</h3>
             <p className="text-sm text-gray-600 mb-4">
-              <span className="font-medium">{reviewModal.app.employee_name}</span>
-              {' — '}{reviewModal.app.leave_type_name}
-              {' · '}{reviewModal.app.start_date} → {reviewModal.app.end_date}
-              {' · '}{reviewModal.app.days} day{reviewModal.app.days !== 1 ? 's' : ''}
+              <span className="font-medium">{rejectModal.employee_name}</span>
+              {' — '}{rejectModal.leave_type_name}
+              {' · '}{rejectModal.start_date} → {rejectModal.end_date}
+              {' · '}{rejectModal.days} day{rejectModal.days !== 1 ? 's' : ''}
             </p>
-            <label className="block text-xs text-gray-600 mb-1">
-              Comments {reviewModal.action === 'rejected' ? '(required)' : '(optional)'}
-            </label>
+            <label className="block text-xs text-gray-600 mb-1">Reason for rejection <span className="text-red-500">*</span></label>
             <textarea
-              value={reviewNotes}
-              onChange={e => setReviewNotes(e.target.value)}
+              value={rejectNotes}
+              onChange={e => setRejectNotes(e.target.value)}
               rows={3}
-              placeholder={reviewModal.action === 'rejected' ? 'Reason for rejection…' : 'Optional comments…'}
+              autoFocus
+              placeholder="Explain why this leave is being rejected…"
               className="w-full px-2.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red mb-4"
             />
             <div className="flex justify-end gap-2">
+              <button onClick={() => setRejectModal(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
               <button
-                onClick={() => setReviewModal(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                onClick={confirmReject}
+                disabled={reviewMut.isPending || !rejectNotes.trim()}
+                className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-medium disabled:opacity-60"
               >
-                Cancel
-              </button>
-              <button
-                onClick={confirmReview}
-                disabled={reviewMut.isPending || (reviewModal.action === 'rejected' && !reviewNotes.trim())}
-                className={`px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60
-                  ${reviewModal.action === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-red hover:bg-rose-700'}`}
-              >
-                {reviewMut.isPending ? 'Saving…' : reviewModal.action === 'approved' ? 'Approve' : 'Reject'}
+                {reviewMut.isPending ? 'Rejecting…' : 'Reject'}
               </button>
             </div>
           </div>
