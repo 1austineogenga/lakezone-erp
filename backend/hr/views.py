@@ -444,6 +444,27 @@ class LeaveApplicationDetailView(generics.RetrieveUpdateAPIView):
     serializer_class   = LeaveApplicationSerializer
     permission_classes = [IsAuthenticated]
 
+    def update(self, request, *args, **kwargs):
+        app = self.get_object()
+        if app.status not in ('draft',):
+            return Response({'detail': 'Only draft applications can be edited.'}, status=400)
+        return super().update(request, *args, **kwargs)
+
+
+class LeaveCancelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            app = LeaveApplication.objects.get(pk=pk)
+        except LeaveApplication.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=404)
+        if app.status not in ('draft', 'submitted'):
+            return Response({'detail': 'Only draft or submitted applications can be cancelled.'}, status=400)
+        app.status = 'cancelled'
+        app.save(update_fields=['status'])
+        return Response(LeaveApplicationSerializer(app).data)
+
 
 class LeaveSubmitView(APIView):
     permission_classes = [IsAuthenticated]

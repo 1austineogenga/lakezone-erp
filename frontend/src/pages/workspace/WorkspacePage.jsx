@@ -22,7 +22,9 @@ const getLeaveTypes    = ()     => api.get('/hr/leave-types/', { params: { page_
 const getLeaveBalances = ()     => api.get('/hr/leave-balances/', { params: { page_size: 50, year: new Date().getFullYear() } })
 const getMyLeaves      = ()     => api.get('/hr/leave-applications/', { params: { page_size: 50 } })
 const createLeave      = (d)    => api.post('/hr/leave-applications/', d)
+const updateLeave      = (id, d)=> api.patch(`/hr/leave-applications/${id}/`, d)
 const submitLeave      = (id)   => api.post(`/hr/leave-applications/${id}/submit/`)
+const cancelLeave      = (id)   => api.post(`/hr/leave-applications/${id}/cancel/`)
 const getMyAdvances    = (emp)  => api.get('/hr/advances/', { params: { employee: emp, page_size: 50 } })
 const createAdvance    = (d)    => api.post('/hr/advances/', d)
 const getMyPayslips    = (emp)  => api.get('/hr/payroll/entries/', { params: { employee: emp, page_size: 50 } })
@@ -504,7 +506,9 @@ const LEAVE_STATUS_LABELS = {
 function LeaveTab({ employeeId }) {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' })
+  const [editingId, setEditingId] = useState(null) // id of leave being edited
+  const BLANK_FORM = { leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' }
+  const [form, setForm] = useState(BLANK_FORM)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const { data: leaveTypes = [] } = useQuery({
@@ -527,26 +531,57 @@ function LeaveTab({ employeeId }) {
   })
 
 
-  const createMut = useMutation({
+  const saveMut = useMutation({
     mutationFn: async (data) => {
       const payload = { ...data, employee: employeeId }
       if (!payload.handover_to) delete payload.handover_to
-      const res = await createLeave(payload)
-      await submitLeave(res.data.id)
-      return res
+      if (editingId) {
+        await updateLeave(editingId, payload)
+      } else {
+        const res = await createLeave(payload)
+        await submitLeave(res.data.id)
+      }
     },
     onSuccess: () => {
-      toast.success('Leave application submitted for approval.')
+      toast.success(editingId ? 'Leave application updated.' : 'Leave application submitted for approval.')
       qc.invalidateQueries({ queryKey: ['my-leaves'] })
       qc.invalidateQueries({ queryKey: ['leave-balances'] })
       setShowForm(false)
-      setForm({ leave_type: '', start_date: '', end_date: '', handover_to: '', reason: '' })
+      setEditingId(null)
+      setForm(BLANK_FORM)
     },
     onError: e => {
       const d = e.response?.data
-      toast.error(typeof d === 'object' ? Object.values(d).flat().join(', ') : 'Failed to submit leave')
+      toast.error(typeof d === 'object' ? Object.values(d).flat().join(', ') : 'Failed to save leave application')
     },
   })
+
+  const cancelMut = useMutation({
+    mutationFn: (id) => cancelLeave(id),
+    onSuccess: () => {
+      toast.success('Leave application retracted.')
+      qc.invalidateQueries({ queryKey: ['my-leaves'] })
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to retract.'),
+  })
+
+  const openEdit = (leave) => {
+    setForm({
+      leave_type:   String(leave.leave_type),
+      start_date:   leave.start_date,
+      end_date:     leave.end_date,
+      handover_to:  leave.handover_to ? String(leave.handover_to) : '',
+      reason:       leave.reason || '',
+    })
+    setEditingId(leave.id)
+    setShowForm(true)
+  }
+
+  const openNew = () => {
+    setForm(BLANK_FORM)
+    setEditingId(null)
+    setShowForm(true)
+  }
 
   const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red'
 
@@ -585,7 +620,7 @@ function LeaveTab({ employeeId }) {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-brand-slate text-sm">My Leave Applications</h3>
         <button
-          onClick={() => setShowForm(s => !s)}
+          onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
         >
           <PlusIcon className="h-3.5 w-3.5" /> Apply for Leave
@@ -594,7 +629,9 @@ function LeaveTab({ employeeId }) {
 
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h4 className="font-medium text-brand-slate text-sm mb-4">New Leave Application</h4>
+          <h4 className="font-medium text-brand-slate text-sm mb-4">
+            {editingId ? 'Edit Leave Application' : 'New Leave Application'}
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Leave Type *</label>
@@ -638,13 +675,13 @@ function LeaveTab({ employeeId }) {
           </div>
           <div className="flex gap-2 mt-4">
             <button
-              onClick={() => createMut.mutate(form)}
-              disabled={createMut.isPending || !form.leave_type || !form.start_date || !form.end_date || !form.reason}
+              onClick={() => saveMut.mutate(form)}
+              disabled={saveMut.isPending || !form.leave_type || !form.start_date || !form.end_date || !form.reason}
               className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60"
             >
-              {createMut.isPending ? 'Submitting…' : 'Submit Application'}
+              {saveMut.isPending ? 'Saving…' : editingId ? 'Save Changes' : 'Submit Application'}
             </button>
-            <button onClick={() => setShowForm(false)}
+            <button onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM) }}
               className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
               Cancel
             </button>
@@ -665,7 +702,7 @@ function LeaveTab({ employeeId }) {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    {['Ref', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Comments'].map(h => (
+                    {['Ref', 'Leave Type', 'From', 'To', 'Days', 'Status', 'Comments', ''].map(h => (
                       <th key={h} className="px-4 py-2.5 text-left font-medium text-gray-600">{h}</th>
                     ))}
                   </tr>
@@ -685,6 +722,27 @@ function LeaveTab({ employeeId }) {
                       </td>
                       <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate italic">
                         {l.review_notes || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {l.status === 'draft' && (
+                            <button
+                              onClick={() => openEdit(l)}
+                              className="text-xs text-brand-slate hover:text-brand-red font-medium"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {['draft', 'submitted'].includes(l.status) && (
+                            <button
+                              onClick={() => { if (window.confirm('Retract this leave application?')) cancelMut.mutate(l.id) }}
+                              disabled={cancelMut.isPending}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
+                            >
+                              Retract
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

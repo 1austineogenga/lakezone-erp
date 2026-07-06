@@ -288,6 +288,14 @@ export default function LeavePage() {
                 </div>
               )}
 
+              {/* Handover */}
+              {selected.handover_to_name && (
+                <div className="bg-gray-50 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-gray-400 mb-0.5">Handover To</p>
+                  <p className="text-sm font-semibold text-brand-slate">{selected.handover_to_name}</p>
+                </div>
+              )}
+
               {/* Review info (if already reviewed) */}
               {selected.reviewed_by_name && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1">
