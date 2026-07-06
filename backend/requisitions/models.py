@@ -70,14 +70,16 @@ class StaffRequisition(models.Model):
 
     # Payment details (fuel, materials, general_purchase)
     PAYMENT_METHOD_CHOICES = [
-        ('mpesa_paybill', 'M-Pesa Paybill'),
-        ('mpesa_till', 'M-Pesa Till'),
-        ('bank_transfer', 'Bank Transfer'),
+        ('mpesa_paybill',    'M-Pesa Paybill'),
+        ('mpesa_till',       'M-Pesa Till'),
+        ('mpesa_send_money', 'M-Pesa Send Money'),
+        ('bank_transfer',    'Bank Transfer'),
     ]
     payment_method          = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, blank=True)
     payment_business_number = models.CharField(max_length=50, blank=True, help_text='M-Pesa Paybill business number')
     payment_account_number  = models.CharField(max_length=100, blank=True, help_text='M-Pesa Paybill account / bank account number')
     payment_till_number     = models.CharField(max_length=50, blank=True, help_text='M-Pesa Till number')
+    payment_send_money_phone = models.CharField(max_length=20, blank=True, help_text='M-Pesa Send Money phone number')
     payment_bank_name       = models.CharField(max_length=100, blank=True)
     payment_account_name    = models.CharField(max_length=100, blank=True)
     payment_branch_name     = models.CharField(max_length=100, blank=True)

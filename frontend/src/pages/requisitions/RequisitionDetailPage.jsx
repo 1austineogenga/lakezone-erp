@@ -75,6 +75,12 @@ function PaymentDetailsBlock({ req }) {
             <Field label="Till Number" value={req.payment_till_number} />
           </>
         )}
+        {method === 'mpesa_send_money' && (
+          <>
+            <Field label="Method" value="M-Pesa Send Money" />
+            <Field label="Phone Number" value={req.payment_send_money_phone} />
+          </>
+        )}
         {method === 'bank_transfer' && (
           <>
             <Field label="Method" value="Bank Transfer" />

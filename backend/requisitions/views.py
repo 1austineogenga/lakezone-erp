@@ -181,6 +181,8 @@ class RequisitionApproveView(APIView):
                                         f'Account No: {req.payment_account_number}')
                     elif req.payment_method == 'mpesa_till':
                         payment_note = f'M-Pesa Till — Till No: {req.payment_till_number}'
+                    elif req.payment_method == 'mpesa_send_money':
+                        payment_note = f'M-Pesa Send Money — Phone: {req.payment_send_money_phone}'
                     elif req.payment_method == 'bank_transfer':
                         payment_note = (f'Bank Transfer — Bank: {req.payment_bank_name}, '
                                         f'Account Name: {req.payment_account_name}, '
