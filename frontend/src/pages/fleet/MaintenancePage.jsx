@@ -51,7 +51,7 @@ export default function MaintenancePage() {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['fleet-maintenance', vehicleFilter],
     queryFn: () => getMaintenance(vehicleFilter ? { vehicle: vehicleFilter } : {}),
-    select: r => r.data?.results ?? r.data ?? [],
+    select: r => { const d = r.data?.results ?? r.data ?? []; return Array.isArray(d) ? d : [] },
   })
 
   const createMut = useMutation({
