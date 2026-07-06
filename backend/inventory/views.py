@@ -133,7 +133,7 @@ class StockItemListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'role', None)
-        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'branch', 'created_by')
+        qs = StockItem.objects.filter(is_active=True).prefetch_related('stock_levels').select_related('department', 'created_by')
         if role in VIEW_ALL_STORES:
             store_id = self.request.query_params.get('store')
             if store_id:
