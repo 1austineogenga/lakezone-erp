@@ -206,19 +206,19 @@ export default function TeamPage() {
 
       {/* Add Member Modal */}
       {modal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-brand-slate">Add Team Member</h3>
-              <button onClick={() => setModal(false)}><XMarkIcon className="h-5 w-5 text-gray-400" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Add Team Member</h3>
+              <button onClick={() => setModal(false)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
               {/* Employee search from HR */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Search Employee (HR)</label>
                 <input value={employeeSearch} onChange={e => { setEmployeeSearch(e.target.value); setSelectedEmployee(null) }}
                   placeholder="Type name or employee number..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 {employees.length > 0 && !selectedEmployee && (
                   <div className="mt-1 border border-gray-200 rounded-lg max-h-36 overflow-y-auto bg-white shadow-sm">
                     {employees.map(e => (
@@ -244,13 +244,13 @@ export default function TeamPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Manual Name</label>
                   <input value={form.employee_name} onChange={e => field('employee_name', e.target.value)}
                     placeholder="e.g. John Kamau"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
               )}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Role on Project</label>
                 <select value={form.role} onChange={e => field('role', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
                   {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
@@ -258,24 +258,24 @@ export default function TeamPage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
                   <input type="date" value={form.start_date} onChange={e => field('start_date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">End Date (optional)</label>
                   <input type="date" value={form.end_date} onChange={e => field('end_date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Rate (KES)</label>
                 <input type="number" value={form.monthly_rate} onChange={e => field('monthly_rate', e.target.value)}
                   placeholder="0"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                 <input value={form.notes} onChange={e => field('notes', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
               <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
                 <input type="checkbox" checked={form.include_in_budget} onChange={e => field('include_in_budget', e.target.checked)}
@@ -283,11 +283,11 @@ export default function TeamPage() {
                 Include in budget calculations
               </label>
             </div>
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
               <button onClick={() => setModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
               <button onClick={handleAdd} disabled={(!selectedEmployee && !form.employee_name) || addMut.isPending}
-                className="flex-1 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                 {addMut.isPending ? 'Adding…' : 'Add Member'}
               </button>
             </div>
@@ -297,22 +297,25 @@ export default function TeamPage() {
 
       {/* Reassign Modal */}
       {reassignModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setReassignModal(null)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-brand-slate">Reassign — {reassignModal.employee_name}</h3>
-              <button onClick={() => setReassignModal(null)}><XMarkIcon className="h-5 w-5 text-gray-400" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setReassignModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-white font-bold text-base">Reassign Team Member</h3>
+                <p className="text-white/50 text-xs mt-0.5">{reassignModal.employee_name}</p>
+              </div>
+              <button onClick={() => setReassignModal(null)} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Effective Date (last day on this project)</label>
                 <input type="date" value={reassignEndDate} onChange={e => setReassignEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Reassign To</label>
                 <select value={reassignTarget} onChange={e => setReassignTarget(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
                   <option value="">Select destination...</option>
                   <option value="head_office">🏢 Head Office (no project)</option>
                   {allProjects.filter(p => p.id !== projectId).map(p => (
@@ -324,13 +327,13 @@ export default function TeamPage() {
                 This will end their assignment on this project and add them to the selected destination.
               </p>
             </div>
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
               <button onClick={() => setReassignModal(null)}
-                className="flex-1 px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">Cancel</button>
               <button
                 onClick={() => reassignMut.mutate({ record: reassignModal, targetProjectId: reassignTarget, endDate: reassignEndDate })}
                 disabled={!reassignTarget || !reassignEndDate || reassignMut.isPending}
-                className="flex-1 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                 {reassignMut.isPending ? 'Reassigning…' : 'Confirm Reassignment'}
               </button>
             </div>

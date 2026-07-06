@@ -169,67 +169,69 @@ export default function RiskRegisterPage() {
 
       {/* Add Risk Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-brand-slate">Add Risk</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-white font-bold text-base">Add Risk</h3>
               <button onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
-            <form onSubmit={e => { e.preventDefault(); createMut.mutate(form) }} className="p-6 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Risk Description *</label>
-                <textarea rows={3} value={form.risk_description} onChange={e => field('risk_description', e.target.value)}
-                  placeholder="Describe the risk…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Expected Impact</label>
-                <textarea rows={2} value={form.expected_impact} onChange={e => field('expected_impact', e.target.value)}
-                  placeholder="What could happen if this risk materialises…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Budget Treatment</label>
-                <textarea rows={2} value={form.budget_treatment} onChange={e => field('budget_treatment', e.target.value)}
-                  placeholder="Mitigation cost or budget provision…"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={e => { e.preventDefault(); createMut.mutate(form) }}>
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Realistic Range (KES)</label>
-                  <input type="text" value={form.realistic_range} onChange={e => field('realistic_range', e.target.value)}
-                    placeholder="e.g. 100k–500k"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Risk Description *</label>
+                  <textarea rows={3} value={form.risk_description} onChange={e => field('risk_description', e.target.value)}
+                    placeholder="Describe the risk…"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Owner</label>
-                  <input type="text" value={form.owner} onChange={e => field('owner', e.target.value)}
-                    placeholder="Name / role"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Expected Impact</label>
+                  <textarea rows={2} value={form.expected_impact} onChange={e => field('expected_impact', e.target.value)}
+                    placeholder="What could happen if this risk materialises…"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Impact Level</label>
-                  <select value={form.impact_level} onChange={e => field('impact_level', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                    {IMPACT_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Budget Treatment</label>
+                  <textarea rows={2} value={form.budget_treatment} onChange={e => field('budget_treatment', e.target.value)}
+                    placeholder="Mitigation cost or budget provision…"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select value={form.status} onChange={e => field('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red">
-                    {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Realistic Range (KES)</label>
+                    <input type="text" value={form.realistic_range} onChange={e => field('realistic_range', e.target.value)}
+                      placeholder="e.g. 100k–500k"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Owner</label>
+                    <input type="text" value={form.owner} onChange={e => field('owner', e.target.value)}
+                      placeholder="Name / role"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Impact Level</label>
+                    <select value={form.impact_level} onChange={e => field('impact_level', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                      {IMPACT_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                    <select value={form.status} onChange={e => field('status', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                      {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
                 <button type="submit" disabled={createMut.isPending || !form.risk_description}
-                  className="px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+                  className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
                   {createMut.isPending ? 'Saving…' : 'Add Risk'}
                 </button>
                 <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                  className="px-5 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50">
+                  className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
                   Cancel
                 </button>
               </div>

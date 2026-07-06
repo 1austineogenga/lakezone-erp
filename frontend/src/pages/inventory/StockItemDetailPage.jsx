@@ -57,66 +57,73 @@ function RecordMovementModal({ item, stores, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl border border-gray-200 w-full max-w-lg p-6 shadow-xl">
-        <h2 className="font-bold text-brand-slate text-lg mb-1">Record Movement</h2>
-        <p className="text-xs text-gray-600 mb-5">Item: <strong>{item.item_code} — {item.name}</strong></p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
-              <select required value={form.transaction_type} onChange={e => set('transaction_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
-                {Object.entries(TX_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Store *</label>
-              <select required value={form.store} onChange={e => set('store', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
-              <input required type="number" min="0.0001" step="0.0001" value={form.quantity}
-                onChange={e => set('quantity', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
-                placeholder="0" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Unit Cost (KES) *</label>
-              <input required type="number" min="0" step="0.01" value={form.unit_cost}
-                onChange={e => set('unit_cost', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
-                placeholder="0.00" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Reference # *</label>
-              <input required value={form.reference_number} onChange={e => set('reference_number', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
-                placeholder="GRN-2026-001" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date &amp; Time *</label>
-              <input required type="datetime-local" value={form.transaction_date}
-                onChange={e => set('transaction_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-              <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red resize-none"
-                placeholder="Optional notes…" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Record Movement</h2>
+            <p className="text-white/50 text-xs mt-0.5">{item.item_code} — {item.name}</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
+                <select required value={form.transaction_type} onChange={e => set('transaction_type', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                  {Object.entries(TX_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Store *</label>
+                <select required value={form.store} onChange={e => set('store', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white">
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                <input required type="number" min="0.0001" step="0.0001" value={form.quantity}
+                  onChange={e => set('quantity', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  placeholder="0" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Unit Cost (KES) *</label>
+                <input required type="number" min="0" step="0.01" value={form.unit_cost}
+                  onChange={e => set('unit_cost', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reference # *</label>
+                <input required value={form.reference_number} onChange={e => set('reference_number', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                  placeholder="GRN-2026-001" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Date &amp; Time *</label>
+                <input required type="datetime-local" value={form.transaction_date}
+                  onChange={e => set('transaction_date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white resize-none"
+                  placeholder="Optional notes…" />
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              className="px-4 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
               Cancel
             </button>
             <button type="submit" disabled={isPending}
-              className="px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
+              className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
               {isPending ? 'Saving…' : 'Record Movement'}
             </button>
           </div>

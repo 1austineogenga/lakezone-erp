@@ -66,52 +66,54 @@ function ReceiveItemsModal({ po, onClose, onSuccess }) {
     mutation.mutate({ line_items })
   }
 
-  const inp = 'w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red'
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-slate">Update Received Quantities</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <h2 className="text-white font-bold text-base">Update Received Quantities</h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <table className="min-w-full text-xs mb-4">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Description', 'Unit', 'Ordered', 'Received'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-600">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {(po.line_items || []).map(item => (
-                <tr key={item.id}>
-                  <td className="px-3 py-2 text-gray-800">{item.description}</td>
-                  <td className="px-3 py-2 text-gray-600">{item.unit}</td>
-                  <td className="px-3 py-2 text-gray-700">{Number(item.quantity).toLocaleString()}</td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max={item.quantity}
-                      step="any"
-                      className={inp}
-                      value={received[item.id] ?? item.received_quantity}
-                      onChange={e => setReceived({ ...received, [item.id]: e.target.value })}
-                    />
-                  </td>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <table className="min-w-full text-xs mb-4">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Description', 'Unit', 'Ordered', 'Received'].map(h => (
+                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-600">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex gap-3">
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {(po.line_items || []).map(item => (
+                  <tr key={item.id}>
+                    <td className="px-3 py-2 text-gray-800">{item.description}</td>
+                    <td className="px-3 py-2 text-gray-600">{item.unit}</td>
+                    <td className="px-3 py-2 text-gray-700">{Number(item.quantity).toLocaleString()}</td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.quantity}
+                        step="any"
+                        className={inp}
+                        value={received[item.id] ?? item.received_quantity}
+                        onChange={e => setReceived({ ...received, [item.id]: e.target.value })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
             <button type="submit" disabled={mutation.isPending}
-              className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60">
+              className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
               {mutation.isPending ? 'Saving…' : 'Save'}
             </button>
             <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">
+              className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
               Cancel
             </button>
           </div>
