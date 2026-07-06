@@ -82,18 +82,24 @@ function InvPageNav({ page, total, onChange }) {
 }
 
 const CATEGORY_LABELS = {
-  office_consumables: 'Office Consumables',
-  stationery: 'Stationery',
-  cleaning: 'Cleaning Supplies',
-  kitchen: 'Kitchen / Canteen',
-  construction_materials: 'Construction Materials',
-  spare_parts: 'Spare Parts',
-  fuel: 'Fuel & Lubricants',
-  ppe_safety: 'PPE & Safety',
-  tools: 'Tools & Equipment',
-  electronics: 'Electronics',
-  uniforms: 'Uniforms & Clothing',
-  other: 'Other',
+  office_consumables:    'Office Consumables',
+  stationery:            'Stationery',
+  furniture:             'Furniture & Fittings',
+  cleaning:              'Cleaning Supplies',
+  kitchen:               'Kitchen / Canteen',
+  food_ingredients:      'Food & Ingredients',
+  construction_materials:'Construction Materials',
+  road_materials:        'Road Materials',
+  spare_parts:           'Spare Parts',
+  vehicle_parts:         'Vehicle Spare Parts',
+  fuel:                  'Fuel & Lubricants',
+  ppe_safety:            'PPE & Safety',
+  tools:                 'Tools & Equipment',
+  electronics:           'Electronics',
+  networking:            'Networking Equipment',
+  software_license:      'Software & Licenses',
+  uniforms:              'Uniforms & Clothing',
+  other:                 'Other',
 }
 
 const TX_LABELS = {
@@ -124,38 +130,213 @@ const TABS = [
 
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 
+// ── Store-specific item configs ───────────────────────────────────────────────
+
+const STORE_ITEM_CONFIGS = {
+  'IT Store': {
+    headerBg: '#1e40af',
+    badgeBg: 'bg-blue-100',
+    badgeText: 'text-blue-700',
+    cardSelected: 'border-blue-500 bg-blue-50 ring-1 ring-blue-400',
+    categoryGroups: [
+      { label: 'Devices', items: [
+        { value: 'electronics',      icon: '💻', label: 'Computers & Laptops',    hint: 'Laptops, desktops, servers, tablets' },
+        { value: 'electronics',      icon: '🖥️', label: 'Displays & Peripherals', hint: 'Monitors, printers, scanners, projectors' },
+        { value: 'electronics',      icon: '📷', label: 'AV & Cameras',           hint: 'Webcams, projectors, speakers, TVs' },
+      ]},
+      { label: 'Infrastructure', items: [
+        { value: 'networking',       icon: '🌐', label: 'Networking Equipment',   hint: 'Routers, switches, cables, access points' },
+        { value: 'electronics',      icon: '⚡', label: 'Power & UPS',            hint: 'UPS units, surge protectors, batteries' },
+      ]},
+      { label: 'Software & Supplies', items: [
+        { value: 'software_license', icon: '📋', label: 'Software & Licenses',    hint: 'OS, antivirus, Office, subscriptions' },
+        { value: 'electronics',      icon: '🖨️', label: 'IT Consumables',         hint: 'Toner, ink, cables, flash drives, adapters' },
+      ]},
+      { label: 'Other', items: [
+        { value: 'other',            icon: '📦', label: 'Other IT Items',         hint: '' },
+      ]},
+    ],
+    units: ['pcs', 'sets', 'licences', 'boxes', 'rolls', 'metres'],
+    suggestions: ['Laptop', 'Desktop Computer', 'Monitor', 'Printer', 'Keyboard', 'Mouse', 'Router', 'Network Switch', 'UPS', 'Toner Cartridge', 'Ink Cartridge', 'Flash Drive', 'External Hard Drive', 'Network Cable', 'HDMI Cable', 'Power Strip', 'Webcam', 'Headset', 'Projector', 'Server', 'Tablet', 'Antivirus License', 'Microsoft Office License', 'Patch Panel', 'Access Point', 'IP Camera', 'NAS Storage'],
+  },
+  'Admin Store': {
+    headerBg: '#6d28d9',
+    badgeBg: 'bg-purple-100',
+    badgeText: 'text-purple-700',
+    cardSelected: 'border-purple-500 bg-purple-50 ring-1 ring-purple-400',
+    categoryGroups: [
+      { label: 'Office Supplies', items: [
+        { value: 'office_consumables', icon: '📎', label: 'Office Consumables',   hint: 'Paper, pens, folders, tape, clips, envelopes' },
+        { value: 'stationery',         icon: '✏️', label: 'Stationery',           hint: 'Notebooks, diaries, binders, files' },
+      ]},
+      { label: 'Furnishings & Wear', items: [
+        { value: 'furniture',          icon: '🪑', label: 'Furniture & Fittings', hint: 'Desks, chairs, shelves, cabinets, partitions' },
+        { value: 'uniforms',           icon: '👔', label: 'Uniforms & Clothing',  hint: 'Staff uniforms, branded wear, ID lanyards' },
+      ]},
+      { label: 'Facilities', items: [
+        { value: 'cleaning',           icon: '🧹', label: 'Cleaning Supplies',    hint: 'Detergents, mops, disinfectants, trash bags' },
+        { value: 'kitchen',            icon: '☕', label: 'Kitchen / Canteen',    hint: 'Tea, coffee, sugar, cups, utensils' },
+      ]},
+      { label: 'Other', items: [
+        { value: 'other',              icon: '📦', label: 'Other',                hint: '' },
+      ]},
+    ],
+    units: ['pcs', 'reams', 'boxes', 'packets', 'sets', 'rolls', 'pairs', 'bags'],
+    suggestions: ['A4 Printing Paper', 'Ballpoint Pens', 'Stapler', 'Staples', 'Folders', 'Binder Clips', 'Sticky Notes', 'Rubber Bands', 'Envelopes', 'Whiteboard Markers', 'Flip Chart Paper', 'Tippex', 'Scotch Tape', 'Office Chair', 'Filing Cabinet', 'Desk', 'Bookshelf', 'Staff Uniform', 'Dishwashing Soap', 'Tissue Paper', 'Hand Sanitizer', 'Tea Bags', 'Coffee', 'Sugar', 'Creamer', 'Garbage Bags', 'Air Freshener', 'Mop & Bucket'],
+  },
+  'General Store': {
+    headerBg: '#15803d',
+    badgeBg: 'bg-green-100',
+    badgeText: 'text-green-700',
+    cardSelected: 'border-green-600 bg-green-50 ring-1 ring-green-500',
+    categoryGroups: [
+      { label: 'Spare Parts', items: [
+        { value: 'vehicle_parts',         icon: '🚗', label: 'Vehicle Spare Parts',    hint: 'Engine parts, filters, belts, tyres, batteries' },
+        { value: 'spare_parts',           icon: '⚙️', label: 'Machinery Spare Parts',  hint: 'Pumps, bearings, seals, hydraulic parts' },
+      ]},
+      { label: 'Materials & Tools', items: [
+        { value: 'construction_materials',icon: '🧱', label: 'Construction Materials', hint: 'Cement, iron sheets, pipes, timber, paint' },
+        { value: 'tools',                 icon: '🔧', label: 'Tools & Equipment',      hint: 'Hand tools, power tools, measuring instruments' },
+      ]},
+      { label: 'Safety & Operations', items: [
+        { value: 'fuel',                  icon: '⛽', label: 'Fuel & Lubricants',      hint: 'Petrol, diesel, engine oil, grease, coolant' },
+        { value: 'ppe_safety',            icon: '🦺', label: 'PPE & Safety',           hint: 'Helmets, gloves, boots, reflectors, harnesses' },
+        { value: 'cleaning',              icon: '🧹', label: 'Cleaning Supplies',      hint: 'Mops, detergents, brooms, disinfectants' },
+      ]},
+      { label: 'Other', items: [
+        { value: 'other',                 icon: '📦', label: 'Other',                  hint: '' },
+      ]},
+    ],
+    units: ['pcs', 'litres', 'kg', 'metres', 'sets', 'boxes', 'drums', 'rolls', 'bags', 'tonnes'],
+    suggestions: ['Engine Oil', 'Diesel Fuel', 'Petrol', 'Hydraulic Oil', 'Grease', 'Coolant', 'Air Filter', 'Oil Filter', 'Fuel Filter', 'V-Belt', 'Tyre', 'Battery', 'Spark Plug', 'Brake Pads', 'Safety Helmet', 'Safety Boots', 'Reflective Vest', 'Work Gloves', 'Safety Goggles', 'Cement', 'Iron Sheets', 'PVC Pipes', 'Welding Rods', 'Paint', 'Sandpaper', 'Spanner Set', 'Hammer', 'Drill Bits'],
+  },
+  'Kitchen Store': {
+    headerBg: '#c2410c',
+    badgeBg: 'bg-orange-100',
+    badgeText: 'text-orange-700',
+    cardSelected: 'border-orange-500 bg-orange-50 ring-1 ring-orange-400',
+    categoryGroups: [
+      { label: 'Food & Beverages', items: [
+        { value: 'food_ingredients', icon: '🌾', label: 'Food Ingredients',        hint: 'Flour, rice, cooking oil, sugar, salt, spices' },
+        { value: 'food_ingredients', icon: '🥛', label: 'Dairy & Beverages',       hint: 'Milk, tea, coffee, juices, water, creamer' },
+        { value: 'food_ingredients', icon: '🥦', label: 'Fresh Produce',           hint: 'Vegetables, fruits, bread, eggs, meat' },
+      ]},
+      { label: 'Kitchen Operations', items: [
+        { value: 'kitchen',          icon: '🍳', label: 'Cooking Supplies',        hint: 'Cooking oil, condiments, vinegar, spices' },
+        { value: 'tools',            icon: '🔪', label: 'Kitchen Equipment',       hint: 'Pots, pans, knives, utensils, appliances' },
+      ]},
+      { label: 'Hygiene & Disposables', items: [
+        { value: 'cleaning',         icon: '🧼', label: 'Cleaning & Hygiene',      hint: 'Dish soap, sanitizer, gloves, cleaning cloths' },
+        { value: 'kitchen',          icon: '🥡', label: 'Disposables & Packaging', hint: 'Plates, cups, cling film, foil, paper bags' },
+      ]},
+      { label: 'Other', items: [
+        { value: 'other',            icon: '📦', label: 'Other',                   hint: '' },
+      ]},
+    ],
+    units: ['kg', 'litres', 'packets', 'bags', 'boxes', 'pcs', 'rolls', 'sets', 'tubes', 'bales'],
+    suggestions: ['Wheat Flour', 'Rice', 'Cooking Oil', 'Sugar', 'Salt', 'Tea Bags', 'Coffee', 'Milk Powder', 'Tomato Paste', 'Onions', 'Potatoes', 'Maize Flour', 'Butter / Margarine', 'Dish Soap', 'Hand Soap', 'Paper Towels', 'Foil Paper', 'Plastic Bags', 'Disposable Plates', 'Cups', 'Washing Powder', 'Vinegar', 'Soy Sauce', 'Pepper', 'Vegetable Oil', 'Bread'],
+  },
+  'Site Store': {
+    headerBg: '#b45309',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-700',
+    cardSelected: 'border-amber-600 bg-amber-50 ring-1 ring-amber-500',
+    categoryGroups: [
+      { label: 'Road Construction', items: [
+        { value: 'road_materials',        icon: '🛣️', label: 'Road Materials',          hint: 'Bitumen, aggregates, gravel, sand, murram, emulsion' },
+        { value: 'construction_materials',icon: '🏗️', label: 'Structural Materials',    hint: 'Cement, steel bars, culverts, timber, pipes' },
+      ]},
+      { label: 'Equipment & Parts', items: [
+        { value: 'fuel',                  icon: '⛽', label: 'Fuel & Lubricants',        hint: 'Diesel, petrol, engine oil, hydraulic oil, grease' },
+        { value: 'spare_parts',           icon: '⚙️', label: 'Equipment Spare Parts',   hint: 'Grader, dozer, compactor, excavator, roller parts' },
+        { value: 'tools',                 icon: '🔧', label: 'Tools & Small Equipment',  hint: 'Hand tools, levels, measuring tapes, shovels' },
+      ]},
+      { label: 'Safety & Consumables', items: [
+        { value: 'ppe_safety',            icon: '🦺', label: 'PPE & Safety',             hint: 'Helmets, boots, vests, goggles, ear muffs' },
+        { value: 'other',                 icon: '🔩', label: 'Site Consumables',         hint: 'Bolts, nuts, washers, cable ties, marking paint' },
+      ]},
+      { label: 'Other', items: [
+        { value: 'other',                 icon: '📦', label: 'Other',                    hint: '' },
+      ]},
+    ],
+    units: ['kg', 'tonnes', 'litres', 'metres', 'm³', 'pcs', 'bags', 'drums', 'sets', 'rolls'],
+    suggestions: ['Diesel Fuel', 'Bitumen', 'Crushed Stone (Aggregate)', 'Sand', 'Gravel', 'Murram', 'Bitumen Emulsion', 'Cement', 'Steel Bars (TMT)', 'Culvert Pipes', 'Timber', 'Engine Oil', 'Hydraulic Oil', 'Grease', 'Safety Helmet', 'Safety Boots', 'Reflective Vest', 'Work Gloves', 'Safety Goggles', 'Grader Blade', 'Engine Filter', 'Hydraulic Filter', 'V-Belt', 'Battery', 'Marking Paint', 'Road Signs'],
+  },
+}
+
+const DEFAULT_STORE_CONFIG = {
+  headerBg: '#1a2332',
+  badgeBg: 'bg-gray-100',
+  badgeText: 'text-gray-600',
+  cardSelected: 'border-brand-red bg-red-50 ring-1 ring-brand-red',
+  categoryGroups: [
+    { label: 'All Categories', items: [
+      { value: 'office_consumables',    icon: '📎', label: 'Office Consumables',    hint: '' },
+      { value: 'stationery',            icon: '✏️', label: 'Stationery',            hint: '' },
+      { value: 'furniture',             icon: '🪑', label: 'Furniture & Fittings',  hint: '' },
+      { value: 'construction_materials',icon: '🧱', label: 'Construction Materials',hint: '' },
+      { value: 'road_materials',        icon: '🛣️', label: 'Road Materials',        hint: '' },
+      { value: 'vehicle_parts',         icon: '🚗', label: 'Vehicle Spare Parts',   hint: '' },
+      { value: 'spare_parts',           icon: '⚙️', label: 'Spare Parts',           hint: '' },
+      { value: 'fuel',                  icon: '⛽', label: 'Fuel & Lubricants',     hint: '' },
+      { value: 'ppe_safety',            icon: '🦺', label: 'PPE & Safety',          hint: '' },
+      { value: 'tools',                 icon: '🔧', label: 'Tools & Equipment',     hint: '' },
+      { value: 'electronics',           icon: '💻', label: 'Electronics',           hint: '' },
+      { value: 'networking',            icon: '🌐', label: 'Networking Equipment',  hint: '' },
+      { value: 'software_license',      icon: '📋', label: 'Software & Licenses',   hint: '' },
+      { value: 'food_ingredients',      icon: '🌾', label: 'Food & Ingredients',    hint: '' },
+      { value: 'kitchen',               icon: '☕', label: 'Kitchen / Canteen',     hint: '' },
+      { value: 'cleaning',              icon: '🧹', label: 'Cleaning Supplies',     hint: '' },
+      { value: 'uniforms',              icon: '👔', label: 'Uniforms & Clothing',   hint: '' },
+      { value: 'other',                 icon: '📦', label: 'Other',                 hint: '' },
+    ]},
+  ],
+  units: ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags', 'tubes', 'packets', 'drums', 'bales', 'tonnes'],
+  suggestions: [],
+}
+
+function getStoreConfig(storeName) {
+  return STORE_ITEM_CONFIGS[storeName] || DEFAULT_STORE_CONFIG
+}
+
 // ── Add Item Modal ─────────────────────────────────────────────────────────────
 
-const UNIT_CHIPS = ['pcs', 'reams', 'boxes', 'kg', 'litres', 'metres', 'pairs', 'sets', 'rolls', 'bags', 'tubes', 'packets', 'drums', 'bales', 'tonnes']
+function AddItemModal({ onClose, editItem, activeStoreId, storeName, departments }) {
+  const cfg = getStoreConfig(storeName)
+  const defaultCategory = cfg.categoryGroups[0]?.items[0]?.value || 'other'
 
-const CATEGORY_GROUPS = [
-  { label: 'Office & Admin',    items: ['office_consumables', 'stationery'] },
-  { label: 'Facilities',        items: ['cleaning', 'kitchen'] },
-  { label: 'Site & Operations', items: ['construction_materials', 'spare_parts', 'fuel', 'ppe_safety', 'tools'] },
-  { label: 'Staff',             items: ['uniforms', 'electronics'] },
-  { label: 'Other',             items: ['other'] },
-]
-
-// activeStoreId is passed in so opening stock GRN uses the currently selected store
-function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
   const qc = useQueryClient()
   const [form, setForm] = useState(editItem ? {
-    name:              editItem.name              || '',
-    category:          editItem.category          || 'office_consumables',
-    unit:              editItem.unit              || '',
-    reorder_level:     editItem.reorder_level != null ? String(parseFloat(editItem.reorder_level)) : '',
-    description:       editItem.description       || '',
-    valuation_method:  editItem.valuation_method  || 'wac',
-    department:        editItem.department         || '',
-    is_active:         editItem.is_active != null ? editItem.is_active : true,
+    name:             editItem.name              || '',
+    category:         editItem.category          || defaultCategory,
+    unit:             editItem.unit              || '',
+    reorder_level:    editItem.reorder_level != null ? String(parseFloat(editItem.reorder_level)) : '',
+    description:      editItem.description       || '',
+    valuation_method: editItem.valuation_method  || 'wac',
+    department:       editItem.department         || '',
+    is_active:        editItem.is_active != null ? editItem.is_active : true,
   } : {
-    name: '', category: 'office_consumables', unit: '', reorder_level: '',
+    name: '', category: defaultCategory, unit: '', reorder_level: '',
     description: '', valuation_method: 'wac', department: '', is_active: true,
   })
+
+  // track selected card label separately since multiple cards can share a value
+  const firstCard = cfg.categoryGroups[0]?.items[0]
+  const [selectedCardLabel, setSelectedCardLabel] = useState(() => {
+    if (editItem) {
+      for (const g of cfg.categoryGroups) {
+        const found = g.items.find(i => i.value === editItem.category)
+        if (found) return found.label
+      }
+    }
+    return firstCard?.label || ''
+  })
+
   const [openingQty,  setOpeningQty]  = useState('')
   const [openingCost, setOpeningCost] = useState('')
-
   const hasOpening = !editItem && Number(openingQty) > 0
+
+  const datalistId = 'item-name-suggestions'
 
   const itemMut = useMutation({
     mutationFn: async (data) => {
@@ -191,53 +372,114 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const canSubmit = form.name.trim() && form.unit.trim()
+  const canSubmit = form.name.trim() && form.unit.trim() && form.category
+
+  const selectCategory = (item) => {
+    set('category', item.value)
+    setSelectedCardLabel(item.label)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[94vh] flex flex-col">
 
         {/* Header */}
-        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0"
+          style={{ backgroundColor: cfg.headerBg }}>
           <div>
-            <h2 className="text-white font-bold text-base">{editItem ? 'Edit Stock Item' : 'New Stock Item'}</h2>
-            <p className="text-white/50 text-xs mt-0.5">Fill in the details below</p>
+            <h2 className="text-white font-bold text-base">
+              {editItem ? 'Edit Stock Item' : 'New Stock Item'}
+            </h2>
+            <p className="text-white/60 text-xs mt-0.5">
+              {storeName || 'Inventory'} · fill in the details below
+            </p>
           </div>
           <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
 
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
-          {/* Item Name */}
+          {/* ── Item Name with autocomplete ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Item Name <span className="text-brand-red">*</span></label>
-            <input autoFocus className={inp} value={form.name}
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Item Name <span className="text-brand-red">*</span>
+            </label>
+            <input
+              autoFocus
+              list={datalistId}
+              className={inp}
+              value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="e.g. A4 Printing Paper, Safety Helmet, Foam Cleaner…" />
+              placeholder={cfg.suggestions.length ? `e.g. ${cfg.suggestions[0]}, ${cfg.suggestions[1]}…` : 'Enter item name…'}
+            />
+            {cfg.suggestions.length > 0 && (
+              <datalist id={datalistId}>
+                {cfg.suggestions.map(s => <option key={s} value={s} />)}
+              </datalist>
+            )}
           </div>
 
-          {/* Category */}
+          {/* ── Category card picker ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Category <span className="text-brand-red">*</span></label>
-            <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
-              {CATEGORY_GROUPS.map(g => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.items.map(v => (
-                    <option key={v} value={v}>{CATEGORY_LABELS[v]}</option>
-                  ))}
-                </optgroup>
+            <label className="block text-xs font-semibold text-gray-700 mb-3">
+              Category <span className="text-brand-red">*</span>
+            </label>
+            <div className="space-y-3">
+              {cfg.categoryGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">{group.label}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {group.items.map(item => {
+                      const isSelected = selectedCardLabel === item.label && form.category === item.value
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => selectCategory(item)}
+                          className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? cfg.cardSelected
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-xl leading-none shrink-0 mt-0.5">{item.icon}</span>
+                          <div className="min-w-0">
+                            <p className={`text-xs font-semibold leading-tight ${isSelected ? 'text-gray-800' : 'text-gray-700'}`}>
+                              {item.label}
+                            </p>
+                            {item.hint && (
+                              <p className="text-[10px] text-gray-400 mt-0.5 leading-tight truncate">{item.hint}</p>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               ))}
-            </select>
+            </div>
+            {/* Show selected badge */}
+            {form.category && (
+              <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.badgeBg} ${cfg.badgeText}`}>
+                <span>Selected:</span>
+                <span>{CATEGORY_LABELS[form.category] || form.category}</span>
+              </div>
+            )}
           </div>
 
-          {/* Unit of Measure */}
+          {/* ── Unit of Measure ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Unit of Measure <span className="text-brand-red">*</span></label>
-            <input className={inp} value={form.unit}
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Unit of Measure <span className="text-brand-red">*</span>
+            </label>
+            <input
+              className={inp}
+              value={form.unit}
               onChange={e => set('unit', e.target.value)}
-              placeholder="Type or pick a quick unit below…" />
+              placeholder="Type or pick below…"
+            />
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {UNIT_CHIPS.map(u => (
+              {cfg.units.map(u => (
                 <button key={u} type="button" onClick={() => set('unit', u)}
                   className={`px-2.5 py-1 rounded-full text-xs border transition-colors
                     ${form.unit === u
@@ -249,7 +491,7 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
             </div>
           </div>
 
-          {/* Item code — read only, edit mode only */}
+          {/* ── Item code (edit only) ── */}
           {editItem && (
             <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
               <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Item Code</span>
@@ -257,34 +499,32 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
             </div>
           )}
 
-          {/* Reorder level + Description row */}
+          {/* ── Reorder + Description ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Reorder Alert Level</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Reorder Alert Level</label>
               <input type="number" min="0" className={inp} value={form.reorder_level}
-                onChange={e => set('reorder_level', e.target.value)}
-                placeholder="e.g. 5" />
-              <p className="text-[10px] text-gray-400 mt-1">Trigger low-stock alert below this qty</p>
+                onChange={e => set('reorder_level', e.target.value)} placeholder="e.g. 5" />
+              <p className="text-[10px] text-gray-400 mt-1">Alert when stock falls below this</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
               <input className={inp} value={form.description}
-                onChange={e => set('description', e.target.value)}
-                placeholder="Brief notes…" />
+                onChange={e => set('description', e.target.value)} placeholder="Brief notes, spec, brand…" />
             </div>
           </div>
 
-          {/* Valuation method + Department */}
+          {/* ── Valuation + Department ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Valuation Method</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Valuation Method</label>
               <select className={inp} value={form.valuation_method} onChange={e => set('valuation_method', e.target.value)}>
                 <option value="wac">Weighted Average Cost</option>
                 <option value="fifo">FIFO</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Department <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Department <span className="text-gray-400 font-normal">(optional)</span></label>
               <select className={inp} value={form.department || ''} onChange={e => set('department', e.target.value || null)}>
                 <option value="">— All departments —</option>
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -292,24 +532,24 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
             </div>
           </div>
 
-          {/* Active toggle — edit mode only */}
+          {/* ── Active toggle (edit only) ── */}
           {editItem && (
             <div className="flex items-center gap-3">
               <input type="checkbox" id="is_active_chk" checked={form.is_active}
                 onChange={e => set('is_active', e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-brand-red focus:ring-brand-red" />
               <label htmlFor="is_active_chk" className="text-xs font-semibold text-gray-600">Item is Active</label>
-              {!form.is_active && <span className="text-[11px] text-red-500">Inactive items are hidden from issue/receive forms</span>}
+              {!form.is_active && <span className="text-[11px] text-red-500 ml-1">Hidden from issue / receive</span>}
             </div>
           )}
 
-          {/* Opening stock — new items only */}
+          {/* ── Opening stock (new only) ── */}
           {!editItem && (
             <div className="border border-dashed border-indigo-200 rounded-xl p-4 bg-indigo-50/40 space-y-3">
-              <p className="text-xs font-bold text-indigo-700">Opening Stock
+              <p className="text-xs font-bold text-indigo-700">
+                Opening Stock
                 <span className="font-normal text-indigo-500 ml-1">(optional — skip if stock is 0)</span>
               </p>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Quantity</label>
@@ -322,11 +562,10 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
                     onChange={e => setOpeningCost(e.target.value)} placeholder="0.00" />
                 </div>
               </div>
-
               {hasOpening && (
                 <p className="text-[11px] text-indigo-600">
-                  Will record a GRN of <strong>{openingQty}</strong> units
-                  {openingCost ? ` @ KES ${Number(openingCost).toLocaleString()} each` : ''} into the current store.
+                  Will record a GRN of <strong>{openingQty}</strong> {form.unit || 'units'}
+                  {openingCost ? ` @ KES ${Number(openingCost).toLocaleString()} each` : ''}.
                 </p>
               )}
             </div>
@@ -345,7 +584,8 @@ function AddItemModal({ onClose, editItem, activeStoreId, departments }) {
               itemMut.mutate(payload)
             }}
             disabled={itemMut.isPending || !canSubmit}
-            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity">
+            className="flex-1 text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: cfg.headerBg }}>
             {itemMut.isPending ? 'Saving…' : editItem ? 'Save Changes' : 'Add Item'}
           </button>
           <button onClick={onClose}
@@ -1346,6 +1586,7 @@ export default function InventoryPage() {
         <AddItemModal
           editItem={editItem}
           activeStoreId={activeStore?.id}
+          storeName={activeStore?.name}
           departments={departments}
           onClose={() => { setShowAddItem(false); setEditItem(null) }} />
       )}
