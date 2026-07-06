@@ -29,6 +29,8 @@ class Notification(models.Model):
         SR_DISPATCHED = "sr_dispatched", "Store Request Dispatched"
         SR_RECEIVED   = "sr_received",   "Store Request Received"
         SR_RETURNED   = "sr_returned",   "Store Request Returned"
+        SR_OVERDUE    = "sr_overdue",    "Store Request Overdue"
+        REQ_OVERDUE   = "req_overdue",   "Requisition Overdue"
         GENERAL              = "general",              "General"
 
     recipient = models.ForeignKey(

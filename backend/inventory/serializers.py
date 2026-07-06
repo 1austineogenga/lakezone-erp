@@ -207,7 +207,8 @@ class StoreRequestSerializer(serializers.ModelSerializer):
             'approved_by', 'approved_by_name',
             'dispatched_by', 'dispatched_by_name',
             'received_by', 'received_by_name',
-            'justification', 'storekeeper_notes', 'rejection_reason', 'return_reason',
+            'justification', 'date_required',
+            'storekeeper_notes', 'rejection_reason', 'return_reason',
             'requested_at', 'approved_at', 'dispatched_at', 'received_at',
         ]
         read_only_fields = fields
@@ -226,7 +227,7 @@ class StoreRequestListSerializer(serializers.ModelSerializer):
             'item', 'item_name', 'item_unit',
             'quantity_requested', 'quantity_approved', 'quantity_received',
             'source_store', 'source_store_name',
-            'requested_by_name', 'justification',
+            'requested_by_name', 'justification', 'date_required',
             'requested_at', 'approved_at', 'dispatched_at', 'received_at',
         ]
 
@@ -234,7 +235,7 @@ class StoreRequestListSerializer(serializers.ModelSerializer):
 class StoreRequestCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = StoreRequest
-        fields = ['item', 'quantity_requested', 'source_store', 'justification']
+        fields = ['item', 'quantity_requested', 'source_store', 'justification', 'date_required']
 
     def validate_quantity_requested(self, v):
         if v <= 0:

@@ -402,6 +402,7 @@ class StoreRequest(models.Model):
         related_name='store_requests_received'
     )
     justification     = models.TextField()
+    date_required     = models.DateField(null=True, blank=True)
     storekeeper_notes = models.TextField(blank=True)
     rejection_reason  = models.TextField(blank=True)
     return_reason     = models.TextField(blank=True)
