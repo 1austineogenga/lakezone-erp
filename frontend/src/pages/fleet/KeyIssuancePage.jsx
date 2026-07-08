@@ -721,8 +721,8 @@ export default function KeyIssuancePage() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => setViewRec(r)} title="View"
-                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-brand-slate">
-                            <EyeIcon className="h-3.5 w-3.5" />
+                            className="p-1.5 rounded-lg bg-gray-100 text-brand-slate hover:bg-brand-slate hover:text-white">
+                            <EyeIcon className="h-4 w-4" />
                           </button>
                           {r.status !== 'returned' && canIssue && (
                             <button onClick={() => setReturnRec(r)} title="Record Return"
