@@ -1,4 +1,5 @@
 import uuid
+from django.conf import settings
 from django.db import models
 
 
@@ -303,3 +304,80 @@ class WeeklyProgress(models.Model):
 
     def __str__(self):
         return f"{self.project.code} Week {self.week_no}"
+
+
+class ProjectPhase(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='phases')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    planned_start = models.DateField(null=True, blank=True)
+    planned_end = models.DateField(null=True, blank=True)
+    color = models.CharField(max_length=20, default='blue')
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return f"{self.project.code} — {self.name}"
+
+    @property
+    def percent_complete(self):
+        activities = self.activities.all()
+        if not activities.exists():
+            return 0
+        total_weight = sum(float(a.weight) for a in activities)
+        if total_weight == 0:
+            return 0
+        weighted = sum(float(a.weight) * float(a.percent_complete) for a in activities)
+        return round(weighted / total_weight, 1)
+
+
+class ProjectActivity(models.Model):
+    STATUS_CHOICES = [
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('on_hold', 'On Hold'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    phase = models.ForeignKey(ProjectPhase, on_delete=models.CASCADE, related_name='activities')
+    wbs_code = models.CharField(max_length=50, blank=True, default='')
+    description = models.CharField(max_length=500)
+    planned_start = models.DateField(null=True, blank=True)
+    planned_end = models.DateField(null=True, blank=True)
+    actual_start = models.DateField(null=True, blank=True)
+    actual_end = models.DateField(null=True, blank=True)
+    percent_complete = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, default=1)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    responsible = models.CharField(max_length=200, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'wbs_code', 'description']
+
+    def __str__(self):
+        return f"{self.wbs_code} {self.description}" if self.wbs_code else self.description
+
+
+class ActivityProgress(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    activity = models.ForeignKey(ProjectActivity, on_delete=models.CASCADE, related_name='progress_entries')
+    date = models.DateField()
+    percent_complete = models.DecimalField(max_digits=5, decimal_places=1)
+    notes = models.TextField(blank=True, default='')
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_progress'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.activity} @ {self.percent_complete}% on {self.date}"

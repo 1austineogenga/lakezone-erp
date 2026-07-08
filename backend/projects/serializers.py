@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
-    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress
+    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress,
+    ProjectPhase, ProjectActivity, ActivityProgress,
 )
 
 
@@ -227,3 +228,65 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         if start_date and end_date and start_date >= end_date:
             raise serializers.ValidationError({"end_date": "End date must be after start date."})
         return attrs
+
+
+class ActivityProgressSerializer(serializers.ModelSerializer):
+    recorded_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ActivityProgress
+        fields = '__all__'
+        read_only_fields = ['id', 'recorded_by', 'created_at']
+
+    def get_recorded_by_name(self, obj):
+        if obj.recorded_by:
+            return obj.recorded_by.get_full_name() or obj.recorded_by.email
+        return None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['recorded_by'] = request.user
+        return super().create(validated_data)
+
+
+class ProjectActivitySerializer(serializers.ModelSerializer):
+    latest_progress = serializers.SerializerMethodField()
+    duration_days = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectActivity
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']
+
+    def get_latest_progress(self, obj):
+        entry = obj.progress_entries.first()
+        if entry:
+            return {'date': entry.date, 'percent_complete': entry.percent_complete, 'notes': entry.notes}
+        return None
+
+    def get_duration_days(self, obj):
+        if obj.planned_start and obj.planned_end:
+            return (obj.planned_end - obj.planned_start).days
+        return None
+
+
+class ProjectPhaseSerializer(serializers.ModelSerializer):
+    activities = ProjectActivitySerializer(many=True, read_only=True)
+    percent_complete = serializers.SerializerMethodField()
+    activity_count = serializers.SerializerMethodField()
+    completed_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectPhase
+        fields = '__all__'
+        read_only_fields = ['id']
+
+    def get_percent_complete(self, obj):
+        return obj.percent_complete
+
+    def get_activity_count(self, obj):
+        return obj.activities.count()
+
+    def get_completed_count(self, obj):
+        return obj.activities.filter(status='completed').count()
