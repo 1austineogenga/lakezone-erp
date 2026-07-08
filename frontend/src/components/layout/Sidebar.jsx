@@ -127,7 +127,7 @@ const MODULES = [
         links: [
           { to: '/fleet/vehicles',     label: 'Vehicles',     icon: TruckIcon },
           { to: '/fleet/receiving',    label: 'Receiving',    icon: DocumentCheckIcon },
-          { to: '/fleet/key-issuance', label: 'Key Issuance', icon: KeyIcon, hideRoles: new Set(['site_manager', 'site_engineer', 'site_foreman']) },
+          { to: '/fleet/key-issuance', label: 'Vehicle Release Log', icon: KeyIcon, hideRoles: new Set(['site_manager', 'site_engineer', 'site_foreman']) },
           { to: '/fleet/maintenance',  label: 'Maintenance',  icon: WrenchScrewdriverIcon },
         ],
       },

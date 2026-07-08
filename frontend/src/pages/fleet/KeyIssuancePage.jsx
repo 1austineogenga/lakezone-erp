@@ -118,7 +118,7 @@ function IssueKeyModal({ vehicles, onClose, qc }) {
   const mut = useMutation({
     mutationFn: createKeyIssuance,
     onSuccess: () => {
-      toast.success('Key issuance recorded.')
+      toast.success('Vehicle release recorded.')
       qc.invalidateQueries({ queryKey: ['key-issuances'] })
       onClose()
     },
@@ -144,8 +144,8 @@ function IssueKeyModal({ vehicles, onClose, qc }) {
           <div className="flex items-center gap-2">
             <KeyIcon className="h-4 w-4 text-white/70" />
             <div>
-              <h2 className="text-white font-bold text-base">Issue Key / Release Vehicle</h2>
-              <p className="text-white/50 text-xs mt-0.5">Record key issuance, destination and pre-departure condition</p>
+              <h2 className="text-white font-bold text-base">Vehicle Release — Issue Key</h2>
+              <p className="text-white/50 text-xs mt-0.5">Record vehicle release, destination and pre-departure condition</p>
             </div>
           </div>
           <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
@@ -422,7 +422,7 @@ function DetailModal({ record, onClose }) {
       .section { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
       @media print { body { margin: 10mm; } }
     </style></head><body>
-    <h1>Vehicle Key Issuance Record</h1>
+    <h1>Vehicle Vehicle Release Record</h1>
     <p class="sub">Lake Zone Enterprises Ltd — Fleet Management</p>
     <table>
       <tr><th colspan="4">Issue Details</th></tr>
@@ -477,7 +477,7 @@ function DetailModal({ record, onClose }) {
           <div className="flex items-center gap-2">
             <KeyIcon className="h-4 w-4 text-white/70" />
             <div>
-              <h2 className="text-white font-bold text-base">Key Issuance Record</h2>
+              <h2 className="text-white font-bold text-base">Vehicle Release Record</h2>
               <p className="text-white/50 text-xs mt-0.5">{record.vehicle_label || 'Vehicle'} — {record.issued_to_name}</p>
             </div>
           </div>
@@ -636,8 +636,8 @@ export default function KeyIssuancePage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-lg font-bold text-brand-slate">Key Issuance Log</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Track vehicle & machine key releases and returns</p>
+          <h1 className="text-lg font-bold text-brand-slate">Vehicle Release Log</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Track vehicle & machine key releases and vehicle returns</p>
         </div>
         {canIssue && (
           <button onClick={() => setShowIssue(true)}
@@ -688,8 +688,8 @@ export default function KeyIssuancePage() {
         ) : records.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <KeyIcon className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-semibold">No Key Issuances Found</p>
-            {canIssue && <p className="text-xs mt-1">Click "Issue Key" to record a new issuance.</p>}
+            <p className="text-sm font-semibold">No Vehicle Releases Found</p>
+            {canIssue && <p className="text-xs mt-1">Click "Issue Key" to record a new vehicle release.</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
