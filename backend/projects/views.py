@@ -9,13 +9,15 @@ from django.utils import timezone
 
 from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
-    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress
+    IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress,
+    ProjectPhase, ProjectActivity, ActivityProgress,
 )
 from .serializers import (
     ProjectSerializer, ProjectDetailSerializer, BOQSerializer, BOQBillSerializer,
     BOQItemSerializer, BudgetSerializer, BudgetRateSerializer, BudgetLineItemSerializer,
     IPCSerializer, IPCItemSerializer, ProjectRiskSerializer, ProjectVehicleSerializer,
-    ProjectPersonnelSerializer, WeeklyProgressSerializer
+    ProjectPersonnelSerializer, WeeklyProgressSerializer,
+    ProjectPhaseSerializer, ProjectActivitySerializer, ActivityProgressSerializer,
 )
 from .services import BOQImportService, BudgetWorkbookImportService
 import openpyxl
@@ -846,3 +848,106 @@ class ProjectRiskUpdateStatusView(APIView):
         risk.save(update_fields=['status', 'notes'])
         serializer = ProjectRiskSerializer(risk)
         return Response(serializer.data)
+
+
+# ── WBS: Phases ──────────────────────────────────────────────────────────────
+
+class ProjectPhaseListCreate(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectPhaseSerializer
+
+    def get_queryset(self):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        return ProjectPhase.objects.filter(project=project).prefetch_related('activities')
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class ProjectPhaseDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectPhaseSerializer
+
+    def get_queryset(self):
+        return ProjectPhase.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+# ── WBS: Activities ───────────────────────────────────────────────────────────
+
+class ProjectActivityListCreate(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectActivitySerializer
+
+    def get_queryset(self):
+        phase = get_object_or_404(ProjectPhase, pk=self.kwargs['phase_pk'], project_id=self.kwargs['project_pk'])
+        return ProjectActivity.objects.filter(phase=phase)
+
+    def perform_create(self, serializer):
+        phase = get_object_or_404(ProjectPhase, pk=self.kwargs['phase_pk'], project_id=self.kwargs['project_pk'])
+        serializer.save(phase=phase)
+
+
+class ProjectActivityDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectActivitySerializer
+
+    def get_queryset(self):
+        return ProjectActivity.objects.filter(phase__project_id=self.kwargs['project_pk'])
+
+
+# ── WBS: Activity Progress ────────────────────────────────────────────────────
+
+class ActivityProgressListCreate(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ActivityProgressSerializer
+
+    def get_queryset(self):
+        activity = get_object_or_404(
+            ProjectActivity, pk=self.kwargs['activity_pk'],
+            phase__project_id=self.kwargs['project_pk']
+        )
+        return ActivityProgress.objects.filter(activity=activity)
+
+    def perform_create(self, serializer):
+        activity = get_object_or_404(
+            ProjectActivity, pk=self.kwargs['activity_pk'],
+            phase__project_id=self.kwargs['project_pk']
+        )
+        entry = serializer.save(activity=activity)
+        # Update activity's percent_complete to match latest entry
+        activity.percent_complete = entry.percent_complete
+        if float(entry.percent_complete) >= 100 and activity.status != 'completed':
+            activity.status = 'completed'
+        elif float(entry.percent_complete) > 0 and activity.status == 'not_started':
+            activity.status = 'in_progress'
+        if float(entry.percent_complete) > 0 and not activity.actual_start:
+            activity.actual_start = entry.date
+        if float(entry.percent_complete) >= 100 and not activity.actual_end:
+            activity.actual_end = entry.date
+        activity.save()
+
+
+class ProjectWBSSummaryView(APIView):
+    """Returns overall project % complete derived from all phases/activities."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_pk):
+        project = get_object_or_404(Project, pk=project_pk)
+        phases = ProjectPhase.objects.filter(project=project).prefetch_related('activities')
+        phase_data = ProjectPhaseSerializer(phases, many=True).data
+        all_activities = ProjectActivity.objects.filter(phase__project=project)
+        total_weight = sum(float(a.weight) for a in all_activities)
+        if total_weight > 0:
+            weighted = sum(float(a.weight) * float(a.percent_complete) for a in all_activities)
+            overall_pct = round(weighted / total_weight, 1)
+        else:
+            overall_pct = 0
+        return Response({
+            'overall_percent_complete': overall_pct,
+            'phase_count': phases.count(),
+            'activity_count': all_activities.count(),
+            'completed_activities': all_activities.filter(status='completed').count(),
+            'in_progress_activities': all_activities.filter(status='in_progress').count(),
+            'phases': phase_data,
+        })

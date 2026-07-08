@@ -38,9 +38,23 @@ boq_urls = [
     path('<uuid:pk>/', views.BOQDetailView.as_view()),
 ]
 
+activity_urls = [
+    path('', views.ProjectActivityListCreate.as_view()),
+    path('<uuid:pk>/', views.ProjectActivityDetail.as_view()),
+    path('<uuid:activity_pk>/progress/', views.ActivityProgressListCreate.as_view()),
+]
+
+phase_urls = [
+    path('', views.ProjectPhaseListCreate.as_view()),
+    path('<uuid:pk>/', views.ProjectPhaseDetail.as_view()),
+    path('<uuid:phase_pk>/activities/', include(activity_urls)),
+]
+
 project_urls = [
     path('', views.ProjectDetailView.as_view()),
     path('dashboard/', views.ProjectDashboardView.as_view()),
+    path('wbs/', views.ProjectWBSSummaryView.as_view()),
+    path('phases/', include(phase_urls)),
     path('boqs/', include(boq_urls)),
     path('budgets/', include(budget_urls)),
     path('ipcs/', include(ipc_urls)),
