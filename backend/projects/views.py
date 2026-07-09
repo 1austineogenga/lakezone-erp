@@ -1110,3 +1110,82 @@ class EVMView(APIView):
             },
             'weekly_actuals': weekly_actuals,
         })
+
+
+class PortfolioSummaryView(APIView):
+    """
+    GET /api/v1/projects/portfolio/
+    Cross-project executive roll-up: counts, contract value, IPC totals, EVM averages, risk summary.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        projects = Project.objects.all()
+
+        by_status = {}
+        for status_val, _ in Project.STATUS_CHOICES:
+            by_status[status_val] = projects.filter(status=status_val).count()
+
+        total_contract_value = projects.aggregate(s=Sum('contract_value'))['s'] or 0
+
+        active_projects = projects.filter(status='active')
+
+        # IPC totals across all active projects
+        ipc_qs = IPC.objects.filter(project__in=active_projects)
+        ipc_agg = ipc_qs.aggregate(
+            claimed=Sum('amount_claimed'),
+            certified=Sum('amount_certified'),
+            paid=Sum('amount_paid'),
+        )
+
+        # Risk summary
+        risks = ProjectRisk.objects.filter(project__in=active_projects)
+        risk_summary = risks.aggregate(
+            open=Count('id', filter=Q(status='open')),
+            high=Count('id', filter=Q(likelihood='high', impact='high')),
+            critical=Count('id', filter=Q(status='open', impact='critical') | Q(status='open', likelihood='high', impact='high')),
+        )
+
+        # Per-project health cards (active only, lightweight)
+        project_cards = []
+        for p in active_projects.order_by('name'):
+            # Latest weekly progress % complete
+            latest_wp = WeeklyProgress.objects.filter(project=p).order_by('-week_ending').first()
+            pct = float(latest_wp.percent_complete) if latest_wp and latest_wp.percent_complete else None
+
+            # IPC certified = EV proxy
+            ev = float(IPC.objects.filter(project=p).aggregate(s=Sum('amount_certified'))['s'] or 0)
+            bac = float(BudgetLineItem.objects.filter(budget__project=p, budget__status='approved').aggregate(s=Sum('base_cost'))['s'] or 0)
+            ac = float(WeeklyProgress.objects.filter(project=p).aggregate(s=Sum('total_actual'))['s'] or 0)
+            cpi = round(ev / ac, 2) if ac > 0 else None
+            spi = round(ev / bac, 2) if bac > 0 else None
+
+            project_cards.append({
+                'id': str(p.id),
+                'code': p.code,
+                'name': p.name,
+                'status': p.status,
+                'contract_value': float(p.contract_value or 0),
+                'pct_complete': pct,
+                'ev': ev,
+                'ac': ac,
+                'bac': bac,
+                'cpi': cpi,
+                'spi': spi,
+            })
+
+        return Response({
+            'totals': {
+                'total_projects': projects.count(),
+                'active_projects': active_projects.count(),
+                'total_contract_value': float(total_contract_value),
+                'by_status': by_status,
+            },
+            'ipc': {
+                'claimed':   float(ipc_agg['claimed'] or 0),
+                'certified': float(ipc_agg['certified'] or 0),
+                'paid':      float(ipc_agg['paid'] or 0),
+            },
+            'risks': risk_summary,
+            'project_cards': project_cards,
+        })

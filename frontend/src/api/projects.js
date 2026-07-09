@@ -57,3 +57,5 @@ export const getVariationOrders  = (projectId)      => api.get(`/projects/${proj
 export const createVariationOrder = (projectId, d)  => api.post(`/projects/${projectId}/variation-orders/`, d)
 export const updateVariationOrder = (projectId, id, d) => api.patch(`/projects/${projectId}/variation-orders/${id}/`, d)
 export const deleteVariationOrder = (projectId, id) => api.delete(`/projects/${projectId}/variation-orders/${id}/`)
+
+export const getPortfolioSummary = () => api.get('/projects/portfolio/')

@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getMDDashboard } from '../../api/auth'
+import { getPortfolioSummary } from '../../api/projects'
+import { getPipeline } from '../../api/crm'
 import {
   BanknotesIcon, FolderIcon, TruckIcon, UsersIcon,
   ClipboardDocumentListIcon, CubeIcon, ClockIcon,
   DocumentTextIcon, UserGroupIcon, ShieldCheckIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 
 const fmtK = (n) => {
@@ -113,11 +116,31 @@ function AlertPill({ count, label, color, onClick }) {
   )
 }
 
+function IndexBadge({ value }) {
+  if (value == null) return <span className="text-gray-400 text-xs">—</span>
+  const color = value >= 1.0 ? 'bg-green-100 text-green-700' : value >= 0.9 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+  return <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${color}`}>{value.toFixed(2)}</span>
+}
+
 export default function MDDashboard() {
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ['md-dashboard'],
     queryFn: getMDDashboard,
+    select: r => r.data,
+    refetchInterval: 60_000,
+  })
+
+  const { data: portfolio } = useQuery({
+    queryKey: ['portfolio-summary'],
+    queryFn: getPortfolioSummary,
+    select: r => r.data,
+    refetchInterval: 60_000,
+  })
+
+  const { data: crmPipeline } = useQuery({
+    queryKey: ['crm-pipeline'],
+    queryFn: getPipeline,
     select: r => r.data,
     refetchInterval: 60_000,
   })
@@ -354,6 +377,117 @@ export default function MDDashboard() {
           )}
         </SectionCard>
       </div>
+
+      {/* ── Project Health Scorecard ── */}
+      {portfolio && portfolio.project_cards?.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-violet-100 p-1.5 rounded-lg"><ChartBarIcon className="h-4 w-4 text-violet-600" /></div>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Project Health Scorecard</h2>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] text-gray-400">
+              <span>Total Portfolio: <strong className="text-gray-700">{fmtK(portfolio.totals?.total_contract_value)}</strong></span>
+              <span className="text-green-600 font-semibold">IPC Certified: {fmtK(portfolio.ipc?.certified)}</span>
+              <span className="text-amber-600 font-semibold">IPC Paid: {fmtK(portfolio.ipc?.paid)}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+            {portfolio.project_cards.map(p => {
+              const pct = p.pct_complete ?? (p.bac > 0 ? Math.round((p.ev / p.bac) * 100) : 0)
+              const cpiColor = p.cpi == null ? 'bg-gray-100' : p.cpi >= 1.0 ? 'bg-green-50 border-green-100' : p.cpi >= 0.9 ? 'bg-amber-50 border-amber-100' : 'bg-red-50 border-red-100'
+              return (
+                <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
+                  className={`border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all ${cpiColor}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[10px] font-bold text-brand-slate bg-brand-slate/10 px-1.5 py-0.5 rounded">{p.code}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.status?.replace('_', ' ')}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-brand-slate truncate">{p.name}</p>
+                      <p className="text-[10px] text-gray-400">{fmtK(p.contract_value)}</p>
+                    </div>
+                    <div className="shrink-0 ml-2 text-right">
+                      <p className="text-[10px] text-gray-400">CPI</p>
+                      <IndexBadge value={p.cpi} />
+                      <p className="text-[10px] text-gray-400 mt-1">SPI</p>
+                      <IndexBadge value={p.spi} />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                      <span>Progress</span>
+                      <span>{pct}%</span>
+                    </div>
+                    <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-red rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-2 text-[10px] text-gray-500">
+                    <span>EV: <strong className="text-gray-700">{fmtK(p.ev)}</strong></span>
+                    <span>AC: <strong className="text-gray-700">{fmtK(p.ac)}</strong></span>
+                    <span>BAC: <strong className="text-gray-700">{fmtK(p.bac)}</strong></span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {portfolio.risks?.open > 0 && (
+            <div className="mt-2 flex gap-2">
+              <AlertPill count={portfolio.risks.open}     label="open risks"    color="bg-amber-100 text-amber-800" onClick={() => navigate('/projects')} />
+              {portfolio.risks.high > 0 && <AlertPill count={portfolio.risks.high} label="high-impact risks" color="bg-red-100 text-red-700" onClick={() => navigate('/projects')} />}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── CRM Pipeline ── */}
+      {crmPipeline && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-emerald-100 p-1.5 rounded-lg"><UserGroupIcon className="h-4 w-4 text-emerald-600" /></div>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">CRM Pipeline</h2>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              {[
+                { label: 'Weighted Pipeline',  value: fmtK(crmPipeline.weighted_pipeline_value), color: 'text-emerald-700' },
+                { label: 'Win Rate',           value: crmPipeline.win_rate != null ? `${(crmPipeline.win_rate * 100).toFixed(1)}%` : '—', color: 'text-blue-700' },
+                { label: 'Won Value',          value: fmtK(crmPipeline.by_stage?.won?.total_estimated_value), color: 'text-green-700' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="text-center">
+                  <p className={`text-xl font-bold ${color}`}>{value}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {['prospect', 'qualified', 'bid_prep', 'submitted', 'won', 'lost'].map(stage => {
+                const s = crmPipeline.by_stage?.[stage] || { count: 0, total_estimated_value: 0 }
+                const COLORS = { prospect: 'bg-gray-400', qualified: 'bg-blue-500', bid_prep: 'bg-amber-500', submitted: 'bg-purple-500', won: 'bg-green-500', lost: 'bg-red-400' }
+                const LABELS = { prospect: 'Prospect', qualified: 'Qualified', bid_prep: 'Bid Prep', submitted: 'Submitted', won: 'Won', lost: 'Lost' }
+                const allVals = ['prospect','qualified','bid_prep','submitted','won','lost'].map(k => Number(crmPipeline.by_stage?.[k]?.total_estimated_value || 0))
+                const maxVal = Math.max(...allVals, 1)
+                const pct = (Number(s.total_estimated_value || 0) / maxVal) * 100
+                return (
+                  <div key={stage} className="flex items-center gap-3">
+                    <span className="text-[10px] text-gray-500 w-20 shrink-0">{LABELS[stage]}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${COLORS[stage]} rounded-full`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-[10px] text-gray-600 w-20 text-right shrink-0">{fmtK(s.total_estimated_value)}</span>
+                    <span className="text-[10px] text-gray-400 w-12 text-right shrink-0">{s.count} deal{s.count !== 1 ? 's' : ''}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-3 text-right">
+              <button onClick={() => navigate('/crm')} className="text-[10px] text-emerald-600 font-semibold hover:underline">View CRM →</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-[10px] text-gray-400 text-right">
         Data refreshes every minute · Last updated {data.generated_at ? new Date(data.generated_at).toLocaleTimeString() : '—'}
