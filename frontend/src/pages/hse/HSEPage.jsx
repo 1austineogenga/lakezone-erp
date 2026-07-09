@@ -13,6 +13,7 @@ import {
   getInductions, createInduction, deleteInduction,
   getPPEIssuances, createPPEIssuance, deletePPEIssuance,
 } from '../../api/hse'
+import { getProjects } from '../../api/projects'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,27 @@ const PPE_ITEMS = [
 
 const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-red focus:border-transparent'
 const lbl = 'block text-xs font-medium text-gray-700 mb-1'
+
+function ProjectSelect({ value, onChange }) {
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-list'],
+    queryFn: () => getProjects({ page_size: 200 }).then(r => {
+      const d = r.data?.results ?? r.data ?? []
+      return Array.isArray(d) ? d : []
+    }),
+  })
+  return (
+    <select className={inp} value={value} onChange={e => {
+      const proj = projects.find(p => p.id === e.target.value)
+      onChange(proj ? proj.name : '', e.target.value)
+    }}>
+      <option value="">— Select project —</option>
+      {projects.map(p => (
+        <option key={p.id} value={p.id}>{p.code ? `[${p.code}] ` : ''}{p.name}</option>
+      ))}
+    </select>
+  )
+}
 
 function StatCard({ label, value, sub, color = 'text-brand-slate', icon: Icon }) {
   return (
@@ -208,6 +230,7 @@ function IncidentModal({ incident, onClose }) {
   const isEdit = !!incident
   const [form, setForm] = useState({
     project_name: incident?.project_name || '',
+    project_id: incident?.project_id || '',
     date: incident?.date || new Date().toISOString().split('T')[0],
     time: incident?.time || '',
     location: incident?.location || '',
@@ -239,7 +262,7 @@ function IncidentModal({ incident, onClose }) {
         </button>
       </>}>
       <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><label className={lbl}>Project / Site</label><input className={inp} value={form.project_name} onChange={e => set('project_name', e.target.value)} placeholder="Project name" /></div>
+        <div className="col-span-2"><label className={lbl}>Project / Site</label><ProjectSelect value={form.project_id} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></div>
         <div><label className={lbl}>Date *</label><input type="date" className={inp} value={form.date} onChange={e => set('date', e.target.value)} /></div>
         <div><label className={lbl}>Time</label><input type="time" className={inp} value={form.time} onChange={e => set('time', e.target.value)} /></div>
         <div className="col-span-2"><label className={lbl}>Location *</label><input className={inp} value={form.location} onChange={e => set('location', e.target.value)} placeholder="Where did it happen?" /></div>
@@ -349,7 +372,8 @@ function IncidentsTab() {
 function ToolboxModal({ onClose }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    project_name: '', date: new Date().toISOString().split('T')[0],
+    project_name: '', project_id: '',
+    date: new Date().toISOString().split('T')[0],
     topic: '', conducted_by: '', location: '', duration_minutes: 15,
     attendee_count: 0, summary: '',
   })
@@ -374,7 +398,7 @@ function ToolboxModal({ onClose }) {
         <div><label className={lbl}>Duration (min)</label><input type="number" className={inp} value={form.duration_minutes} onChange={e => set('duration_minutes', parseInt(e.target.value) || 15)} /></div>
         <div><label className={lbl}>Conducted By *</label><input className={inp} value={form.conducted_by} onChange={e => set('conducted_by', e.target.value)} /></div>
         <div><label className={lbl}>Location</label><input className={inp} value={form.location} onChange={e => set('location', e.target.value)} /></div>
-        <div><label className={lbl}>Project / Site</label><input className={inp} value={form.project_name} onChange={e => set('project_name', e.target.value)} /></div>
+        <div className="col-span-2"><label className={lbl}>Project / Site</label><ProjectSelect value={form.project_id} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></div>
         <div><label className={lbl}>Attendee Count</label><input type="number" min="0" className={inp} value={form.attendee_count} onChange={e => set('attendee_count', parseInt(e.target.value) || 0)} /></div>
         <div className="col-span-2"><label className={lbl}>Summary</label><textarea rows={3} className={inp} value={form.summary} onChange={e => set('summary', e.target.value)} /></div>
       </div>
@@ -434,7 +458,7 @@ function ToolboxTalksTab() {
 function InductionModal({ onClose }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    project_name: '', person_name: '', company: '', role: '',
+    project_name: '', project_id: '', person_name: '', company: '', role: '',
     induction_date: new Date().toISOString().split('T')[0],
     inducted_by: '', topics_covered: '', expiry_date: '', notes: '',
   })
@@ -455,7 +479,7 @@ function InductionModal({ onClose }) {
         <div><label className={lbl}>Person Name *</label><input className={inp} value={form.person_name} onChange={e => set('person_name', e.target.value)} /></div>
         <div><label className={lbl}>Company</label><input className={inp} value={form.company} onChange={e => set('company', e.target.value)} /></div>
         <div><label className={lbl}>Role</label><input className={inp} value={form.role} onChange={e => set('role', e.target.value)} /></div>
-        <div><label className={lbl}>Project / Site</label><input className={inp} value={form.project_name} onChange={e => set('project_name', e.target.value)} /></div>
+        <div><label className={lbl}>Project / Site</label><ProjectSelect value={form.project_id} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></div>
         <div><label className={lbl}>Induction Date *</label><input type="date" className={inp} value={form.induction_date} onChange={e => set('induction_date', e.target.value)} /></div>
         <div><label className={lbl}>Inducted By</label><input className={inp} value={form.inducted_by} onChange={e => set('inducted_by', e.target.value)} /></div>
         <div><label className={lbl}>Expiry Date</label><input type="date" className={inp} value={form.expiry_date} onChange={e => set('expiry_date', e.target.value)} /></div>
@@ -522,7 +546,7 @@ function InductionsTab() {
 function PPEModal({ onClose }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({
-    project_name: '', person_name: '', employee_id: '',
+    project_name: '', project_id: '', person_name: '', employee_id: '',
     ppe_item: 'helmet', ppe_description: '', quantity: 1,
     size: '', issue_date: new Date().toISOString().split('T')[0],
     condition: 'new', notes: '',
@@ -559,7 +583,7 @@ function PPEModal({ onClose }) {
             <option value="worn">Worn</option>
           </select>
         </div>
-        <div><label className={lbl}>Project / Site</label><input className={inp} value={form.project_name} onChange={e => set('project_name', e.target.value)} /></div>
+        <div><label className={lbl}>Project / Site</label><ProjectSelect value={form.project_id} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></div>
         <div className="col-span-2"><label className={lbl}>Notes</label><textarea rows={2} className={inp} value={form.notes} onChange={e => set('notes', e.target.value)} /></div>
       </div>
     </ModalShell>
