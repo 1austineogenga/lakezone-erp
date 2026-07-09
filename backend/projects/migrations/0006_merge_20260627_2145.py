@@ -4,8 +4,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("projects", "0006_wbs_phase_activity"),
-        ("projects", "0006_merge_20260627_2145"),
+        ("projects", "0005_ipc_budget_workflow_protect"),
     ]
 
     operations = [
