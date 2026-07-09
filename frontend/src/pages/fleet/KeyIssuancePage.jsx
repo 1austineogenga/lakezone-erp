@@ -102,16 +102,11 @@ function IssueKeyModal({ vehicles, onClose, qc }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const { data: allEmployees = [] } = useQuery({
-    queryKey: ['employees-drivers'],
+    queryKey: ['employees-all'],
     queryFn: () => getEmployees({ page_size: 500, is_active: true }),
     select: r => {
       const list = r.data?.results ?? r.data ?? []
-      return Array.isArray(list)
-        ? list.filter(e => {
-            const pos = (e.position_title || '').toLowerCase()
-            return DRIVER_POSITIONS.some(d => pos.includes(d))
-          })
-        : []
+      return Array.isArray(list) ? list : []
     },
   })
 
@@ -188,19 +183,15 @@ function IssueKeyModal({ vehicles, onClose, qc }) {
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Personnel</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className={lbl}>Driver / Operator *</label>
-                {allEmployees.length > 0 ? (
-                  <select required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)}>
-                    <option value="">— Select driver / operator —</option>
-                    {allEmployees.map(e => (
-                      <option key={e.id} value={`${e.first_name} ${e.last_name}`.trim()}>
-                        {e.first_name} {e.last_name}{e.position_title ? ` — ${e.position_title}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)} placeholder="Full name of driver or operator" />
-                )}
+                <label className={lbl}>Issued To *</label>
+                <select required className={inp} value={form.issued_to_name} onChange={e => set('issued_to_name', e.target.value)}>
+                  <option value="">— Select employee —</option>
+                  {allEmployees.map(e => (
+                    <option key={e.id} value={`${e.first_name} ${e.last_name}`.trim()}>
+                      {e.first_name} {e.last_name}{e.position_title ? ` — ${e.position_title}` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="col-span-2">
                 <label className={lbl}>Requested By *</label>
