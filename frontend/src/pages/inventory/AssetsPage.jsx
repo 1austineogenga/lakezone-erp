@@ -88,7 +88,54 @@ const CONDITION_OPTIONS = ['new', 'good', 'fair', 'poor', 'condemned']
 
 // ── IT Equipment lookup data ────────────────────────────────────────────────
 const IT_DEVICE_TYPES = [
-  { label: 'Laptop', models: ['Dell Latitude 7440', 'Dell Latitude 5540', 'Dell Inspiron 15', 'HP EliteBook 840 G10', 'HP ProBook 450 G10', 'HP Pavilion 15', 'Lenovo ThinkPad X1 Carbon', 'Lenovo ThinkPad T14', 'Lenovo IdeaPad 3', 'Apple MacBook Pro 14"', 'Apple MacBook Air M2', 'Acer Aspire 5', 'Asus VivoBook 15'] },
+  { label: 'Laptop', models: [
+    // Dell Latitude
+    'Dell Latitude 3540', 'Dell Latitude 3550', 'Dell Latitude 5540', 'Dell Latitude 5550',
+    'Dell Latitude 7440', 'Dell Latitude 7450',
+    // Dell Inspiron / Vostro
+    'Dell Inspiron 15 3520', 'Dell Inspiron 15 5530', 'Dell Vostro 3520', 'Dell Vostro 5620',
+    // HP EliteBook G series
+    'HP EliteBook 630 G10', 'HP EliteBook 640 G10', 'HP EliteBook 650 G10',
+    'HP EliteBook 830 G10', 'HP EliteBook 840 G10', 'HP EliteBook 860 G10',
+    'HP EliteBook 630 G11', 'HP EliteBook 640 G11', 'HP EliteBook 650 G11',
+    'HP EliteBook 830 G11', 'HP EliteBook 840 G11', 'HP EliteBook 860 G11',
+    // HP ProBook G series
+    'HP ProBook 440 G9', 'HP ProBook 450 G9', 'HP ProBook 470 G9',
+    'HP ProBook 440 G10', 'HP ProBook 450 G10', 'HP ProBook 470 G10',
+    'HP ProBook 440 G11', 'HP ProBook 450 G11', 'HP ProBook 470 G11',
+    // HP ZBook (mobile workstation)
+    'HP ZBook Firefly 14 G10', 'HP ZBook Firefly 16 G10', 'HP ZBook Studio G10',
+    // HP Pavilion / Laptop series
+    'HP Pavilion 15-eg', 'HP Pavilion 15-eh', 'HP Pavilion Plus 14',
+    'HP Laptop 14s', 'HP Laptop 15s', 'HP Laptop 17',
+    // HP ENVY
+    'HP ENVY x360 13', 'HP ENVY x360 15',
+    // HP Spectre
+    'HP Spectre x360 14', 'HP Spectre x360 16',
+    // HP OMEN
+    'HP OMEN 16',
+    // Lenovo ThinkPad
+    'Lenovo ThinkPad X1 Carbon Gen 11', 'Lenovo ThinkPad X1 Carbon Gen 12',
+    'Lenovo ThinkPad T14 Gen 4', 'Lenovo ThinkPad T14 Gen 5',
+    'Lenovo ThinkPad T14s Gen 4', 'Lenovo ThinkPad T16 Gen 2',
+    'Lenovo ThinkPad L14 Gen 4', 'Lenovo ThinkPad L15 Gen 4',
+    'Lenovo ThinkPad E14 Gen 5', 'Lenovo ThinkPad E15 Gen 4',
+    // Lenovo IdeaPad / Legion
+    'Lenovo IdeaPad 3 15', 'Lenovo IdeaPad Slim 3', 'Lenovo IdeaPad Slim 5',
+    'Lenovo Legion 5 Gen 8',
+    // Apple
+    'Apple MacBook Air M2 13"', 'Apple MacBook Air M3 13"', 'Apple MacBook Air M3 15"',
+    'Apple MacBook Pro 14" M3', 'Apple MacBook Pro 16" M3',
+    // Acer
+    'Acer Aspire 5 A515', 'Acer Swift 3', 'Acer TravelMate P4',
+    'Acer Extensa 15', 'Acer Nitro 5',
+    // Asus
+    'Asus VivoBook 15 X1504', 'Asus VivoBook 16', 'Asus ExpertBook B1',
+    'Asus ZenBook 14', 'Asus ProArt Studiobook 16',
+    // Microsoft
+    'Microsoft Surface Laptop 5', 'Microsoft Surface Laptop 6',
+    'Microsoft Surface Pro 9', 'Microsoft Surface Pro 10',
+  ] },
   { label: 'Desktop', models: ['Dell OptiPlex 7010', 'Dell OptiPlex 3000', 'HP EliteDesk 800 G9', 'HP ProDesk 400 G9', 'Lenovo ThinkCentre M70q', 'Apple Mac Mini M2', 'Acer Veriton M6690G'] },
   { label: 'Server', models: ['Dell PowerEdge R750', 'Dell PowerEdge R450', 'HP ProLiant DL380 Gen10', 'HP ProLiant DL360 Gen10', 'Lenovo ThinkSystem SR650'] },
   { label: 'Monitor', models: ['Dell P2422H 24"', 'Dell U2722D 27"', 'HP V24i 24"', 'LG 24MP400 24"', 'Samsung 27" F27T450', 'ViewSonic VA2715-H 27"'] },
