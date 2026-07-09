@@ -1171,7 +1171,7 @@ export default function AssetsPage() {
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
-                {['Code', 'Name',
+                {['Code', 'Name', 'Make / Model',
                   ...(showPlateCol ? ['Plate'] : []),
                   'Category', 'Dept', 'Status',
                   ...(showCertCols ? ['Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry'] : []),
@@ -1188,6 +1188,7 @@ export default function AssetsPage() {
                   <tr key={asset.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 font-mono text-gray-600">{asset.asset_code}</td>
                     <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
+                    <td className="px-3 py-2.5 text-gray-600">{asset.make_model || '—'}</td>
                     {showPlateCol && <td className="px-3 py-2.5 font-mono text-gray-600">{asset.registration_plate || '—'}</td>}
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span></td>
                     <td className="px-3 py-2.5 text-gray-600">{asset.department}</td>
