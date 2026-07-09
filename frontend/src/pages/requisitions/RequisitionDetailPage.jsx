@@ -396,7 +396,7 @@ export default function RequisitionDetailPage() {
   })
 
   if (isLoading) return (
-    <div className="max-w-4xl mx-auto space-y-4 animate-pulse">
+    <div className="space-y-4 animate-pulse">
       <div className="h-8 bg-gray-100 rounded-xl w-48" />
       <div className="h-40 bg-gray-100 rounded-2xl" />
     </div>
@@ -407,7 +407,7 @@ export default function RequisitionDetailPage() {
   const flowIdx = FLOW.indexOf(req.status)
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
+    <div className="space-y-5">
       <button onClick={() => navigate('/requisitions')}
         className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-brand-slate">
         <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Requisitions

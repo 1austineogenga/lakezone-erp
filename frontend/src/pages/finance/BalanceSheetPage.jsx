@@ -49,7 +49,7 @@ export default function BalanceSheetPage() {
   const balanced    = Math.abs(totalA - (totalL + totalE)) < 0.05
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6">
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

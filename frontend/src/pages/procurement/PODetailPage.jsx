@@ -167,7 +167,7 @@ export default function PODetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="space-y-4">
         {[1, 2, 3].map(i => (
           <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="h-4 bg-gray-100 rounded animate-pulse mb-3 w-1/3" />
@@ -185,7 +185,7 @@ export default function PODetailPage() {
   const isCancelled = po.status === 'cancelled'
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="">
       <button onClick={() => navigate('/procurement')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-slate mb-5">
         <ArrowLeftIcon className="h-4 w-4" /> Back to Procurement
       </button>

@@ -69,7 +69,7 @@ export default function NewPRPage() {
   }, 0)
 
   return (
-    <div className="max-w-4xl">
+    <div className="">
       <button
         onClick={() => navigate('/procurement')}
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-slate mb-5"

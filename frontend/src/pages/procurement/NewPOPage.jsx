@@ -74,7 +74,7 @@ export default function NewPOPage() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="">
       <button onClick={() => navigate('/procurement')}
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-slate mb-5">
         <ArrowLeftIcon className="h-4 w-4" /> Back to Procurement
