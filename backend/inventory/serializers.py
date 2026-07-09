@@ -143,6 +143,10 @@ class AssetSerializer(serializers.ModelSerializer):
             'speed_governor_cert_number', 'speed_governor_cert_status',
             'speed_governor_device_serial', 'speed_governor_cert_issue_date',
             'speed_governor_cert_expiry', 'speed_governor_issuing_authority',
+            # IT / office equipment
+            'it_os', 'it_processor', 'it_ram_gb', 'it_storage',
+            'it_ip_address', 'it_mac_address', 'it_warranty_expiry',
+            'it_supplier', 'it_license_key', 'it_license_expiry',
             # defects & requirements
             'current_defects', 'requirements',
             'maintenance_count', 'created_at', 'updated_at',

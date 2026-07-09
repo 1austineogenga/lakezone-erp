@@ -147,6 +147,10 @@ const EMPTY = {
   speed_governor_cert_number: '',
   speed_governor_device_serial: '', speed_governor_cert_issue_date: '',
   speed_governor_cert_expiry: '', speed_governor_issuing_authority: '',
+  // IT / office equipment
+  it_os: '', it_processor: '', it_ram_gb: '', it_storage: '',
+  it_ip_address: '', it_mac_address: '', it_warranty_expiry: '',
+  it_supplier: '', it_license_key: '', it_license_expiry: '',
 }
 
 function certBadge(expiry, status) {
@@ -214,6 +218,12 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
     speed_governor_cert_issue_date: asset.speed_governor_cert_issue_date || '',
     speed_governor_cert_expiry: asset.speed_governor_cert_expiry || '',
     speed_governor_issuing_authority: asset.speed_governor_issuing_authority || '',
+    it_os: asset.it_os || '', it_processor: asset.it_processor || '',
+    it_ram_gb: asset.it_ram_gb || '', it_storage: asset.it_storage || '',
+    it_ip_address: asset.it_ip_address || '', it_mac_address: asset.it_mac_address || '',
+    it_warranty_expiry: asset.it_warranty_expiry || '',
+    it_supplier: asset.it_supplier || '', it_license_key: asset.it_license_key || '',
+    it_license_expiry: asset.it_license_expiry || '',
   } : { ...EMPTY, category: defaultCategory })
 
   const qc = useQueryClient()
@@ -234,6 +244,8 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   const isVehicle = form.category === 'vehicles'
   const isTruck = form.category === 'trucks_tracks'
   const needsInsurance = isVehicle || isTruck
+  const isIT = ['it_equipment', 'communication', 'office_equipment'].includes(form.category)
+  const isFurnitureTools = ['furniture', 'tools', 'safety'].includes(form.category)
 
   const handleSave = () => {
     const payload = { ...form }
@@ -243,7 +255,8 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
     })
     ;['purchase_date', 'insurance_expiry', 'insurance_commencement_date',
       'inspection_cert_issue_date', 'inspection_cert_expiry',
-      'speed_governor_cert_issue_date', 'speed_governor_cert_expiry'].forEach(k => {
+      'speed_governor_cert_issue_date', 'speed_governor_cert_expiry',
+      'it_warranty_expiry', 'it_license_expiry'].forEach(k => {
       if (payload[k] === '') payload[k] = null
     })
     mut.mutate(payload)
@@ -463,6 +476,58 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
             </div>
           )}
 
+          {/* IT / Office Equipment Details */}
+          {isIT && (
+            <div className="border border-blue-100 rounded-xl p-4 bg-blue-50/30">
+              <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                IT / Equipment Details
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Operating System</label>
+                  <input className={inp} value={form.it_os} onChange={e => set('it_os', e.target.value)} placeholder="e.g. Windows 11, Ubuntu 22.04" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Processor / CPU</label>
+                  <input className={inp} value={form.it_processor} onChange={e => set('it_processor', e.target.value)} placeholder="e.g. Intel Core i7-12700" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">RAM</label>
+                  <input className={inp} value={form.it_ram_gb} onChange={e => set('it_ram_gb', e.target.value)} placeholder="e.g. 16GB DDR4" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Storage</label>
+                  <input className={inp} value={form.it_storage} onChange={e => set('it_storage', e.target.value)} placeholder="e.g. 512GB SSD" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">IP Address</label>
+                  <input className={inp} value={form.it_ip_address} onChange={e => set('it_ip_address', e.target.value)} placeholder="e.g. 192.168.1.100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">MAC Address</label>
+                  <input className={inp} value={form.it_mac_address} onChange={e => set('it_mac_address', e.target.value.toUpperCase())} placeholder="e.g. AA:BB:CC:DD:EE:FF" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Supplier</label>
+                  <input className={inp} value={form.it_supplier} onChange={e => set('it_supplier', e.target.value)} placeholder="e.g. Computer Point Ltd" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Warranty Expiry</label>
+                  <input type="date" className={inp} value={form.it_warranty_expiry} onChange={e => set('it_warranty_expiry', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">License Key</label>
+                  <input className={inp} value={form.it_license_key} onChange={e => set('it_license_key', e.target.value)} placeholder="e.g. XXXXX-XXXXX-XXXXX" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">License Expiry</label>
+                  <input type="date" className={inp} value={form.it_license_expiry} onChange={e => set('it_license_expiry', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Defects & Requirements */}
           <div>
             <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -543,6 +608,7 @@ function AssetCard({ asset, canEdit, onEdit, onClick }) {
   const isTruck = asset.category === 'trucks_tracks'
   const isVehicle = asset.category === 'vehicles'
   const isMachine = asset.category === 'machinery'
+  const isITCard = ['it_equipment', 'communication', 'office_equipment'].includes(asset.category)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
@@ -582,6 +648,23 @@ function AssetCard({ asset, canEdit, onEdit, onClick }) {
           <div className="bg-purple-50 rounded-lg px-3 py-2 text-xs">
             <span className="text-purple-600 font-medium">🛣 KMs to Next Service: </span>
             <span className="font-bold text-purple-700">{Number(asset.kms_to_next_service).toLocaleString()} km</span>
+          </div>
+        )}
+
+        {isITCard && (asset.it_os || asset.it_processor || asset.it_ram_gb || asset.it_storage || asset.it_ip_address || asset.it_warranty_expiry) && (
+          <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-xs space-y-1">
+            <p className="text-blue-700 font-semibold text-[11px] uppercase tracking-wide mb-1.5">IT Details</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {asset.it_os && <Row label="OS" value={asset.it_os} />}
+              {asset.it_processor && <Row label="CPU" value={asset.it_processor} />}
+              {asset.it_ram_gb && <Row label="RAM" value={asset.it_ram_gb} />}
+              {asset.it_storage && <Row label="Storage" value={asset.it_storage} />}
+              {asset.it_ip_address && <Row label="IP Address" value={asset.it_ip_address} />}
+              {asset.it_mac_address && <Row label="MAC" value={asset.it_mac_address} />}
+              {asset.it_supplier && <Row label="Supplier" value={asset.it_supplier} />}
+              {asset.it_warranty_expiry && <Row label="Warranty Exp." value={asset.it_warranty_expiry} />}
+              {asset.it_license_expiry && <Row label="License Exp." value={asset.it_license_expiry} />}
+            </div>
           </div>
         )}
 
