@@ -48,19 +48,12 @@ const MODULES = [
     key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon, root: '/procurement',
     isActive: (pathname) => pathname.startsWith('/procurement') || pathname.startsWith('/requisitions'),
     sections: [
-      { heading: null, links: [{ to: '/procurement', label: 'Overview', icon: ChartBarIcon, end: true }] },
       {
-        heading: 'Purchasing',
+        heading: null,
         links: [
-          { to: '/requisitions',       label: 'Requisitions', icon: DocumentTextIcon },
-          { to: '/procurement/rfqs',   label: 'RFQ / Bids',   icon: DocumentCheckIcon },
-        ],
-      },
-      {
-        heading: 'Orders',
-        links: [
-          { to: '/procurement/new-pr', label: 'New PR',        icon: PlusIcon },
-          { to: '/procurement/new-po', label: 'New PO',        icon: PlusIcon },
+          { to: '/procurement',      label: 'Purchase Orders',  icon: ClipboardDocumentListIcon, end: true },
+          { to: '/requisitions',     label: 'Requisitions',     icon: DocumentTextIcon },
+          { to: '/procurement/rfqs', label: 'RFQ / Bids',       icon: DocumentCheckIcon },
         ],
       },
     ],
