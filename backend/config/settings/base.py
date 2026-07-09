@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "notifications",
     "reports",
     "hse",
+    "quality",
 ]
 
 MIDDLEWARE = [
