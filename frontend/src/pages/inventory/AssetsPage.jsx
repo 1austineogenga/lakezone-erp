@@ -402,6 +402,14 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   })
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Track "Other" mode for Make/Model separately so typing doesn't hide the input
+  const [makeOther, setMakeOther] = useState(() => {
+    if (!asset?.make_model) return false
+    const dt = IT_DEVICE_TYPES.find(d => d.label === asset.name)
+    return dt ? !dt.models.includes(asset.make_model) : false
+  })
+
   const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
   const isMachinery = form.category === 'machinery'
   const isVehicle = form.category === 'vehicles'
@@ -448,7 +456,7 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Name / Device Type *</label>
                 {isIT ? (
                   <select required className={inp} value={form.name}
-                    onChange={e => { set('name', e.target.value); set('make_model', '') }}>
+                    onChange={e => { set('name', e.target.value); set('make_model', ''); setMakeOther(false) }}>
                     <option value="">— Select device type —</option>
                     {IT_DEVICE_TYPES.map(d => <option key={d.label} value={d.label}>{d.label}</option>)}
                   </select>
@@ -466,7 +474,12 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Make / Model</label>
                 {isIT && modelOptions.length > 0 ? (
-                  <select className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)}>
+                  <select className={inp}
+                    value={makeOther ? '__other__' : (modelOptions.includes(form.make_model) ? form.make_model : '')}
+                    onChange={e => {
+                      if (e.target.value === '__other__') { setMakeOther(true); set('make_model', '') }
+                      else { setMakeOther(false); set('make_model', e.target.value) }
+                    }}>
                     <option value="">— Select model —</option>
                     {modelOptions.map(m => <option key={m} value={m}>{m}</option>)}
                     <option value="__other__">Other (type below)</option>
@@ -475,8 +488,8 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
                   <input className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)}
                     placeholder="e.g. CAT 320D, Toyota Hilux 2.8" />
                 )}
-                {isIT && form.make_model === '__other__' && (
-                  <input className={`${inp} mt-1`} placeholder="Type model name…"
+                {isIT && modelOptions.length > 0 && makeOther && (
+                  <input className={`${inp} mt-1`} value={form.make_model} placeholder="Type model name…"
                     onChange={e => set('make_model', e.target.value)} />
                 )}
               </div>
