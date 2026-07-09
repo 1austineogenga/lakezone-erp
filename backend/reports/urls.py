@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('photos/',           views.SitePhotoListCreate.as_view()),
+    path('photos/<uuid:pk>/', views.SitePhotoDetail.as_view()),
+
     path('foreman/daily/',           views.ForemanDailyListCreate.as_view()),
     path('foreman/daily/<uuid:pk>/', views.ForemanDailyDetail.as_view()),
     path('foreman/weekly/',          views.ForemanWeeklyListCreate.as_view()),

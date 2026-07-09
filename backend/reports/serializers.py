@@ -3,6 +3,7 @@ from .models import (
     ForemanDailyReport, ForemanWeeklyReport,
     SurveyorDailyReport, SurveyorWeeklyReport,
     MachineDailyReport, MachineWeeklyReport,
+    SitePhoto,
 )
 
 
@@ -63,3 +64,30 @@ class MachineWeeklyReportSerializer(BaseReportSerializer):
         model = MachineWeeklyReport
         fields = '__all__'
         read_only_fields = ('id', 'submitted_by', 'submitted_at', 'updated_at')
+
+
+class SitePhotoSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SitePhoto
+        fields = '__all__'
+        read_only_fields = ['id', 'uploaded_by', 'created_at']
+
+    def get_uploaded_by_name(self, obj):
+        if obj.uploaded_by:
+            return obj.uploaded_by.get_full_name() or obj.uploaded_by.email
+        return None
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url if obj.image else None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['uploaded_by'] = request.user
+        return super().create(validated_data)

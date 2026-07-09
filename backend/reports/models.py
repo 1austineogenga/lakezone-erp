@@ -189,3 +189,38 @@ class MachineWeeklyReport(BaseReport):
 
     class Meta(BaseReport.Meta):
         verbose_name = 'Machine Weekly Report'
+
+
+def site_photo_upload_path(instance, filename):
+    return f"site_photos/{instance.project_name}/{filename}"
+
+
+class SitePhoto(models.Model):
+    CATEGORY_CHOICES = [
+        ('general',    'General'),
+        ('progress',   'Work Progress'),
+        ('issue',      'Issue / Problem'),
+        ('safety',     'Safety'),
+        ('material',   'Material Delivery'),
+        ('equipment',  'Equipment'),
+        ('completion', 'Completion'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project_name = models.CharField(max_length=200)
+    project_id = models.UUIDField(null=True, blank=True, db_index=True)
+    date = models.DateField()
+    image = models.ImageField(upload_to=site_photo_upload_path)
+    caption = models.CharField(max_length=300, blank=True, default='')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
+    location_note = models.CharField(max_length=200, blank=True, default='')
+    report_type = models.CharField(max_length=50, blank=True, default='')
+    report_id = models.UUIDField(null=True, blank=True)
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='site_photos')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.project_name} — {self.date} — {self.caption or 'photo'}"
