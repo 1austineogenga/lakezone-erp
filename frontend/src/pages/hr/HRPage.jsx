@@ -34,9 +34,10 @@ const GROUPS = (role) => [
     label: 'Workforce',
     icon: UsersIcon,
     defaultPath: '/hr/employees',
-    paths: ['/hr/employees', '/hr/disciplinary', '/hr/transfers', '/hr/organisation'],
+    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/disciplinary', '/hr/transfers', '/hr/organisation'],
     tabs: [
       { label: 'Employees',    path: '/hr/employees' },
+      { label: 'Casuals',      path: '/hr/casuals-registry' },
       { label: 'Disciplinary', path: '/hr/disciplinary' },
       ...(role === 'system_admin' ? [{ label: 'Transfers',    path: '/hr/transfers' }] : []),
       ...(role === 'system_admin' ? [{ label: 'Organisation', path: '/hr/organisation' }] : []),
@@ -44,15 +45,14 @@ const GROUPS = (role) => [
   },
   {
     id: 'time-leave',
-    label: 'Time & Leave',
+    label: 'Attendance & Leave',
     icon: CalendarDaysIcon,
     defaultPath: '/hr/attendance',
-    paths: ['/hr/attendance', '/hr/biometric', '/hr/leave', '/hr/casuals-registry'],
+    paths: ['/hr/attendance', '/hr/biometric', '/hr/leave'],
     tabs: [
       { label: 'Attendance', path: '/hr/attendance' },
+      { label: 'Leave',      path: '/hr/leave' },
       ...(role === 'system_admin' ? [{ label: 'Biometric', path: '/hr/biometric' }] : []),
-      { label: 'Leave',    path: '/hr/leave' },
-      { label: 'Casuals',  path: '/hr/casuals-registry' },
     ],
   },
   {
