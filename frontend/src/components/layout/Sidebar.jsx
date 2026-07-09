@@ -13,6 +13,7 @@ import {
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
   BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
   ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, DocumentDuplicateIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -23,9 +24,6 @@ const TOP_LINKS = [
   { to: '/',             icon: HomeIcon,                  label: 'Dashboard',    end: true,  module: 'dashboard' },
   { to: '/workspace',    icon: BriefcaseIcon,             label: 'My Workspace', end: true,  module: null },
   { to: '/projects',     icon: FolderIcon,                label: 'Projects',                 module: 'projects' },
-  { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement',              module: 'procurement' },
-  { to: '/procurement/rfqs', icon: DocumentTextIcon,          label: 'RFQ / Bids',             module: 'procurement' },
-  { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions',             module: 'requisitions' },
   { to: '/reports',      icon: DocumentChartBarIcon,      label: 'Site Reporting',           module: 'reports' },
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
   { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
@@ -46,6 +44,27 @@ const MODULE_PRIMARY = {
 }
 
 const MODULES = [
+  {
+    key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon, root: '/procurement',
+    isActive: (pathname) => pathname.startsWith('/procurement') || pathname.startsWith('/requisitions'),
+    sections: [
+      { heading: null, links: [{ to: '/procurement', label: 'Overview', icon: ChartBarIcon, end: true }] },
+      {
+        heading: 'Purchasing',
+        links: [
+          { to: '/requisitions',       label: 'Requisitions', icon: DocumentTextIcon },
+          { to: '/procurement/rfqs',   label: 'RFQ / Bids',   icon: DocumentCheckIcon },
+        ],
+      },
+      {
+        heading: 'Orders',
+        links: [
+          { to: '/procurement/new-pr', label: 'New PR',        icon: PlusIcon },
+          { to: '/procurement/new-po', label: 'New PO',        icon: PlusIcon },
+        ],
+      },
+    ],
+  },
   {
     key: 'finance', label: 'Finance', icon: BanknotesIcon, root: '/finance',
     sections: (role) => [
@@ -179,7 +198,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
 
   const initialOpen = {}
   sortedModules.forEach(m => {
-    initialOpen[m.key] = m.key === primaryKey || location.pathname.startsWith(m.root)
+    initialOpen[m.key] = m.key === primaryKey || (m.isActive ? m.isActive(location.pathname) : location.pathname.startsWith(m.root))
   })
   const [open, setOpen] = useState(initialOpen)
 
@@ -247,7 +266,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
             {collapsed && <div className="pt-2" />}
 
             {sortedModules.filter(mod => can(mod.key)).map(mod => {
-              const isActive = location.pathname.startsWith(mod.root)
+              const isActive = mod.isActive ? mod.isActive(location.pathname) : location.pathname.startsWith(mod.root)
               const isOpen   = open[mod.key]
               const Icon     = mod.icon
               const sections = getSections(mod)
