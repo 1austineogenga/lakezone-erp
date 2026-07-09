@@ -12,7 +12,7 @@ import {
   TruckIcon, BeakerIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon,
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
   BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
-  ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon,
+  ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -31,6 +31,7 @@ const TOP_LINKS = [
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
   { to: '/hse',          icon: ShieldExclamationIcon,        label: 'HSE',             module: null },
   { to: '/quality',      icon: ClipboardDocumentCheckIcon,  label: 'Quality Control', module: null },
+  { to: '/documents',    icon: DocumentDuplicateIcon,       label: 'Documents',       module: null },
   { to: '/alerts',       icon: BellAlertIcon,             label: 'Alerts',                   module: null, roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'head_of_security']) },
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]
