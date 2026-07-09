@@ -34,6 +34,7 @@ import WorkspacePage from './pages/workspace/WorkspacePage'
 import AlertsPage from './pages/AlertsPage'
 import HSEPage from './pages/hse/HSEPage'
 import DocumentsPage from './pages/documents/DocumentsPage'
+import RFQPage from './pages/procurement/RFQPage'
 import QualityPage from './pages/quality/QualityPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
 import MobileMenuPage from './pages/MobileMenuPage'
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/hse"               element={<HSEPage />} />
             <Route path="/quality"           element={<QualityPage />} />
             <Route path="/documents"         element={<DocumentsPage />} />
+            <Route path="/procurement/rfqs"      element={<PrivateRoute module="procurement"><RFQPage /></PrivateRoute>} />
             <Route path="/menu"              element={<MobileMenuPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
