@@ -136,7 +136,50 @@ const IT_DEVICE_TYPES = [
     'Microsoft Surface Laptop 5', 'Microsoft Surface Laptop 6',
     'Microsoft Surface Pro 9', 'Microsoft Surface Pro 10',
   ] },
-  { label: 'Desktop', models: ['Dell OptiPlex 7010', 'Dell OptiPlex 3000', 'HP EliteDesk 800 G9', 'HP ProDesk 400 G9', 'Lenovo ThinkCentre M70q', 'Apple Mac Mini M2', 'Acer Veriton M6690G'] },
+  { label: 'Desktop', models: [
+    // Dell OptiPlex (business desktops)
+    'Dell OptiPlex 3000 SFF', 'Dell OptiPlex 3000 Tower', 'Dell OptiPlex 3000 Micro',
+    'Dell OptiPlex 5000 SFF', 'Dell OptiPlex 5000 Tower', 'Dell OptiPlex 5000 Micro',
+    'Dell OptiPlex 7000 SFF', 'Dell OptiPlex 7000 Tower', 'Dell OptiPlex 7000 Micro',
+    'Dell OptiPlex 7010 SFF', 'Dell OptiPlex 7010 Tower', 'Dell OptiPlex 7010 Micro',
+    'Dell OptiPlex 7020 SFF', 'Dell OptiPlex 7020 Tower', 'Dell OptiPlex 7020 Micro',
+    // Dell Precision (workstations)
+    'Dell Precision 3460 SFF', 'Dell Precision 3660 Tower', 'Dell Precision 5860 Tower',
+    // Dell Vostro (SMB)
+    'Dell Vostro 3020 SFF', 'Dell Vostro 3020 Tower',
+    // HP EliteDesk / EliteOne (business)
+    'HP EliteDesk 600 G9 SFF', 'HP EliteDesk 800 G9 SFF', 'HP EliteDesk 800 G9 Tower',
+    'HP EliteDesk 800 G9 Mini', 'HP EliteOne 800 G9 AIO',
+    // HP ProDesk (SMB)
+    'HP ProDesk 400 G9 SFF', 'HP ProDesk 400 G9 Micro', 'HP ProDesk 400 G9 Tower',
+    'HP ProDesk 600 G9 SFF', 'HP ProDesk 600 G9 Mini',
+    // HP Z Workstations
+    'HP Z2 Tower G9', 'HP Z4 Tower G5', 'HP Z6 Tower G5',
+    // HP All-in-One
+    'HP AIO 24-cb', 'HP AIO 27-cb',
+    // HP Slim / Pavilion Desktop
+    'HP Slim Desktop S01', 'HP Pavilion Desktop TP01',
+    // Lenovo ThinkCentre (business)
+    'Lenovo ThinkCentre M70q Gen 3', 'Lenovo ThinkCentre M70q Gen 4',
+    'Lenovo ThinkCentre M70s Gen 3', 'Lenovo ThinkCentre M70t Gen 3',
+    'Lenovo ThinkCentre M80q Gen 3', 'Lenovo ThinkCentre M80s Gen 3',
+    'Lenovo ThinkCentre M90q Gen 3', 'Lenovo ThinkCentre M90t Gen 3',
+    // Lenovo ThinkStation (workstations)
+    'Lenovo ThinkStation P3 Ultra', 'Lenovo ThinkStation P3 Tower',
+    // Lenovo IdeaCentre
+    'Lenovo IdeaCentre 3 07ADA05', 'Lenovo IdeaCentre 5i Gen 8',
+    // Apple
+    'Apple Mac Mini M2', 'Apple Mac Mini M2 Pro', 'Apple Mac Studio M2 Max',
+    'Apple iMac 24" M3',
+    // Acer
+    'Acer Veriton M4690G', 'Acer Veriton M6690G', 'Acer Veriton N4690GT',
+    'Acer Aspire TC-1760', 'Acer Nitro N50',
+    // Asus
+    'Asus ExpertCenter D7 Tower', 'Asus ExpertCenter D5 SFF',
+    'Asus ProArt Station PD5', 'Asus VivoPC VC66',
+    // Microsoft
+    'Microsoft Surface Studio 2+',
+  ] },
   { label: 'Server', models: ['Dell PowerEdge R750', 'Dell PowerEdge R450', 'HP ProLiant DL380 Gen10', 'HP ProLiant DL360 Gen10', 'Lenovo ThinkSystem SR650'] },
   { label: 'Monitor', models: ['Dell P2422H 24"', 'Dell U2722D 27"', 'HP V24i 24"', 'LG 24MP400 24"', 'Samsung 27" F27T450', 'ViewSonic VA2715-H 27"'] },
   { label: 'Printer', models: ['HP LaserJet Pro M404dn', 'HP LaserJet Pro MFP M428fdw', 'Canon imageCLASS MF445dw', 'Epson EcoTank L3250', 'Brother DCP-L2550DW', 'Xerox B215 MFP'] },
