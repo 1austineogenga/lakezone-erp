@@ -14,8 +14,10 @@ import {
   DocumentTextIcon,
   ListBulletIcon,
   PhotoIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { getProjectDashboard } from '../../api/projects'
+import EVMPage from './EVMPage'
 import ProjectDashboard from './ProjectDashboard'
 import BOQPage from './BOQPage'
 import BudgetPage from './BudgetPage'
@@ -51,6 +53,7 @@ const TABS = [
   { id: 'budget',     label: 'Budget',          Icon: BanknotesIcon },
   { id: 'ipcs',       label: 'IPCs',            Icon: DocumentCheckIcon },
   { id: 'progress',   label: 'Weekly Progress', Icon: CalendarDaysIcon },
+  { id: 'evm',        label: 'EVM & Finance',   Icon: ChartBarIcon },
   { id: 'risks',      label: 'Risk Register',   Icon: ExclamationTriangleIcon },
   { id: 'fleet',      label: 'Fleet',           Icon: TruckIcon },
   { id: 'team',       label: 'Team',            Icon: UsersIcon },
@@ -83,6 +86,7 @@ export default function ProjectPage() {
       case 'budget':    return <BudgetPage />
       case 'ipcs':      return <IPCPage />
       case 'progress':  return <WeeklyProgressPage />
+      case 'evm':       return <EVMPage />
       case 'risks':     return <RiskRegisterPage />
       case 'fleet':     return <FleetAssignmentPage />
       case 'team':      return <TeamPage />

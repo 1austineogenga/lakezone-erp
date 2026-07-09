@@ -68,6 +68,9 @@ project_urls = [
     path('progress/', views.WeeklyProgressListCreateView.as_view()),
     path('progress/<uuid:pk>/', views.WeeklyProgressDetailView.as_view()),
     path('costing/', views.ProjectCostingView.as_view()),
+    path('evm/', views.EVMView.as_view()),
+    path('variation-orders/', views.VariationOrderListCreate.as_view()),
+    path('variation-orders/<uuid:pk>/', views.VariationOrderDetail.as_view()),
 ]
 
 urlpatterns = [

@@ -381,3 +381,55 @@ class ActivityProgress(models.Model):
 
     def __str__(self):
         return f"{self.activity} @ {self.percent_complete}% on {self.date}"
+
+
+class VariationOrder(models.Model):
+    VO_TYPE_CHOICES = [
+        ('addition',       'Addition'),
+        ('omission',       'Omission'),
+        ('substitution',   'Substitution'),
+        ('time_extension', 'Time Extension'),
+    ]
+    STATUS_CHOICES = [
+        ('draft',       'Draft'),
+        ('submitted',   'Submitted'),
+        ('approved',    'Approved'),
+        ('rejected',    'Rejected'),
+        ('implemented', 'Implemented'),
+    ]
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project     = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='variation_orders')
+    vo_number   = models.CharField(max_length=20, editable=False, blank=True)
+    title       = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    vo_type     = models.CharField(max_length=20, choices=VO_TYPE_CHOICES, default='addition')
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    amount      = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    submitted_date = models.DateField(null=True, blank=True)
+    approved_date  = models.DateField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name='approved_vos')
+    created_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                    related_name='created_vos')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.vo_number:
+            from django.db import transaction
+            from django.utils import timezone as tz
+            with transaction.atomic():
+                year = tz.now().year
+                prefix = f'VO-{year}'
+                count = VariationOrder.objects.select_for_update().filter(
+                    project=self.project, vo_number__startswith=prefix
+                ).count()
+                self.vo_number = f'{prefix}-{str(count + 1).zfill(3)}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.vo_number} — {self.title}'
