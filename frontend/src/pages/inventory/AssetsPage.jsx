@@ -403,12 +403,16 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  // Track "Other" mode for Make/Model separately so typing doesn't hide the input
+  // Track "Other" mode separately for each dropdown so typing doesn't hide the input
   const [makeOther, setMakeOther] = useState(() => {
     if (!asset?.make_model) return false
     const dt = IT_DEVICE_TYPES.find(d => d.label === asset.name)
     return dt ? !dt.models.includes(asset.make_model) : false
   })
+  const [osOther,  setOsOther]  = useState(() => !!asset?.it_os        && !OS_OPTIONS.includes(asset.it_os))
+  const [cpuOther, setCpuOther] = useState(() => !!asset?.it_processor  && !CPU_OPTIONS.includes(asset.it_processor))
+  const [ramOther, setRamOther] = useState(() => !!asset?.it_ram_gb     && !RAM_OPTIONS.includes(asset.it_ram_gb))
+  const [stoOther, setStoOther] = useState(() => !!asset?.it_storage    && !STORAGE_OPTIONS.includes(asset.it_storage))
 
   const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
   const isMachinery = form.category === 'machinery'
@@ -701,51 +705,43 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Operating System</label>
-                  <select className={inp} value={OS_OPTIONS.includes(form.it_os) ? form.it_os : (form.it_os ? '__other__' : '')}
-                    onChange={e => set('it_os', e.target.value === '__other__' ? '' : e.target.value)}>
+                  <select className={inp} value={osOther ? '__other__' : (OS_OPTIONS.includes(form.it_os) ? form.it_os : '')}
+                    onChange={e => { if (e.target.value === '__other__') { setOsOther(true); set('it_os', '') } else { setOsOther(false); set('it_os', e.target.value) } }}>
                     <option value="">— Select OS —</option>
                     {OS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     <option value="__other__">Other (type below)</option>
                   </select>
-                  {!OS_OPTIONS.includes(form.it_os) && (
-                    <input className={`${inp} mt-1`} value={form.it_os} onChange={e => set('it_os', e.target.value)} placeholder="Type OS name…" />
-                  )}
+                  {osOther && <input className={`${inp} mt-1`} value={form.it_os} onChange={e => set('it_os', e.target.value)} placeholder="Type OS name…" />}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Processor / CPU</label>
-                  <select className={inp} value={CPU_OPTIONS.includes(form.it_processor) ? form.it_processor : (form.it_processor ? '__other__' : '')}
-                    onChange={e => set('it_processor', e.target.value === '__other__' ? '' : e.target.value)}>
+                  <select className={inp} value={cpuOther ? '__other__' : (CPU_OPTIONS.includes(form.it_processor) ? form.it_processor : '')}
+                    onChange={e => { if (e.target.value === '__other__') { setCpuOther(true); set('it_processor', '') } else { setCpuOther(false); set('it_processor', e.target.value) } }}>
                     <option value="">— Select CPU —</option>
                     {CPU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     <option value="__other__">Other (type below)</option>
                   </select>
-                  {!CPU_OPTIONS.includes(form.it_processor) && form.it_processor !== '' && (
-                    <input className={`${inp} mt-1`} value={form.it_processor} onChange={e => set('it_processor', e.target.value)} placeholder="Type CPU name…" />
-                  )}
+                  {cpuOther && <input className={`${inp} mt-1`} value={form.it_processor} onChange={e => set('it_processor', e.target.value)} placeholder="Type CPU name…" />}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">RAM</label>
-                  <select className={inp} value={RAM_OPTIONS.includes(form.it_ram_gb) ? form.it_ram_gb : (form.it_ram_gb ? '__other__' : '')}
-                    onChange={e => set('it_ram_gb', e.target.value === '__other__' ? '' : e.target.value)}>
+                  <select className={inp} value={ramOther ? '__other__' : (RAM_OPTIONS.includes(form.it_ram_gb) ? form.it_ram_gb : '')}
+                    onChange={e => { if (e.target.value === '__other__') { setRamOther(true); set('it_ram_gb', '') } else { setRamOther(false); set('it_ram_gb', e.target.value) } }}>
                     <option value="">— Select RAM —</option>
                     {RAM_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     <option value="__other__">Other (type below)</option>
                   </select>
-                  {!RAM_OPTIONS.includes(form.it_ram_gb) && form.it_ram_gb !== '' && (
-                    <input className={`${inp} mt-1`} value={form.it_ram_gb} onChange={e => set('it_ram_gb', e.target.value)} placeholder="Type RAM spec…" />
-                  )}
+                  {ramOther && <input className={`${inp} mt-1`} value={form.it_ram_gb} onChange={e => set('it_ram_gb', e.target.value)} placeholder="Type RAM spec…" />}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Storage</label>
-                  <select className={inp} value={STORAGE_OPTIONS.includes(form.it_storage) ? form.it_storage : (form.it_storage ? '__other__' : '')}
-                    onChange={e => set('it_storage', e.target.value === '__other__' ? '' : e.target.value)}>
+                  <select className={inp} value={stoOther ? '__other__' : (STORAGE_OPTIONS.includes(form.it_storage) ? form.it_storage : '')}
+                    onChange={e => { if (e.target.value === '__other__') { setStoOther(true); set('it_storage', '') } else { setStoOther(false); set('it_storage', e.target.value) } }}>
                     <option value="">— Select Storage —</option>
                     {STORAGE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     <option value="__other__">Other (type below)</option>
                   </select>
-                  {!STORAGE_OPTIONS.includes(form.it_storage) && form.it_storage !== '' && (
-                    <input className={`${inp} mt-1`} value={form.it_storage} onChange={e => set('it_storage', e.target.value)} placeholder="Type storage spec…" />
-                  )}
+                  {stoOther && <input className={`${inp} mt-1`} value={form.it_storage} onChange={e => set('it_storage', e.target.value)} placeholder="Type storage spec…" />}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">IP Address</label>
