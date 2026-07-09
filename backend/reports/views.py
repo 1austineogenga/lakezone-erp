@@ -1,15 +1,18 @@
 from rest_framework import generics, permissions, filters
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     ForemanDailyReport, ForemanWeeklyReport,
     SurveyorDailyReport, SurveyorWeeklyReport,
     MachineDailyReport, MachineWeeklyReport,
+    SitePhoto,
 )
 from .serializers import (
     ForemanDailyReportSerializer, ForemanWeeklyReportSerializer,
     SurveyorDailyReportSerializer, SurveyorWeeklyReportSerializer,
     MachineDailyReportSerializer, MachineWeeklyReportSerializer,
+    SitePhotoSerializer,
 )
 
 # Roles allowed to write (create/edit) each report type
@@ -188,3 +191,39 @@ class MachineWeeklyDetail(BaseReportDetail):
     queryset = MachineWeeklyReport.objects.all()
     serializer_class = MachineWeeklyReportSerializer
     write_roles = MACHINE_WRITE
+
+
+class SitePhotoListCreate(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SitePhotoSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['project_id', 'category', 'date']
+    ordering_fields = ['date', 'created_at']
+    ordering = ['-date', '-created_at']
+
+    def get_queryset(self):
+        qs = SitePhoto.objects.all()
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        category = self.request.query_params.get('category')
+        if category:
+            qs = qs.filter(category=category)
+        return qs
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class SitePhotoDetail(generics.RetrieveDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SitePhotoSerializer
+    queryset = SitePhoto.objects.all()
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx

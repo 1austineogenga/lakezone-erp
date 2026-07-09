@@ -13,6 +13,7 @@ import {
   ArrowLeftIcon,
   DocumentTextIcon,
   ListBulletIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline'
 import { getProjectDashboard } from '../../api/projects'
 import ProjectDashboard from './ProjectDashboard'
@@ -29,6 +30,7 @@ import SurveyorDailyReportPage from './SurveyorDailyReportPage'
 import SurveyorWeeklyReportPage from './SurveyorWeeklyReportPage'
 import RFIPage from './RFIPage'
 import WBSPage from './WBSPage'
+import PhotoTimelinePage from './PhotoTimelinePage'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -44,6 +46,7 @@ const STATUS_LABELS = {
 const TABS = [
   { id: 'dashboard',  label: 'Dashboard',       Icon: Squares2X2Icon },
   { id: 'wbs',        label: 'WBS / Activities',Icon: ListBulletIcon },
+  { id: 'photos',     label: 'Photos',          Icon: PhotoIcon },
   { id: 'boq',        label: 'BOQ',             Icon: ClipboardDocumentListIcon },
   { id: 'budget',     label: 'Budget',          Icon: BanknotesIcon },
   { id: 'ipcs',       label: 'IPCs',            Icon: DocumentCheckIcon },
@@ -75,6 +78,7 @@ export default function ProjectPage() {
     switch (activeTab) {
       case 'dashboard': return <ProjectDashboard dashData={dashData} />
       case 'wbs':       return <WBSPage />
+      case 'photos':    return <PhotoTimelinePage projectName={project.name} />
       case 'boq':       return <BOQPage projectName={project.name} />
       case 'budget':    return <BudgetPage />
       case 'ipcs':      return <IPCPage />
