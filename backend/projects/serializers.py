@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
     IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress,
-    ProjectPhase, ProjectActivity, ActivityProgress,
+    ProjectPhase, ProjectActivity, ActivityProgress, VariationOrder,
 )
 
 
@@ -290,3 +290,19 @@ class ProjectPhaseSerializer(serializers.ModelSerializer):
 
     def get_completed_count(self, obj):
         return obj.activities.filter(status='completed').count()
+
+
+class VariationOrderSerializer(serializers.ModelSerializer):
+    approved_by_name = serializers.SerializerMethodField()
+    created_by_name  = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = VariationOrder
+        fields = '__all__'
+        read_only_fields = ['id', 'vo_number', 'created_by', 'created_at', 'updated_at']
+
+    def get_approved_by_name(self, obj):
+        return obj.approved_by.get_full_name() if obj.approved_by else None
+
+    def get_created_by_name(self, obj):
+        return obj.created_by.get_full_name() if obj.created_by else None

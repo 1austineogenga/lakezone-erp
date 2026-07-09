@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +10,7 @@ from django.utils import timezone
 from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
     IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress,
-    ProjectPhase, ProjectActivity, ActivityProgress,
+    ProjectPhase, ProjectActivity, ActivityProgress, VariationOrder,
 )
 from .serializers import (
     ProjectSerializer, ProjectDetailSerializer, BOQSerializer, BOQBillSerializer,
@@ -18,6 +18,7 @@ from .serializers import (
     IPCSerializer, IPCItemSerializer, ProjectRiskSerializer, ProjectVehicleSerializer,
     ProjectPersonnelSerializer, WeeklyProgressSerializer,
     ProjectPhaseSerializer, ProjectActivitySerializer, ActivityProgressSerializer,
+    VariationOrderSerializer,
 )
 from .services import BOQImportService, BudgetWorkbookImportService
 import openpyxl
@@ -950,4 +951,162 @@ class ProjectWBSSummaryView(APIView):
             'completed_activities': all_activities.filter(status='completed').count(),
             'in_progress_activities': all_activities.filter(status='in_progress').count(),
             'phases': phase_data,
+        })
+
+
+# ── Variation Orders ──────────────────────────────────────────────────────────
+class VariationOrderListCreate(generics.ListCreateAPIView):
+    serializer_class   = VariationOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return VariationOrder.objects.filter(project_id=self.kwargs['project_pk']).select_related('approved_by', 'created_by')
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project, created_by=self.request.user)
+
+
+class VariationOrderDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = VariationOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return VariationOrder.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+# ── EVM / Project Finance ─────────────────────────────────────────────────────
+class EVMView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, project_pk):
+        from django.db.models import Sum
+        from datetime import date
+
+        project = get_object_or_404(Project, pk=project_pk)
+        today   = date.today()
+
+        # ── Planned Value from approved budget ────────────────────────────────
+        approved_budget = project.budgets.filter(status='approved').first()
+        bac = 0.0
+        pv  = 0.0
+        by_category = {}
+
+        if approved_budget:
+            items = BudgetLineItem.objects.filter(budget=approved_budget)
+            bac   = float(items.aggregate(t=Sum('base_cost'))['t'] or 0)
+
+            # Current week relative to project start
+            current_week = 9999
+            if project.start_date:
+                days_elapsed = (today - project.start_date).days
+                current_week = max(1, (days_elapsed // 7) + 1)
+
+            pv = float(items.filter(week_no__lte=current_week).aggregate(t=Sum('base_cost'))['t'] or 0)
+
+            # By category planned
+            for row in items.values('category').annotate(planned=Sum('base_cost')):
+                by_category[row['category']] = {'planned': float(row['planned'] or 0), 'actual': 0}
+
+        # ── Actual Cost from WeeklyProgress ───────────────────────────────────
+        wp = WeeklyProgress.objects.filter(project=project).aggregate(
+            total      = Sum('total_actual'),
+            materials  = Sum('materials_actual'),
+            fuel       = Sum('fuel_actual'),
+            labour     = Sum('labour_actual'),
+            casuals    = Sum('casuals_actual'),
+        )
+        ac = float(wp['total'] or 0)
+
+        for key in ('materials', 'fuel', 'labour', 'casuals'):
+            if key in by_category:
+                by_category[key]['actual'] = float(wp[key] or 0)
+
+        # ── Earned Value from IPC certified amounts ───────────────────────────
+        ipc_agg = IPC.objects.filter(project=project).aggregate(
+            claimed   = Sum('amount_claimed'),
+            certified = Sum('amount_certified'),
+            paid      = Sum('amount_paid'),
+        )
+        ev              = float(ipc_agg['certified'] or 0)
+        revenue_claimed = float(ipc_agg['claimed']   or 0)
+        revenue_paid    = float(ipc_agg['paid']       or 0)
+
+        # ── Finance costs from finance module ─────────────────────────────────
+        try:
+            from finance.models import Bill, ExpenseClaim
+            bills_total    = float(Bill.objects.filter(project=project).aggregate(t=Sum('total_amount'))['t'] or 0)
+            expenses_total = float(ExpenseClaim.objects.filter(project=project, status='approved').aggregate(t=Sum('total_amount'))['t'] or 0)
+        except Exception:
+            bills_total    = 0.0
+            expenses_total = 0.0
+
+        # ── EVM metrics ───────────────────────────────────────────────────────
+        cpi  = round(ev / ac,  3) if ac  > 0 else None
+        spi  = round(ev / pv,  3) if pv  > 0 else None
+        cv   = round(ev - ac,  2)
+        sv   = round(ev - pv,  2)
+        eac  = round(bac / cpi,  2) if cpi and cpi > 0 else round(bac, 2)
+        vac  = round(bac - eac,  2)
+        tcpi_denom = bac - ac
+        tcpi = round((bac - ev) / tcpi_denom, 3) if tcpi_denom > 0 else None
+        pct_complete = round(ev / bac * 100, 1) if bac > 0 else 0.0
+
+        # ── Variation orders ──────────────────────────────────────────────────
+        vos        = project.variation_orders.all()
+        vo_total   = float(vos.aggregate(t=Sum('amount'))['t'] or 0)
+        vo_approved = float(vos.filter(status='approved').aggregate(t=Sum('amount'))['t'] or 0)
+        revised_cv  = float(project.contract_value or 0) + vo_approved
+
+        # ── Weekly actuals for S-curve ────────────────────────────────────────
+        weekly_actuals = list(
+            WeeklyProgress.objects.filter(project=project)
+            .order_by('week_no')
+            .values('week_no', 'total_actual', 'materials_actual', 'fuel_actual', 'labour_actual', 'casuals_actual')
+        )
+
+        return Response({
+            'project': {
+                'id':                    str(project.id),
+                'name':                  project.name,
+                'contract_value':        float(project.contract_value or 0),
+                'revised_contract_value': revised_cv,
+                'start_date':            str(project.start_date) if project.start_date else None,
+                'end_date':              str(project.end_date)   if project.end_date   else None,
+                'status':                project.status,
+            },
+            'evm': {
+                'bac':          bac,
+                'pv':           pv,
+                'ev':           ev,
+                'ac':           ac,
+                'cv':           cv,
+                'sv':           sv,
+                'cpi':          cpi,
+                'spi':          spi,
+                'eac':          eac,
+                'vac':          vac,
+                'tcpi':         tcpi,
+                'pct_complete': pct_complete,
+            },
+            'revenue': {
+                'contract_value': float(project.contract_value or 0),
+                'claimed':   revenue_claimed,
+                'certified': ev,
+                'paid':      revenue_paid,
+                'ipc_count': IPC.objects.filter(project=project).count(),
+            },
+            'costs': {
+                'bac':             bac,
+                'ac_weekly':       ac,
+                'bills_total':     bills_total,
+                'expenses_total':  expenses_total,
+                'by_category':     by_category,
+            },
+            'variation_orders': {
+                'count':           vos.count(),
+                'total_amount':    vo_total,
+                'approved_amount': vo_approved,
+            },
+            'weekly_actuals': weekly_actuals,
         })

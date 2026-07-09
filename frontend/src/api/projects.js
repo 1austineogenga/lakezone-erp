@@ -50,3 +50,10 @@ export const getCosting = (projectId) => api.get(`/projects/${projectId}/costing
 
 // Alias — ProjectDetailPage imports getProjectBOQ (singular)
 export const getProjectBOQ = getProjectBOQs
+
+// EVM & Finance
+export const getEVM              = (projectId)      => api.get(`/projects/${projectId}/evm/`)
+export const getVariationOrders  = (projectId)      => api.get(`/projects/${projectId}/variation-orders/`)
+export const createVariationOrder = (projectId, d)  => api.post(`/projects/${projectId}/variation-orders/`, d)
+export const updateVariationOrder = (projectId, id, d) => api.patch(`/projects/${projectId}/variation-orders/${id}/`, d)
+export const deleteVariationOrder = (projectId, id) => api.delete(`/projects/${projectId}/variation-orders/${id}/`)
