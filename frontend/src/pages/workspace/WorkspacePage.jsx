@@ -28,7 +28,7 @@ const cancelLeave      = (id)   => api.post(`/hr/leave-applications/${id}/cancel
 const getMyAdvances    = (emp)  => api.get('/hr/advances/', { params: { employee: emp, page_size: 50 } })
 const createAdvance    = (d)    => api.post('/hr/advances/', d)
 const getMyPayslips    = (emp)  => api.get('/hr/payroll/entries/', { params: { employee: emp, page_size: 50 } })
-// Requisitions removed from workspace — use /requisitions for the full module
+const getMyReqs        = ()     => api.get('/requisitions/', { params: { page_size: 200 } })
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'
 
@@ -76,6 +76,7 @@ const TABS = [
   { id: 'advance',       label: 'Salary Advance',  icon: CurrencyDollarIcon },
   { id: 'payslips',      label: 'Payslips',        icon: DocumentTextIcon },
   { id: 'storerequests', label: 'Store Requests',  icon: ArchiveBoxArrowDownIcon },
+  { id: 'requisitions',  label: 'Requisitions',    icon: ClipboardDocumentListIcon },
 ]
 
 // ── Print payslip ─────────────────────────────────────────────────────────────
@@ -1197,6 +1198,7 @@ export default function WorkspacePage() {
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
       {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
+      {tab === 'requisitions'  && <RequisitionsTab />}
 
       {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
