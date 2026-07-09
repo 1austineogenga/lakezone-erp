@@ -25,7 +25,8 @@ import usePermissions from '../../hooks/usePermissions'
 const NAV = (role, isAdmin) => [
   { type: 'link', to: '/',           icon: HomeIcon,                   label: 'Dashboard',        end: true,  module: null },
   { type: 'link', to: '/workspace',  icon: BriefcaseIcon,              label: 'My Workspace',     end: true,  module: null },
-  { type: 'link', to: '/projects',   icon: FolderIcon,                 label: 'Projects',                     module: 'projects' },
+  { type: 'link', to: '/projects',   icon: FolderIcon,                 label: 'Projects',         module: 'projects' },
+  { type: 'link', to: '/reports',    icon: DocumentChartBarIcon,       label: 'Site Reporting',   module: 'reports' },
 
   {
     type: 'dropdown', key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon,
@@ -92,11 +93,10 @@ const NAV = (role, isAdmin) => [
     ],
   },
 
+  { type: 'link', to: '/deployment', icon: ClipboardDocumentCheckIcon, label: 'Deployment',       module: null },
   { type: 'link', to: '/inventory',  icon: CubeIcon,                   label: 'Inventory',        module: 'inventory' },
   { type: 'link', to: '/assets',     icon: BuildingOfficeIcon,         label: 'Assets',           module: 'assets' },
   { type: 'link', to: '/crm',        icon: UserGroupIcon,              label: 'CRM',              module: 'crm' },
-  { type: 'link', to: '/reports',    icon: DocumentChartBarIcon,       label: 'Site Reporting',   module: 'reports' },
-  { type: 'link', to: '/deployment', icon: ClipboardDocumentCheckIcon, label: 'Deployment',       module: null },
   { type: 'link', to: '/hse',        icon: ShieldExclamationIcon,      label: 'HSE',              module: null },
   { type: 'link', to: '/quality',    icon: ClipboardDocumentCheckIcon, label: 'Quality Control',  module: null },
   { type: 'link', to: '/documents',  icon: DocumentDuplicateIcon,      label: 'Documents',        module: null },
