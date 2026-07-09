@@ -228,7 +228,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
 
         {!collapsed && (
-          <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
             Operations
           </p>
         )}
@@ -251,7 +251,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
           <>
             {!collapsed && (
               <div className="pt-4 pb-2">
-                <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                <p className="px-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   Management
                 </p>
               </div>
@@ -289,7 +289,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
                       }).map((section, si) => (
                         <div key={si}>
                           {section.heading && (
-                            <p className="px-2 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-widest text-slate-600">
+                            <p className="px-2 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest text-slate-600">
                               {section.heading}
                             </p>
                           )}
