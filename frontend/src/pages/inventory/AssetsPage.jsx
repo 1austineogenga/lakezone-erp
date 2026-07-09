@@ -1064,6 +1064,7 @@ export default function AssetsPage() {
   const handleStatus = (v) => { setFilterStatus(v); setPage(1) }
   const handleDept = (v) => { setSelectedDept(v); setPage(1) }
 
+  const showPlateCol = ['vehicles', 'trucks_tracks', 'machinery'].includes(filterCategory)
   const showCertCols = ['vehicles', 'trucks_tracks'].includes(filterCategory)
 
   const expiringCerts = assets.filter(a => {
@@ -1175,7 +1176,7 @@ export default function AssetsPage() {
             <thead className="bg-gray-50">
               <tr>
                 {['Code', 'Name',
-                  ...(showCertCols ? ['Plate'] : []),
+                  ...(showPlateCol ? ['Plate'] : []),
                   'Category', 'Dept', 'Status',
                   ...(showCertCols ? ['Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry'] : []),
                   'Actions'].map(h => (
@@ -1191,7 +1192,7 @@ export default function AssetsPage() {
                   <tr key={asset.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 font-mono text-gray-600">{asset.asset_code}</td>
                     <td className="px-3 py-2.5 font-medium text-gray-800">{asset.name}</td>
-                    {showCertCols && <td className="px-3 py-2.5 font-mono text-gray-600">{asset.registration_plate || '—'}</td>}
+                    {showPlateCol && <td className="px-3 py-2.5 font-mono text-gray-600">{asset.registration_plate || '—'}</td>}
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span></td>
                     <td className="px-3 py-2.5 text-gray-600">{asset.department}</td>
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-600'}`}>{st?.label ?? asset.status}</span></td>
