@@ -47,8 +47,11 @@ class RequisitionListCreateView(generics.ListCreateAPIView):
         return StaffRequisitionListSerializer
 
     def get_queryset(self):
-        qs = _req_queryset(self.request.user)
         params = self.request.query_params
+        if params.get('mine') == 'true':
+            qs = StaffRequisition.objects.filter(requested_by=self.request.user)
+        else:
+            qs = _req_queryset(self.request.user)
         if params.get('status'):
             qs = qs.filter(status=params['status'])
         if params.get('req_type'):
