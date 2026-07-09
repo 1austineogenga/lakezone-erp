@@ -86,7 +86,34 @@ const CERT_STATUS_OPTIONS = [
 
 const CONDITION_OPTIONS = ['new', 'good', 'fair', 'poor', 'condemned']
 
-// Department → allowed categories + default. Checks exact word OR substring match.
+// ── IT Equipment lookup data ────────────────────────────────────────────────
+const IT_DEVICE_TYPES = [
+  { label: 'Laptop', models: ['Dell Latitude 7440', 'Dell Latitude 5540', 'Dell Inspiron 15', 'HP EliteBook 840 G10', 'HP ProBook 450 G10', 'HP Pavilion 15', 'Lenovo ThinkPad X1 Carbon', 'Lenovo ThinkPad T14', 'Lenovo IdeaPad 3', 'Apple MacBook Pro 14"', 'Apple MacBook Air M2', 'Acer Aspire 5', 'Asus VivoBook 15'] },
+  { label: 'Desktop', models: ['Dell OptiPlex 7010', 'Dell OptiPlex 3000', 'HP EliteDesk 800 G9', 'HP ProDesk 400 G9', 'Lenovo ThinkCentre M70q', 'Apple Mac Mini M2', 'Acer Veriton M6690G'] },
+  { label: 'Server', models: ['Dell PowerEdge R750', 'Dell PowerEdge R450', 'HP ProLiant DL380 Gen10', 'HP ProLiant DL360 Gen10', 'Lenovo ThinkSystem SR650'] },
+  { label: 'Monitor', models: ['Dell P2422H 24"', 'Dell U2722D 27"', 'HP V24i 24"', 'LG 24MP400 24"', 'Samsung 27" F27T450', 'ViewSonic VA2715-H 27"'] },
+  { label: 'Printer', models: ['HP LaserJet Pro M404dn', 'HP LaserJet Pro MFP M428fdw', 'Canon imageCLASS MF445dw', 'Epson EcoTank L3250', 'Brother DCP-L2550DW', 'Xerox B215 MFP'] },
+  { label: 'Network Switch', models: ['Cisco Catalyst 2960-X', 'Cisco SG350-28', 'HP Aruba 1930 24G', 'Netgear GS308E', 'TP-Link TL-SG1024D'] },
+  { label: 'Router / Firewall', models: ['Cisco RV340', 'Fortinet FortiGate 60F', 'MikroTik RB4011', 'Ubiquiti EdgeRouter X', 'TP-Link ER7206'] },
+  { label: 'UPS', models: ['APC Smart-UPS 1500VA', 'APC Back-UPS 600VA', 'Eaton 5SC 1500VA', 'CyberPower CP1500AVRLCD', 'Mecer ME-3000-WTS-U'] },
+  { label: 'Projector', models: ['Epson EB-X51', 'BenQ MX550', 'ViewSonic PA503S', 'Optoma X400LVe'] },
+  { label: 'Scanner', models: ['Fujitsu ScanSnap iX1600', 'HP ScanJet Pro 2000 s2', 'Canon CanoScan LIDE 300', 'Epson DS-530'] },
+  { label: 'External Storage', models: ['Seagate Backup Plus 2TB', 'WD My Passport 1TB', 'Samsung T7 Portable SSD 1TB', 'SanDisk Extreme Pro 2TB'] },
+  { label: 'CCTV Camera', models: ['Hikvision DS-2CD2143G2-I', 'Dahua IPC-HDW2849H', 'Axis P3245-V', 'Hanwha QNV-8080R'] },
+  { label: 'Access Control', models: ['ZKTeco F22', 'Suprema BioStation 2', 'HID Signo 20', 'Anviz EP30'] },
+  { label: 'Telephone / VOIP', models: ['Cisco IP Phone 8841', 'Yealink T46U', 'Grandstream GRP2612', 'Polycom VVX 350'] },
+  { label: 'Other IT', models: [] },
+]
+
+const OS_OPTIONS = ['Windows 11 Pro', 'Windows 11 Home', 'Windows 10 Pro', 'Windows 10 Home', 'Windows Server 2022', 'Windows Server 2019', 'Ubuntu 24.04 LTS', 'Ubuntu 22.04 LTS', 'Debian 12', 'CentOS Stream 9', 'Red Hat Enterprise Linux 9', 'macOS Sonoma', 'macOS Ventura', 'Android', 'Chrome OS', 'No OS / N/A']
+
+const CPU_OPTIONS = ['Intel Core i3-1215U', 'Intel Core i5-1235U', 'Intel Core i5-1345U', 'Intel Core i7-1255U', 'Intel Core i7-1355U', 'Intel Core i7-13700H', 'Intel Core i9-13900H', 'Intel Core i5-12400', 'Intel Core i7-12700', 'Intel Core i9-12900K', 'Intel Xeon Silver 4314', 'Intel Xeon Gold 6338', 'AMD Ryzen 5 5600U', 'AMD Ryzen 7 5800U', 'AMD Ryzen 5 7530U', 'AMD Ryzen 7 7730U', 'Apple M1', 'Apple M2', 'Apple M2 Pro', 'N/A']
+
+const RAM_OPTIONS = ['4GB DDR4', '8GB DDR4', '16GB DDR4', '32GB DDR4', '64GB DDR4', '128GB DDR4', '8GB DDR5', '16GB DDR5', '32GB DDR5', '64GB DDR5', '8GB LPDDR5', '16GB LPDDR5', '32GB LPDDR5']
+
+const STORAGE_OPTIONS = ['128GB SSD', '256GB SSD', '512GB SSD', '1TB SSD', '2TB SSD', '500GB HDD', '1TB HDD', '2TB HDD', '4TB HDD', '256GB NVMe SSD', '512GB NVMe SSD', '1TB NVMe SSD', '2TB NVMe SSD', 'N/A']
+
+// ── Department → allowed categories + default. Checks exact word OR substring match.
 const DEPT_CATEGORY_MAP = [
   {
     match: ['transport', 'logistics', 'fleet'],
@@ -256,6 +283,22 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
     it_license_expiry: asset.it_license_expiry || '',
   } : { ...EMPTY, category: defaultCategory })
 
+  // Derived IT lookups
+  const deviceType = IT_DEVICE_TYPES.find(d => d.label === form.name)
+  const modelOptions = deviceType?.models || []
+
+  // Location options: branches + project sites
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => api.get('/auth/branches/'),
+    select: r => r.data,
+  })
+  const { data: projectLocs = [] } = useQuery({
+    queryKey: ['project-locations'],
+    queryFn: () => api.get('/projects/', { params: { page_size: 200 } }),
+    select: r => [...new Set((r.data?.results ?? r.data ?? []).map(p => p.location).filter(Boolean))],
+  })
+
   const qc = useQueryClient()
   const mut = useMutation({
     mutationFn: isEdit ? d => updateAsset(asset.id, d) : createAsset,
@@ -310,9 +353,19 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
           <div>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Basic Information</h3>
             <div className="grid grid-cols-2 gap-3">
+              {/* Name — device type dropdown for IT, free-text for others */}
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-                <input required className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. CAT Excavator, Toyota Hilux KDW 277S" />
+                <label className="block text-xs font-medium text-gray-600 mb-1">Name / Device Type *</label>
+                {isIT ? (
+                  <select required className={inp} value={form.name}
+                    onChange={e => { set('name', e.target.value); set('make_model', '') }}>
+                    <option value="">— Select device type —</option>
+                    {IT_DEVICE_TYPES.map(d => <option key={d.label} value={d.label}>{d.label}</option>)}
+                  </select>
+                ) : (
+                  <input required className={inp} value={form.name} onChange={e => set('name', e.target.value)}
+                    placeholder="e.g. CAT Excavator, Toyota Hilux KDW 277S" />
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
@@ -322,7 +375,20 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Make / Model</label>
-                <input className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)} placeholder="e.g. CAT 320D, Toyota Hilux 2.8" />
+                {isIT && modelOptions.length > 0 ? (
+                  <select className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)}>
+                    <option value="">— Select model —</option>
+                    {modelOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                    <option value="__other__">Other (type below)</option>
+                  </select>
+                ) : (
+                  <input className={inp} value={form.make_model} onChange={e => set('make_model', e.target.value)}
+                    placeholder="e.g. CAT 320D, Toyota Hilux 2.8" />
+                )}
+                {isIT && form.make_model === '__other__' && (
+                  <input className={`${inp} mt-1`} placeholder="Type model name…"
+                    onChange={e => set('make_model', e.target.value)} />
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
@@ -330,7 +396,20 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Location / Site</label>
-                <input className={inp} value={form.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Njambini Site, Head Office" />
+                <select className={inp} value={form.location} onChange={e => set('location', e.target.value)}>
+                  <option value="">— Select location —</option>
+                  {branches.length > 0 && (
+                    <optgroup label="Offices / Branches">
+                      {branches.map(b => <option key={b.id} value={b.name}>{b.name}{b.location ? ` (${b.location})` : ''}</option>)}
+                    </optgroup>
+                  )}
+                  {projectLocs.length > 0 && (
+                    <optgroup label="Project Sites">
+                      {projectLocs.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                    </optgroup>
+                  )}
+                  <option value="Head Office">Head Office</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
@@ -516,19 +595,51 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Operating System</label>
-                  <input className={inp} value={form.it_os} onChange={e => set('it_os', e.target.value)} placeholder="e.g. Windows 11, Ubuntu 22.04" />
+                  <select className={inp} value={OS_OPTIONS.includes(form.it_os) ? form.it_os : (form.it_os ? '__other__' : '')}
+                    onChange={e => set('it_os', e.target.value === '__other__' ? '' : e.target.value)}>
+                    <option value="">— Select OS —</option>
+                    {OS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    <option value="__other__">Other (type below)</option>
+                  </select>
+                  {!OS_OPTIONS.includes(form.it_os) && (
+                    <input className={`${inp} mt-1`} value={form.it_os} onChange={e => set('it_os', e.target.value)} placeholder="Type OS name…" />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Processor / CPU</label>
-                  <input className={inp} value={form.it_processor} onChange={e => set('it_processor', e.target.value)} placeholder="e.g. Intel Core i7-12700" />
+                  <select className={inp} value={CPU_OPTIONS.includes(form.it_processor) ? form.it_processor : (form.it_processor ? '__other__' : '')}
+                    onChange={e => set('it_processor', e.target.value === '__other__' ? '' : e.target.value)}>
+                    <option value="">— Select CPU —</option>
+                    {CPU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    <option value="__other__">Other (type below)</option>
+                  </select>
+                  {!CPU_OPTIONS.includes(form.it_processor) && form.it_processor !== '' && (
+                    <input className={`${inp} mt-1`} value={form.it_processor} onChange={e => set('it_processor', e.target.value)} placeholder="Type CPU name…" />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">RAM</label>
-                  <input className={inp} value={form.it_ram_gb} onChange={e => set('it_ram_gb', e.target.value)} placeholder="e.g. 16GB DDR4" />
+                  <select className={inp} value={RAM_OPTIONS.includes(form.it_ram_gb) ? form.it_ram_gb : (form.it_ram_gb ? '__other__' : '')}
+                    onChange={e => set('it_ram_gb', e.target.value === '__other__' ? '' : e.target.value)}>
+                    <option value="">— Select RAM —</option>
+                    {RAM_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    <option value="__other__">Other (type below)</option>
+                  </select>
+                  {!RAM_OPTIONS.includes(form.it_ram_gb) && form.it_ram_gb !== '' && (
+                    <input className={`${inp} mt-1`} value={form.it_ram_gb} onChange={e => set('it_ram_gb', e.target.value)} placeholder="Type RAM spec…" />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Storage</label>
-                  <input className={inp} value={form.it_storage} onChange={e => set('it_storage', e.target.value)} placeholder="e.g. 512GB SSD" />
+                  <select className={inp} value={STORAGE_OPTIONS.includes(form.it_storage) ? form.it_storage : (form.it_storage ? '__other__' : '')}
+                    onChange={e => set('it_storage', e.target.value === '__other__' ? '' : e.target.value)}>
+                    <option value="">— Select Storage —</option>
+                    {STORAGE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    <option value="__other__">Other (type below)</option>
+                  </select>
+                  {!STORAGE_OPTIONS.includes(form.it_storage) && form.it_storage !== '' && (
+                    <input className={`${inp} mt-1`} value={form.it_storage} onChange={e => set('it_storage', e.target.value)} placeholder="Type storage spec…" />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">IP Address</label>
