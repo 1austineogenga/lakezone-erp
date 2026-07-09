@@ -4,12 +4,12 @@ export default {
   theme: {
     extend: {
       fontSize: {
-        xs:   ['0.6875rem', { lineHeight: '1rem' }],       // ~11px
-        sm:   ['0.75rem',   { lineHeight: '1.125rem' }],   // 12px
-        base: ['0.8125rem', { lineHeight: '1.25rem' }],    // 13px
-        lg:   ['0.9375rem', { lineHeight: '1.375rem' }],   // 15px
-        xl:   ['1.0625rem', { lineHeight: '1.5rem' }],     // 17px
-        '2xl':['1.25rem',   { lineHeight: '1.75rem' }],    // 20px
+        xs:   ['0.75rem',   { lineHeight: '1.125rem' }],   // 12px
+        sm:   ['0.8125rem', { lineHeight: '1.25rem' }],    // 13px
+        base: ['0.875rem',  { lineHeight: '1.375rem' }],   // 14px
+        lg:   ['1rem',      { lineHeight: '1.5rem' }],     // 16px
+        xl:   ['1.125rem',  { lineHeight: '1.625rem' }],   // 18px
+        '2xl':['1.375rem',  { lineHeight: '1.875rem' }],   // 22px
       },
       colors: {
         brand: {
