@@ -240,6 +240,21 @@ function DashboardTab() {
   )
 }
 
+// Map employee position title → labour role choice
+function guessRole(positionTitle = '') {
+  const t = positionTitle.toLowerCase()
+  if (t.includes('engineer'))       return 'engineer'
+  if (t.includes('foreman'))        return 'foreman'
+  if (t.includes('supervisor'))     return 'supervisor'
+  if (t.includes('artisan') || t.includes('technician') || t.includes('mechanic') || t.includes('welder') || t.includes('electrician') || t.includes('plumber')) return 'artisan'
+  if (t.includes('operator'))       return 'operator'
+  if (t.includes('driver'))         return 'driver'
+  if (t.includes('survey'))         return 'surveyor'
+  if (t.includes('safety') || t.includes('hse')) return 'safety_officer'
+  if (t.includes('labour') || t.includes('helper') || t.includes('general')) return 'labourer'
+  return 'labourer'
+}
+
 // ── Labour Modal ──────────────────────────────────────────────────────────────
 function LabourModal({ initial, employees, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -250,12 +265,23 @@ function LabourModal({ initial, employees, onClose, onSave }) {
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const handleEmployeeChange = (empId) => {
+    if (!empId) { set('employee', ''); return }
+    const emp = employees.find(x => String(x.id) === empId)
+    if (!emp) { set('employee', empId); return }
+    setForm(f => ({
+      ...f,
+      employee: empId,
+      role: guessRole(emp.position?.title || ''),
+    }))
+  }
+
   return (
     <Modal title={initial ? 'Edit Labour Deployment' : 'Deploy Labour'} onClose={onClose}>
       <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
         <Field label="Project *"><ProjectSelect value={form.project_id || ''} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></Field>
         <Field label="Employee *">
-          <select required className={inp} value={form.employee} onChange={e => set('employee', e.target.value)}>
+          <select required className={inp} value={form.employee} onChange={e => handleEmployeeChange(e.target.value)}>
             <option value="">— Select Employee —</option>
             {employees.map(e => (
               <option key={e.id} value={e.id}>{e.employee_number} — {e.first_name} {e.last_name}{e.position?.title ? ` (${e.position.title})` : ''}</option>
@@ -387,6 +413,22 @@ function LabourTab() {
   )
 }
 
+// Map fleet vehicle_type string → equipment_type choice value
+function guessEquipmentType(vehicleType = '') {
+  const t = vehicleType.toLowerCase()
+  if (t.includes('excavat'))      return 'excavator'
+  if (t.includes('grad'))         return 'grader'
+  if (t.includes('roller') || t.includes('compact')) return 'roller'
+  if (t.includes('tipper') || t.includes('dump'))    return 'tipper'
+  if (t.includes('mixer') || t.includes('concrete')) return 'concrete_mixer'
+  if (t.includes('crane'))        return 'crane'
+  if (t.includes('bull') || t.includes('dozer'))     return 'bulldozer'
+  if (t.includes('water') || t.includes('bowser'))   return 'water_bowser'
+  if (t.includes('gen'))          return 'generator'
+  if (t.includes('vehicle') || t.includes('pickup') || t.includes('truck') || t.includes('van')) return 'vehicle'
+  return 'other'
+}
+
 // ── Equipment Modal ───────────────────────────────────────────────────────────
 function EquipmentModal({ initial, vehicles, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -398,15 +440,27 @@ function EquipmentModal({ initial, vehicles, onClose, onSave }) {
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const handleVehicleChange = (vehicleId) => {
+    if (!vehicleId) { set('vehicle', null); return }
+    const v = vehicles.find(x => String(x.id) === vehicleId)
+    if (!v) { set('vehicle', vehicleId); return }
+    setForm(f => ({
+      ...f,
+      vehicle: vehicleId,
+      equipment_id_ref: v.vehicle_no || f.equipment_id_ref,
+      equipment_type: guessEquipmentType(v.vehicle_type),
+    }))
+  }
+
   return (
     <Modal title={initial ? 'Edit Equipment Deployment' : 'Deploy Equipment'} onClose={onClose}>
       <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
         <Field label="Project *"><ProjectSelect value={form.project_id || ''} onChange={(name, id) => setForm(f => ({ ...f, project_name: name, project_id: id }))} /></Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Fleet Vehicle">
-            <select className={inp} value={form.vehicle || ''} onChange={e => set('vehicle', e.target.value || null)}>
+            <select className={inp} value={form.vehicle || ''} onChange={e => handleVehicleChange(e.target.value)}>
               <option value="">— Select Vehicle —</option>
-              {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicle_no} {v.vehicle_name ? `— ${v.vehicle_name}` : ''}</option>)}
+              {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicle_no}{v.vehicle_name ? ` — ${v.vehicle_name}` : ''}{v.vehicle_type ? ` (${v.vehicle_type})` : ''}</option>)}
             </select>
           </Field>
           <Field label="Equipment Type">
@@ -415,7 +469,9 @@ function EquipmentModal({ initial, vehicles, onClose, onSave }) {
             </select>
           </Field>
         </div>
-        <Field label="Equipment ID / Reg No (if not in fleet)"><input className={inp} placeholder="e.g. KCA 123A" value={form.equipment_id_ref} onChange={e => set('equipment_id_ref', e.target.value)} /></Field>
+        <Field label="Equipment ID / Reg No">
+          <input className={inp} placeholder="Auto-filled from Fleet Vehicle, or enter manually" value={form.equipment_id_ref} onChange={e => set('equipment_id_ref', e.target.value)} />
+        </Field>
         <Field label="Activity / Task"><input className={inp} placeholder="e.g. Excavation — Section B" value={form.activity} onChange={e => set('activity', e.target.value)} /></Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Date *"><input required type="date" className={inp} value={form.date} onChange={e => set('date', e.target.value)} /></Field>
