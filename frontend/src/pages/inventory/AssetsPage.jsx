@@ -1064,6 +1064,8 @@ export default function AssetsPage() {
   const handleStatus = (v) => { setFilterStatus(v); setPage(1) }
   const handleDept = (v) => { setSelectedDept(v); setPage(1) }
 
+  const showCertCols = ['vehicles', 'trucks_tracks'].includes(filterCategory)
+
   const expiringCerts = assets.filter(a => {
     const soon = d => { if (!d) return false; const days = Math.ceil((new Date(d) - new Date()) / 86400000); return days >= 0 && days <= 30 }
     return soon(a.insurance_expiry) || soon(a.inspection_cert_expiry) || soon(a.speed_governor_cert_expiry)
@@ -1172,7 +1174,9 @@ export default function AssetsPage() {
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
-                {['Code', 'Name', 'Plate', 'Category', 'Dept', 'Status', 'Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry', 'Actions'].map(h => (
+                {['Code', 'Name', 'Plate', 'Category', 'Dept', 'Status',
+                  ...(showCertCols ? ['Insurance Expiry', 'Inspection Expiry', 'Gov. Cert Expiry'] : []),
+                  'Actions'].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -1189,9 +1193,11 @@ export default function AssetsPage() {
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cat?.color ?? 'bg-gray-100 text-gray-600'}`}>{cat?.label ?? asset.category}</span></td>
                     <td className="px-3 py-2.5 text-gray-600">{asset.department}</td>
                     <td className="px-3 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st?.color ?? 'bg-gray-100 text-gray-600'}`}>{st?.label ?? asset.status}</span></td>
-                    <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-600">—</span>}</td>
-                    <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
-                    <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
+                    {showCertCols && <>
+                      <td className="px-3 py-2.5">{asset.insurance_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.insurance_expiry, null)}`}>{asset.insurance_expiry}</span> : <span className="text-gray-600">—</span>}</td>
+                      <td className="px-3 py-2.5">{asset.inspection_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.inspection_cert_expiry, asset.inspection_cert_status)}`}>{asset.inspection_cert_expiry}</span> : asset.inspection_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.inspection_cert_status)}`}>{asset.inspection_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
+                      <td className="px-3 py-2.5">{asset.speed_governor_cert_expiry ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(asset.speed_governor_cert_expiry, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_expiry}</span> : asset.speed_governor_cert_status ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${certBadge(null, asset.speed_governor_cert_status)}`}>{asset.speed_governor_cert_status.replace('_', ' ')}</span> : <span className="text-gray-600">—</span>}</td>
+                    </>}
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <button onClick={() => navigate(`/assets/${asset.id}`)} className="text-xs text-blue-600 hover:underline font-medium">View</button>
