@@ -61,47 +61,14 @@ const MODULES = [
   },
   {
     key: 'finance', label: 'Finance', icon: BanknotesIcon, root: '/finance',
-    sections: (role) => [
-      { heading: null, links: [{ to: '/finance', label: 'Dashboard', icon: ChartBarIcon, end: true }] },
-      {
-        heading: 'Transactions',
-        links: [
-          { to: '/finance/invoices',          label: 'Invoices (AR)',      icon: DocumentTextIcon },
-          { to: '/finance/bills',             label: 'Bills (AP)',         icon: CreditCardIcon },
-          { to: '/finance/expenses',          label: 'Expenses',           icon: ReceiptPercentIcon },
-          { to: '/finance/certificates',      label: 'IPC / Certs',        icon: DocumentCheckIcon },
-          { to: '/finance/payments',          label: 'Payments',           icon: BanknotesIcon },
-          { to: '/finance/bank-transactions', label: 'Bank Transactions',  icon: ArrowsRightLeftIcon },
-          { to: '/finance/credit-notes',      label: 'Credit Notes',       icon: DocumentCheckIcon },
-        ],
-      },
-      {
-        heading: 'Reporting',
-        links: [
-          { to: '/finance/balance-sheet',    label: 'Balance Sheet',    icon: TableCellsIcon },
-          { to: '/finance/income-statement', label: 'Income Statement', icon: PresentationChartLineIcon },
-          { to: '/finance/cash-flow',        label: 'Cash Flow',        icon: ArrowTrendingUpIcon },
-          { to: '/finance/profitability',    label: 'Profitability',    icon: BanknotesIcon },
-          { to: '/finance/budget',           label: 'Budget vs Actual', icon: CalculatorIcon },
-          { to: '/finance/aged',             label: 'Aged Report',      icon: ClockIcon },
-        ],
-      },
-      {
-        heading: 'Compliance',
-        links: [
-          { to: '/finance/tax',       label: 'Tax & VAT', icon: ScaleIcon },
-          { to: '/finance/retention', label: 'Retention', icon: LockClosedIcon },
-          { to: '/finance/bonds',     label: 'Bonds',     icon: ShieldCheckIcon },
-        ],
-      },
-      {
-        heading: 'Accounting',
-        links: [
-          { to: '/finance/timesheets', label: 'Payroll / Time', icon: ClipboardDocumentListIcon },
-          { to: '/finance/gl',         label: 'GL Journal',     icon: BookOpenIcon },
-          ...(QB_ROLES.has(role) ? [{ to: '/finance/quickbooks', label: 'QuickBooks', icon: ArrowsRightLeftIcon }] : []),
-        ],
-      },
+    sections: () => [
+      { heading: null, links: [
+        { to: '/finance',                    label: 'Overview',      icon: ChartBarIcon,           end: true },
+        { to: '/finance/invoices',           label: 'Transactions',  icon: DocumentTextIcon },
+        { to: '/finance/certificates',       label: 'Contracts',     icon: DocumentCheckIcon },
+        { to: '/finance/income-statement',   label: 'Reports',       icon: PresentationChartLineIcon },
+        { to: '/finance/gl',                 label: 'Accounting',    icon: BookOpenIcon },
+      ]},
     ],
   },
   {
