@@ -51,8 +51,31 @@ const NAV = (role, isAdmin) => [
     ],
   },
 
-  { type: 'link', to: '/hr',    icon: UsersIcon,  label: 'HR',    module: 'hr' },
-  { type: 'link', to: '/fleet', icon: TruckIcon,  label: 'Fleet', module: 'fleet' },
+  {
+    type: 'dropdown', key: 'hr', label: 'HR', icon: UsersIcon,
+    root: '/hr', module: 'hr',
+    links: [
+      { to: '/hr',                  label: 'Dashboard',    icon: ChartBarIcon,          end: true },
+      { to: '/hr/employees',        label: 'Employees',    icon: UsersIcon },
+      { to: '/hr/attendance',       label: 'Attendance',   icon: ClockIcon },
+      { to: '/hr/leave',            label: 'Leave',        icon: CalendarDaysIcon },
+      { to: '/hr/payroll',          label: 'Payroll',      icon: BanknotesIcon },
+      { to: '/hr/disciplinary',     label: 'Disciplinary', icon: ShieldExclamationIcon },
+    ],
+  },
+
+  {
+    type: 'dropdown', key: 'fleet', label: 'Fleet', icon: TruckIcon,
+    root: '/fleet', module: 'fleet',
+    links: [
+      { to: '/fleet',               label: 'Dashboard',   icon: ChartBarIcon,          end: true },
+      { to: '/fleet/vehicles',      label: 'Vehicles',    icon: TruckIcon },
+      { to: '/fleet/maintenance',   label: 'Maintenance', icon: WrenchScrewdriverIcon },
+      { to: '/fleet/fuel',          label: 'Fuel Report', icon: BeakerIcon },
+      { to: '/fleet/trips',         label: 'Trip Report', icon: ArrowTrendingUpIcon },
+      { to: '/fleet/alerts',        label: 'Alerts',      icon: ExclamationTriangleIcon },
+    ],
+  },
 
   { type: 'link', to: '/deployment', icon: ClipboardDocumentCheckIcon, label: 'Deployment',       module: null },
   { type: 'link', to: '/inventory',  icon: CubeIcon,                   label: 'Inventory',        module: 'inventory' },
