@@ -316,6 +316,18 @@ class Asset(models.Model):
     speed_governor_cert_expiry = models.DateField(null=True, blank=True)
     speed_governor_issuing_authority = models.CharField(max_length=200, blank=True)
 
+    # IT / Office equipment fields
+    it_os = models.CharField(max_length=100, blank=True, help_text="e.g. Windows 11, Ubuntu 22.04")
+    it_processor = models.CharField(max_length=100, blank=True, help_text="e.g. Intel Core i7-12700")
+    it_ram_gb = models.CharField(max_length=20, blank=True, help_text="e.g. 16GB DDR4")
+    it_storage = models.CharField(max_length=100, blank=True, help_text="e.g. 512GB SSD")
+    it_ip_address = models.CharField(max_length=50, blank=True, help_text="e.g. 192.168.1.100")
+    it_mac_address = models.CharField(max_length=50, blank=True)
+    it_warranty_expiry = models.DateField(null=True, blank=True)
+    it_supplier = models.CharField(max_length=200, blank=True)
+    it_license_key = models.CharField(max_length=255, blank=True)
+    it_license_expiry = models.DateField(null=True, blank=True)
+
     # Defects & requirements tracking
     current_defects = models.TextField(blank=True)
     requirements = models.TextField(blank=True)
