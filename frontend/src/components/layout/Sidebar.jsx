@@ -28,6 +28,7 @@ const TOP_LINKS = [
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
   { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
+  { to: '/deployment',   icon: ClipboardDocumentCheckIcon,   label: 'Deployment',      module: null },
   { to: '/hse',          icon: ShieldExclamationIcon,        label: 'HSE',             module: null },
   { to: '/quality',      icon: ClipboardDocumentCheckIcon,  label: 'Quality Control', module: null },
   { to: '/documents',    icon: DocumentDuplicateIcon,       label: 'Documents',       module: null },

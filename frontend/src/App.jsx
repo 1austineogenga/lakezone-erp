@@ -38,6 +38,7 @@ import RFQPage from './pages/procurement/RFQPage'
 import QualityPage from './pages/quality/QualityPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
 import MobileMenuPage from './pages/MobileMenuPage'
+import DeploymentPage from './pages/deployment/DeploymentPage'
 import OfflineBanner from './components/pwa/OfflineBanner'
 
 const queryClient = new QueryClient({
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/documents"         element={<DocumentsPage />} />
             <Route path="/procurement/rfqs"      element={<PrivateRoute module="procurement"><RFQPage /></PrivateRoute>} />
             <Route path="/menu"              element={<MobileMenuPage />} />
+            <Route path="/deployment"        element={<DeploymentPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
