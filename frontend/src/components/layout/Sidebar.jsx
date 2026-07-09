@@ -51,47 +51,8 @@ const NAV = (role, isAdmin) => [
     ],
   },
 
-  {
-    type: 'dropdown', key: 'hr', label: 'HR', icon: UsersIcon,
-    root: '/hr', module: 'hr',
-    links: [
-      { to: '/hr',               label: 'Dashboard',  icon: ChartBarIcon,          end: true },
-      { to: '/hr/employees',     label: 'Employees',  icon: UsersIcon },
-      { to: '/hr/attendance',    label: 'Attendance', icon: ClockIcon },
-      { to: '/hr/leave',         label: 'Leave',      icon: CalendarDaysIcon },
-      { to: '/hr/payroll',       label: 'Payroll',    icon: BanknotesIcon },
-      { to: '/hr/advances',      label: 'Advances',   icon: CurrencyDollarIcon },
-      { to: '/hr/disciplinary',  label: 'Disciplinary', icon: ShieldExclamationIcon },
-      { to: '/hr/casuals-registry', label: 'Casuals', icon: ClipboardDocumentListIcon },
-      ...(isAdmin ? [
-        { to: '/hr/transfers',    label: 'Transfers',   icon: ArrowsRightLeftIcon },
-        { to: '/hr/organisation', label: 'Organisation', icon: BuildingOfficeIcon },
-        { to: '/hr/biometric',    label: 'Biometric',   icon: ClipboardDocumentListIcon },
-      ] : []),
-    ],
-  },
-
-  {
-    type: 'dropdown', key: 'fleet', label: 'Fleet', icon: TruckIcon,
-    root: '/fleet', module: 'fleet',
-    links: [
-      { to: '/fleet',            label: 'Dashboard',    icon: ChartBarIcon,          end: true },
-      { to: '/fleet/vehicles',   label: 'Vehicles',     icon: TruckIcon },
-      { to: '/fleet/maintenance',label: 'Maintenance',  icon: WrenchScrewdriverIcon },
-      { to: '/fleet/key-issuance', label: 'Release Log', icon: KeyIcon,
-        hideRoles: new Set(['site_manager', 'site_engineer', 'site_foreman']) },
-      { to: '/fleet/fuel',       label: 'Fuel Report',  icon: BeakerIcon },
-      { to: '/fleet/trips',      label: 'Trip Report',  icon: ArrowTrendingUpIcon },
-      { to: '/fleet/alerts',     label: 'Alerts',       icon: ExclamationTriangleIcon },
-      ...(isAdmin ? [
-        { to: '/fleet/geofences',    label: 'Geofences',    icon: MapIcon },
-        { to: '/fleet/fuel-prices',  label: 'Fuel Prices',  icon: CurrencyDollarIcon },
-        { to: '/fleet/settings',     label: 'API Settings', icon: Cog6ToothIcon },
-        { to: '/fleet/receiving',    label: 'Receiving',    icon: DocumentCheckIcon },
-        { to: '/fleet/enhanced-fuel', label: 'Adv. Fuel',  icon: ChartPieIcon },
-      ] : []),
-    ],
-  },
+  { type: 'link', to: '/hr',    icon: UsersIcon,  label: 'HR',    module: 'hr' },
+  { type: 'link', to: '/fleet', icon: TruckIcon,  label: 'Fleet', module: 'fleet' },
 
   { type: 'link', to: '/deployment', icon: ClipboardDocumentCheckIcon, label: 'Deployment',       module: null },
   { type: 'link', to: '/inventory',  icon: CubeIcon,                   label: 'Inventory',        module: 'inventory' },
