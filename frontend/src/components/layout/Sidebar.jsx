@@ -29,6 +29,7 @@ const TOP_LINKS = [
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },
   { to: '/assets',       icon: BuildingOfficeIcon,        label: 'Assets',                   module: 'assets' },
   { to: '/crm',          icon: UserGroupIcon,             label: 'CRM',                      module: 'crm' },
+  { to: '/hse',          icon: ShieldExclamationIcon,     label: 'HSE',                      module: null },
   { to: '/alerts',       icon: BellAlertIcon,             label: 'Alerts',                   module: null, roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'head_of_security']) },
   { to: '/users',        icon: KeyIcon,                   label: 'Users',                    module: 'users' },
 ]

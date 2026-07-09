@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "fleet",
     "notifications",
     "reports",
+    "hse",
 ]
 
 MIDDLEWARE = [
