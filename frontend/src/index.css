@@ -8,7 +8,7 @@ body {
   background-color: #1a2332; /* fills status bar area on mobile APK */
   @apply font-sans;
   color: #111827;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 400;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
