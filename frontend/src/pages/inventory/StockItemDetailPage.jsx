@@ -179,7 +179,7 @@ export default function StockItemDetailPage() {
     : 'bg-green-100 text-green-700'
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="">
       <button onClick={() => navigate('/inventory')}
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-slate mb-5">
         <ArrowLeftIcon className="h-4 w-4" /> Back to Inventory

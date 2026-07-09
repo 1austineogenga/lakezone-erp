@@ -695,7 +695,7 @@ export default function DocumentsPage() {
   const [tab, setTab] = useState('dashboard')
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-brand-slate">Document Management</h1>
         <p className="text-sm text-gray-500 mt-1">Drawing register, RFIs, and submittals</p>
