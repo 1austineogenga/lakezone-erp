@@ -165,3 +165,62 @@ class GoodsReceivedNoteSerializer(serializers.ModelSerializer):
         for item_data in grn_items_data:
             GRNItem.objects.create(grn=grn, **item_data)
         return grn
+
+
+# ── Phase 6 serializers ───────────────────────────────────────────────────────
+from .models import RFQ, RFQQuote, PODeliverySchedule
+
+
+class RFQQuoteSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source='supplier.company_name', read_only=True)
+    is_overdue    = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = RFQQuote
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')
+
+    def get_is_overdue(self, obj):
+        return False  # quotes don't expire in the same way
+
+
+class RFQSerializer(serializers.ModelSerializer):
+    quotes        = RFQQuoteSerializer(many=True, read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    project_name  = serializers.CharField(source='project.name', read_only=True)
+    awarded_to_name = serializers.CharField(source='awarded_to.company_name', read_only=True)
+    is_overdue    = serializers.BooleanField(read_only=True)
+    quote_count   = serializers.IntegerField(read_only=True)
+    supplier_ids  = serializers.PrimaryKeyRelatedField(
+        source='suppliers', many=True, queryset=__import__('procurement.models', fromlist=['Supplier']).Supplier.objects.all(),
+        write_only=True, required=False
+    )
+
+    class Meta:
+        model  = RFQ
+        fields = '__all__'
+        read_only_fields = ('id', 'rfq_number', 'created_by', 'created_at', 'updated_at')
+
+    def create(self, validated_data):
+        suppliers = validated_data.pop('suppliers', [])
+        validated_data['created_by'] = self.context['request'].user
+        rfq = RFQ.objects.create(**validated_data)
+        if suppliers:
+            rfq.suppliers.set(suppliers)
+        return rfq
+
+    def update(self, instance, validated_data):
+        suppliers = validated_data.pop('suppliers', None)
+        rfq = super().update(instance, validated_data)
+        if suppliers is not None:
+            rfq.suppliers.set(suppliers)
+        return rfq
+
+
+class PODeliveryScheduleSerializer(serializers.ModelSerializer):
+    is_overdue = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model  = PODeliverySchedule
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')

@@ -24,6 +24,7 @@ const TOP_LINKS = [
   { to: '/workspace',    icon: BriefcaseIcon,             label: 'My Workspace', end: true,  module: null },
   { to: '/projects',     icon: FolderIcon,                label: 'Projects',                 module: 'projects' },
   { to: '/procurement',  icon: ClipboardDocumentListIcon, label: 'Procurement',              module: 'procurement' },
+  { to: '/procurement/rfqs', icon: DocumentTextIcon,          label: 'RFQ / Bids',             module: 'procurement' },
   { to: '/requisitions', icon: DocumentTextIcon,          label: 'Requisitions',             module: 'requisitions' },
   { to: '/reports',      icon: DocumentChartBarIcon,      label: 'Site Reporting',           module: 'reports' },
   { to: '/inventory',    icon: CubeIcon,                  label: 'Inventory',                module: 'inventory' },

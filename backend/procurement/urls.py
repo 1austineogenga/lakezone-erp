@@ -25,3 +25,16 @@ urlpatterns = [
     path("grns/<uuid:pk>/", views.GRNDetailView.as_view(), name="grn-detail"),
     path("grns/<uuid:pk>/confirm/", views.GRNConfirmView.as_view(), name="grn-confirm"),
 ]
+
+# Phase 6
+from . import views as v
+urlpatterns += [
+    path('rfqs/dashboard/',                              v.RFQDashboardView.as_view()),
+    path('rfqs/',                                        v.RFQListCreate.as_view()),
+    path('rfqs/<uuid:pk>/',                              v.RFQDetail.as_view()),
+    path('rfqs/<uuid:pk>/award/',                        v.RFQAwardView.as_view()),
+    path('rfqs/<uuid:rfq_pk>/quotes/',                   v.RFQQuoteListCreate.as_view()),
+    path('rfqs/<uuid:rfq_pk>/quotes/<uuid:pk>/',         v.RFQQuoteDetail.as_view()),
+    path('purchase-orders/<uuid:po_pk>/delivery/',       v.PODeliveryScheduleListCreate.as_view()),
+    path('purchase-orders/<uuid:po_pk>/delivery/<uuid:pk>/', v.PODeliveryScheduleDetail.as_view()),
+]

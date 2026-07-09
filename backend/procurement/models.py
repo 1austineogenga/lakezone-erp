@@ -291,3 +291,102 @@ class GRNItem(models.Model):
 
     def __str__(self):
         return f"{self.grn.grn_number} — {self.po_line_item.description[:50]}"
+
+
+# ── Phase 6: RFQ & Delivery Tracking ────────────────────────────────────────
+
+class RFQStatus(models.TextChoices):
+    DRAFT     = 'draft',     'Draft'
+    ISSUED    = 'issued',    'Issued to Suppliers'
+    EVALUATING= 'evaluating','Evaluating'
+    AWARDED   = 'awarded',   'Awarded'
+    CANCELLED = 'cancelled', 'Cancelled'
+
+
+class RFQ(models.Model):
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rfq_number   = models.CharField(max_length=20, unique=True, editable=False)
+    title        = models.CharField(max_length=255)
+    description  = models.TextField(blank=True)
+    project      = models.ForeignKey('projects.Project', on_delete=models.SET_NULL, null=True, blank=True, related_name='rfqs')
+    category     = models.CharField(max_length=100, blank=True, help_text='e.g. civil materials, fuel, services')
+    issue_date   = models.DateField(default=timezone.now)
+    closing_date = models.DateField()
+    status       = models.CharField(max_length=20, choices=RFQStatus.choices, default=RFQStatus.DRAFT)
+    items        = models.JSONField(default=list, help_text='[{description, qty, unit}]')
+    suppliers    = models.ManyToManyField(Supplier, blank=True, related_name='rfqs')
+    awarded_to   = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='awarded_rfqs')
+    award_notes  = models.TextField(blank=True)
+    created_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='rfqs_created')
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.rfq_number} — {self.title}'
+
+    def save(self, *args, **kwargs):
+        if not self.rfq_number:
+            with transaction.atomic():
+                year = timezone.now().year
+                count = RFQ.objects.select_for_update().filter(created_at__year=year).count() + 1
+                self.rfq_number = f'RFQ-{year}-{count:04d}'
+        super().save(*args, **kwargs)
+
+    @property
+    def is_overdue(self):
+        return self.status in (RFQStatus.DRAFT, RFQStatus.ISSUED) and timezone.now().date() > self.closing_date
+
+    @property
+    def quote_count(self):
+        return self.quotes.count()
+
+
+class RFQQuote(models.Model):
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rfq          = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name='quotes')
+    supplier     = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='quotes_submitted')
+    received_date= models.DateField(default=timezone.now)
+    validity_days= models.PositiveIntegerField(default=30)
+    line_items   = models.JSONField(default=list, help_text='[{description, qty, unit, unit_price, total}]')
+    total_amount = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    currency     = models.CharField(max_length=5, default='KES')
+    delivery_days= models.PositiveIntegerField(null=True, blank=True)
+    payment_terms= models.CharField(max_length=100, blank=True)
+    notes        = models.TextField(blank=True)
+    is_recommended = models.BooleanField(default=False)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['total_amount']
+        unique_together = [['rfq', 'supplier']]
+
+    def __str__(self):
+        return f'{self.rfq.rfq_number} — {self.supplier.company_name}'
+
+
+class PODeliverySchedule(models.Model):
+    id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    purchase_order  = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='delivery_schedule')
+    milestone       = models.CharField(max_length=255)
+    expected_date   = models.DateField()
+    actual_date     = models.DateField(null=True, blank=True)
+    quantity_expected = models.DecimalField(max_digits=14, decimal_places=4, default=0)
+    quantity_delivered= models.DecimalField(max_digits=14, decimal_places=4, default=0)
+    status          = models.CharField(max_length=20, choices=[
+        ('pending',   'Pending'),
+        ('partial',   'Partial'),
+        ('delivered', 'Delivered'),
+        ('overdue',   'Overdue'),
+    ], default='pending')
+    notes           = models.TextField(blank=True)
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['expected_date']
+
+    @property
+    def is_overdue(self):
+        return self.status in ('pending', 'partial') and timezone.now().date() > self.expected_date
