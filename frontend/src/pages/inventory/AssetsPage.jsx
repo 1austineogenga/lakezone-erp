@@ -421,7 +421,10 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   const handleSave = () => {
     const payload = { ...form }
     if (!isEdit) payload.department = deptName
-    ;['purchase_value', 'current_value', 'hours_to_next_service', 'kms_to_next_service'].forEach(k => {
+    ;['purchase_value', 'current_value'].forEach(k => {
+      if (payload[k] === '') payload[k] = 0
+    })
+    ;['hours_to_next_service', 'kms_to_next_service'].forEach(k => {
       if (payload[k] === '') payload[k] = null
     })
     ;['purchase_date', 'insurance_expiry', 'insurance_commencement_date',
