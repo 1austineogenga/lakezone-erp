@@ -32,6 +32,7 @@ import UsersPage from './pages/users/UsersPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import WorkspacePage from './pages/workspace/WorkspacePage'
 import AlertsPage from './pages/AlertsPage'
+import HSEPage from './pages/hse/HSEPage'
 import SiteReportingPage from './pages/reports/SiteReportingPage'
 import MobileMenuPage from './pages/MobileMenuPage'
 import OfflineBanner from './components/pwa/OfflineBanner'
@@ -75,6 +76,7 @@ export default function App() {
             <Route path="/workspace"          element={<WorkspacePage />} />
             <Route path="/reports/*"             element={<PrivateRoute module="reports"><SiteReportingPage /></PrivateRoute>} />
             <Route path="/alerts"             element={<AlertsPage />} />
+            <Route path="/hse"               element={<HSEPage />} />
             <Route path="/menu"              element={<MobileMenuPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
