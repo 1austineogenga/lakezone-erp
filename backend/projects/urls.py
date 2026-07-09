@@ -77,6 +77,7 @@ urlpatterns = [
     path('', views.ProjectListCreateView.as_view()),
     path('import/', views.ProjectImportView.as_view()),
     path('import-budget/', views.BudgetWorkbookImportView.as_view()),
+    path('portfolio/', views.PortfolioSummaryView.as_view()),
     path('<uuid:project_pk>/', include(project_urls)),
     path('<uuid:pk>/detail/', views.ProjectDetailView.as_view()),
 ]
