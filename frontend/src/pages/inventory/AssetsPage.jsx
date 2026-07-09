@@ -86,50 +86,79 @@ const CERT_STATUS_OPTIONS = [
 
 const CONDITION_OPTIONS = ['new', 'good', 'fair', 'poor', 'condemned']
 
-// Department → allowed categories + default. Partial name match (case-insensitive).
+// Department → allowed categories + default. Checks exact word OR substring match.
 const DEPT_CATEGORY_MAP = [
   {
-    match: ['transport', 'logistics'],
+    match: ['transport', 'logistics', 'fleet'],
     categories: ['machinery', 'vehicles', 'trucks_tracks'],
     default: 'machinery',
+    itLike: false,
   },
   {
-    match: ['information technology', 'it department', 'it '],
-    categories: ['it_equipment', 'communication', 'other'],
+    match: ['information technology', 'it department', 'it'],
+    categories: ['it_equipment', 'communication', 'office_equipment', 'other'],
     default: 'it_equipment',
+    itLike: true,
   },
   {
     match: ['administration', 'admin'],
-    categories: ['furniture', 'office_equipment', 'safety', 'tools', 'other'],
+    categories: ['furniture', 'office_equipment', 'safety', 'tools', 'it_equipment', 'other'],
     default: 'office_equipment',
+    itLike: false,
   },
   {
-    match: ['site operations', 'site'],
+    match: ['site operations', 'site', 'operations'],
     categories: ['machinery', 'tools', 'safety', 'other'],
     default: 'machinery',
+    itLike: false,
   },
   {
-    match: ['finance', 'hr', 'human resource', 'procurement'],
+    match: ['finance', 'accounts'],
     categories: ['it_equipment', 'furniture', 'office_equipment', 'other'],
     default: 'it_equipment',
+    itLike: true,
+  },
+  {
+    match: ['human resource', 'hr', 'people'],
+    categories: ['it_equipment', 'furniture', 'office_equipment', 'other'],
+    default: 'it_equipment',
+    itLike: true,
+  },
+  {
+    match: ['procurement', 'supply chain', 'stores'],
+    categories: ['it_equipment', 'furniture', 'office_equipment', 'tools', 'other'],
+    default: 'it_equipment',
+    itLike: true,
   },
   {
     match: ['security'],
     categories: ['safety', 'communication', 'other'],
     default: 'safety',
+    itLike: false,
   },
 ]
 
+function matchDept(deptName) {
+  if (!deptName) return null
+  const lower = deptName.toLowerCase().trim()
+  // Exact match first, then substring
+  return DEPT_CATEGORY_MAP.find(r => r.match.some(m => lower === m))
+      || DEPT_CATEGORY_MAP.find(r => r.match.some(m => lower.includes(m)))
+      || null
+}
+
 function getDeptCategories(deptName) {
-  if (!deptName) return { categories: CATEGORY_OPTIONS, default: 'machinery' }
-  const lower = deptName.toLowerCase()
-  const rule = DEPT_CATEGORY_MAP.find(r => r.match.some(m => lower.includes(m)))
-  if (!rule) return { categories: CATEGORY_OPTIONS, default: 'other' }
+  const rule = matchDept(deptName)
+  if (!rule) return { categories: CATEGORY_OPTIONS, default: 'other', itLike: false }
   return {
     categories: CATEGORY_OPTIONS.filter(c => rule.categories.includes(c.value)),
     default: rule.default,
+    itLike: rule.itLike,
   }
 }
+
+// IT-like categories (always show IT fields regardless of dept)
+const IT_CATEGORIES = ['it_equipment', 'communication', 'office_equipment']
 
 const EMPTY = {
   name: '', category: 'machinery', serial_number: '', make_model: '',
@@ -186,9 +215,10 @@ function StatCard({ icon: Icon, label, value, color = 'blue' }) {
 
 function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   const isEdit = !!asset
-  const { categories: availableCategories, default: defaultCategory } = isAdmin
-    ? { categories: CATEGORY_OPTIONS, default: 'machinery' }
-    : getDeptCategories(deptName)
+  const deptMeta = getDeptCategories(deptName)
+  const { categories: availableCategories, default: defaultCategory, itLike: deptIsIT } = isAdmin
+    ? { categories: CATEGORY_OPTIONS, default: deptMeta.default, itLike: deptMeta.itLike }
+    : deptMeta
 
   const [form, setForm] = useState(isEdit ? {
     ...EMPTY,
@@ -244,8 +274,8 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
   const isVehicle = form.category === 'vehicles'
   const isTruck = form.category === 'trucks_tracks'
   const needsInsurance = isVehicle || isTruck
-  const isIT = ['it_equipment', 'communication', 'office_equipment'].includes(form.category)
-  const isFurnitureTools = ['furniture', 'tools', 'safety'].includes(form.category)
+  const isIT = deptIsIT || IT_CATEGORIES.includes(form.category)
+  const isFurnitureTools = ['furniture', 'tools', 'safety'].includes(form.category) && !isIT
 
   const handleSave = () => {
     const payload = { ...form }
@@ -734,7 +764,7 @@ export default function AssetsPage() {
   const canEditAsset = (asset) => {
     if (isReadOnly || !canWrite('assets')) return false
     if (role === 'system_admin') return true
-    const userDeptName = user?.department_name || ''
+    const userDeptName = user?.department_name || user?.department || ''
     return asset.department === userDeptName
   }
   // canEdit used for "Add Asset" button — true if they can edit at least their own dept
@@ -822,7 +852,7 @@ export default function AssetsPage() {
     return soon(a.insurance_expiry) || soon(a.inspection_cert_expiry) || soon(a.speed_governor_cert_expiry)
   })
 
-  const ownDeptName = user?.department_name || ''
+  const ownDeptName = user?.department_name || user?.department || ''
 
   return (
     <div className="space-y-5">
