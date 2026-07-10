@@ -14,8 +14,31 @@ import {
   BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
   ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, DocumentDuplicateIcon,
   PlusIcon, FingerPrintIcon, ArchiveBoxArrowDownIcon,
+  ExclamationCircleIcon, QuestionMarkCircleIcon, ListBulletIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
+
+const PROJECT_NAV = [
+  { tab: 'dashboard',      label: 'Dashboard',          icon: ChartBarIcon },
+  { tab: 'boq',            label: 'Bill of Quantities', icon: ClipboardDocumentListIcon },
+  { tab: 'budget',         label: 'Budget / Workbook',  icon: BanknotesIcon },
+  { tab: 'wbs',            label: 'WBS / Activities',   icon: ListBulletIcon },
+  { tab: 'chainage',       label: 'Chainage Segments',  icon: MapPinIcon },
+  { tab: 'ipcs',           label: 'IPCs',               icon: DocumentCheckIcon },
+  { tab: 'evm',            label: 'EVM & Finance',      icon: PresentationChartLineIcon },
+  { tab: 'site-diary',     label: 'Site Diary',         icon: BookOpenIcon },
+  { tab: 'progress',       label: 'Weekly Progress',    icon: CalendarDaysIcon },
+  { tab: 'qa',             label: 'QA / Testing',       icon: BeakerIcon },
+  { tab: 'ncr',            label: 'NCR',                icon: ExclamationCircleIcon },
+  { tab: 'rfi-list',       label: 'RFIs',               icon: QuestionMarkCircleIcon },
+  { tab: 'safety',         label: 'Safety',             icon: ShieldExclamationIcon },
+  { tab: 'subcontractors', label: 'Subcontractors',     icon: BuildingOfficeIcon },
+  { tab: 'fleet',          label: 'Fleet',              icon: TruckIcon },
+  { tab: 'team',           label: 'Team',               icon: UsersIcon },
+  { tab: 'risks',          label: 'Risk Register',      icon: ExclamationTriangleIcon },
+  { tab: 'photos',         label: 'Photos',             icon: DocumentChartBarIcon },
+  { tab: 'reports',        label: 'Reports',            icon: DocumentTextIcon },
+]
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
 import usePermissions from '../../hooks/usePermissions'
@@ -38,7 +61,7 @@ const NAV = (role, isAdmin) => [
       { tab: 'requisitions',  label: 'Requisitions',   icon: ClipboardDocumentListIcon },
     ],
   },
-  { type: 'link', to: '/projects',   icon: FolderIcon,                 label: 'Projects',         module: 'projects' },
+  { type: 'projects', key: 'projects', label: 'Projects', icon: FolderIcon, root: '/projects', module: 'projects' },
 
   {
     type: 'dropdown', key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon,
@@ -109,7 +132,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const nav = NAV(role, isAdmin)
 
   const initialOpen = {}
-  nav.filter(i => i.type === 'dropdown').forEach(i => {
+  nav.filter(i => i.type === 'dropdown' || i.type === 'projects').forEach(i => {
     initialOpen[i.key] = i.isActive ? i.isActive(location.pathname) : location.pathname.startsWith(i.root ?? '')
   })
   const [open, setOpen] = useState(initialOpen)
@@ -160,6 +183,54 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
               </NavLink>
+            )
+          }
+
+          // projects dropdown — list link + per-project nav when inside a project
+          if (item.type === 'projects') {
+            const onProjects = location.pathname.startsWith('/projects')
+            const projectMatch = location.pathname.match(/^\/projects\/([^/]+)/)
+            const projectId = projectMatch?.[1]
+            const currentTab = new URLSearchParams(location.search).get('tab') || 'dashboard'
+            const isOpen = open[item.key]
+            return (
+              <div key={item.key}>
+                <button onClick={() => !collapsed && toggle(item.key)}
+                  title={collapsed ? item.label : undefined}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${collapsed ? 'justify-center' : ''}
+                    ${onProjects ? 'text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                    </>
+                  )}
+                </button>
+                {!collapsed && isOpen && (
+                  <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    <NavLink to="/projects" end
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                         ${isActive ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                      <FolderIcon className="h-3.5 w-3.5 shrink-0" />
+                      All Projects
+                    </NavLink>
+                    {projectId && PROJECT_NAV.map(({ tab, label, icon: LIcon }) => {
+                      const active = currentTab === tab
+                      return (
+                        <Link key={tab} to={`/projects/${projectId}?tab=${tab}`}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                            ${active ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                          <LIcon className="h-3.5 w-3.5 shrink-0" />
+                          {label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           }
 
