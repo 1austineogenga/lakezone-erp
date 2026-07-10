@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, Link, useLocation } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
   CubeIcon, UserGroupIcon, ArrowRightOnRectangleIcon, BuildingOfficeIcon,
@@ -13,7 +13,7 @@ import {
   Cog6ToothIcon, KeyIcon, BriefcaseIcon, TableCellsIcon, PresentationChartLineIcon,
   BellAlertIcon, MapIcon, ChartPieIcon, DocumentChartBarIcon, MapPinIcon,
   ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, DocumentDuplicateIcon,
-  PlusIcon,
+  PlusIcon, FingerPrintIcon, ArchiveBoxArrowDownIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 import useAuthStore from '../../store/authStore'
@@ -24,7 +24,20 @@ import usePermissions from '../../hooks/usePermissions'
 // module: permission key (null = always visible), roles: allowlist Set
 const NAV = (role, isAdmin) => [
   { type: 'link', to: '/',           icon: HomeIcon,                   label: 'Dashboard',        end: true,  module: null },
-  { type: 'link', to: '/workspace',  icon: BriefcaseIcon,              label: 'My Workspace',     end: true,  module: null },
+  {
+    type: 'dropdown', key: 'workspace', label: 'My Workspace', icon: BriefcaseIcon,
+    root: '/workspace', module: null,
+    paramLinks: [
+      { tab: 'overview',      label: 'Overview',       icon: ChartBarIcon },
+      { tab: 'profile',       label: 'My Profile',     icon: UsersIcon },
+      { tab: 'attendance',    label: 'Attendance',     icon: FingerPrintIcon },
+      { tab: 'leave',         label: 'Leave',          icon: CalendarDaysIcon },
+      { tab: 'advance',       label: 'Salary Advance', icon: CurrencyDollarIcon },
+      { tab: 'payslips',      label: 'Payslips',       icon: DocumentTextIcon },
+      { tab: 'storerequests', label: 'Store Requests', icon: ArchiveBoxArrowDownIcon },
+      { tab: 'requisitions',  label: 'Requisitions',   icon: ClipboardDocumentListIcon },
+    ],
+  },
   { type: 'link', to: '/projects',   icon: FolderIcon,                 label: 'Projects',         module: 'projects' },
 
   {
@@ -97,7 +110,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
 
   const initialOpen = {}
   nav.filter(i => i.type === 'dropdown').forEach(i => {
-    initialOpen[i.key] = i.isActive ? i.isActive(location.pathname) : location.pathname.startsWith(i.root)
+    initialOpen[i.key] = i.isActive ? i.isActive(location.pathname) : location.pathname.startsWith(i.root ?? '')
   })
   const [open, setOpen] = useState(initialOpen)
   const toggle = key => setOpen(o => ({ ...o, [key]: !o[key] }))
@@ -153,6 +166,44 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
           // dropdown
           const isActive = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.root)
           const isOpen = open[item.key]
+
+          // workspace-style param-based sub-links
+          if (item.paramLinks) {
+            const currentTab = new URLSearchParams(location.search).get('tab') || 'overview'
+            return (
+              <div key={item.key}>
+                <button onClick={() => !collapsed && toggle(item.key)}
+                  title={collapsed ? item.label : undefined}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${collapsed ? 'justify-center' : ''}
+                    ${isActive ? 'text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+                    </>
+                  )}
+                </button>
+                {!collapsed && isOpen && (
+                  <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {item.paramLinks.map(({ tab, label, icon: LIcon }) => {
+                      const active = location.pathname === item.root && currentTab === tab
+                      return (
+                        <Link key={tab} to={`${item.root}?tab=${tab}`}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                            ${active ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                          <LIcon className="h-3.5 w-3.5 shrink-0" />
+                          {label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           const visibleLinks = item.links.filter(l => !l.hideRoles || !l.hideRoles.has(role))
 
           return (
