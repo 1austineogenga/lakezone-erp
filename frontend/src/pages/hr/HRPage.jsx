@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 import {
-  ChartBarIcon, UsersIcon, CalendarDaysIcon, BanknotesIcon,
+  ChartBarIcon, UsersIcon, CalendarDaysIcon, BanknotesIcon, BuildingOfficeIcon,
 } from '@heroicons/react/24/outline'
 
 import HRDashboard from './HRDashboard'
@@ -35,14 +35,10 @@ const GROUPS = (role) => [
     label: 'Workforce',
     icon: UsersIcon,
     defaultPath: '/hr/employees',
-    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/disciplinary', '/hr/transfers', '/hr/organisation', '/hr/labour-deployment'],
+    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/transfers'],
     tabs: [
-      { label: 'Employees',         path: '/hr/employees' },
-      { label: 'Casuals',           path: '/hr/casuals-registry' },
-      { label: 'Disciplinary',      path: '/hr/disciplinary' },
-      { label: 'Labour Deployment', path: '/hr/labour-deployment' },
-      ...(role === 'system_admin' ? [{ label: 'Transfers',    path: '/hr/transfers' }] : []),
-      ...(role === 'system_admin' ? [{ label: 'Organisation', path: '/hr/organisation' }] : []),
+      { label: 'Employees', path: '/hr/employees' },
+      { label: 'Casuals',   path: '/hr/casuals-registry' },
     ],
   },
   {

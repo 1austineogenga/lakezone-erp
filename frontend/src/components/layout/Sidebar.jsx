@@ -57,11 +57,11 @@ const NAV = (role, isAdmin) => [
     links: [
       { to: '/hr',                       label: 'Dashboard',         icon: ChartBarIcon,          end: true },
       { to: '/hr/employees',             label: 'Employees',         icon: UsersIcon },
-      { to: '/hr/labour-deployment',     label: 'Labour Deployment', icon: ClipboardDocumentCheckIcon },
       { to: '/hr/attendance',            label: 'Attendance',        icon: ClockIcon },
       { to: '/hr/leave',                 label: 'Leave',             icon: CalendarDaysIcon },
       { to: '/hr/payroll',               label: 'Payroll',           icon: BanknotesIcon },
       { to: '/hr/disciplinary',          label: 'Disciplinary',      icon: ShieldExclamationIcon },
+      { to: '/hr/organisation',          label: 'Organisation',      icon: BuildingOfficeIcon },
     ],
   },
 
