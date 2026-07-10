@@ -1,9 +1,7 @@
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 import {
-  ChartBarIcon, TruckIcon, WrenchScrewdriverIcon, BeakerIcon,
-  ArrowTrendingUpIcon, ExclamationTriangleIcon, KeyIcon, ArrowDownTrayIcon,
-  MapIcon, CurrencyDollarIcon, Cog6ToothIcon, SparklesIcon,
+  ChartBarIcon, TruckIcon, ArrowTrendingUpIcon, MapIcon,
 } from '@heroicons/react/24/outline'
 
 import FleetDashboard          from './FleetDashboard'
@@ -22,21 +20,53 @@ import FuelPriceManagementPage from './FuelPriceManagementPage'
 import VehicleReceivingPage    from './VehicleReceivingPage'
 import KeyIssuancePage         from './KeyIssuancePage'
 
-const TABS = (role) => [
-  { label: 'Dashboard',    path: '/fleet',              icon: ChartBarIcon,           exact: true },
-  { label: 'Vehicles',     path: '/fleet/vehicles',     icon: TruckIcon },
-  { label: 'Maintenance',  path: '/fleet/maintenance',  icon: WrenchScrewdriverIcon },
-  { label: 'Fuel Report',  path: '/fleet/fuel',         icon: BeakerIcon },
-  { label: 'Trip Report',  path: '/fleet/trips',        icon: ArrowTrendingUpIcon },
-  { label: 'Alerts',       path: '/fleet/alerts',       icon: ExclamationTriangleIcon },
-  { label: 'Release Log',  path: '/fleet/key-issuance', icon: KeyIcon },
-  ...(role === 'system_admin' ? [
-    { label: 'Receiving',    path: '/fleet/receiving',    icon: ArrowDownTrayIcon },
-    { label: 'Adv. Fuel',   path: '/fleet/enhanced-fuel',icon: SparklesIcon },
-    { label: 'Geofences',   path: '/fleet/geofences',    icon: MapIcon },
-    { label: 'Fuel Prices', path: '/fleet/fuel-prices',  icon: CurrencyDollarIcon },
-    { label: 'Settings',    path: '/fleet/settings',     icon: Cog6ToothIcon },
-  ] : []),
+const GROUPS = (role) => [
+  {
+    id: 'overview',
+    label: 'Dashboard',
+    icon: ChartBarIcon,
+    paths: ['/fleet'],
+    defaultPath: '/fleet',
+    exact: true,
+  },
+  {
+    id: 'vehicles',
+    label: 'Vehicles',
+    icon: TruckIcon,
+    defaultPath: '/fleet/vehicles',
+    paths: ['/fleet/vehicles', '/fleet/maintenance', '/fleet/key-issuance', '/fleet/receiving'],
+    tabs: [
+      { label: 'Vehicles',     path: '/fleet/vehicles' },
+      { label: 'Maintenance',  path: '/fleet/maintenance' },
+      { label: 'Release Log',  path: '/fleet/key-issuance' },
+      ...(role === 'system_admin' ? [{ label: 'Receiving', path: '/fleet/receiving' }] : []),
+    ],
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoring',
+    icon: ArrowTrendingUpIcon,
+    defaultPath: '/fleet/fuel',
+    paths: ['/fleet/fuel', '/fleet/trips', '/fleet/alerts', '/fleet/enhanced-fuel'],
+    tabs: [
+      { label: 'Fuel Report', path: '/fleet/fuel' },
+      { label: 'Trip Report', path: '/fleet/trips' },
+      { label: 'Alerts',      path: '/fleet/alerts' },
+      ...(role === 'system_admin' ? [{ label: 'Adv. Fuel', path: '/fleet/enhanced-fuel' }] : []),
+    ],
+  },
+  ...(role === 'system_admin' ? [{
+    id: 'control',
+    label: 'Control',
+    icon: MapIcon,
+    defaultPath: '/fleet/geofences',
+    paths: ['/fleet/geofences', '/fleet/fuel-prices', '/fleet/settings'],
+    tabs: [
+      { label: 'Geofences',    path: '/fleet/geofences' },
+      { label: 'Fuel Prices',  path: '/fleet/fuel-prices' },
+      { label: 'API Settings', path: '/fleet/settings' },
+    ],
+  }] : []),
 ]
 
 export default function FleetPage() {
@@ -45,13 +75,17 @@ export default function FleetPage() {
   const navigate  = useNavigate()
   const role      = user?.role || ''
 
-  const tabs = TABS(role)
+  const groups = GROUPS(role)
 
-  const activeTab = tabs.find(t =>
-    t.exact
-      ? location.pathname === t.path
-      : location.pathname === t.path || location.pathname.startsWith(t.path + '/')
-  ) || tabs[0]
+  const matchPath = (p) => location.pathname === p || location.pathname.startsWith(p + '/')
+
+  const activeGroup = groups.find(g =>
+    g.exact
+      ? location.pathname === g.defaultPath || location.pathname === '/fleet'
+      : g.paths.some(p => matchPath(p))
+  ) || groups[0]
+
+  const activeTab = activeGroup?.tabs?.find(t => matchPath(t.path)) || activeGroup?.tabs?.[0]
 
   return (
     <div className="flex flex-col -m-4 lg:-m-6 h-full min-h-screen">
@@ -61,17 +95,18 @@ export default function FleetPage() {
         <div className="flex items-center gap-3 mb-3">
           <h1 className="text-lg font-bold text-brand-slate">Fleet</h1>
           <span className="text-gray-300">|</span>
-          <span className="text-sm text-gray-500">{activeTab?.label}</span>
+          <span className="text-sm text-gray-500">{activeGroup?.label}{activeTab ? ` — ${activeTab.label}` : ''}</span>
         </div>
 
+        {/* Main group tab bar */}
         <div className="flex gap-1 overflow-x-auto scrollbar-none">
-          {tabs.map(({ label, path, icon: Icon, exact }) => {
+          {groups.map(({ id, label, icon: Icon, defaultPath, paths, exact }) => {
             const isActive = exact
-              ? location.pathname === path
-              : location.pathname === path || location.pathname.startsWith(path + '/')
+              ? location.pathname === '/fleet' || location.pathname === defaultPath
+              : paths.some(p => matchPath(p))
             return (
-              <button key={path}
-                onClick={() => navigate(path)}
+              <button key={id}
+                onClick={() => navigate(defaultPath)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 -mb-px whitespace-nowrap transition-colors
                   ${isActive
                     ? 'border-brand-red text-brand-red bg-red-50/40'
@@ -82,6 +117,25 @@ export default function FleetPage() {
             )
           })}
         </div>
+
+        {/* Sub-tab bar — only when active group has tabs */}
+        {activeGroup?.tabs && activeGroup.tabs.length > 0 && (
+          <div className="flex gap-1 pt-1 overflow-x-auto scrollbar-none border-t border-gray-100 mt-1">
+            {activeGroup.tabs.map(({ label, path }) => {
+              const isActive = matchPath(path)
+              return (
+                <button key={path}
+                  onClick={() => navigate(path)}
+                  className={`px-3 py-2 text-xs font-medium rounded-t whitespace-nowrap transition-colors -mb-px border-b-2
+                    ${isActive
+                      ? 'border-brand-red text-brand-red'
+                      : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Page Content ───────────────────────────────────────────────── */}
