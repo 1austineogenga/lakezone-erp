@@ -433,3 +433,220 @@ class VariationOrder(models.Model):
 
     def __str__(self):
         return f'{self.vo_number} — {self.title}'
+
+
+# ── New Phase-2 models ─────────────────────────────────────────────────────────
+
+class ChainageSegment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='chainage_segments')
+    name = models.CharField(max_length=100, help_text="e.g. Section 1")
+    start_station_m = models.DecimalField(max_digits=10, decimal_places=2)
+    end_station_m   = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ['project', 'start_station_m']
+
+    def __str__(self):
+        return f"{self.project.code}: {self.name} ({self.start_station_m}m–{self.end_station_m}m)"
+
+
+class SiteDiary(models.Model):
+    class Weather(models.TextChoices):
+        CLEAR       = 'clear',       'Clear'
+        OVERCAST    = 'overcast',    'Overcast'
+        LIGHT_RAIN  = 'light_rain',  'Light Rain'
+        HEAVY_RAIN  = 'heavy_rain',  'Heavy Rain (non-working)'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project          = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='site_diaries')
+    date             = models.DateField()
+    weather_am       = models.CharField(max_length=20, choices=Weather.choices, default=Weather.CLEAR)
+    weather_pm       = models.CharField(max_length=20, choices=Weather.choices, default=Weather.CLEAR)
+    is_weather_day_lost = models.BooleanField(default=False)
+    labour_count     = models.PositiveIntegerField(default=0)
+    work_summary     = models.TextField()
+    plant_summary    = models.TextField(blank=True)
+    delays           = models.TextField(blank=True)
+    prepared_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='site_diaries')
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('project', 'date')]
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.project.code} diary — {self.date}"
+
+
+class QATestRecord(models.Model):
+    class Result(models.TextChoices):
+        PASS    = 'pass',    'Pass'
+        FAIL    = 'fail',    'Fail'
+        PENDING = 'pending', 'Pending'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project          = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='qa_tests')
+    chainage_segment = models.ForeignKey(ChainageSegment, on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='qa_tests')
+    test_type        = models.CharField(max_length=100, help_text="e.g. Compaction, CBR, Asphalt Mix")
+    test_date        = models.DateField()
+    station_m        = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    result_value     = models.CharField(max_length=100, blank=True)
+    result           = models.CharField(max_length=10, choices=Result.choices, default=Result.PENDING)
+    lab_reference    = models.CharField(max_length=100, blank=True)
+    tested_by        = models.CharField(max_length=255, blank=True)
+    remarks          = models.TextField(blank=True)
+    attachment       = models.FileField(upload_to='qa_reports/%Y/%m/', null=True, blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-test_date']
+
+    def __str__(self):
+        return f"{self.test_type} @ {self.station_m}m — {self.result}"
+
+
+class NonConformance(models.Model):
+    class Status(models.TextChoices):
+        OPEN        = 'open',        'Open'
+        IN_PROGRESS = 'in_progress', 'In Progress'
+        CLOSED      = 'closed',      'Closed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project          = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='non_conformances')
+    chainage_segment = models.ForeignKey(ChainageSegment, on_delete=models.SET_NULL,
+                                         null=True, blank=True, related_name='non_conformances')
+    ncr_number       = models.CharField(max_length=30, blank=True)
+    raised_date      = models.DateField()
+    description      = models.TextField()
+    root_cause       = models.TextField(blank=True)
+    corrective_action = models.TextField(blank=True)
+    status           = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    closed_date      = models.DateField(null=True, blank=True)
+    raised_by        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                          null=True, blank=True, related_name='ncrs_raised')
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-raised_date']
+
+    def save(self, *args, **kwargs):
+        if not self.ncr_number:
+            from django.utils import timezone as tz
+            year = tz.now().year
+            count = NonConformance.objects.filter(project=self.project,
+                                                   ncr_number__startswith=f'NCR-{year}').count()
+            self.ncr_number = f'NCR-{year}-{str(count + 1).zfill(3)}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.ncr_number}: {self.description[:50]}"
+
+
+class RFIRecord(models.Model):
+    class Status(models.TextChoices):
+        OPEN     = 'open',     'Open'
+        ANSWERED = 'answered', 'Answered'
+        CLOSED   = 'closed',   'Closed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project        = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='rfi_records')
+    reference_no   = models.CharField(max_length=30, blank=True)
+    query          = models.TextField()
+    raised_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                        null=True, blank=True, related_name='rfis_raised')
+    raised_date    = models.DateField()
+    response       = models.TextField(blank=True)
+    responded_date = models.DateField(null=True, blank=True)
+    drawing_reference = models.CharField(max_length=100, blank=True)
+    status         = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-raised_date']
+
+    def save(self, *args, **kwargs):
+        if not self.reference_no:
+            from django.utils import timezone as tz
+            year = tz.now().year
+            count = RFIRecord.objects.filter(project=self.project,
+                                              reference_no__startswith=f'RFI-{year}').count()
+            self.reference_no = f'RFI-{year}-{str(count + 1).zfill(3)}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.reference_no} — {self.status}"
+
+
+class IncidentReport(models.Model):
+    class Severity(models.TextChoices):
+        NEAR_MISS = 'near_miss', 'Near Miss'
+        MINOR     = 'minor',     'Minor'
+        MAJOR     = 'major',     'Major'
+        FATALITY  = 'fatality',  'Fatality'
+
+    class Status(models.TextChoices):
+        OPEN         = 'open',         'Open'
+        INVESTIGATING = 'investigating', 'Under Investigation'
+        CLOSED       = 'closed',       'Closed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project            = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='incidents')
+    date               = models.DateField()
+    severity           = models.CharField(max_length=20, choices=Severity.choices)
+    description        = models.TextField()
+    corrective_action  = models.TextField(blank=True)
+    reported_by        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                            null=True, blank=True, related_name='incidents_reported')
+    status             = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    signed_off_by      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                            null=True, blank=True, related_name='incidents_signed_off')
+    signed_off_date    = models.DateField(null=True, blank=True)
+    created_at         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Incident {self.date} — {self.severity}"
+
+
+class Subcontractor(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project        = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='subcontractors')
+    name           = models.CharField(max_length=255)
+    scope_of_work  = models.TextField()
+    contract_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    contact_person = models.CharField(max_length=255, blank=True)
+    contact_phone  = models.CharField(max_length=30, blank=True)
+    start_date     = models.DateField(null=True, blank=True)
+    end_date       = models.DateField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.project.code})"
+
+
+class SubcontractorMilestone(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        DUE     = 'due',     'Due'
+        PAID    = 'paid',    'Paid'
+
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    subcontractor  = models.ForeignKey(Subcontractor, on_delete=models.CASCADE, related_name='milestones')
+    description    = models.CharField(max_length=255)
+    amount         = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    due_date       = models.DateField(null=True, blank=True)
+    status         = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+
+    class Meta:
+        ordering = ['due_date']
+
+    def __str__(self):
+        return f"{self.subcontractor.name}: {self.description}"

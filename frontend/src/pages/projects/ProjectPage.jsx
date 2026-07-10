@@ -15,6 +15,13 @@ import {
   ListBulletIcon,
   PhotoIcon,
   ChartBarIcon,
+  BookOpenIcon,
+  BeakerIcon,
+  ExclamationCircleIcon,
+  QuestionMarkCircleIcon,
+  ShieldExclamationIcon,
+  BuildingOfficeIcon,
+  MapPinIcon,
 } from '@heroicons/react/24/outline'
 import { getProjectDashboard } from '../../api/projects'
 import EVMPage from './EVMPage'
@@ -33,6 +40,13 @@ import SurveyorWeeklyReportPage from './SurveyorWeeklyReportPage'
 import RFIPage from './RFIPage'
 import WBSPage from './WBSPage'
 import PhotoTimelinePage from './PhotoTimelinePage'
+import SiteDiaryPage from './SiteDiaryPage'
+import QAPage from './QAPage'
+import NCRPage from './NCRPage'
+import RFIListPage from './RFIListPage'
+import SafetyPage from './SafetyPage'
+import SubcontractorsPage from './SubcontractorsPage'
+import ChainagePage from './ChainagePage'
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -46,18 +60,25 @@ const STATUS_LABELS = {
 }
 
 const TABS = [
-  { id: 'dashboard',  label: 'Dashboard',       Icon: Squares2X2Icon },
-  { id: 'wbs',        label: 'WBS / Activities',Icon: ListBulletIcon },
-  { id: 'photos',     label: 'Photos',          Icon: PhotoIcon },
-  { id: 'boq',        label: 'BOQ',             Icon: ClipboardDocumentListIcon },
-  { id: 'budget',     label: 'Budget',          Icon: BanknotesIcon },
-  { id: 'ipcs',       label: 'IPCs',            Icon: DocumentCheckIcon },
-  { id: 'progress',   label: 'Weekly Progress', Icon: CalendarDaysIcon },
-  { id: 'evm',        label: 'EVM & Finance',   Icon: ChartBarIcon },
-  { id: 'risks',      label: 'Risk Register',   Icon: ExclamationTriangleIcon },
-  { id: 'fleet',      label: 'Fleet',           Icon: TruckIcon },
-  { id: 'team',       label: 'Team',            Icon: UsersIcon },
-  { id: 'reports',    label: 'Reports',         Icon: DocumentTextIcon },
+  { id: 'dashboard',       label: 'Dashboard',       Icon: Squares2X2Icon },
+  { id: 'wbs',             label: 'WBS / Activities',Icon: ListBulletIcon },
+  { id: 'boq',             label: 'BOQ',             Icon: ClipboardDocumentListIcon },
+  { id: 'budget',          label: 'Budget',          Icon: BanknotesIcon },
+  { id: 'ipcs',            label: 'IPCs',            Icon: DocumentCheckIcon },
+  { id: 'progress',        label: 'Weekly Progress', Icon: CalendarDaysIcon },
+  { id: 'evm',             label: 'EVM & Finance',   Icon: ChartBarIcon },
+  { id: 'site-diary',      label: 'Site Diary',      Icon: BookOpenIcon },
+  { id: 'chainage',        label: 'Chainage',        Icon: MapPinIcon },
+  { id: 'qa',              label: 'QA / Testing',    Icon: BeakerIcon },
+  { id: 'ncr',             label: 'NCR',             Icon: ExclamationCircleIcon },
+  { id: 'rfi-list',        label: 'RFIs',            Icon: QuestionMarkCircleIcon },
+  { id: 'safety',          label: 'Safety',          Icon: ShieldExclamationIcon },
+  { id: 'subcontractors',  label: 'Subcontractors',  Icon: BuildingOfficeIcon },
+  { id: 'risks',           label: 'Risk Register',   Icon: ExclamationTriangleIcon },
+  { id: 'fleet',           label: 'Fleet',           Icon: TruckIcon },
+  { id: 'team',            label: 'Team',            Icon: UsersIcon },
+  { id: 'photos',          label: 'Photos',          Icon: PhotoIcon },
+  { id: 'reports',         label: 'Reports',         Icon: DocumentTextIcon },
 ]
 
 export default function ProjectPage() {
@@ -79,17 +100,24 @@ export default function ProjectPage() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'dashboard': return <ProjectDashboard dashData={dashData} />
-      case 'wbs':       return <WBSPage />
-      case 'photos':    return <PhotoTimelinePage projectName={project.name} />
-      case 'boq':       return <BOQPage projectName={project.name} />
-      case 'budget':    return <BudgetPage />
-      case 'ipcs':      return <IPCPage />
-      case 'progress':  return <WeeklyProgressPage />
-      case 'evm':       return <EVMPage />
-      case 'risks':     return <RiskRegisterPage />
-      case 'fleet':     return <FleetAssignmentPage />
-      case 'team':      return <TeamPage />
+      case 'dashboard':      return <ProjectDashboard dashData={dashData} />
+      case 'wbs':            return <WBSPage />
+      case 'photos':         return <PhotoTimelinePage projectName={project.name} />
+      case 'boq':            return <BOQPage projectName={project.name} />
+      case 'budget':         return <BudgetPage />
+      case 'ipcs':           return <IPCPage />
+      case 'progress':       return <WeeklyProgressPage />
+      case 'evm':            return <EVMPage />
+      case 'site-diary':     return <SiteDiaryPage />
+      case 'chainage':       return <ChainagePage />
+      case 'qa':             return <QAPage />
+      case 'ncr':            return <NCRPage />
+      case 'rfi-list':       return <RFIListPage />
+      case 'safety':         return <SafetyPage />
+      case 'subcontractors': return <SubcontractorsPage />
+      case 'risks':          return <RiskRegisterPage />
+      case 'fleet':          return <FleetAssignmentPage />
+      case 'team':           return <TeamPage />
       case 'reports':   return (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">

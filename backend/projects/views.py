@@ -1189,3 +1189,172 @@ class PortfolioSummaryView(APIView):
             'risks': risk_summary,
             'project_cards': project_cards,
         })
+
+
+# ── New Phase-2 views ──────────────────────────────────────────────────────────
+
+from .models import (
+    ChainageSegment, SiteDiary, QATestRecord, NonConformance,
+    RFIRecord, IncidentReport, Subcontractor, SubcontractorMilestone,
+)
+from .serializers import (
+    ChainageSegmentSerializer, SiteDiarySerializer, QATestRecordSerializer,
+    NonConformanceSerializer, RFIRecordSerializer, IncidentReportSerializer,
+    SubcontractorSerializer, SubcontractorMilestoneSerializer,
+)
+
+
+class ChainageSegmentListCreate(generics.ListCreateAPIView):
+    serializer_class = ChainageSegmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return ChainageSegment.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class ChainageSegmentDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ChainageSegmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return ChainageSegment.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class SiteDiaryListCreate(generics.ListCreateAPIView):
+    serializer_class = SiteDiarySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SiteDiary.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project, prepared_by=self.request.user)
+
+
+class SiteDiaryDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SiteDiarySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SiteDiary.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class QATestRecordListCreate(generics.ListCreateAPIView):
+    serializer_class = QATestRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return QATestRecord.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class QATestRecordDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = QATestRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return QATestRecord.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class NonConformanceListCreate(generics.ListCreateAPIView):
+    serializer_class = NonConformanceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return NonConformance.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project, raised_by=self.request.user)
+
+
+class NonConformanceDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = NonConformanceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return NonConformance.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class RFIRecordListCreate(generics.ListCreateAPIView):
+    serializer_class = RFIRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return RFIRecord.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project, raised_by=self.request.user)
+
+
+class RFIRecordDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RFIRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return RFIRecord.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class IncidentReportListCreate(generics.ListCreateAPIView):
+    serializer_class = IncidentReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return IncidentReport.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project, reported_by=self.request.user)
+
+
+class IncidentReportDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = IncidentReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return IncidentReport.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class SubcontractorListCreate(generics.ListCreateAPIView):
+    serializer_class = SubcontractorSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Subcontractor.objects.filter(project_id=self.kwargs['project_pk'])
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        serializer.save(project=project)
+
+
+class SubcontractorDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SubcontractorSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Subcontractor.objects.filter(project_id=self.kwargs['project_pk'])
+
+
+class SubcontractorMilestoneListCreate(generics.ListCreateAPIView):
+    serializer_class = SubcontractorMilestoneSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SubcontractorMilestone.objects.filter(subcontractor_id=self.kwargs['sub_pk'])
+
+
+class SubcontractorMilestoneDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SubcontractorMilestoneSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SubcontractorMilestone.objects.filter(subcontractor_id=self.kwargs['sub_pk'])
