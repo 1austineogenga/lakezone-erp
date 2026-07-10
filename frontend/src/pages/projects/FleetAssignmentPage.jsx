@@ -17,12 +17,13 @@ export default function FleetAssignmentPage() {
   if (isLoading) return <p className="text-center py-12 text-gray-400 text-sm">Loading…</p>
 
   return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-brand-slate">Assigned Fleet</h2>
     <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
       {assignments.length === 0 ? (
         <div className="p-10 text-center">
           <TruckIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-600">No vehicles assigned yet.</p>
-          <p className="text-xs text-gray-400 mt-1">Go to Fleet → Vehicles → Fleet Assignment to assign fleet to this project.</p>
         </div>
       ) : (
         <table className="min-w-full text-sm">
@@ -61,6 +62,7 @@ export default function FleetAssignmentPage() {
           </tbody>
         </table>
       )}
+    </div>
     </div>
   )
 }
