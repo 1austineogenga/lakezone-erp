@@ -3,7 +3,78 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getDailySheet, getMonthlyReport, bulkMarkAttendance, getAttendance } from '../../api/hr'
-import { CheckCircleIcon, XCircleIcon, ClockIcon, ClipboardDocumentListIcon, MapPinIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, XCircleIcon, ClockIcon, ClipboardDocumentListIcon, MapPinIcon, ArrowDownTrayIcon, PrinterIcon } from '@heroicons/react/24/outline'
+
+function exportCSV(sheet, date) {
+  const rows = [
+    ['#', 'Employee No', 'Full Name', 'Status', 'Time In', 'Time Out', 'Source', 'Location'],
+    ...sheet.map((r, i) => [
+      i + 1,
+      r.employee_number,
+      r.full_name,
+      r.status?.replace('_', ' ') ?? '',
+      r.time_in ?? '',
+      r.time_out ?? '',
+      r.source ?? '',
+      r.location ?? '',
+    ]),
+  ]
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `attendance-${date}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function printReport(sheet, date, summary) {
+  const statusColor = s => ({
+    present: '#16a34a', absent: '#dc2626', late: '#ca8a04',
+    on_leave: '#334155', half_day: '#ea580c',
+  }[s] || '#6b7280')
+
+  const rows = sheet.map((r, i) => `
+    <tr style="border-bottom:1px solid #e5e7eb;${i % 2 === 0 ? '' : 'background:#f9fafb'}">
+      <td style="padding:6px 10px;font-size:12px">${i + 1}</td>
+      <td style="padding:6px 10px;font-size:12px;font-weight:600">${r.employee_number}</td>
+      <td style="padding:6px 10px;font-size:12px">${r.full_name}</td>
+      <td style="padding:6px 10px;font-size:12px;color:${statusColor(r.status)};font-weight:600;text-transform:capitalize">${(r.status ?? '').replace('_', ' ')}</td>
+      <td style="padding:6px 10px;font-size:12px;font-family:monospace">${r.time_in ?? '—'}</td>
+      <td style="padding:6px 10px;font-size:12px;font-family:monospace">${r.time_out ?? '—'}</td>
+      <td style="padding:6px 10px;font-size:12px;text-transform:capitalize">${r.source ?? '—'}</td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html><html><head><title>Attendance Report — ${date}</title>
+  <style>body{font-family:Arial,sans-serif;margin:24px;color:#1e293b}
+  h1{margin:0;font-size:18px}p{margin:4px 0;font-size:12px;color:#64748b}
+  table{width:100%;border-collapse:collapse;margin-top:16px}
+  th{background:#1e293b;color:#fff;padding:8px 10px;font-size:11px;text-align:left}
+  .summary{display:flex;gap:16px;margin:16px 0}
+  .card{background:#f1f5f9;border-radius:8px;padding:10px 20px;text-align:center}
+  .card .val{font-size:22px;font-weight:700}.card .lbl{font-size:11px;color:#64748b}
+  @media print{body{margin:8px}}</style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e293b;padding-bottom:12px;margin-bottom:12px">
+    <div><h1>Lake Zone Enterprises Ltd</h1><p style="font-size:14px;font-weight:600;color:#1e293b">Daily Attendance Report</p><p>Date: ${date}</p></div>
+    <p style="font-size:11px;color:#94a3b8">Printed: ${new Date().toLocaleString()}</p>
+  </div>
+  <div class="summary">
+    <div class="card"><div class="val" style="color:#16a34a">${summary.present}</div><div class="lbl">Present</div></div>
+    <div class="card"><div class="val" style="color:#dc2626">${summary.absent}</div><div class="lbl">Absent</div></div>
+    <div class="card"><div class="val" style="color:#ca8a04">${summary.late}</div><div class="lbl">Late</div></div>
+    <div class="card"><div class="val" style="color:#334155">${summary.onLeave}</div><div class="lbl">On Leave</div></div>
+    <div class="card"><div class="val" style="color:#1e293b">${sheet.length}</div><div class="lbl">Total</div></div>
+  </div>
+  <table><thead><tr>
+    <th>#</th><th>Emp No</th><th>Full Name</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Source</th>
+  </tr></thead><tbody>${rows}</tbody></table>
+  <p style="margin-top:20px;font-size:10px;color:#94a3b8;text-align:center">Lake Zone ERP — Confidential</p>
+  <script>window.onload=()=>{window.print()}</script></body></html>`
+
+  const w = window.open('', '_blank', 'width=900,height=700')
+  w.document.write(html)
+  w.document.close()
+}
 
 // Cache geocode results for the session
 const geocodeCache = {}
@@ -150,7 +221,21 @@ export default function AttendancePage() {
               <h3 className="font-semibold text-brand-slate text-sm">
                 Attendance Sheet — {date}
               </h3>
-              <span className="text-xs text-gray-600">{dailySheet?.length || 0} employees</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600">{dailySheet?.length || 0} employees</span>
+                {dailySheet && dailySheet.length > 0 && (<>
+                  <button onClick={() => exportCSV(dailySheet, date)}
+                    title="Export CSV"
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 text-gray-600">
+                    <ArrowDownTrayIcon className="h-3.5 w-3.5" /> CSV
+                  </button>
+                  <button onClick={() => printReport(dailySheet, date, { present, absent, late, onLeave })}
+                    title="Print / PDF"
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 text-gray-600">
+                    <PrinterIcon className="h-3.5 w-3.5" /> Print
+                  </button>
+                </>)}
+              </div>
             </div>
             {loadingDaily
               ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
