@@ -776,3 +776,78 @@ class CasualDailyLog(models.Model):
 
     def __str__(self):
         return f'{self.casual.full_name} – {self.work_date} ({self.days_worked}d)'
+
+
+class CasualDailyReport(models.Model):
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        SUBMITTED = 'submitted', 'Submitted for Approval'
+        APPROVED  = 'approved',  'Approved'
+        REJECTED  = 'rejected',  'Rejected'
+        PAID      = 'paid',      'Paid'
+
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference     = models.CharField(max_length=30, unique=True, blank=True)
+    report_date   = models.DateField()
+    status        = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    total_amount  = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    notes         = models.TextField(blank=True)
+
+    submitted_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                      related_name='casual_reports_submitted')
+    submitted_at  = models.DateTimeField(null=True, blank=True)
+    approved_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name='casual_reports_approved')
+    approved_at   = models.DateTimeField(null=True, blank=True)
+    rejection_notes = models.TextField(blank=True)
+
+    expense_claim = models.OneToOneField(
+        'finance.ExpenseClaim', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='casual_report'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-report_date', '-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            from datetime import date as d
+            year = d.today().year
+            count = CasualDailyReport.objects.filter(reference__startswith=f'CDR-{year}-').count()
+            self.reference = f'CDR-{year}-{str(count + 1).zfill(4)}'
+        super().save(*args, **kwargs)
+
+    def recalculate(self):
+        self.total_amount = sum(item.amount for item in self.items.all())
+        self.save(update_fields=['total_amount'])
+
+    def __str__(self):
+        return f'{self.reference} — {self.report_date}'
+
+
+class CasualDailyReportItem(models.Model):
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    report      = models.ForeignKey(CasualDailyReport, on_delete=models.CASCADE, related_name='items')
+    casual      = models.ForeignKey(Casual, on_delete=models.PROTECT, related_name='report_items')
+    # Snapshots at time of report generation
+    full_name   = models.CharField(max_length=200)
+    id_number   = models.CharField(max_length=20)
+    phone       = models.CharField(max_length=20)
+    assignment  = models.TextField()
+    placement   = models.CharField(max_length=200)
+    daily_rate  = models.DecimalField(max_digits=10, decimal_places=2)
+    days_worked = models.DecimalField(max_digits=4, decimal_places=2, default=1)
+    amount      = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = [['report', 'casual']]
+
+    def save(self, *args, **kwargs):
+        self.amount = self.daily_rate * self.days_worked
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.full_name} — KES {self.amount}'

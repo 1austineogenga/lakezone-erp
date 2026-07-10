@@ -13,7 +13,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
-    EmployeeTransfer, Casual, CasualDailyLog,
+    EmployeeTransfer, Casual, CasualDailyLog, CasualDailyReport, CasualDailyReportItem,
 )
 from .serializers import (
     JobGradeSerializer, PositionSerializer,
@@ -27,6 +27,7 @@ from .serializers import (
     DisciplinaryRecordSerializer,
     EmployeeTransferSerializer, EmployeeTransferCreateSerializer, TransferReviewSerializer,
     CasualSerializer, CasualDailyLogSerializer,
+    CasualDailyReportSerializer, CasualDailyReportItemSerializer,
 )
 
 
@@ -1128,3 +1129,129 @@ class CasualImportView(APIView):
                 errors.append({'row': i, 'error': str(e)})
 
         return Response({'created': len(created), 'updated': len(updated), 'errors': errors})
+
+
+# ── Casual Daily Reports ─────────────────────────────────────────────────────
+
+class CasualDailyReportListCreateView(generics.ListCreateAPIView):
+    serializer_class   = CasualDailyReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = CasualDailyReport.objects.select_related(
+            'submitted_by', 'approved_by', 'expense_claim'
+        ).prefetch_related('items')
+        report_date = self.request.query_params.get('report_date')
+        if report_date:
+            qs = qs.filter(report_date=report_date)
+        return qs
+
+    def perform_create(self, serializer):
+        from datetime import date
+        report_date = serializer.validated_data.get('report_date', date.today())
+        # Snapshot all active-today casuals
+        today_casuals = Casual.objects.filter(activated_date=report_date)
+        report = serializer.save(submitted_by=self.request.user)
+        for c in today_casuals:
+            CasualDailyReportItem.objects.create(
+                report=report, casual=c,
+                full_name=c.full_name, id_number=c.id_number,
+                phone=c.phone, assignment=c.assignment,
+                placement=c.placement, daily_rate=c.daily_rate,
+                days_worked=1,
+            )
+        report.recalculate()
+
+
+class CasualDailyReportDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset           = CasualDailyReport.objects.prefetch_related('items').select_related(
+                            'submitted_by', 'approved_by', 'expense_claim')
+    serializer_class   = CasualDailyReportSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CasualReportSubmitView(APIView):
+    """HR submits report to MD for approval."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            report = CasualDailyReport.objects.get(pk=pk)
+        except CasualDailyReport.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if report.status != CasualDailyReport.Status.DRAFT:
+            return Response({'error': 'Only draft reports can be submitted.'}, status=400)
+        if not report.items.exists():
+            return Response({'error': 'Cannot submit an empty report.'}, status=400)
+
+        report.status       = CasualDailyReport.Status.SUBMITTED
+        report.submitted_at = timezone.now()
+        report.save(update_fields=['status', 'submitted_at'])
+        return Response(CasualDailyReportSerializer(report).data)
+
+
+class CasualReportApproveView(APIView):
+    """MD approves or rejects. Approval auto-creates an ExpenseClaim in Finance."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            report = CasualDailyReport.objects.prefetch_related('items').get(pk=pk)
+        except CasualDailyReport.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if report.status != CasualDailyReport.Status.SUBMITTED:
+            return Response({'error': 'Only submitted reports can be actioned.'}, status=400)
+
+        action = request.data.get('action')  # 'approve' | 'reject'
+        notes  = request.data.get('notes', '')
+
+        if action == 'reject':
+            report.status          = CasualDailyReport.Status.REJECTED
+            report.rejection_notes = notes
+            report.approved_by     = request.user
+            report.approved_at     = timezone.now()
+            report.save(update_fields=['status', 'rejection_notes', 'approved_by', 'approved_at'])
+            return Response(CasualDailyReportSerializer(report).data)
+
+        if action != 'approve':
+            return Response({'error': 'Invalid action. Use "approve" or "reject".'}, status=400)
+
+        # Create ExpenseClaim in Finance
+        from finance.models import ExpenseClaim, ExpenseClaimItem, Account
+        with transaction.atomic():
+            claim = ExpenseClaim.objects.create(
+                title=f'Casual Workers Payment — {report.report_date}',
+                submitted_by=request.user,
+                status=ExpenseClaim.Status.SUBMITTED,
+                notes=(
+                    f'Daily casual workers payment batch.\n'
+                    f'Report reference: {report.reference}\n'
+                    f'Approved by: {request.user.get_full_name()}\n'
+                    + (f'Notes: {notes}' if notes else '')
+                ).strip(),
+            )
+            for item in report.items.all():
+                ExpenseClaimItem.objects.create(
+                    claim=claim,
+                    date=report.report_date,
+                    description=(
+                        f'{item.full_name} — {item.assignment} '
+                        f'[Send Money: {item.phone}] ({item.placement})'
+                    ),
+                    category=Account.CostCode.LABOUR,
+                    amount=item.amount,
+                    receipt_ref=f'ID: {item.id_number}',
+                )
+            claim.recalculate()
+
+            report.status       = CasualDailyReport.Status.APPROVED
+            report.approved_by  = request.user
+            report.approved_at  = timezone.now()
+            report.expense_claim = claim
+            if notes:
+                report.notes = notes
+            report.save(update_fields=['status', 'approved_by', 'approved_at', 'expense_claim', 'notes'])
+
+        return Response(CasualDailyReportSerializer(report).data)
