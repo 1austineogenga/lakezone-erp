@@ -2,51 +2,39 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Squares2X2Icon,
-  ClipboardDocumentListIcon,
-  BanknotesIcon,
-  DocumentCheckIcon,
-  CalendarDaysIcon,
-  ExclamationTriangleIcon,
-  TruckIcon,
-  UsersIcon,
-  ArrowLeftIcon,
-  DocumentTextIcon,
-  ListBulletIcon,
-  PhotoIcon,
-  ChartBarIcon,
-  BookOpenIcon,
-  BeakerIcon,
-  ExclamationCircleIcon,
-  QuestionMarkCircleIcon,
-  ShieldExclamationIcon,
-  BuildingOfficeIcon,
-  MapPinIcon,
+  Squares2X2Icon, ClipboardDocumentListIcon, BanknotesIcon, DocumentCheckIcon,
+  CalendarDaysIcon, ExclamationTriangleIcon, TruckIcon, UsersIcon, ArrowLeftIcon,
+  DocumentTextIcon, ListBulletIcon, PhotoIcon, ChartBarIcon, BookOpenIcon,
+  BeakerIcon, ExclamationCircleIcon, QuestionMarkCircleIcon, ShieldExclamationIcon,
+  BuildingOfficeIcon, MapPinIcon, ChevronDownIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 import { getProjectDashboard } from '../../api/projects'
-import EVMPage from './EVMPage'
-import ProjectDashboard from './ProjectDashboard'
-import BOQPage from './BOQPage'
-import BudgetPage from './BudgetPage'
-import IPCPage from './IPCPage'
-import WeeklyProgressPage from './WeeklyProgressPage'
-import RiskRegisterPage from './RiskRegisterPage'
+
+import ProjectDashboard    from './ProjectDashboard'
+import WBSPage             from './WBSPage'
+import PhotoTimelinePage   from './PhotoTimelinePage'
+import BOQPage             from './BOQPage'
+import BudgetPage          from './BudgetPage'
+import IPCPage             from './IPCPage'
+import WeeklyProgressPage  from './WeeklyProgressPage'
+import EVMPage             from './EVMPage'
+import RiskRegisterPage    from './RiskRegisterPage'
 import FleetAssignmentPage from './FleetAssignmentPage'
-import TeamPage from './TeamPage'
-import ForemanDailyReportPage from './ForemanDailyReportPage'
-import ForemanWeeklyReportPage from './ForemanWeeklyReportPage'
-import SurveyorDailyReportPage from './SurveyorDailyReportPage'
+import TeamPage            from './TeamPage'
+import ForemanDailyReportPage   from './ForemanDailyReportPage'
+import ForemanWeeklyReportPage  from './ForemanWeeklyReportPage'
+import SurveyorDailyReportPage  from './SurveyorDailyReportPage'
 import SurveyorWeeklyReportPage from './SurveyorWeeklyReportPage'
-import RFIPage from './RFIPage'
-import WBSPage from './WBSPage'
-import PhotoTimelinePage from './PhotoTimelinePage'
-import SiteDiaryPage from './SiteDiaryPage'
-import QAPage from './QAPage'
-import NCRPage from './NCRPage'
-import RFIListPage from './RFIListPage'
-import SafetyPage from './SafetyPage'
-import SubcontractorsPage from './SubcontractorsPage'
-import ChainagePage from './ChainagePage'
+import RFIPage             from './RFIPage'
+import SiteDiaryPage       from './SiteDiaryPage'
+import QAPage              from './QAPage'
+import NCRPage             from './NCRPage'
+import RFIListPage         from './RFIListPage'
+import SafetyPage          from './SafetyPage'
+import SubcontractorsPage  from './SubcontractorsPage'
+import ChainagePage        from './ChainagePage'
+
+// ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_COLORS = {
   planning:  'bg-gray-100 text-gray-600',
@@ -56,37 +44,152 @@ const STATUS_COLORS = {
   suspended: 'bg-red-100 text-red-700',
 }
 const STATUS_LABELS = {
-  planning: 'Planning', active: 'Active', on_hold: 'On Hold', completed: 'Completed', suspended: 'Suspended',
+  planning: 'Planning', active: 'Active', on_hold: 'On Hold',
+  completed: 'Completed', suspended: 'Suspended',
 }
 
-const TABS = [
-  { id: 'dashboard',       label: 'Dashboard',       Icon: Squares2X2Icon },
-  { id: 'wbs',             label: 'WBS / Activities',Icon: ListBulletIcon },
-  { id: 'boq',             label: 'BOQ',             Icon: ClipboardDocumentListIcon },
-  { id: 'budget',          label: 'Budget',          Icon: BanknotesIcon },
-  { id: 'ipcs',            label: 'IPCs',            Icon: DocumentCheckIcon },
-  { id: 'progress',        label: 'Weekly Progress', Icon: CalendarDaysIcon },
-  { id: 'evm',             label: 'EVM & Finance',   Icon: ChartBarIcon },
-  { id: 'site-diary',      label: 'Site Diary',      Icon: BookOpenIcon },
-  { id: 'chainage',        label: 'Chainage',        Icon: MapPinIcon },
-  { id: 'qa',              label: 'QA / Testing',    Icon: BeakerIcon },
-  { id: 'ncr',             label: 'NCR',             Icon: ExclamationCircleIcon },
-  { id: 'rfi-list',        label: 'RFIs',            Icon: QuestionMarkCircleIcon },
-  { id: 'safety',          label: 'Safety',          Icon: ShieldExclamationIcon },
-  { id: 'subcontractors',  label: 'Subcontractors',  Icon: BuildingOfficeIcon },
-  { id: 'risks',           label: 'Risk Register',   Icon: ExclamationTriangleIcon },
-  { id: 'fleet',           label: 'Fleet',           Icon: TruckIcon },
-  { id: 'team',            label: 'Team',            Icon: UsersIcon },
-  { id: 'photos',          label: 'Photos',          Icon: PhotoIcon },
-  { id: 'reports',         label: 'Reports',         Icon: DocumentTextIcon },
+// ── Sidebar navigation groups ─────────────────────────────────────────────────
+
+const NAV = [
+  {
+    group: null,
+    items: [
+      { id: 'dashboard', label: 'Dashboard', Icon: Squares2X2Icon },
+    ],
+  },
+  {
+    group: 'Planning',
+    items: [
+      { id: 'boq',     label: 'Bill of Quantities', Icon: ClipboardDocumentListIcon },
+      { id: 'budget',  label: 'Budget / Workbook',  Icon: BanknotesIcon },
+      { id: 'wbs',     label: 'WBS / Activities',   Icon: ListBulletIcon },
+      { id: 'chainage',label: 'Chainage Segments',  Icon: MapPinIcon },
+    ],
+  },
+  {
+    group: 'Commercial',
+    items: [
+      { id: 'ipcs',    label: 'IPCs',               Icon: DocumentCheckIcon },
+      { id: 'evm',     label: 'EVM & Finance',      Icon: ChartBarIcon },
+    ],
+  },
+  {
+    group: 'Execution',
+    items: [
+      { id: 'site-diary', label: 'Site Diary',      Icon: BookOpenIcon },
+      { id: 'progress',   label: 'Weekly Progress', Icon: CalendarDaysIcon },
+    ],
+  },
+  {
+    group: 'Quality & Safety',
+    items: [
+      { id: 'qa',       label: 'QA / Testing',      Icon: BeakerIcon },
+      { id: 'ncr',      label: 'NCR',               Icon: ExclamationCircleIcon },
+      { id: 'rfi-list', label: 'RFIs',              Icon: QuestionMarkCircleIcon },
+      { id: 'safety',   label: 'Safety',            Icon: ShieldExclamationIcon },
+    ],
+  },
+  {
+    group: 'Resources',
+    items: [
+      { id: 'subcontractors', label: 'Subcontractors', Icon: BuildingOfficeIcon },
+      { id: 'fleet',          label: 'Fleet',           Icon: TruckIcon },
+      { id: 'team',           label: 'Team',            Icon: UsersIcon },
+    ],
+  },
+  {
+    group: 'Management',
+    items: [
+      { id: 'risks',   label: 'Risk Register',      Icon: ExclamationTriangleIcon },
+      { id: 'photos',  label: 'Photos',             Icon: PhotoIcon },
+      { id: 'reports', label: 'Reports',            Icon: DocumentTextIcon },
+    ],
+  },
 ]
+
+// ── Sidebar link component ────────────────────────────────────────────────────
+
+function NavItem({ item, active, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(item.id)}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition-colors
+        ${active
+          ? 'bg-brand-red text-white'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-brand-slate'}`}
+    >
+      <item.Icon className="h-4 w-4 flex-shrink-0" />
+      {item.label}
+    </button>
+  )
+}
+
+// ── Reports sub-tab render ────────────────────────────────────────────────────
+
+function ReportsView() {
+  const [sub, setSub] = useState('foreman-daily')
+  const SUB_TABS = [
+    { key: 'foreman-daily',   label: 'Foreman Daily' },
+    { key: 'foreman-weekly',  label: 'Foreman Weekly' },
+    { key: 'surveyor-daily',  label: 'Surveyor Daily' },
+    { key: 'surveyor-weekly', label: 'Surveyor Weekly' },
+    { key: 'rfi-form',        label: 'RFI Form' },
+  ]
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {SUB_TABS.map(t => (
+          <button key={t.key} onClick={() => setSub(t.key)}
+            className={`px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors
+              ${sub === t.key ? 'bg-brand-red text-white border-brand-red' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-red'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {sub === 'foreman-daily'   && <ForemanDailyReportPage />}
+      {sub === 'foreman-weekly'  && <ForemanWeeklyReportPage />}
+      {sub === 'surveyor-daily'  && <SurveyorDailyReportPage />}
+      {sub === 'surveyor-weekly' && <SurveyorWeeklyReportPage />}
+      {sub === 'rfi-form'        && <RFIPage />}
+    </div>
+  )
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+
+function renderContent(tab, dashData, project) {
+  switch (tab) {
+    case 'dashboard':      return <ProjectDashboard dashData={dashData} />
+    case 'boq':            return <BOQPage projectName={project.name} />
+    case 'budget':         return <BudgetPage />
+    case 'wbs':            return <WBSPage />
+    case 'chainage':       return <ChainagePage />
+    case 'ipcs':           return <IPCPage />
+    case 'evm':            return <EVMPage />
+    case 'site-diary':     return <SiteDiaryPage />
+    case 'progress':       return <WeeklyProgressPage />
+    case 'qa':             return <QAPage />
+    case 'ncr':            return <NCRPage />
+    case 'rfi-list':       return <RFIListPage />
+    case 'safety':         return <SafetyPage />
+    case 'subcontractors': return <SubcontractorsPage />
+    case 'fleet':          return <FleetAssignmentPage />
+    case 'team':           return <TeamPage />
+    case 'risks':          return <RiskRegisterPage />
+    case 'photos':         return <PhotoTimelinePage projectName={project.name} />
+    case 'reports':        return <ReportsView />
+    default:               return <ProjectDashboard dashData={dashData} />
+  }
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [collapsed, setCollapsed] = useState({})
 
-  // Use dashboard endpoint as single source of project info — it always returns project data
   const { data: dashData, isLoading } = useQuery({
     queryKey: ['project-dashboard', projectId],
     queryFn: () => getProjectDashboard(projectId),
@@ -96,109 +199,96 @@ export default function ProjectPage() {
 
   const project = dashData?.project || {}
 
-  const [reportSubTab, setReportSubTab] = useState('foreman-daily')
-
-  const renderTab = () => {
-    switch (activeTab) {
-      case 'dashboard':      return <ProjectDashboard dashData={dashData} />
-      case 'wbs':            return <WBSPage />
-      case 'photos':         return <PhotoTimelinePage projectName={project.name} />
-      case 'boq':            return <BOQPage projectName={project.name} />
-      case 'budget':         return <BudgetPage />
-      case 'ipcs':           return <IPCPage />
-      case 'progress':       return <WeeklyProgressPage />
-      case 'evm':            return <EVMPage />
-      case 'site-diary':     return <SiteDiaryPage />
-      case 'chainage':       return <ChainagePage />
-      case 'qa':             return <QAPage />
-      case 'ncr':            return <NCRPage />
-      case 'rfi-list':       return <RFIListPage />
-      case 'safety':         return <SafetyPage />
-      case 'subcontractors': return <SubcontractorsPage />
-      case 'risks':          return <RiskRegisterPage />
-      case 'fleet':          return <FleetAssignmentPage />
-      case 'team':           return <TeamPage />
-      case 'reports':   return (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: 'foreman-daily',   label: 'Foreman Daily' },
-              { key: 'foreman-weekly',  label: 'Foreman Weekly' },
-              { key: 'surveyor-daily',  label: 'Surveyor Daily' },
-              { key: 'surveyor-weekly', label: 'Surveyor Weekly' },
-              { key: 'rfi',             label: 'Request for Inspection' },
-            ].map(opt => (
-              <button key={opt.key} onClick={() => setReportSubTab(opt.key)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors
-                  ${reportSubTab === opt.key ? 'bg-brand-red text-white border-brand-red' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-red'}`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {reportSubTab === 'foreman-daily'   && <ForemanDailyReportPage />}
-          {reportSubTab === 'foreman-weekly'  && <ForemanWeeklyReportPage />}
-          {reportSubTab === 'surveyor-daily'  && <SurveyorDailyReportPage />}
-          {reportSubTab === 'surveyor-weekly' && <SurveyorWeeklyReportPage />}
-          {reportSubTab === 'rfi'             && <RFIPage />}
-        </div>
-      )
-      default:          return <ProjectDashboard dashData={dashData} />
-    }
-  }
+  const toggleGroup = g => setCollapsed(c => ({ ...c, [g]: !c[g] }))
 
   return (
-    <div className="flex flex-col h-full min-h-screen -m-6">
-      {/* Top header bar */}
-      <div className="bg-white border-b border-gray-200 px-6 pt-4 sticky top-0 z-10">
-        <div className="flex items-center gap-3 mb-3">
+    <div className="flex h-full min-h-screen -m-6">
+
+      {/* ── Left sidebar ──────────────────────────────────────────────────── */}
+      <aside className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
+
+        {/* Project identity */}
+        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
           <button
             onClick={() => navigate('/projects')}
-            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-slate"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-slate mb-2"
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" /> All Projects
           </button>
-          <span className="text-gray-600">|</span>
-          {isLoading ? (
-            <div className="h-4 bg-gray-100 rounded animate-pulse w-48" />
-          ) : (
-            <>
-              <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">
-                {project?.code || '—'}
-              </span>
-              <h1 className="text-sm font-semibold text-brand-slate truncate">
-                {project?.name || 'Loading project…'}
-              </h1>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project?.status] || STATUS_COLORS.planning}`}>
-                {STATUS_LABELS[project?.status] || ''}
-              </span>
-              <span className="ml-auto text-xs text-gray-600 shrink-0">
-                Contract: <span className="font-medium text-brand-slate">KES {Number(project?.contract_value || 0).toLocaleString()}</span>
-              </span>
-            </>
-          )}
+          {isLoading
+            ? <div className="h-4 bg-gray-100 rounded animate-pulse w-3/4" />
+            : <>
+                <span className="inline-block bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded mb-1">
+                  {project.code || '—'}
+                </span>
+                <p className="text-xs font-semibold text-brand-slate leading-tight truncate">
+                  {project.name || 'Loading…'}
+                </p>
+                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project.status] || STATUS_COLORS.planning}`}>
+                  {STATUS_LABELS[project.status] || '—'}
+                </span>
+              </>
+          }
         </div>
 
-        {/* Horizontal tabs */}
-        <nav className="flex gap-0 overflow-x-auto">
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors
-                ${activeTab === id
-                  ? 'border-brand-red text-brand-red'
-                  : 'border-transparent text-gray-500 hover:text-brand-slate hover:border-gray-300'}`}
-            >
-              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-              {label}
-            </button>
+        {/* Contract value chip */}
+        {!isLoading && project.contract_value && (
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-xs text-gray-400">Contract Value</p>
+            <p className="text-xs font-semibold text-brand-slate">
+              KES {Number(project.contract_value).toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5">
+          {NAV.map(({ group, items }) => (
+            <div key={group || '__top'} className="mb-1">
+              {group && (
+                <button
+                  onClick={() => toggleGroup(group)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hover:text-gray-600"
+                >
+                  {group}
+                  {collapsed[group]
+                    ? <ChevronRightIcon className="h-3 w-3" />
+                    : <ChevronDownIcon  className="h-3 w-3" />}
+                </button>
+              )}
+              {!collapsed[group] && items.map(item => (
+                <NavItem
+                  key={item.id}
+                  item={item}
+                  active={activeTab === item.id}
+                  onClick={setActiveTab}
+                />
+              ))}
+            </div>
           ))}
         </nav>
-      </div>
+      </aside>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-auto p-6">
-        {renderTab()}
+      {/* ── Main content ──────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Thin top bar showing current section */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
+          {(() => {
+            const all = NAV.flatMap(g => g.items)
+            const cur = all.find(i => i.id === activeTab)
+            return cur
+              ? <>
+                  <cur.Icon className="h-4 w-4 text-brand-red" />
+                  <span className="text-sm font-semibold text-brand-slate">{cur.label}</span>
+                </>
+              : null
+          })()}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-auto p-6">
+          {renderContent(activeTab, dashData, project)}
+        </div>
       </div>
     </div>
   )
