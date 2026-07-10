@@ -129,9 +129,13 @@ class ProjectRiskSerializer(serializers.ModelSerializer):
 
 
 class ProjectVehicleSerializer(serializers.ModelSerializer):
+    vehicle_no   = serializers.CharField(source='vehicle.vehicle_no',   read_only=True)
+    vehicle_name = serializers.CharField(source='vehicle.vehicle_name', read_only=True)
+
     class Meta:
         model = ProjectVehicle
         fields = '__all__'
+        read_only_fields = ['project']
 
 
 class ProjectPersonnelSerializer(serializers.ModelSerializer):
