@@ -69,11 +69,10 @@ const NAV = (role, isAdmin) => [
     type: 'dropdown', key: 'fleet', label: 'Fleet', icon: TruckIcon,
     root: '/fleet', module: 'fleet',
     links: [
-      { to: '/fleet',                         label: 'Dashboard',  icon: ChartBarIcon,   end: true },
-      { to: '/fleet/vehicles',                label: 'Vehicles',   icon: TruckIcon },
-      { to: '/fleet/equipment-deployment',    label: 'Equipment',  icon: ClipboardDocumentCheckIcon },
-      { to: '/fleet/fuel',                    label: 'Monitoring', icon: ArrowTrendingUpIcon },
-      { to: '/fleet/geofences',               label: 'Control',    icon: MapIcon },
+      { to: '/fleet',           label: 'Dashboard',  icon: ChartBarIcon,   end: true },
+      { to: '/fleet/vehicles',  label: 'Vehicles',   icon: TruckIcon },
+      { to: '/fleet/fuel',      label: 'Monitoring', icon: ArrowTrendingUpIcon },
+      { to: '/fleet/geofences', label: 'Control',    icon: MapIcon },
     ],
   },
 
