@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline'
-import api from '../../api/axios'
+import api from '../../api/client'
 
 const SEVERITY_COLORS = {
   near_miss: 'bg-blue-100 text-blue-700',

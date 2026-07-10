@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon, SunIcon, CloudIcon } from '@heroicons/react/24/outline'
-import api from '../../api/axios'
+import api from '../../api/client'
 
 const WEATHER_OPTS = [
   { value: 'clear',      label: 'Clear',         color: 'text-yellow-600 bg-yellow-50' },
