@@ -129,8 +129,24 @@ class ProjectRiskSerializer(serializers.ModelSerializer):
 
 
 class ProjectVehicleSerializer(serializers.ModelSerializer):
-    vehicle_no   = serializers.CharField(source='vehicle.vehicle_no',   read_only=True)
-    vehicle_name = serializers.CharField(source='vehicle.vehicle_name', read_only=True)
+    vehicle_no       = serializers.CharField(source='vehicle.vehicle_no',       read_only=True)
+    vehicle_name     = serializers.CharField(source='vehicle.vehicle_name',     read_only=True)
+    make             = serializers.CharField(source='vehicle.make',             read_only=True)
+    model_name       = serializers.CharField(source='vehicle.model_name',       read_only=True)
+    asset_category   = serializers.CharField(source='vehicle.asset_category',   read_only=True)
+    current_site     = serializers.CharField(source='vehicle.current_site',     read_only=True)
+    last_status      = serializers.CharField(source='vehicle.last_status',      read_only=True)
+    driver_operator  = serializers.SerializerMethodField()
+
+    def get_driver_operator(self, obj):
+        assignment = obj.vehicle.assignments.filter(is_current=True).first()
+        if not assignment:
+            return None
+        if assignment.employee:
+            emp = assignment.employee
+            name = f"{emp.first_name} {emp.last_name}".strip()
+            return name or assignment.driver_name or None
+        return assignment.driver_name or None
 
     class Meta:
         model = ProjectVehicle
