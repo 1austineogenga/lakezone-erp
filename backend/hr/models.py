@@ -679,9 +679,22 @@ class EmployeeTransfer(models.Model):
                                             help_text='Leave blank for permanent transfers')
     reason               = models.TextField()
 
+    class StaffCategory(models.TextChoices):
+        SUBORDINATE = 'subordinate', 'Subordinate Staff'
+        MANAGEMENT  = 'management',  'Management Staff'
+
     # Allowances (applicable when moving to site/field)
+    allowance_eligible   = models.BooleanField(default=True,
+                                               help_text='Whether this employee is entitled to movement allowances')
+    lunch_days           = models.PositiveIntegerField(default=0,
+                                                       help_text='Days eligible for lunch allowance (KES 500/day)')
+    overnight_nights     = models.PositiveIntegerField(default=0,
+                                                       help_text='Nights requiring accommodation (KES 1,500/night)')
     relocation_allowance = models.DecimalField(max_digits=12, decimal_places=2,
                                                default=0, help_text='One-off relocation payment')
+    staff_category       = models.CharField(max_length=15, choices=StaffCategory.choices,
+                                            default=StaffCategory.SUBORDINATE,
+                                            help_text='Determines relocation allowance tier')
     daily_allowance      = models.DecimalField(max_digits=10, decimal_places=2,
                                                default=0, help_text='Daily allowance rate')
     daily_allowance_days = models.PositiveIntegerField(default=0,
