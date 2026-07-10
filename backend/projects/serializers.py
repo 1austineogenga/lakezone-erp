@@ -3,6 +3,8 @@ from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
     IPC, IPCItem, ProjectRisk, ProjectVehicle, ProjectPersonnel, WeeklyProgress,
     ProjectPhase, ProjectActivity, ActivityProgress, VariationOrder,
+    ChainageSegment, SiteDiary, QATestRecord, NonConformance,
+    RFIRecord, IncidentReport, Subcontractor, SubcontractorMilestone,
 )
 
 
@@ -326,3 +328,100 @@ class VariationOrderSerializer(serializers.ModelSerializer):
 
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name() if obj.created_by else None
+
+
+# ── New Phase-2 serializers ────────────────────────────────────────────────────
+
+class ChainageSegmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = ChainageSegment
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class SiteDiarySerializer(serializers.ModelSerializer):
+    prepared_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = SiteDiary
+        fields = '__all__'
+        read_only_fields = ['id', 'prepared_by', 'created_at']
+
+    def get_prepared_by_name(self, obj):
+        if obj.prepared_by:
+            return obj.prepared_by.get_full_name() or obj.prepared_by.email
+        return None
+
+
+class QATestRecordSerializer(serializers.ModelSerializer):
+    segment_name = serializers.CharField(source='chainage_segment.name', read_only=True, allow_null=True)
+
+    class Meta:
+        model  = QATestRecord
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']
+
+
+class NonConformanceSerializer(serializers.ModelSerializer):
+    raised_by_name   = serializers.SerializerMethodField()
+    segment_name     = serializers.CharField(source='chainage_segment.name', read_only=True, allow_null=True)
+
+    class Meta:
+        model  = NonConformance
+        fields = '__all__'
+        read_only_fields = ['id', 'ncr_number', 'raised_by', 'created_at']
+
+    def get_raised_by_name(self, obj):
+        if obj.raised_by:
+            return obj.raised_by.get_full_name() or obj.raised_by.email
+        return None
+
+
+class RFIRecordSerializer(serializers.ModelSerializer):
+    raised_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = RFIRecord
+        fields = '__all__'
+        read_only_fields = ['id', 'reference_no', 'raised_by', 'created_at']
+
+    def get_raised_by_name(self, obj):
+        if obj.raised_by:
+            return obj.raised_by.get_full_name() or obj.raised_by.email
+        return None
+
+
+class IncidentReportSerializer(serializers.ModelSerializer):
+    reported_by_name  = serializers.SerializerMethodField()
+    signed_off_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = IncidentReport
+        fields = '__all__'
+        read_only_fields = ['id', 'reported_by', 'created_at']
+
+    def get_reported_by_name(self, obj):
+        if obj.reported_by:
+            return obj.reported_by.get_full_name() or obj.reported_by.email
+        return None
+
+    def get_signed_off_by_name(self, obj):
+        if obj.signed_off_by:
+            return obj.signed_off_by.get_full_name() or obj.signed_off_by.email
+        return None
+
+
+class SubcontractorMilestoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = SubcontractorMilestone
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class SubcontractorSerializer(serializers.ModelSerializer):
+    milestones = SubcontractorMilestoneSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = Subcontractor
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']

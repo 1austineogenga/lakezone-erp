@@ -50,6 +50,17 @@ phase_urls = [
     path('<uuid:phase_pk>/activities/', include(activity_urls)),
 ]
 
+subcontractor_milestone_urls = [
+    path('', views.SubcontractorMilestoneListCreate.as_view()),
+    path('<uuid:pk>/', views.SubcontractorMilestoneDetail.as_view()),
+]
+
+subcontractor_urls = [
+    path('', views.SubcontractorListCreate.as_view()),
+    path('<uuid:sub_pk>/', views.SubcontractorDetail.as_view()),
+    path('<uuid:sub_pk>/milestones/', include(subcontractor_milestone_urls)),
+]
+
 project_urls = [
     path('', views.ProjectDetailView.as_view()),
     path('dashboard/', views.ProjectDashboardView.as_view()),
@@ -71,6 +82,20 @@ project_urls = [
     path('evm/', views.EVMView.as_view()),
     path('variation-orders/', views.VariationOrderListCreate.as_view()),
     path('variation-orders/<uuid:pk>/', views.VariationOrderDetail.as_view()),
+    # Phase 2
+    path('chainage/', views.ChainageSegmentListCreate.as_view()),
+    path('chainage/<uuid:pk>/', views.ChainageSegmentDetail.as_view()),
+    path('site-diary/', views.SiteDiaryListCreate.as_view()),
+    path('site-diary/<uuid:pk>/', views.SiteDiaryDetail.as_view()),
+    path('qa-tests/', views.QATestRecordListCreate.as_view()),
+    path('qa-tests/<uuid:pk>/', views.QATestRecordDetail.as_view()),
+    path('ncr/', views.NonConformanceListCreate.as_view()),
+    path('ncr/<uuid:pk>/', views.NonConformanceDetail.as_view()),
+    path('rfis/', views.RFIRecordListCreate.as_view()),
+    path('rfis/<uuid:pk>/', views.RFIRecordDetail.as_view()),
+    path('incidents/', views.IncidentReportListCreate.as_view()),
+    path('incidents/<uuid:pk>/', views.IncidentReportDetail.as_view()),
+    path('subcontractors/', include(subcontractor_urls)),
 ]
 
 urlpatterns = [
