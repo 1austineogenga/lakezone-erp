@@ -77,13 +77,15 @@ export default function FleetPage() {
 
   const groups = GROUPS(role)
 
+  const matchPath = (p) => location.pathname === p || location.pathname.startsWith(p + '/')
+
   const activeGroup = groups.find(g =>
     g.exact
       ? location.pathname === g.defaultPath || location.pathname === '/fleet'
-      : g.paths.some(p => location.pathname.startsWith(p))
+      : g.paths.some(p => matchPath(p))
   ) || groups[0]
 
-  const activeTab = activeGroup?.tabs?.find(t => location.pathname.startsWith(t.path)) || activeGroup?.tabs?.[0]
+  const activeTab = activeGroup?.tabs?.find(t => matchPath(t.path)) || activeGroup?.tabs?.[0]
 
   return (
     <div className="flex flex-col -m-4 lg:-m-6 h-full min-h-screen">
