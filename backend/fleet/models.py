@@ -449,7 +449,7 @@ class KeyIssuance(models.Model):
         ('site_manager', 'Site Manager'),
         ('other', 'Other'),
     ]
-    STATUS = [('out', 'Out'), ('returned', 'Returned'), ('overdue', 'Overdue')]
+    STATUS = [('out', 'Out'), ('returned', 'Returned'), ('overdue', 'Overdue'), ('dispatched_to_site', 'Dispatched to Site')]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vehicle = models.ForeignKey('Vehicle', null=True, blank=True, on_delete=models.SET_NULL, related_name='key_issuances')
