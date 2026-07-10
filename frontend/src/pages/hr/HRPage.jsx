@@ -43,13 +43,12 @@ const GROUPS = (role) => [
   },
   {
     id: 'time-leave',
-    label: 'Attendance & Leave',
+    label: 'Attendance',
     icon: CalendarDaysIcon,
     defaultPath: '/hr/attendance',
-    paths: ['/hr/attendance', '/hr/biometric', '/hr/leave'],
+    paths: ['/hr/attendance', '/hr/biometric'],
     tabs: [
       { label: 'Attendance', path: '/hr/attendance' },
-      { label: 'Leave',      path: '/hr/leave' },
       ...(role === 'system_admin' ? [{ label: 'Biometric', path: '/hr/biometric' }] : []),
     ],
   },

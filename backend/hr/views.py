@@ -328,6 +328,88 @@ class BulkMarkAttendanceView(APIView):
         return Response({'updated': updated})
 
 
+class SelfPunchView(APIView):
+    """Employee self clock-in / clock-out from the web app workspace."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from datetime import date, datetime
+        event_type = request.data.get('event_type')  # 'in' or 'out'
+        latitude   = request.data.get('latitude')
+        longitude  = request.data.get('longitude')
+
+        if event_type not in ('in', 'out'):
+            return Response({'error': 'event_type must be "in" or "out".'}, status=400)
+
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'error': 'No employee record linked to your account.'}, status=400)
+
+        today     = date.today()
+        now_time  = datetime.now().time().replace(second=0, microsecond=0)
+
+        # Determine late_minutes for clock-in (simple 8am threshold)
+        late_minutes = 0
+        if event_type == 'in':
+            from datetime import time as dt_time
+            start_time = dt_time(8, 0)
+            if now_time > start_time:
+                late_minutes = (now_time.hour - start_time.hour) * 60 + (now_time.minute - start_time.minute)
+
+        location_note = ''
+        if latitude and longitude:
+            location_note = f'GPS: {latitude},{longitude}'
+
+        rec, created = AttendanceRecord.objects.get_or_create(
+            employee=employee,
+            date=today,
+            defaults={
+                'source': AttendanceRecord.Source.MOBILE,
+                'status': AttendanceRecord.Status.ABSENT,
+            },
+        )
+
+        if event_type == 'in':
+            if rec.time_in and not created:
+                return Response({'error': 'Already clocked in today.', 'record': AttendanceRecordSerializer(rec).data}, status=400)
+            status = AttendanceRecord.Status.LATE if late_minutes > 0 else AttendanceRecord.Status.PRESENT
+            rec.time_in      = now_time
+            rec.status       = status
+            rec.late_minutes = late_minutes
+            rec.source       = AttendanceRecord.Source.MOBILE
+            if location_note:
+                rec.notes = location_note
+            rec.save(update_fields=['time_in', 'status', 'late_minutes', 'source', 'notes'])
+        else:
+            if not rec.time_in:
+                return Response({'error': 'You have not clocked in yet today.'}, status=400)
+            rec.time_out = now_time
+            rec.source   = AttendanceRecord.Source.MOBILE
+            if location_note and rec.notes:
+                rec.notes = rec.notes + f' | Out: {location_note}'
+            elif location_note:
+                rec.notes = f'Out: {location_note}'
+            rec.save(update_fields=['time_out', 'source', 'notes'])
+
+        return Response(AttendanceRecordSerializer(rec).data)
+
+    def get(self, request):
+        """Return today's attendance record for the logged-in employee."""
+        from datetime import date
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'error': 'No employee record linked to your account.'}, status=400)
+
+        today = date.today()
+        try:
+            rec = AttendanceRecord.objects.get(employee=employee, date=today)
+            return Response(AttendanceRecordSerializer(rec).data)
+        except AttendanceRecord.DoesNotExist:
+            return Response(None)
+
+
 # ── Leave ──────────────────────────────────────────────────────────────────────
 
 class LeaveTypeListCreateView(generics.ListCreateAPIView):
