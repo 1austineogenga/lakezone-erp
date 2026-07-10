@@ -254,19 +254,41 @@ class DailySheetView(APIView):
             )
         }
 
+        # Employees with approved leave covering this date
+        on_leave_ids = set(
+            LeaveApplication.objects.filter(
+                status='approved',
+                start_date__lte=day,
+                end_date__gte=day,
+            ).values_list('employee_id', flat=True)
+        )
+
         sheet = []
         for emp in employees:
             rec = records.get(emp.id)
+            if rec:
+                status = rec.status
+            elif emp.id in on_leave_ids:
+                status = 'on_leave'
+            else:
+                status = 'absent'
+
+            notes = rec.notes if rec else ''
+            location = None
+            if notes and notes.startswith('GPS:'):
+                location = notes[4:].strip()
+
             sheet.append({
                 'employee_id':     str(emp.id),
                 'employee_number': emp.employee_number,
                 'full_name':       emp.full_name,
                 'employment_type': emp.employment_type,
-                'status':          rec.status if rec else 'absent',
+                'status':          status,
                 'time_in':         rec.time_in if rec else None,
                 'time_out':        rec.time_out if rec else None,
                 'late_minutes':    rec.late_minutes if rec else 0,
                 'source':          rec.source if rec else None,
+                'location':        location,
             })
         return Response(sheet)
 
