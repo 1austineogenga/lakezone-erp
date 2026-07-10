@@ -88,8 +88,10 @@ function AssignModal({ vehicle, projects, onClose, onSuccess }) {
       toast.success('Fleet assigned successfully.')
       onSuccess()
       onClose()
-    } catch {
-      toast.error('Failed to assign fleet.')
+    } catch (err) {
+      const data = err?.response?.data
+      const msg = data?.detail || data?.vehicle?.[0] || data?.non_field_errors?.[0] || (typeof data === 'string' ? data : null) || 'Failed to assign fleet.'
+      toast.error(msg)
     }
   }
 
