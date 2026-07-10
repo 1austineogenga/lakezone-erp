@@ -9,7 +9,7 @@ import {
 
 const STATUS_COLORS = {
   pending:          'bg-yellow-100 text-yellow-800',
-  foreman_approved: 'bg-blue-100 text-blue-800',
+  foreman_approved: 'bg-slate-100 text-brand-slate',
   hr_approved:      'bg-green-100 text-green-800',
   paid:             'bg-gray-100 text-gray-700',
   cancelled:        'bg-red-100 text-red-800',
@@ -227,7 +227,7 @@ export default function CasualsRegistryPage() {
                   Check Returning
                 </button>
               </div>
-              {lookupMsg && <p className="text-xs text-blue-600 mt-1">{lookupMsg}</p>}
+              {lookupMsg && <p className="text-xs text-brand-slate mt-1">{lookupMsg}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -292,7 +292,7 @@ export default function CasualsRegistryPage() {
 
       {/* Daily Log Form */}
       {showLogForm && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-brand-slate text-sm">Log Work Day</h3>
             <button onClick={() => setShowLogForm(false)}><XMarkIcon className="h-4 w-4 text-gray-400" /></button>
@@ -337,7 +337,7 @@ export default function CasualsRegistryPage() {
             <button
               type="submit"
               disabled={logMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60"
+              className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm hover:opacity-90 disabled:opacity-60"
             >
               {logMutation.isPending ? 'Saving…' : 'Log'}
             </button>
@@ -391,7 +391,7 @@ export default function CasualsRegistryPage() {
                   {c.status === 'pending' && (
                     <button
                       onClick={() => approveMutation.mutate({ id: c.id, action: 'foreman_approve' })}
-                      className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100"
+                      className="text-xs px-2.5 py-1 bg-slate-50 text-brand-slate border border-slate-200 rounded-lg hover:bg-slate-100"
                     >
                       Foreman Approve
                     </button>

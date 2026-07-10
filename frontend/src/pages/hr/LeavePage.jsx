@@ -298,10 +298,10 @@ export default function LeavePage() {
 
               {/* Review info (if already reviewed) */}
               {selected.reviewed_by_name && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1">
-                  <p className="text-xs font-bold text-blue-700">Review Decision</p>
-                  <p className="text-xs text-blue-700">By: <span className="font-semibold">{selected.reviewed_by_name}</span></p>
-                  {selected.reviewed_at && <p className="text-xs text-blue-500">{selected.reviewed_at.slice(0, 10)}</p>}
+                <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 space-y-1">
+                  <p className="text-xs font-bold text-brand-slate">Review Decision</p>
+                  <p className="text-xs text-brand-slate">By: <span className="font-semibold">{selected.reviewed_by_name}</span></p>
+                  {selected.reviewed_at && <p className="text-xs text-gray-500">{selected.reviewed_at.slice(0, 10)}</p>}
                   {selected.review_notes && <p className="text-xs text-gray-600 italic mt-1">"{selected.review_notes}"</p>}
                 </div>
               )}
@@ -683,7 +683,7 @@ function LeaveTypesTab() {
     <div className="space-y-4">
       <button
         onClick={() => setShowForm(s => !s)}
-        className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-sm font-medium rounded-lg hover:bg-rose-700"
+        className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-sm font-medium rounded-lg hover:opacity-90"
       >
         <PlusIcon className="h-4 w-4" /> Add Leave Type
       </button>

@@ -43,7 +43,7 @@ function Field({ label, children }) {
 }
 
 function InfoCard({ children }) {
-  return <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-800 space-y-0.5">{children}</div>
+  return <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs text-brand-slate space-y-0.5">{children}</div>
 }
 
 function guessRole(positionTitle = '') {

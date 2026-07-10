@@ -8,9 +8,9 @@ import api from '../../api/client'
 
 const STATUS_COLORS = {
   draft:      'bg-gray-100 text-gray-600',
-  processing: 'bg-blue-100 text-blue-700',
+  processing: 'bg-slate-100 text-brand-slate',
   approved:   'bg-green-100 text-green-700',
-  paid:       'bg-emerald-100 text-emerald-700',
+  paid:       'bg-green-100 text-green-700',
   closed:     'bg-gray-100 text-gray-400',
 }
 
@@ -150,7 +150,7 @@ export default function PayrollPage() {
                         <div className="flex gap-2">
                           {p.status === 'draft' && (
                             <button onClick={() => generateMut.mutate(p.id)} disabled={generateMut.isPending}
-                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                              className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
                               <BoltIcon className="h-3.5 w-3.5" /> Generate
                             </button>
                           )}
@@ -162,7 +162,7 @@ export default function PayrollPage() {
                           )}
                           {p.status === 'approved' && (
                             <button onClick={() => payMut.mutate(p.id)}
-                              className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">
+                              className="text-xs text-brand-red hover:opacity-80 font-medium">
                               Mark Paid
                             </button>
                           )}
