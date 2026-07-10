@@ -640,10 +640,16 @@ class PayrollPeriodListCreateView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class PayrollPeriodDetailView(generics.RetrieveUpdateAPIView):
+class PayrollPeriodDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset           = PayrollPeriod.objects.all()
     serializer_class   = PayrollPeriodSerializer
     permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        period = self.get_object()
+        if period.status in ('approved', 'paid'):
+            return Response({'detail': 'Cannot delete an approved or paid payroll period.'}, status=400)
+        return super().destroy(request, *args, **kwargs)
 
 
 class GeneratePayrollView(APIView):
@@ -654,8 +660,12 @@ class GeneratePayrollView(APIView):
             period = PayrollPeriod.objects.get(pk=pk)
         except PayrollPeriod.DoesNotExist:
             return Response({'detail': 'Period not found.'}, status=404)
-        if period.status != 'draft':
-            return Response({'detail': 'Can only generate for draft periods.'}, status=400)
+        if period.status not in ('draft', 'processing'):
+            return Response({'detail': 'Can only generate/regenerate draft or processing periods.'}, status=400)
+
+        # On regenerate, delete existing entries so they are rebuilt fresh
+        if period.status == 'processing':
+            PayrollEntry.objects.filter(period=period).delete()
 
         employees = Employee.objects.filter(is_active=True).select_related('department')
         if not employees.exists():
@@ -793,7 +803,7 @@ class PayrollPayView(APIView):
                     if e.project_id:
                         project_totals[str(e.project_id)]['gross']   += float(e.gross_pay) + float(e.nssf_employer) + float(e.nhif_employer)
                         project_totals[str(e.project_id)]['project']  = e.project
-                        project_totals[str(e.project_id)]['name']     = e.project.project_name
+                        project_totals[str(e.project_id)]['name']     = e.project.name
                     else:
                         dept = e.employee.department.name if e.employee.department_id else 'Overhead'
                         overhead_gross += float(e.gross_pay) + float(e.nssf_employer) + float(e.nhif_employer)
