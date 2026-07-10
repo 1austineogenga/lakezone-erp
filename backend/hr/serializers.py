@@ -15,8 +15,8 @@ class JobGradeSerializer(serializers.ModelSerializer):
 
 
 class PositionSerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source='department.name', read_only=True)
-    job_grade_name  = serializers.CharField(source='job_grade.name', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True, allow_null=True)
+    job_grade_name  = serializers.CharField(source='job_grade.name', read_only=True, allow_null=True)
 
     class Meta:
         model  = Position
