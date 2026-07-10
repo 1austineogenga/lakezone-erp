@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import {
@@ -1263,7 +1263,9 @@ function AttendanceTab() {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkspacePage() {
   const { user: authUser } = useAuthStore()
-  const [tab, setTab] = useState('overview')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') || 'overview'
+  const setTab = (id) => setSearchParams({ tab: id })
   const [showRequestModal, setShowRequestModal] = useState(false)
 
   const { data: user, refetch: refetchUser } = useQuery({
@@ -1301,76 +1303,17 @@ export default function WorkspacePage() {
   const pendingSRCount = myStoreRequests.filter(r => ['submitted', 'approved', 'dispatched'].includes(r.status)).length
 
   const currentUser = user || authUser
-  const curNav = NAV.find(n => n.id === tab)
 
   return (
-    <div className="flex h-full min-h-screen -m-6">
-
-      {/* ── Sidebar ── */}
-      <aside className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
-        {/* Identity card */}
-        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            {currentUser?.profile_photo
-              ? <img
-                  src={currentUser.profile_photo.startsWith('http') ? currentUser.profile_photo : `${API_BASE}${currentUser.profile_photo}`}
-                  alt="" className="h-10 w-10 rounded-full object-cover border border-gray-200 shrink-0" />
-              : <div className="h-10 w-10 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-bold shrink-0">
-                  {currentUser?.first_name?.[0]}{currentUser?.last_name?.[0]}
-                </div>
-            }
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-brand-slate truncate">{currentUser?.first_name} {currentUser?.last_name}</p>
-              <p className="text-[10px] text-gray-400 truncate capitalize">{currentUser?.role_display || currentUser?.role?.replace(/_/g, ' ')}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Nav links */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
-          {NAV.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition-colors
-                ${tab === id
-                  ? 'bg-brand-red text-white'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-brand-slate'}`}>
-              <Icon className="h-4 w-4 flex-shrink-0" />
-              {label}
-              {id === 'storerequests' && pendingSRCount > 0 && (
-                <span className={`ml-auto text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center
-                  ${tab === id ? 'bg-white text-brand-red' : 'bg-amber-500 text-white'}`}>
-                  {pendingSRCount}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
-          {curNav && (
-            <>
-              <curNav.Icon className="h-4 w-4 text-brand-red" />
-              <span className="text-sm font-semibold text-brand-slate">{curNav.label}</span>
-            </>
-          )}
-        </div>
-
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-auto p-6">
-          {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
-          {tab === 'attendance'    && <AttendanceTab />}
-          {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
-          {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
-          {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
-          {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
-          {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
-          {tab === 'requisitions'  && <RequisitionsTab />}
-        </div>
-      </div>
+    <div className="space-y-5">
+      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
+      {tab === 'attendance'    && <AttendanceTab />}
+      {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
+      {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
+      {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
+      {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
+      {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
+      {tab === 'requisitions'  && <RequisitionsTab />}
 
       {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
