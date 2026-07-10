@@ -636,6 +636,9 @@ class PayrollPeriodListCreateView(generics.ListCreateAPIView):
     serializer_class   = PayrollPeriodSerializer
     permission_classes = [IsAuthenticated]
 
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
 
 class PayrollPeriodDetailView(generics.RetrieveUpdateAPIView):
     queryset           = PayrollPeriod.objects.all()

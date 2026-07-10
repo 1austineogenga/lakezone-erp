@@ -218,6 +218,7 @@ class PayrollPeriodSerializer(serializers.ModelSerializer):
     class Meta:
         model  = PayrollPeriod
         fields = '__all__'
+        read_only_fields = ['created_by', 'approved_by', 'approved_at']
 
     def get_entry_count(self, obj):
         return obj.entries.count()
