@@ -738,6 +738,9 @@ class Casual(models.Model):
     )
     hr_approved_at      = models.DateTimeField(null=True, blank=True)
     notes               = models.TextField(blank=True)
+    # Daily active tracking — set to today when activated; naturally "expires" at midnight
+    activated_date = models.DateField(null=True, blank=True,
+                                      help_text='Date the casual was last activated for work')
 
     created_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                     related_name='casuals_created')
@@ -746,6 +749,11 @@ class Casual(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    @property
+    def is_active_today(self):
+        from datetime import date
+        return self.activated_date == date.today()
 
     def __str__(self):
         return f'{self.full_name} ({self.id_number})'

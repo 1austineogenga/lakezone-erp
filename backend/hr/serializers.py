@@ -341,6 +341,7 @@ class CasualSerializer(serializers.ModelSerializer):
     total_days             = serializers.SerializerMethodField()
     total_amount           = serializers.SerializerMethodField()
     status_display         = serializers.CharField(source='get_status_display', read_only=True)
+    is_active_today        = serializers.BooleanField(read_only=True)
 
     class Meta:
         model  = Casual

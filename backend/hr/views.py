@@ -1035,6 +1035,26 @@ class CasualApproveView(APIView):
         return Response(CasualSerializer(casual).data)
 
 
+class CasualToggleActiveView(APIView):
+    """Activate or deactivate a casual for today. Active resets naturally each new day."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        from datetime import date
+        try:
+            casual = Casual.objects.get(pk=pk)
+        except Casual.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        today = date.today()
+        if casual.activated_date == today:
+            casual.activated_date = None   # deactivate
+        else:
+            casual.activated_date = today  # activate for today
+        casual.save(update_fields=['activated_date'])
+        return Response(CasualSerializer(casual).data)
+
+
 class CasualDailyLogListCreateView(generics.ListCreateAPIView):
     serializer_class   = CasualDailyLogSerializer
     permission_classes = [IsAuthenticated]
