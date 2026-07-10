@@ -8,6 +8,10 @@ import {
   ShoppingBagIcon,
   MagnifyingGlassIcon,
   BuildingStorefrontIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  DocumentCheckIcon,
+  ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline'
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -413,16 +417,105 @@ function SuppliersTab() {
   )
 }
 
+// ── Dashboard Tab ─────────────────────────────────────────────────────────────
+
+function DashboardTab() {
+  const { data: prs = [] }       = useQuery({ queryKey: ['prs'],       queryFn: () => getPRs() })
+  const { data: pos = [] }       = useQuery({ queryKey: ['pos'],       queryFn: () => getPOs() })
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => getSuppliers() })
+
+  const prByStatus = PR_STATUSES.filter(s => s.value).map(s => ({
+    label: s.label,
+    count: prs.filter(p => p.status === s.value).length,
+    color: PR_STATUS_COLORS[s.value] || 'bg-gray-100 text-gray-600',
+  })).filter(s => s.count > 0)
+
+  const poByStatus = PO_STATUSES.filter(s => s.value).map(s => ({
+    label: s.label,
+    count: pos.filter(p => p.status === s.value).length,
+    color: PO_STATUS_COLORS[s.value] || 'bg-gray-100 text-gray-600',
+  })).filter(s => s.count > 0)
+
+  const totalPOValue = pos.reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0)
+  const activeSuppliers = suppliers.filter(s => s.status === 'active').length
+
+  const StatCard = ({ icon: Icon, label, value, sub, color = 'text-brand-red' }) => (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+      <div className={`p-3 rounded-lg bg-gray-50`}>
+        <Icon className={`h-6 w-6 ${color}`} />
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-brand-slate">{value}</p>
+        <p className="text-sm font-medium text-gray-700">{label}</p>
+        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={ClipboardDocumentListIcon} label="Total PRs"       value={prs.length}       sub="all time" />
+        <StatCard icon={DocumentCheckIcon}          label="Total POs"       value={pos.length}       sub="all time" />
+        <StatCard icon={ArrowTrendingUpIcon}         label="PO Value (KES)"  value={`${(totalPOValue/1000).toFixed(0)}K`} color="text-green-600" />
+        <StatCard icon={BuildingStorefrontIcon}      label="Active Suppliers" value={activeSuppliers} color="text-blue-600" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* PR Breakdown */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-semibold text-brand-slate mb-4 flex items-center gap-2">
+            <ClipboardDocumentListIcon className="h-4 w-4 text-brand-red" />
+            Purchase Requisitions by Status
+          </h3>
+          {prByStatus.length === 0
+            ? <p className="text-sm text-gray-400">No requisitions yet.</p>
+            : <div className="space-y-2">
+                {prByStatus.map(s => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
+                    <span className="text-sm font-semibold text-brand-slate">{s.count}</span>
+                  </div>
+                ))}
+              </div>
+          }
+        </div>
+
+        {/* PO Breakdown */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-semibold text-brand-slate mb-4 flex items-center gap-2">
+            <DocumentCheckIcon className="h-4 w-4 text-brand-red" />
+            Purchase Orders by Status
+          </h3>
+          {poByStatus.length === 0
+            ? <p className="text-sm text-gray-400">No purchase orders yet.</p>
+            : <div className="space-y-2">
+                {poByStatus.map(s => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
+                    <span className="text-sm font-semibold text-brand-slate">{s.count}</span>
+                  </div>
+                ))}
+              </div>
+          }
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const TABS = [
+  { key: 'dashboard', label: 'Dashboard' },
   { key: 'pr',        label: 'Purchase Requisitions' },
   { key: 'po',        label: 'Purchase Orders' },
   { key: 'suppliers', label: 'Suppliers' },
 ]
 
 export default function ProcurementPage() {
-  const [tab, setTab] = useState('pr')
+  const [tab, setTab] = useState('dashboard')
 
   return (
     <div>
@@ -451,6 +544,7 @@ export default function ProcurementPage() {
         ))}
       </div>
 
+      {tab === 'dashboard' && <DashboardTab />}
       {tab === 'pr'        && <PRsTab />}
       {tab === 'po'        && <POsTab />}
       {tab === 'suppliers' && <SuppliersTab />}
