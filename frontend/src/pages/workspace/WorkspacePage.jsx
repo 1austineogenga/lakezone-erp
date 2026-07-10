@@ -7,6 +7,7 @@ import {
   ClipboardDocumentListIcon, DocumentTextIcon, CameraIcon,
   CheckCircleIcon, ClockIcon, BanknotesIcon, PlusIcon,
   PrinterIcon, ChartBarIcon, ArrowRightIcon, ArchiveBoxArrowDownIcon,
+  FingerPrintIcon, MapPinIcon,
 } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import useAuthStore from '../../store/authStore'
@@ -71,6 +72,7 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ou
 
 const TABS = [
   { id: 'overview',      label: 'Overview',        icon: ChartBarIcon },
+  { id: 'attendance',    label: 'Attendance',      icon: FingerPrintIcon },
   { id: 'profile',       label: 'My Profile',      icon: UserCircleIcon },
   { id: 'leave',         label: 'Leave',           icon: CalendarDaysIcon },
   { id: 'advance',       label: 'Salary Advance',  icon: CurrencyDollarIcon },
@@ -1122,6 +1124,142 @@ function MyStoreRequestsTab({ onNewRequest }) {
   )
 }
 
+// ── Attendance (Self Punch) Tab ───────────────────────────────────────────────
+const ATT_STATUS_COLORS = {
+  present:        'bg-green-100 text-green-700',
+  late:           'bg-yellow-100 text-yellow-700',
+  absent:         'bg-red-100 text-red-700',
+  half_day:       'bg-orange-100 text-orange-700',
+  on_leave:       'bg-slate-100 text-brand-slate',
+  public_holiday: 'bg-gray-100 text-gray-500',
+  off:            'bg-gray-50 text-gray-400',
+}
+
+function AttendanceTab() {
+  const qc = useQueryClient()
+  const [locError, setLocError] = useState('')
+  const [punching, setPunching]  = useState(false)
+
+  const { data: record, isLoading, refetch } = useQuery({
+    queryKey: ['self-attendance-today'],
+    queryFn: () => api.get('/hr/attendance/self-punch/').then(r => r.data),
+    refetchInterval: 60_000,
+  })
+
+  const punch = async (event_type) => {
+    setLocError('')
+    setPunching(true)
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      )
+      const { latitude, longitude } = pos.coords
+      await api.post('/hr/attendance/self-punch/', { event_type, latitude, longitude })
+      toast.success(event_type === 'in' ? 'Clocked in successfully.' : 'Clocked out successfully.')
+      qc.invalidateQueries(['self-attendance-today'])
+      refetch()
+    } catch (err) {
+      if (err?.code === 1) {
+        setLocError('Location access denied. Please allow location in your browser to mark attendance.')
+      } else if (err?.response?.data?.error) {
+        setLocError(err.response.data.error)
+      } else {
+        setLocError('Failed to record attendance. Please try again.')
+      }
+    } finally {
+      setPunching(false)
+    }
+  }
+
+  const todayStr   = new Date().toISOString().slice(0, 10)
+  const timeStr    = new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
+  const hasClockedIn  = !!record?.time_in
+  const hasClockedOut = !!record?.time_out
+
+  return (
+    <div className="space-y-5 max-w-xl">
+      {/* Today status card */}
+      <div className="bg-gradient-to-br from-brand-slate to-[#243347] rounded-2xl p-6 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-white/60 text-xs uppercase tracking-widest">Today</p>
+            <p className="text-xl font-bold mt-0.5">{todayStr}</p>
+          </div>
+          {record?.status && (
+            <span className={`text-xs px-3 py-1.5 rounded-full font-semibold capitalize ${ATT_STATUS_COLORS[record.status]}`}>
+              {record.status.replace('_', ' ')}
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white/10 rounded-xl px-4 py-3">
+            <p className="text-white/60 text-[10px] uppercase tracking-wider mb-1">Time In</p>
+            <p className="text-2xl font-bold font-mono">
+              {record?.time_in ? record.time_in.slice(0, 5) : '—'}
+            </p>
+            {record?.late_minutes > 0 && (
+              <p className="text-yellow-300 text-[10px] mt-1">{record.late_minutes} min late</p>
+            )}
+          </div>
+          <div className="bg-white/10 rounded-xl px-4 py-3">
+            <p className="text-white/60 text-[10px] uppercase tracking-wider mb-1">Time Out</p>
+            <p className="text-2xl font-bold font-mono">
+              {record?.time_out ? record.time_out.slice(0, 5) : '—'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Location notice */}
+      <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
+        <MapPinIcon className="h-4 w-4 shrink-0 mt-0.5" />
+        <span>Your location will be recorded when you clock in or out. Please allow location access when prompted.</span>
+      </div>
+
+      {locError && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-xs text-red-700">
+          {locError}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      {isLoading ? (
+        <div className="h-14 bg-gray-100 rounded-2xl animate-pulse" />
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => punch('in')}
+            disabled={punching || hasClockedIn}
+            className={`flex flex-col items-center justify-center gap-2 rounded-2xl py-5 font-semibold transition-all
+              ${hasClockedIn
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:opacity-90 shadow-lg shadow-green-200'}`}>
+            <FingerPrintIcon className="h-8 w-8" />
+            <span className="text-sm">{hasClockedIn ? `In at ${record.time_in.slice(0,5)}` : 'Clock In'}</span>
+          </button>
+
+          <button
+            onClick={() => punch('out')}
+            disabled={punching || !hasClockedIn || hasClockedOut}
+            className={`flex flex-col items-center justify-center gap-2 rounded-2xl py-5 font-semibold transition-all
+              ${!hasClockedIn || hasClockedOut
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-brand-red text-white hover:opacity-90 shadow-lg shadow-red-200'}`}>
+            <ClockIcon className="h-8 w-8" />
+            <span className="text-sm">{hasClockedOut ? `Out at ${record.time_out.slice(0,5)}` : 'Clock Out'}</span>
+          </button>
+        </div>
+      )}
+
+      {punching && (
+        <p className="text-center text-xs text-gray-500 animate-pulse">Getting your location…</p>
+      )}
+
+      <p className="text-center text-[10px] text-gray-400">Current time: {timeStr}</p>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkspacePage() {
   const { user: authUser } = useAuthStore()
@@ -1193,6 +1331,7 @@ export default function WorkspacePage() {
 
       {/* Tab content */}
       {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
+      {tab === 'attendance'    && <AttendanceTab />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}

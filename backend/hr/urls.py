@@ -32,6 +32,7 @@ urlpatterns = [
     path('attendance/daily-sheet/',              views.DailySheetView.as_view()),
     path('attendance/monthly-report/',           views.MonthlyReportView.as_view()),
     path('attendance/bulk-mark/',                views.BulkMarkAttendanceView.as_view()),
+    path('attendance/self-punch/',               views.SelfPunchView.as_view()),
 
     # Leave Types
     path('leave-types/',                         views.LeaveTypeListCreateView.as_view()),
