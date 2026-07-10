@@ -26,7 +26,6 @@ const NAV = (role, isAdmin) => [
   { type: 'link', to: '/',           icon: HomeIcon,                   label: 'Dashboard',        end: true,  module: null },
   { type: 'link', to: '/workspace',  icon: BriefcaseIcon,              label: 'My Workspace',     end: true,  module: null },
   { type: 'link', to: '/projects',   icon: FolderIcon,                 label: 'Projects',         module: 'projects' },
-  { type: 'link', to: '/reports',    icon: DocumentChartBarIcon,       label: 'Site Reporting',   module: 'reports' },
 
   {
     type: 'dropdown', key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon,
@@ -43,7 +42,7 @@ const NAV = (role, isAdmin) => [
     type: 'dropdown', key: 'finance', label: 'Finance', icon: BanknotesIcon,
     root: '/finance', module: 'finance',
     links: [
-      { to: '/finance',                  label: 'Overview',     icon: ChartBarIcon,              end: true },
+      { to: '/finance',                  label: 'Dashboard',    icon: ChartBarIcon,              end: true },
       { to: '/finance/invoices',         label: 'Transactions', icon: DocumentTextIcon },
       { to: '/finance/certificates',     label: 'Contracts',    icon: DocumentCheckIcon },
       { to: '/finance/income-statement', label: 'Reports',      icon: PresentationChartLineIcon },
