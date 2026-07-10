@@ -12,7 +12,7 @@ const STATUS_COLORS = {
   absent:         'bg-red-100 text-red-700',
   late:           'bg-yellow-100 text-yellow-700',
   half_day:       'bg-orange-100 text-orange-700',
-  on_leave:       'bg-blue-100 text-blue-700',
+  on_leave:       'bg-slate-100 text-brand-slate',
   public_holiday: 'bg-gray-100 text-gray-500',
   off:            'bg-gray-50 text-gray-400',
 }
@@ -85,7 +85,7 @@ export default function AttendancePage() {
                 { label: 'Present',  val: present,  color: 'text-green-600',  bg: 'bg-green-50' },
                 { label: 'Absent',   val: absent,   color: 'text-red-600',    bg: 'bg-red-50' },
                 { label: 'Late',     val: late,     color: 'text-yellow-700', bg: 'bg-yellow-50' },
-                { label: 'On Leave', val: onLeave,  color: 'text-blue-600',   bg: 'bg-blue-50' },
+                { label: 'On Leave', val: onLeave,  color: 'text-brand-slate', bg: 'bg-slate-50' },
               ].map(s => (
                 <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
                   <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
@@ -124,7 +124,7 @@ export default function AttendancePage() {
                             </td>
                             <td className="px-4 py-3">
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                                ${rec.employment_type === 'staff' ? 'bg-indigo-100 text-indigo-700' : 'bg-purple-100 text-purple-700'}`}>
+                                ${rec.employment_type === 'staff' ? 'bg-red-50 text-brand-red' : 'bg-slate-100 text-brand-slate'}`}>
                                 {rec.employment_type}
                               </span>
                             </td>
@@ -147,7 +147,7 @@ export default function AttendancePage() {
                                   <XCircleIcon className="h-4 w-4" />
                                 </button>
                                 <button title="Mark On Leave" onClick={() => markStatus(rec.employee_id, 'on_leave')}
-                                  className={`p-1 rounded ${rec.status === 'on_leave' ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}>
+                                  className={`p-1 rounded ${rec.status === 'on_leave' ? 'text-brand-slate' : 'text-gray-400 hover:text-brand-slate'}`}>
                                   <ClockIcon className="h-4 w-4" />
                                 </button>
                               </div>

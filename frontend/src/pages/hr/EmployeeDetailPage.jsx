@@ -21,10 +21,10 @@ const DOC_TYPES = ['contract', 'id_copy', 'certificate', 'nssf_card', 'nhif_card
 const cls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red'
 
 const AVATAR_COLORS = [
-  'from-indigo-500 to-indigo-600', 'from-violet-500 to-violet-600', 'from-blue-500 to-blue-600',
-  'from-cyan-500 to-cyan-600',     'from-teal-500 to-teal-600',     'from-emerald-500 to-emerald-600',
-  'from-amber-500 to-amber-600',   'from-rose-500 to-rose-600',     'from-pink-500 to-pink-600',
-  'from-sky-500 to-sky-600',       'from-orange-500 to-orange-600', 'from-lime-600 to-lime-700',
+  'from-red-600 to-red-800',     'from-slate-600 to-slate-800', 'from-red-700 to-red-900',
+  'from-slate-500 to-slate-700', 'from-red-500 to-red-700',     'from-slate-700 to-slate-900',
+  'from-rose-600 to-rose-800',   'from-slate-600 to-slate-800', 'from-red-600 to-red-800',
+  'from-slate-500 to-slate-700', 'from-rose-700 to-rose-900',   'from-slate-600 to-slate-800',
 ]
 function avatarGradient(name = '') {
   let h = 0
@@ -164,7 +164,7 @@ export default function EmployeeDetailPage() {
           <div className="flex-1 pb-4 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-white text-xl font-bold">{emp.full_name}</h2>
-              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${isStaff ? 'bg-indigo-400/30 text-indigo-100' : 'bg-purple-400/30 text-purple-100'}`}>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${isStaff ? 'bg-brand-red/30 text-white' : 'bg-white/20 text-white'}`}>
                 {isStaff ? 'Staff' : 'Casual'}
               </span>
               <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${emp.is_active ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
@@ -217,7 +217,7 @@ export default function EmployeeDetailPage() {
       {/* ── Profile: view ── */}
       {tab === 'profile' && !editing && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Section icon={UserIcon} title="Personal Information" color="text-indigo-600" bg="bg-indigo-50" border="border-indigo-100">
+          <Section icon={UserIcon} title="Personal Information" color="text-brand-slate" bg="bg-slate-50" border="border-slate-100">
             <InfoRow label="Full Name"      value={emp.full_name} />
             <InfoRow label="Gender"         value={emp.gender} />
             <InfoRow label="Date of Birth"  value={emp.date_of_birth} />
@@ -228,7 +228,7 @@ export default function EmployeeDetailPage() {
             <InfoRow label="SHA/SHIF No."   value={emp.nhif_number} />
           </Section>
 
-          <Section icon={PhoneIcon} title="Contact" color="text-cyan-600" bg="bg-cyan-50" border="border-cyan-100">
+          <Section icon={PhoneIcon} title="Contact" color="text-brand-red" bg="bg-red-50" border="border-red-100">
             <InfoRow label="Phone"             value={emp.phone} />
             <InfoRow label="Alt. Phone"        value={emp.alt_phone} />
             <InfoRow label="Email"             value={emp.email} />
@@ -237,7 +237,7 @@ export default function EmployeeDetailPage() {
             <InfoRow label="Relationship"      value={emp.emergency_contact_relation} />
           </Section>
 
-          <Section icon={BriefcaseIcon} title="Employment" color="text-violet-600" bg="bg-violet-50" border="border-violet-100">
+          <Section icon={BriefcaseIcon} title="Employment" color="text-brand-slate" bg="bg-slate-50" border="border-slate-100">
             <InfoRow label="Employee No."  value={emp.employee_number} />
             <InfoRow label="Type"          value={emp.employment_type} />
             <InfoRow label="Date Hired"    value={emp.date_hired} />
@@ -266,7 +266,7 @@ export default function EmployeeDetailPage() {
       {/* ── Profile: edit ── */}
       {tab === 'profile' && editing && (
         <div className="space-y-4">
-          <EditCard title="Personal Information" icon={UserIcon} color="text-indigo-600">
+          <EditCard title="Personal Information" icon={UserIcon} color="text-brand-slate">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="First Name *"><input required {...ef('first_name')} className={cls} /></Field>
               <Field label="Last Name *"><input required {...ef('last_name')} className={cls} /></Field>
@@ -296,7 +296,7 @@ export default function EmployeeDetailPage() {
             </div>
           </EditCard>
 
-          <EditCard title="Contact Details" icon={PhoneIcon} color="text-cyan-600">
+          <EditCard title="Contact Details" icon={PhoneIcon} color="text-brand-red">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Phone *"><input required {...ef('phone')} className={cls} /></Field>
               <Field label="Alt. Phone"><input {...ef('alt_phone')} className={cls} /></Field>
@@ -307,7 +307,7 @@ export default function EmployeeDetailPage() {
             </div>
           </EditCard>
 
-          <EditCard title="Employment" icon={BriefcaseIcon} color="text-violet-600">
+          <EditCard title="Employment" icon={BriefcaseIcon} color="text-brand-slate">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Employee Number"><input {...ef('employee_number')} className={cls} /></Field>
               <Field label="Department">
@@ -492,7 +492,7 @@ export default function EmployeeDetailPage() {
                 <tbody className="divide-y divide-gray-50">
                   {docs.map(d => (
                     <tr key={d.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold uppercase">{d.doc_type.replace(/_/g,' ')}</span></td>
+                      <td className="px-4 py-3"><span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-brand-slate font-semibold uppercase">{d.doc_type.replace(/_/g,' ')}</span></td>
                       <td className="px-4 py-3 font-medium text-gray-800 text-xs">{d.title}</td>
                       <td className="px-4 py-3 text-xs text-brand-red">{d.file_ref ? <a href={d.file_ref} target="_blank" rel="noreferrer" className="hover:underline">{d.file_ref.slice(0,40)}</a> : '—'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500">{d.uploaded_at?.slice(0,10)}</td>
@@ -510,9 +510,9 @@ export default function EmployeeDetailPage() {
       {tab === 'leave' && (
         <div className="space-y-4">
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-5 py-4 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
-              <div className="bg-indigo-100 p-1.5 rounded-lg"><CalendarDaysIcon className="h-4 w-4 text-indigo-600" /></div>
-              <h3 className="font-bold text-sm text-indigo-800 uppercase tracking-wider">Leave Balances — {new Date().getFullYear()}</h3>
+            <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <div className="bg-brand-red p-1.5 rounded-lg"><CalendarDaysIcon className="h-4 w-4 text-white" /></div>
+              <h3 className="font-bold text-sm text-brand-slate uppercase tracking-wider">Leave Balances — {new Date().getFullYear()}</h3>
             </div>
             {!leaveBalances || leaveBalances.length === 0 ? (
               <p className="text-sm text-gray-500 p-8 text-center">No leave balances configured.</p>

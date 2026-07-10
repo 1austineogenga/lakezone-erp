@@ -9,9 +9,9 @@ import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from
 const PAGE_SIZE = 12
 
 const AVATAR_COLORS = [
-  'bg-indigo-500', 'bg-violet-500', 'bg-blue-500', 'bg-cyan-500',
-  'bg-teal-500',   'bg-emerald-500','bg-amber-500', 'bg-rose-500',
-  'bg-pink-500',   'bg-sky-500',    'bg-orange-500','bg-lime-600',
+  'bg-brand-red', 'bg-brand-slate', 'bg-red-700', 'bg-slate-600',
+  'bg-red-800',   'bg-slate-700',   'bg-red-600', 'bg-slate-500',
+  'bg-rose-700',  'bg-slate-800',   'bg-red-500', 'bg-slate-600',
 ]
 
 function avatarColor(name = '') {
@@ -108,8 +108,8 @@ export default function EmployeesPage() {
           <h1 className="text-lg font-bold text-brand-slate">Employees</h1>
           <div className="flex gap-3 mt-0.5">
             <span className="text-xs text-gray-500">{filtered.length} total</span>
-            <span className="text-xs text-indigo-600 font-medium">{filtered.filter(e => e.employment_type === 'staff').length} staff</span>
-            <span className="text-xs text-purple-600 font-medium">{filtered.filter(e => e.employment_type === 'casual').length} casuals</span>
+            <span className="text-xs text-brand-red font-medium">{filtered.filter(e => e.employment_type === 'staff').length} staff</span>
+            <span className="text-xs text-brand-slate font-medium">{filtered.filter(e => e.employment_type === 'casual').length} casuals</span>
           </div>
         </div>
         <Link to="/hr/employees/new"
@@ -163,7 +163,7 @@ export default function EmployeesPage() {
                     const bg = avatarColor(emp.full_name || '')
                     const isStaff = emp.employment_type === 'staff'
                     return (
-                      <tr key={emp.id} className={`border-b border-gray-50 hover:bg-indigo-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                      <tr key={emp.id} className={`border-b border-gray-50 hover:bg-red-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
                         <td className="px-4 py-3">
                           <Link to={`/hr/employees/${emp.id}`}
                             className="font-mono text-xs font-semibold text-brand-slate hover:text-brand-red hover:underline">
@@ -182,7 +182,7 @@ export default function EmployeesPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold
-                            ${isStaff ? 'bg-indigo-100 text-indigo-700' : 'bg-purple-100 text-purple-700'}`}>
+                            ${isStaff ? 'bg-red-50 text-brand-red' : 'bg-slate-100 text-brand-slate'}`}>
                             {isStaff ? 'Staff' : 'Casual'}
                           </span>
                         </td>
@@ -198,9 +198,9 @@ export default function EmployeesPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Link to={`/hr/employees/${emp.id}`} className="text-xs font-medium text-blue-600 hover:underline">View</Link>
+                            <Link to={`/hr/employees/${emp.id}`} className="text-xs font-medium text-brand-slate hover:underline">View</Link>
                             <span className="text-gray-300">|</span>
-                            <Link to={`/hr/employees/${emp.id}`} state={{ edit: true }} className="text-xs font-medium text-amber-600 hover:underline">Edit</Link>
+                            <Link to={`/hr/employees/${emp.id}`} state={{ edit: true }} className="text-xs font-medium text-brand-red hover:underline">Edit</Link>
                             <span className="text-gray-300">|</span>
                             <button onClick={() => handleDelete(emp)} className="text-xs font-medium text-red-600 hover:underline">Delete</button>
                           </div>
