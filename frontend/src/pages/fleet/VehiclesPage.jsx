@@ -886,7 +886,7 @@ export default function VehiclesPage() {
         <div className="space-y-4">
           <PageNav />
           {(() => {
-            let rowCounter = 0
+            let rowCounter = (safePage - 1) * PAGE_SIZE
             return groupOrder.filter(g => grouped[g]?.length).map(groupName => (
             <div key={groupName} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
               {/* Group header */}
