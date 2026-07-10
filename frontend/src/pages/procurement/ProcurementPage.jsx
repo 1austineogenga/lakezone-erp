@@ -420,9 +420,9 @@ function SuppliersTab() {
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
 function DashboardTab() {
-  const { data: prs = [] }       = useQuery({ queryKey: ['prs'],       queryFn: () => getPRs() })
-  const { data: pos = [] }       = useQuery({ queryKey: ['pos'],       queryFn: () => getPOs() })
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => getSuppliers() })
+  const { data: prs = [] }       = useQuery({ queryKey: ['prs-dash'],       queryFn: () => getPRs({ page_size: 500 }),       select: r => r.data?.results ?? r.data ?? [] })
+  const { data: pos = [] }       = useQuery({ queryKey: ['pos-dash'],       queryFn: () => getPOs({ page_size: 500 }),       select: r => r.data?.results ?? r.data ?? [] })
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers-dash'], queryFn: () => getSuppliers({ page_size: 500 }), select: r => r.data?.results ?? r.data ?? [] })
 
   const prByStatus = PR_STATUSES.filter(s => s.value).map(s => ({
     label: s.label,
