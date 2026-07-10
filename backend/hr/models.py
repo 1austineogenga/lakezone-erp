@@ -561,12 +561,13 @@ class PayrollEntry(models.Model):
             raise ValidationError({'basic_salary': 'basic_salary must be >= 0.'})
 
     def recalculate(self):
+        from decimal import Decimal
         self.gross_pay = (self.basic_salary + self.house_allowance +
                           self.transport_allowance + self.medical_allowance +
                           self.other_allowances)
-        self.paye          = self.compute_paye(self.gross_pay)
-        self.nssf_employee = self.compute_nssf(self.gross_pay)
-        self.nhif_employee = self.compute_nhif(self.gross_pay)
+        self.paye          = Decimal(str(self.compute_paye(self.gross_pay)))
+        self.nssf_employee = Decimal(str(self.compute_nssf(self.gross_pay)))
+        self.nhif_employee = Decimal(str(self.compute_nhif(self.gross_pay)))
         self.nssf_employer = self.nssf_employee
         self.nhif_employer = self.nhif_employee
         self.total_deductions = (self.paye + self.nssf_employee + self.nhif_employee
