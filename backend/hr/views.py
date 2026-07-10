@@ -192,20 +192,20 @@ class BiometricPushView(APIView):
             rec, _ = AttendanceRecord.objects.get_or_create(
                 employee=employee,
                 date=rec_date,
-                defaults={'source': 'biometric', 'biometric_device': device},
+                defaults={'source': 'biometric', 'device': device},
             )
             if event == 'in' and (rec.time_in is None or rec_time < rec.time_in):
                 rec.time_in = rec_time
             elif event == 'out' and (rec.time_out is None or rec_time > rec.time_out):
                 rec.time_out = rec_time
-            rec.biometric_device = device
+            rec.device = device
             rec.source = 'biometric'
             rec.compute_status()
             rec.save()
 
             device.last_sync = datetime.now()
             device.records_count = AttendanceRecord.objects.filter(
-                biometric_device=device
+                device=device
             ).count()
             device.save(update_fields=['last_sync', 'records_count'])
 
@@ -225,7 +225,7 @@ class AttendanceListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = AttendanceRecord.objects.select_related('employee', 'biometric_device')
+        qs = AttendanceRecord.objects.select_related('employee', 'device')
         params = self.request.query_params
         if d := params.get('date'):
             qs = qs.filter(date=d)
@@ -250,7 +250,7 @@ class DailySheetView(APIView):
         records   = {
             r.employee_id: r
             for r in AttendanceRecord.objects.filter(date=day).select_related(
-                'employee', 'biometric_device'
+                'employee', 'device'
             )
         }
 

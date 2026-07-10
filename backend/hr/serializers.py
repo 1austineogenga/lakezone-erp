@@ -81,7 +81,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
     employee_number = serializers.CharField(source='employee.employee_number', read_only=True)
     full_name       = serializers.SerializerMethodField()
     employment_type = serializers.CharField(source='employee.employment_type', read_only=True)
-    device_name     = serializers.CharField(source='biometric_device.name', read_only=True)
+    device_name     = serializers.CharField(source='device.name', read_only=True)
 
     class Meta:
         model  = AttendanceRecord
