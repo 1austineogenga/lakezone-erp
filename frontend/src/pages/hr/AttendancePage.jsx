@@ -1,9 +1,59 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getDailySheet, getMonthlyReport, bulkMarkAttendance, getAttendance } from '../../api/hr'
-import { CheckCircleIcon, XCircleIcon, ClockIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, XCircleIcon, ClockIcon, ClipboardDocumentListIcon, MapPinIcon } from '@heroicons/react/24/outline'
+
+// Cache geocode results for the session
+const geocodeCache = {}
+
+function LocationName({ coords }) {
+  const [name, setName] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    if (!coords) { setLoading(false); return }
+
+    if (geocodeCache[coords]) {
+      setName(geocodeCache[coords])
+      setLoading(false)
+      return
+    }
+
+    const [lat, lon] = coords.split(',')
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+      headers: { 'Accept-Language': 'en' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const a = data.address || {}
+        const label = a.suburb || a.village || a.town || a.city || a.county || a.state || data.display_name || coords
+        geocodeCache[coords] = label
+        if (mounted.current) { setName(label); setLoading(false) }
+      })
+      .catch(() => {
+        geocodeCache[coords] = coords
+        if (mounted.current) { setName(coords); setLoading(false) }
+      })
+
+    return () => { mounted.current = false }
+  }, [coords])
+
+  if (!coords) return <span className="text-gray-400">—</span>
+  if (loading) return <span className="text-gray-400 text-xs italic">locating…</span>
+
+  const [lat, lon] = coords.split(',')
+  return (
+    <a href={`https://www.google.com/maps?q=${lat},${lon}`} target="_blank" rel="noopener noreferrer"
+      className="flex items-center gap-1 text-blue-600 hover:underline text-xs">
+      <MapPinIcon className="h-3 w-3 flex-shrink-0" />
+      {name}
+    </a>
+  )
+}
 
 const today = new Date().toISOString().split('T')[0]
 
@@ -129,11 +179,8 @@ export default function AttendancePage() {
                                 {rec.status?.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-500 font-mono">
-                              {rec.location
-                                ? <a href={`https://www.google.com/maps?q=${rec.location}`} target="_blank" rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline">{rec.location}</a>
-                                : '—'}
+                            <td className="px-4 py-3">
+                              <LocationName coords={rec.location} />
                             </td>
                             <td className="px-4 py-3 text-xs text-gray-600 capitalize">{rec.source || '—'}</td>
                             <td className="px-4 py-3">
