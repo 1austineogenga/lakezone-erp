@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import {
   PlusIcon, KeyIcon, ArrowPathIcon, MagnifyingGlassIcon,
   ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, EyeIcon,
+  TruckIcon,
 } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import { getEmployees } from '../../api/hr'
@@ -568,6 +569,13 @@ function StatusBadge({ record }) {
       </span>
     )
   }
+  if (record.status === 'dispatched_to_site') {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+        <TruckIcon className="h-3 w-3" /> To Site
+      </span>
+    )
+  }
   if (isOverdue) {
     return (
       <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 animate-pulse">
@@ -583,6 +591,72 @@ function StatusBadge({ record }) {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Dispatch to Site Modal ────────────────────────────────────────────────────
+function ToSiteModal({ record, onClose, qc }) {
+  const now = new Date()
+  const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+  const [form, setForm] = useState({ dispatched_at: localNow, site_notes: '' })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const mut = useMutation({
+    mutationFn: (d) => updateKeyIssuance(record.id, {
+      status: 'dispatched_to_site',
+      actual_return_datetime: d.dispatched_at,
+      return_notes: d.site_notes || 'Vehicle dispatched back to site.',
+    }),
+    onSuccess: () => {
+      toast.success('Vehicle marked as dispatched back to site.')
+      qc.invalidateQueries({ queryKey: ['key-issuances'] })
+      onClose()
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to update.'),
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <TruckIcon className="h-4 w-4 text-white/70" />
+            <div>
+              <h2 className="text-white font-bold text-base">Dispatch Back to Site</h2>
+              <p className="text-white/50 text-xs mt-0.5">{record.vehicle_label || 'Vehicle'} — {record.issued_to_name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
+            Use this when a site-based vehicle came to HQ for an errand and has since returned to its site — without physically returning to HQ stores.
+          </div>
+          <div>
+            <label className={lbl}>Dispatched at *</label>
+            <input type="datetime-local" className={inp} value={form.dispatched_at}
+              onChange={e => set('dispatched_at', e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Notes</label>
+            <textarea rows={2} className={`${inp} resize-none`} value={form.site_notes}
+              onChange={e => set('site_notes', e.target.value)}
+              placeholder="e.g. Vehicle returned to Njambini site after errand…" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={() => mut.mutate(form)} disabled={mut.isPending || !form.dispatched_at}
+            className="flex-1 bg-blue-600 text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+            {mut.isPending ? 'Saving…' : 'Confirm — To Site'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function KeyIssuancePage() {
   const { canWrite, role } = usePermissions()
   const qc = useQueryClient()
@@ -595,6 +669,7 @@ export default function KeyIssuancePage() {
   const [statusFilter, setStatus]   = useState('')
   const [showIssue, setShowIssue]   = useState(false)
   const [returnRec, setReturnRec]   = useState(null)
+  const [toSiteRec, setToSiteRec]   = useState(null)
   const [viewRec, setViewRec]       = useState(null)
 
   const { data: records = [], isLoading } = useQuery({
@@ -662,7 +737,7 @@ export default function KeyIssuancePage() {
             className="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white w-64" />
         </div>
         <div className="flex gap-1.5">
-          {[['', 'All'], ['out', 'Out'], ['returned', 'Returned']].map(([v, l]) => (
+          {[['', 'All'], ['out', 'Out'], ['returned', 'Returned'], ['dispatched_to_site', 'To Site']].map(([v, l]) => (
             <button key={v} onClick={() => setStatus(v)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
                 ${statusFilter === v ? 'bg-brand-red text-white border-brand-red' : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
@@ -715,11 +790,17 @@ export default function KeyIssuancePage() {
                             className="p-1.5 rounded-lg bg-gray-100 text-brand-slate hover:bg-brand-slate hover:text-white">
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {r.status !== 'returned' && canIssue && (
-                            <button onClick={() => setReturnRec(r)} title="Record Return"
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold hover:bg-emerald-200">
-                              <ArrowPathIcon className="h-3 w-3" /> Return
-                            </button>
+                          {r.status !== 'returned' && r.status !== 'dispatched_to_site' && canIssue && (
+                            <>
+                              <button onClick={() => setReturnRec(r)} title="Record Return to HQ"
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-[10px] font-bold hover:bg-emerald-200">
+                                <ArrowPathIcon className="h-3 w-3" /> Return
+                              </button>
+                              <button onClick={() => setToSiteRec(r)} title="Vehicle went back to site"
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-[10px] font-bold hover:bg-blue-200">
+                                <TruckIcon className="h-3 w-3" /> To Site
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -734,6 +815,7 @@ export default function KeyIssuancePage() {
 
       {showIssue && <IssueKeyModal vehicles={vehicles} onClose={() => setShowIssue(false)} qc={qc} />}
       {returnRec && <ReturnModal record={returnRec} onClose={() => setReturnRec(null)} qc={qc} />}
+      {toSiteRec && <ToSiteModal record={toSiteRec} onClose={() => setToSiteRec(null)} qc={qc} />}
       {viewRec && <DetailModal record={viewRec} onClose={() => setViewRec(null)} />}
     </div>
   )
