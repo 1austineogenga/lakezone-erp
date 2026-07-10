@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon, DocumentArrowUpIcon, TableCellsIcon } from '@heroicons/react/24/outline'
-import { getProjects, createProject, importProjects, importBudgetWorkbook } from '../../api/projects'
+import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { getProjects, createProject } from '../../api/projects'
 import usePermissions from '../../hooks/usePermissions'
 
 const STATUS_COLORS = {
@@ -28,14 +28,8 @@ export default function ProjectsPage() {
   const qc = useQueryClient()
   const { canWrite } = usePermissions()
   const canEdit = canWrite('projects')
-  const [showModal, setShowModal]         = useState(false)
-  const [showImport, setShowImport]       = useState(false)
-  const [showBudgetImport, setShowBudget] = useState(false)
-  const [form, setForm]                   = useState(EMPTY_FORM)
-  const [importFile, setImportFile]       = useState(null)
-  const [budgetFile, setBudgetFile]       = useState(null)
-  const fileRef   = useRef()
-  const budgetRef = useRef()
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm]           = useState(EMPTY_FORM)
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -54,33 +48,6 @@ export default function ProjectsPage() {
     onError: e => toast.error(e.response?.data?.detail || 'Failed to create project.'),
   })
 
-  const importMut = useMutation({
-    mutationFn: (fd) => importProjects(fd),
-    onSuccess: (res) => {
-      const { created, updated, skipped } = res.data
-      toast.success(`Import complete — ${created} created, ${updated} updated${skipped ? `, ${skipped} skipped` : ''}`)
-      qc.invalidateQueries({ queryKey: ['projects'] })
-      setShowImport(false)
-      setImportFile(null)
-    },
-    onError: e => toast.error(e.response?.data?.error || 'Import failed.'),
-  })
-
-  const budgetImportMut = useMutation({
-    mutationFn: (fd) => importBudgetWorkbook(fd),
-    onSuccess: (res) => {
-      const projects = res.data?.projects ?? []
-      const summary = projects.map(p =>
-        `${p.project_code} (${p.items_created} budget lines)`
-      ).join(', ')
-      toast.success(`Budget imported — ${summary}`)
-      qc.invalidateQueries({ queryKey: ['projects'] })
-      setShowBudget(false)
-      setBudgetFile(null)
-    },
-    onError: e => toast.error(e.response?.data?.error || 'Budget import failed.'),
-  })
-
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = (e) => {
@@ -92,22 +59,6 @@ export default function ProjectsPage() {
     createMut.mutate(payload)
   }
 
-  const handleImport = (e) => {
-    e.preventDefault()
-    if (!importFile) return toast.error('Please select an Excel file.')
-    const fd = new FormData()
-    fd.append('file', importFile)
-    importMut.mutate(fd)
-  }
-
-  const handleBudgetImport = (e) => {
-    e.preventDefault()
-    if (!budgetFile) return toast.error('Please select the budget workbook.')
-    const fd = new FormData()
-    fd.append('file', budgetFile)
-    budgetImportMut.mutate(fd)
-  }
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -117,26 +68,12 @@ export default function ProjectsPage() {
           <p className="text-xs text-gray-600 mt-0.5">{projects.length} total projects</p>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowBudget(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-50"
-            >
-              <TableCellsIcon className="h-3.5 w-3.5" /> Import Budget Workbook
-            </button>
-            <button
-              onClick={() => setShowImport(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50"
-            >
-              <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Projects Excel
-            </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
-            >
-              <PlusIcon className="h-3.5 w-3.5" /> New Project
-            </button>
-          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> New Project
+          </button>
         )}
       </div>
 
@@ -147,18 +84,12 @@ export default function ProjectsPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
           <BuildingOffice2Icon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-600">No projects yet</p>
-          <p className="text-xs text-gray-600 mt-1">{canEdit ? 'Create manually or import from Excel.' : 'No projects have been created yet.'}</p>
+          <p className="text-xs text-gray-600 mt-1">{canEdit ? 'Create a new project to get started.' : 'No projects have been created yet.'}</p>
           {canEdit && (
-            <div className="flex justify-center gap-2 mt-4">
-              <button onClick={() => setShowImport(true)}
-                className="px-4 py-2 border border-gray-200 text-xs font-medium rounded-lg hover:bg-gray-50 flex items-center gap-1.5">
-                <DocumentArrowUpIcon className="h-3.5 w-3.5" /> Import Excel
-              </button>
-              <button onClick={() => setShowModal(true)}
-                className="px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-                Create Project
-              </button>
-            </div>
+            <button onClick={() => setShowModal(true)}
+              className="mt-4 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+              Create Project
+            </button>
           )}
         </div>
       ) : (
@@ -203,61 +134,6 @@ export default function ProjectsPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Import Excel Modal */}
-      {showImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
-            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
-              <h3 className="text-white font-bold text-base">Import Projects from Excel</h3>
-              <button onClick={() => { setShowImport(false); setImportFile(null) }}
-                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {/* Template guide */}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
-                <p className="font-semibold mb-1">Excel column headers required:</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Code</span> — unique project code (required)</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Name</span> — project name (required)</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Client</span> — client / employer name</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Contract Number</span> — contract reference</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Contract Value</span> — amount in KES</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Location</span> — site location</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Start Date</span> — YYYY-MM-DD or DD/MM/YYYY</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">End Date</span> — YYYY-MM-DD or DD/MM/YYYY</p>
-                <p><span className="font-mono bg-blue-100 px-1 rounded">Status</span> — planning / active / on hold / completed</p>
-              </div>
-
-              <form id="import-form" onSubmit={handleImport} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Excel File (.xlsx) *</label>
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    className="w-full border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-brand-red transition-colors"
-                  >
-                    {importFile
-                      ? <p className="text-sm font-medium text-brand-slate">{importFile.name}</p>
-                      : <><DocumentArrowUpIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                         <p className="text-sm text-gray-600">Click to select file</p></>}
-                    <input ref={fileRef} type="file" accept=".xlsx" className="hidden"
-                      onChange={e => setImportFile(e.target.files[0] || null)} />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
-              <button type="submit" form="import-form" disabled={importMut.isPending || !importFile}
-                className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
-                {importMut.isPending ? 'Importing…' : 'Import Projects'}
-              </button>
-              <button type="button" onClick={() => { setShowImport(false); setImportFile(null) }}
-                className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -314,58 +190,6 @@ export default function ProjectsPage() {
                 {createMut.isPending ? 'Creating…' : 'Create Project'}
               </button>
               <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_FORM) }}
-                className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Budget Workbook Modal */}
-      {showBudgetImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
-            <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
-              <h3 className="text-white font-bold text-base">Import Budget Workbook</h3>
-              <button onClick={() => { setShowBudget(false); setBudgetFile(null) }}
-                className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-700 space-y-1">
-                <p className="font-semibold mb-1">Combined MN + NS Budget Workbook format</p>
-                <p>The system will automatically detect projects from sheet prefixes (e.g. <span className="font-mono bg-blue-100 px-1 rounded">MN_Materials</span>, <span className="font-mono bg-blue-100 px-1 rounded">NS_FuelPlant</span>).</p>
-                <p className="mt-2">For each project found, it will:</p>
-                <ul className="list-disc list-inside space-y-0.5 mt-1">
-                  <li>Create or update the Project record</li>
-                  <li>Create a Budget with all weekly line items</li>
-                  <li>Import Materials, Fuel, and Casual Labour breakdowns</li>
-                </ul>
-                <p className="mt-2 text-blue-600 font-medium">After import, go to the project to upload its BOQ separately.</p>
-              </div>
-              <form id="budget-import-form" onSubmit={handleBudgetImport} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Budget Workbook (.xlsx) *</label>
-                  <div
-                    onClick={() => budgetRef.current?.click()}
-                    className="w-full border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-brand-red transition-colors"
-                  >
-                    {budgetFile
-                      ? <p className="text-sm font-medium text-brand-slate">{budgetFile.name}</p>
-                      : <><TableCellsIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                         <p className="text-sm text-gray-600">Click to select workbook</p></>}
-                    <input ref={budgetRef} type="file" accept=".xlsx" className="hidden"
-                      onChange={e => setBudgetFile(e.target.files[0] || null)} />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
-              <button type="submit" form="budget-import-form" disabled={budgetImportMut.isPending || !budgetFile}
-                className="px-5 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
-                {budgetImportMut.isPending ? 'Importing…' : 'Import Budget Workbook'}
-              </button>
-              <button type="button" onClick={() => { setShowBudget(false); setBudgetFile(null) }}
                 className="px-5 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
                 Cancel
               </button>
