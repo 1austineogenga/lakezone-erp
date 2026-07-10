@@ -48,7 +48,9 @@ export default function PayrollPage() {
   const generateMut = useMutation({
     mutationFn: generatePayroll,
     onSuccess: d => {
-      toast.success(`Generated ${d.data.created} payroll entries.`)
+      const { created, skipped, errors } = d.data
+      toast.success(`Generated ${created} payroll entries.${skipped ? ` (${skipped} already existed)` : ''}`)
+      if (errors?.length) toast.warn(`${errors.length} employee(s) had errors: ${errors[0]}`)
       qc.invalidateQueries(['payroll-periods'])
     },
     onError: e => toast.error(e.response?.data?.detail || 'Failed to generate.'),

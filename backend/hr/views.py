@@ -657,28 +657,41 @@ class GeneratePayrollView(APIView):
         if period.status != 'draft':
             return Response({'detail': 'Can only generate for draft periods.'}, status=400)
 
-        employees = Employee.objects.filter(is_active=True)
-        created   = 0
+        employees = Employee.objects.filter(is_active=True).select_related('department')
+        if not employees.exists():
+            return Response({'detail': 'No active employees found. Add employees first.'}, status=400)
+
+        created  = 0
+        skipped  = 0
+        errors   = []
+        from django.core.exceptions import ValidationError as DjangoValidationError
         for emp in employees:
-            entry, was_new = PayrollEntry.objects.get_or_create(
-                period=period, employee=emp,
-                defaults={
-                    'basic_salary':        emp.basic_salary,
-                    'house_allowance':     emp.house_allowance,
-                    'transport_allowance': emp.transport_allowance,
-                    'medical_allowance':   emp.medical_allowance,
-                    'other_allowances':    emp.other_allowances,
-                    'daily_rate':          emp.daily_rate,
-                    'days_worked':         0,
-                }
-            )
-            if was_new:
-                entry.recalculate()
-                created += 1
+            try:
+                entry, was_new = PayrollEntry.objects.get_or_create(
+                    period=period, employee=emp,
+                    defaults={
+                        'basic_salary':        emp.basic_salary or 0,
+                        'house_allowance':     emp.house_allowance or 0,
+                        'transport_allowance': emp.transport_allowance or 0,
+                        'medical_allowance':   emp.medical_allowance or 0,
+                        'other_allowances':    emp.other_allowances or 0,
+                        'daily_rate':          emp.daily_rate or 0,
+                        'days_worked':         0,
+                    }
+                )
+                if was_new:
+                    created += 1
+                else:
+                    skipped += 1
+            except (DjangoValidationError, Exception) as e:
+                errors.append(f'{emp.employee_number}: {e}')
+
+        if errors and created == 0:
+            return Response({'detail': f'Generation failed: {errors[0]}'}, status=400)
 
         period.status = 'processing'
         period.save(update_fields=['status'])
-        return Response({'created': created, 'total': employees.count()})
+        return Response({'created': created, 'skipped': skipped, 'total': employees.count(), 'errors': errors})
 
 
 class PayrollEntryListView(generics.ListAPIView):
