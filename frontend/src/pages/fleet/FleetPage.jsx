@@ -18,7 +18,8 @@ import EnhancedFuelReportPage  from './EnhancedFuelReportPage'
 import GeofenceManagementPage  from './GeofenceManagementPage'
 import FuelPriceManagementPage from './FuelPriceManagementPage'
 import VehicleReceivingPage    from './VehicleReceivingPage'
-import KeyIssuancePage         from './KeyIssuancePage'
+import KeyIssuancePage              from './KeyIssuancePage'
+import EquipmentDeploymentPage     from './EquipmentDeploymentPage'
 
 const GROUPS = (role) => [
   {
@@ -34,11 +35,12 @@ const GROUPS = (role) => [
     label: 'Vehicles',
     icon: TruckIcon,
     defaultPath: '/fleet/vehicles',
-    paths: ['/fleet/vehicles', '/fleet/maintenance', '/fleet/key-issuance', '/fleet/receiving'],
+    paths: ['/fleet/vehicles', '/fleet/equipment-deployment', '/fleet/maintenance', '/fleet/key-issuance', '/fleet/receiving'],
     tabs: [
-      { label: 'Vehicles',     path: '/fleet/vehicles' },
-      { label: 'Maintenance',  path: '/fleet/maintenance' },
-      { label: 'Release Log',  path: '/fleet/key-issuance' },
+      { label: 'Vehicles',    path: '/fleet/vehicles' },
+      { label: 'Equipment',   path: '/fleet/equipment-deployment' },
+      { label: 'Maintenance', path: '/fleet/maintenance' },
+      { label: 'Release Log', path: '/fleet/key-issuance' },
       ...(role === 'system_admin' ? [{ label: 'Receiving', path: '/fleet/receiving' }] : []),
     ],
   },
@@ -134,7 +136,8 @@ export default function FleetPage() {
           <Route path="geofences" element={<GeofenceManagementPage />} />
           <Route path="fuel-prices" element={<FuelPriceManagementPage />} />
           <Route path="receiving" element={<VehicleReceivingPage />} />
-          <Route path="key-issuance" element={<KeyIssuancePage />} />
+          <Route path="key-issuance"          element={<KeyIssuancePage />} />
+          <Route path="equipment-deployment"  element={<EquipmentDeploymentPage />} />
           <Route path="settings" element={<FleetSettingsPage />} />
           <Route path="*" element={<Navigate to="" replace />} />
         </Routes>

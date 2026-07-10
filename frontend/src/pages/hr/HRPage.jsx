@@ -19,6 +19,7 @@ import TransfersPage from './TransfersPage'
 import CasualsRegistryPage from './CasualsRegistryPage'
 import LeaveApplicationPage from './LeaveApplicationPage'
 import OrganisationPage from './OrganisationPage'
+import LabourDeploymentPage from './LabourDeploymentPage'
 
 const GROUPS = (role) => [
   {
@@ -34,11 +35,12 @@ const GROUPS = (role) => [
     label: 'Workforce',
     icon: UsersIcon,
     defaultPath: '/hr/employees',
-    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/disciplinary', '/hr/transfers', '/hr/organisation'],
+    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/disciplinary', '/hr/transfers', '/hr/organisation', '/hr/labour-deployment'],
     tabs: [
-      { label: 'Employees',    path: '/hr/employees' },
-      { label: 'Casuals',      path: '/hr/casuals-registry' },
-      { label: 'Disciplinary', path: '/hr/disciplinary' },
+      { label: 'Employees',         path: '/hr/employees' },
+      { label: 'Casuals',           path: '/hr/casuals-registry' },
+      { label: 'Disciplinary',      path: '/hr/disciplinary' },
+      { label: 'Labour Deployment', path: '/hr/labour-deployment' },
       ...(role === 'system_admin' ? [{ label: 'Transfers',    path: '/hr/transfers' }] : []),
       ...(role === 'system_admin' ? [{ label: 'Organisation', path: '/hr/organisation' }] : []),
     ],
@@ -152,7 +154,8 @@ export default function HRPage() {
           <Route path="disciplinary"   element={<DisciplinaryPage />} />
           <Route path="transfers"      element={<TransfersPage />} />
           <Route path="casuals-registry" element={<CasualsRegistryPage />} />
-          <Route path="organisation"      element={<OrganisationPage />} />
+          <Route path="organisation"        element={<OrganisationPage />} />
+          <Route path="labour-deployment"  element={<LabourDeploymentPage />} />
         </Routes>
       </div>
     </div>
