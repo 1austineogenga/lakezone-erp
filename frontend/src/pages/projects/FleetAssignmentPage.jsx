@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { TruckIcon } from '@heroicons/react/24/outline'
 import { getProjectVehicles } from '../../api/projects'
 
-const STATUS_DOT = { MOVING: 'bg-green-500', IDLE: 'bg-yellow-400', STOP: 'bg-gray-400', INACTIVE: 'bg-red-400' }
 
 export default function FleetAssignmentPage() {
   const { projectId } = useParams()
@@ -29,7 +28,7 @@ export default function FleetAssignmentPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {['Vehicle', 'Make & Model', 'Category', 'GPS Status', 'Driver / Operator', 'Site', 'From', 'To', 'Active'].map(h => (
+                {['Vehicle', 'Make & Model', 'Driver / Operator', 'From', 'To', 'Active'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -44,15 +43,7 @@ export default function FleetAssignmentPage() {
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {[a.make, a.model_name].filter(Boolean).join(' ') || '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{a.asset_category || '—'}</td>
-                  <td className="px-4 py-3 text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[a.last_status] || 'bg-gray-300'}`} />
-                      {a.last_status || '—'}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 text-xs text-gray-600">{a.driver_operator || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{a.current_site || '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{a.assigned_from}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{a.assigned_to || '—'}</td>
                   <td className="px-4 py-3 text-xs">
