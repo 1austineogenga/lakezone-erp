@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getPayrollPeriods, createPayrollPeriod, generatePayroll, approvePayroll } from '../../api/hr'
-import { PlusIcon, BoltIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, BoltIcon, CheckCircleIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 
 const STATUS_COLORS = {
@@ -64,6 +64,12 @@ export default function PayrollPage() {
   const payMut = useMutation({
     mutationFn: (id) => api.post(`/hr/payroll/periods/${id}/pay/`),
     onSuccess: () => { toast.success('Payroll marked as paid.'); qc.invalidateQueries(['payroll-periods']) },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => api.delete(`/hr/payroll/periods/${id}/`),
+    onSuccess: () => { toast.success('Payroll period deleted.'); qc.invalidateQueries(['payroll-periods']) },
+    onError: e => toast.error(e.response?.data?.detail || 'Cannot delete this period.'),
   })
 
   const cls = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
@@ -149,19 +155,23 @@ export default function PayrollPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center flex-wrap">
                           {p.status === 'draft' && (
                             <button onClick={() => generateMut.mutate(p.id)} disabled={generateMut.isPending}
                               className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
                               <BoltIcon className="h-3.5 w-3.5" /> Generate
                             </button>
                           )}
-                          {p.status === 'processing' && (
+                          {p.status === 'processing' && (<>
+                            <button onClick={() => generateMut.mutate(p.id)} disabled={generateMut.isPending}
+                              className="flex items-center gap-1 text-xs text-brand-slate hover:text-brand-red font-medium">
+                              <ArrowPathIcon className="h-3.5 w-3.5" /> Regenerate
+                            </button>
                             <button onClick={() => approveMut.mutate(p.id)}
                               className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium">
                               <CheckCircleIcon className="h-3.5 w-3.5" /> Approve
                             </button>
-                          )}
+                          </>)}
                           {p.status === 'approved' && (
                             <button onClick={() => payMut.mutate(p.id)}
                               className="text-xs text-brand-red hover:opacity-80 font-medium">
@@ -172,6 +182,13 @@ export default function PayrollPage() {
                             className="text-xs text-gray-500 hover:text-brand-slate font-medium">
                             View
                           </Link>
+                          {!['approved', 'paid'].includes(p.status) && (
+                            <button
+                              onClick={() => { if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) deleteMut.mutate(p.id) }}
+                              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 font-medium">
+                              <TrashIcon className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
