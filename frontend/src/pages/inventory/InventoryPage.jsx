@@ -1152,16 +1152,7 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setShowRequestModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 border border-brand-red text-brand-red text-xs font-semibold rounded-xl hover:bg-red-50 relative">
-            <ArrowUpTrayIcon className="h-4 w-4" /> Request Items
-            {pendingReceiptsCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-brand-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                {pendingReceiptsCount}
-              </span>
-            )}
-          </button>
+
           {!isReadOnly && (
             <button
               onClick={() => setShowAddItem(true)}
