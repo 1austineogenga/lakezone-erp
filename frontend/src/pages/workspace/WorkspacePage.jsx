@@ -70,15 +70,15 @@ const SR_STATUS_LABELS = {
 
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white'
 
-const TABS = [
-  { id: 'overview',      label: 'Overview',        icon: ChartBarIcon },
-  { id: 'attendance',    label: 'Attendance',      icon: FingerPrintIcon },
-  { id: 'profile',       label: 'My Profile',      icon: UserCircleIcon },
-  { id: 'leave',         label: 'Leave',           icon: CalendarDaysIcon },
-  { id: 'advance',       label: 'Salary Advance',  icon: CurrencyDollarIcon },
-  { id: 'payslips',      label: 'Payslips',        icon: DocumentTextIcon },
-  { id: 'storerequests', label: 'Store Requests',  icon: ArchiveBoxArrowDownIcon },
-  { id: 'requisitions',  label: 'Requisitions',    icon: ClipboardDocumentListIcon },
+const NAV = [
+  { id: 'overview',      label: 'Overview',         Icon: ChartBarIcon },
+  { id: 'profile',       label: 'My Profile',       Icon: UserCircleIcon },
+  { id: 'attendance',    label: 'Attendance',       Icon: FingerPrintIcon },
+  { id: 'leave',         label: 'Leave',            Icon: CalendarDaysIcon },
+  { id: 'advance',       label: 'Salary Advance',   Icon: CurrencyDollarIcon },
+  { id: 'payslips',      label: 'Payslips',         Icon: DocumentTextIcon },
+  { id: 'storerequests', label: 'Store Requests',   Icon: ArchiveBoxArrowDownIcon },
+  { id: 'requisitions',  label: 'Requisitions',     Icon: ClipboardDocumentListIcon },
 ]
 
 // ── Print payslip ─────────────────────────────────────────────────────────────
@@ -1276,7 +1276,6 @@ export default function WorkspacePage() {
     queryFn: () => getEmployees().then(r => r.data?.results ?? r.data ?? []),
   })
 
-  // Find employee record linked to current user
   const employee = employees.find(e => e.user === (authUser?.id || user?.id))
   const employeeId = employee?.id
 
@@ -1302,42 +1301,76 @@ export default function WorkspacePage() {
   const pendingSRCount = myStoreRequests.filter(r => ['submitted', 'approved', 'dispatched'].includes(r.status)).length
 
   const currentUser = user || authUser
+  const curNav = NAV.find(n => n.id === tab)
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <h2 className="font-bold text-brand-slate text-lg">My Workspace</h2>
-        <p className="text-xs text-gray-600 mt-0.5">Manage your profile, leave, advances and payslips</p>
-      </div>
+    <div className="flex h-full min-h-screen -m-6">
 
-      {/* Tab bar */}
-      <div className="flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors
-              ${tab === id ? 'bg-white text-brand-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-            <Icon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{label}</span>
-            <span className="sm:hidden">{label.split(' ')[0]}</span>
-            {id === 'storerequests' && pendingSRCount > 0 && (
-              <span className="ml-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                {pendingSRCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* ── Sidebar ── */}
+      <aside className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
+        {/* Identity card */}
+        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            {currentUser?.profile_photo
+              ? <img
+                  src={currentUser.profile_photo.startsWith('http') ? currentUser.profile_photo : `${API_BASE}${currentUser.profile_photo}`}
+                  alt="" className="h-10 w-10 rounded-full object-cover border border-gray-200 shrink-0" />
+              : <div className="h-10 w-10 rounded-full bg-brand-red flex items-center justify-center text-white text-sm font-bold shrink-0">
+                  {currentUser?.first_name?.[0]}{currentUser?.last_name?.[0]}
+                </div>
+            }
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-brand-slate truncate">{currentUser?.first_name} {currentUser?.last_name}</p>
+              <p className="text-[10px] text-gray-400 truncate capitalize">{currentUser?.role_display || currentUser?.role?.replace(/_/g, ' ')}</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Tab content */}
-      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
-      {tab === 'attendance'    && <AttendanceTab />}
-      {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
-      {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
-      {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
-      {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
-      {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
-      {tab === 'requisitions'  && <RequisitionsTab />}
+        {/* Nav links */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5">
+          {NAV.map(({ id, label, Icon }) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition-colors
+                ${tab === id
+                  ? 'bg-brand-red text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-brand-slate'}`}>
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {label}
+              {id === 'storerequests' && pendingSRCount > 0 && (
+                <span className={`ml-auto text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center
+                  ${tab === id ? 'bg-white text-brand-red' : 'bg-amber-500 text-white'}`}>
+                  {pendingSRCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* ── Main content ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 shrink-0">
+          {curNav && (
+            <>
+              <curNav.Icon className="h-4 w-4 text-brand-red" />
+              <span className="text-sm font-semibold text-brand-slate">{curNav.label}</span>
+            </>
+          )}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-auto p-6">
+          {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
+          {tab === 'attendance'    && <AttendanceTab />}
+          {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
+          {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
+          {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
+          {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
+          {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
+          {tab === 'requisitions'  && <RequisitionsTab />}
+        </div>
+      </div>
 
       {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
