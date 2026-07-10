@@ -83,4 +83,5 @@ urlpatterns = [
     path('casuals/daily-logs/',                  views.CasualDailyLogListCreateView.as_view()),
     path('casuals/<uuid:pk>/',                   views.CasualDetailView.as_view()),
     path('casuals/<uuid:pk>/approve/',           views.CasualApproveView.as_view()),
+    path('casuals/<uuid:pk>/toggle-active/',     views.CasualToggleActiveView.as_view()),
 ]
