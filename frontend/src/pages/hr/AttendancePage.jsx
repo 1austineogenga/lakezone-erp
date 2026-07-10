@@ -110,7 +110,7 @@ export default function AttendancePage() {
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                          {['Employee', 'Type', 'Time In', 'Time Out', 'Status', 'Source', 'Quick Mark'].map(h => (
+                          {['Employee', 'Time In', 'Time Out', 'Status', 'Location', 'Source', 'Quick Mark'].map(h => (
                             <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                           ))}
                         </tr>
@@ -122,12 +122,6 @@ export default function AttendancePage() {
                               <p className="font-medium text-brand-slate text-xs">{rec.employee_number}</p>
                               <p className="text-xs text-gray-600">{rec.full_name}</p>
                             </td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                                ${rec.employment_type === 'staff' ? 'bg-red-50 text-brand-red' : 'bg-slate-100 text-brand-slate'}`}>
-                                {rec.employment_type}
-                              </span>
-                            </td>
                             <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_in || '—'}</td>
                             <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_out || '—'}</td>
                             <td className="px-4 py-3">
@@ -135,20 +129,35 @@ export default function AttendancePage() {
                                 {rec.status?.replace('_', ' ')}
                               </span>
                             </td>
+                            <td className="px-4 py-3 text-xs text-gray-500 font-mono">
+                              {rec.location
+                                ? <a href={`https://www.google.com/maps?q=${rec.location}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline">{rec.location}</a>
+                                : '—'}
+                            </td>
                             <td className="px-4 py-3 text-xs text-gray-600 capitalize">{rec.source || '—'}</td>
                             <td className="px-4 py-3">
-                              <div className="flex gap-1">
+                              <div className="flex gap-1.5">
                                 <button title="Mark Present" onClick={() => markStatus(rec.employee_id, 'present')}
-                                  className={`p-1 rounded ${rec.status === 'present' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}>
-                                  <CheckCircleIcon className="h-4 w-4" />
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                    ${rec.status === 'present'
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200'}`}>
+                                  <CheckCircleIcon className="h-3.5 w-3.5" /> P
                                 </button>
                                 <button title="Mark Absent" onClick={() => markStatus(rec.employee_id, 'absent')}
-                                  className={`p-1 rounded ${rec.status === 'absent' ? 'text-red-600' : 'text-gray-400 hover:text-red-600'}`}>
-                                  <XCircleIcon className="h-4 w-4" />
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                    ${rec.status === 'absent'
+                                      ? 'bg-red-600 text-white'
+                                      : 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'}`}>
+                                  <XCircleIcon className="h-3.5 w-3.5" /> A
                                 </button>
                                 <button title="Mark On Leave" onClick={() => markStatus(rec.employee_id, 'on_leave')}
-                                  className={`p-1 rounded ${rec.status === 'on_leave' ? 'text-brand-slate' : 'text-gray-400 hover:text-brand-slate'}`}>
-                                  <ClockIcon className="h-4 w-4" />
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                    ${rec.status === 'on_leave'
+                                      ? 'bg-brand-slate text-white'
+                                      : 'bg-slate-50 text-brand-slate hover:bg-brand-slate hover:text-white border border-slate-200'}`}>
+                                  <ClockIcon className="h-3.5 w-3.5" /> L
                                 </button>
                               </div>
                             </td>
