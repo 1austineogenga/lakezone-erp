@@ -37,8 +37,9 @@ const GROUPS = (role) => [
     defaultPath: '/hr/employees',
     paths: ['/hr/employees', '/hr/casuals-registry', '/hr/transfers'],
     tabs: [
-      { label: 'Employees', path: '/hr/employees' },
-      { label: 'Casuals',   path: '/hr/casuals-registry' },
+      { label: 'Employees',  path: '/hr/employees' },
+      { label: 'Casuals',    path: '/hr/casuals-registry' },
+      { label: 'Movements',  path: '/hr/transfers' },
     ],
   },
   {
