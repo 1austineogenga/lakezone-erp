@@ -885,7 +885,9 @@ export default function VehiclesPage() {
       ) : (
         <div className="space-y-4">
           <PageNav />
-          {groupOrder.filter(g => grouped[g]?.length).map(groupName => (
+          {(() => {
+            let rowCounter = 0
+            return groupOrder.filter(g => grouped[g]?.length).map(groupName => (
             <div key={groupName} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
               {/* Group header */}
               <div className={`px-4 py-2 flex items-center justify-between border-b border-gray-100 ${CAT_COLOR[groupName] || 'bg-gray-50'}`}>
@@ -910,6 +912,8 @@ export default function VehiclesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {grouped[groupName].map(v => {
+                    rowCounter++
+                    const rowNum     = rowCounter
                     const compIssues = (v.compliance||[]).filter(c => c.status==='expired'||c.status==='not_in_system'||c.status==='expiring_soon')
                     const hasWarn    = compIssues.length > 0 || v.erp_status === 'NON-OPER'
                     const location   = v.current_site || v.last_location || '—'
@@ -918,7 +922,7 @@ export default function VehiclesPage() {
                         onClick={() => navigate(`/fleet/vehicles/${v.id}`)}
                         className={`cursor-pointer transition-colors hover:bg-gray-50 ${hasWarn ? 'bg-red-50/30' : ''}`}>
                         {/* # */}
-                        <td className="px-4 py-3 text-gray-600">{v.asset_no || '—'}</td>
+                        <td className="px-4 py-3 text-gray-500 font-mono text-[11px]">{rowNum}</td>
                         {/* Reg */}
                         <td className="px-4 py-3">
                           <span className="font-bold text-brand-slate">{v.vehicle_no}</span>
@@ -993,7 +997,8 @@ export default function VehiclesPage() {
                 </tbody>
               </table>
             </div>
-          ))}
+          ))
+          })()}
           <PageNav />
         </div>
       )}
