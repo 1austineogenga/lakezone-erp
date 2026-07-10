@@ -98,38 +98,18 @@ export default function FleetPage() {
           <span className="text-sm text-gray-500">{activeGroup?.label}{activeTab ? ` — ${activeTab.label}` : ''}</span>
         </div>
 
-        {/* Main group tab bar */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-none">
-          {groups.map(({ id, label, icon: Icon, defaultPath, paths, exact }) => {
-            const isActive = exact
-              ? location.pathname === '/fleet' || location.pathname === defaultPath
-              : paths.some(p => matchPath(p))
-            return (
-              <button key={id}
-                onClick={() => navigate(defaultPath)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 -mb-px whitespace-nowrap transition-colors
-                  ${isActive
-                    ? 'border-brand-red text-brand-red bg-red-50/40'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-
         {/* Sub-tab bar — only when active group has tabs */}
         {activeGroup?.tabs && activeGroup.tabs.length > 0 && (
-          <div className="flex gap-1 pt-1 overflow-x-auto scrollbar-none border-t border-gray-100 mt-1">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none">
             {activeGroup.tabs.map(({ label, path }) => {
               const isActive = matchPath(path)
               return (
                 <button key={path}
                   onClick={() => navigate(path)}
-                  className={`px-3 py-2 text-xs font-medium rounded-t whitespace-nowrap transition-colors -mb-px border-b-2
+                  className={`px-4 py-2.5 text-sm font-medium rounded-t-lg whitespace-nowrap transition-colors -mb-px border-b-2
                     ${isActive
-                      ? 'border-brand-red text-brand-red'
-                      : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                      ? 'border-brand-red text-brand-red bg-red-50/40'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                   {label}
                 </button>
               )
