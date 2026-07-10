@@ -84,4 +84,10 @@ urlpatterns = [
     path('casuals/<uuid:pk>/',                   views.CasualDetailView.as_view()),
     path('casuals/<uuid:pk>/approve/',           views.CasualApproveView.as_view()),
     path('casuals/<uuid:pk>/toggle-active/',     views.CasualToggleActiveView.as_view()),
+
+    # Casual Daily Reports
+    path('casual-reports/',                      views.CasualDailyReportListCreateView.as_view()),
+    path('casual-reports/<uuid:pk>/',            views.CasualDailyReportDetailView.as_view()),
+    path('casual-reports/<uuid:pk>/submit/',     views.CasualReportSubmitView.as_view()),
+    path('casual-reports/<uuid:pk>/approve/',    views.CasualReportApproveView.as_view()),
 ]

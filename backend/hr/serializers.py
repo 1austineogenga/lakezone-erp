@@ -4,7 +4,7 @@ from .models import (
     BiometricDevice, AttendanceRecord,
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
-    EmployeeTransfer, Casual, CasualDailyLog,
+    EmployeeTransfer, Casual, CasualDailyLog, CasualDailyReport, CasualDailyReportItem,
 )
 
 
@@ -357,3 +357,27 @@ class CasualSerializer(serializers.ModelSerializer):
 
     def get_total_amount(self, obj):
         return float(obj.daily_rate) * float(self.get_total_days(obj))
+
+
+class CasualDailyReportItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = CasualDailyReportItem
+        fields = '__all__'
+
+
+class CasualDailyReportSerializer(serializers.ModelSerializer):
+    items              = CasualDailyReportItemSerializer(many=True, read_only=True)
+    submitted_by_name  = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
+    approved_by_name   = serializers.CharField(source='approved_by.get_full_name',  read_only=True)
+    expense_reference  = serializers.CharField(source='expense_claim.reference',    read_only=True)
+    expense_status     = serializers.CharField(source='expense_claim.status',       read_only=True)
+    status_display     = serializers.CharField(source='get_status_display',         read_only=True)
+
+    class Meta:
+        model  = CasualDailyReport
+        fields = '__all__'
+        read_only_fields = [
+            'reference', 'submitted_by', 'submitted_at',
+            'approved_by', 'approved_at', 'expense_claim',
+            'total_amount', 'created_at', 'updated_at',
+        ]
