@@ -275,8 +275,11 @@ class DailySheetView(APIView):
 
             notes = rec.notes if rec else ''
             location = None
-            if notes and notes.startswith('GPS:'):
-                location = notes[4:].strip()
+            if notes:
+                import re
+                m = re.search(r'GPS:\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)', notes)
+                if m:
+                    location = f'{m.group(1)},{m.group(2)}'
 
             sheet.append({
                 'employee_id':     str(emp.id),
