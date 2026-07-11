@@ -165,7 +165,21 @@ export default function ProjectDashboard({ dashData: prefetched }) {
   const variance      = totalActual - contractValue
   const isOverrun     = variance > 0
 
+  const qc = useQueryClient()
   const goTab = (tab) => navigate(`/projects/${projectId}?tab=${tab}`)
+
+  const generateWBSMut = useMutation({
+    mutationFn: (replace) =>
+      import('../../api/client').then(({ default: api }) =>
+        api.post(`/projects/${projectId}/wbs/generate/`, { replace })
+      ),
+    onSuccess: (res) => {
+      toast.success(res.data.detail)
+      qc.invalidateQueries({ queryKey: ['wbs', projectId] })
+      goTab('wbs')
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Failed to generate WBS.'),
+  })
 
   return (
     <div className="space-y-5">
@@ -284,10 +298,12 @@ export default function ProjectDashboard({ dashData: prefetched }) {
               <ClipboardDocumentListIcon className="h-3.5 w-3.5" /> Upload BOQ File
             </button>
             <button
-              onClick={() => goTab('wbs')}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-50"
+              onClick={() => generateWBSMut.mutate(false)}
+              disabled={generateWBSMut.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
-              <ListBulletIcon className="h-3.5 w-3.5" /> Generate WBS
+              <ListBulletIcon className="h-3.5 w-3.5" />
+              {generateWBSMut.isPending ? 'Generating…' : 'Generate WBS'}
             </button>
           </div>
         </div>

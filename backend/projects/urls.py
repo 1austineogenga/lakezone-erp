@@ -65,6 +65,7 @@ project_urls = [
     path('', views.ProjectDetailView.as_view()),
     path('dashboard/', views.ProjectDashboardView.as_view()),
     path('wbs/', views.ProjectWBSSummaryView.as_view()),
+    path('wbs/generate/', views.GenerateWBSFromBOQView.as_view()),
     path('phases/', include(phase_urls)),
     path('boqs/', include(boq_urls)),
     path('budgets/', include(budget_urls)),

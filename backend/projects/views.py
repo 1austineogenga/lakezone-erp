@@ -954,6 +954,65 @@ class ProjectWBSSummaryView(APIView):
         })
 
 
+# ── WBS: Generate from BOQ ────────────────────────────────────────────────────
+class GenerateWBSFromBOQView(APIView):
+    """Auto-generate WBS phases and activities from the project's latest BOQ."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_pk):
+        project = get_object_or_404(Project, pk=project_pk)
+        boq = project.boqs.prefetch_related('bills__items').order_by('-uploaded_at').first()
+        if not boq:
+            return Response({'detail': 'No BOQ found for this project. Upload a BOQ first.'}, status=400)
+
+        replace = request.data.get('replace', False)
+        if replace:
+            ProjectPhase.objects.filter(project=project).delete()
+
+        COLORS = ['blue', 'green', 'purple', 'orange', 'teal', 'indigo', 'pink', 'red']
+        created_phases = 0
+        created_activities = 0
+
+        for i, bill in enumerate(boq.bills.all()):
+            phase_name = bill.description or f'Bill {bill.bill_number}'
+            phase, created = ProjectPhase.objects.get_or_create(
+                project=project,
+                name=phase_name,
+                defaults={
+                    'description': f'Generated from BOQ Bill {bill.bill_number}',
+                    'color': COLORS[i % len(COLORS)],
+                    'order': i,
+                    'planned_start': project.start_date,
+                    'planned_end': project.end_date,
+                }
+            )
+            if created:
+                created_phases += 1
+
+            for j, item in enumerate(bill.items.all()):
+                wbs_code = f'{bill.bill_number}.{item.item_number}'
+                act, act_created = ProjectActivity.objects.get_or_create(
+                    phase=phase,
+                    wbs_code=wbs_code,
+                    defaults={
+                        'description': item.description[:500],
+                        'planned_start': project.start_date,
+                        'planned_end': project.end_date,
+                        'weight': float(item.amount) if float(item.amount or 0) > 0 else 1,
+                        'status': 'not_started',
+                        'order': j,
+                    }
+                )
+                if act_created:
+                    created_activities += 1
+
+        return Response({
+            'detail': f'Generated {created_phases} phases and {created_activities} activities from BOQ.',
+            'created_phases': created_phases,
+            'created_activities': created_activities,
+        })
+
+
 # ── Variation Orders ──────────────────────────────────────────────────────────
 class VariationOrderListCreate(generics.ListCreateAPIView):
     serializer_class   = VariationOrderSerializer
