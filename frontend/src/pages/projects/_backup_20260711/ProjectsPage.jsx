@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import {
-  BuildingOffice2Icon, PlusIcon, ArrowRightIcon, MagnifyingGlassIcon,
-} from '@heroicons/react/24/outline'
+import { BuildingOffice2Icon, PlusIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import { getProjects, createProject } from '../../api/projects'
 import usePermissions from '../../hooks/usePermissions'
 
@@ -25,14 +23,6 @@ const EMPTY_FORM = {
   location: '', latitude: '', longitude: '', start_date: '', end_date: '', description: '', status: 'planning',
 }
 
-const STATUS_FILTERS = [
-  { key: 'all',       label: 'All' },
-  { key: 'planning',  label: 'Planning' },
-  { key: 'active',    label: 'Active' },
-  { key: 'on_hold',   label: 'On Hold' },
-  { key: 'completed', label: 'Completed' },
-]
-
 export default function ProjectsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -40,8 +30,6 @@ export default function ProjectsPage() {
   const canEdit = canWrite('projects')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm]           = useState(EMPTY_FORM)
-  const [search, setSearch]       = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -71,180 +59,77 @@ export default function ProjectsPage() {
     createMut.mutate(payload)
   }
 
-  // Client-side filtering
-  const filtered = projects.filter(p => {
-    const q = search.toLowerCase()
-    const matchSearch = !q || (
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.code || '').toLowerCase().includes(q) ||
-      (p.client || '').toLowerCase().includes(q)
-    )
-    const matchStatus = statusFilter === 'all' || p.status === statusFilter
-    return matchSearch && matchStatus
-  })
-
-  // Summary stats
-  const total     = projects.length
-  const active    = projects.filter(p => p.status === 'active').length
-  const planning  = projects.filter(p => p.status === 'planning').length
-  const completed = projects.filter(p => p.status === 'completed').length
-
   return (
     <div className="space-y-5">
-
-      {/* Page header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-brand-slate text-xl">Projects Portfolio</h2>
-          <p className="text-xs text-gray-500 mt-0.5">{total} project{total !== 1 ? 's' : ''} in system</p>
+          <h2 className="font-bold text-brand-slate text-lg">Projects</h2>
+          <p className="text-xs text-gray-600 mt-0.5">{projects.length} total projects</p>
         </div>
         {canEdit && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90"
           >
             <PlusIcon className="h-3.5 w-3.5" /> New Project
           </button>
         )}
       </div>
 
-      {/* Summary tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total Projects', value: total,     color: 'text-brand-slate' },
-          { label: 'Active',         value: active,    color: 'text-green-600'   },
-          { label: 'Planning',       value: planning,  color: 'text-gray-500'    },
-          { label: 'Completed',      value: completed, color: 'text-blue-600'    },
-        ].map(tile => (
-          <div key={tile.label} className="bg-white border border-gray-200 rounded-xl px-4 py-3.5">
-            <p className="text-xs text-gray-400 font-medium">{tile.label}</p>
-            <p className={`text-2xl font-bold mt-0.5 ${tile.color}`}>{tile.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Search + filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, code or client…"
-            className="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
-          />
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {STATUS_FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setStatusFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                statusFilter === f.key
-                  ? 'bg-brand-slate text-white border-brand-slate'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-brand-slate'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Projects Grid */}
       {isLoading ? (
-        <p className="text-sm text-gray-500 p-8 text-center">Loading…</p>
-      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
+      ) : projects.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
           <BuildingOffice2Icon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          {projects.length === 0 ? (
-            <>
-              <p className="text-sm font-medium text-gray-600">No projects yet</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {canEdit ? 'Create a new project to get started.' : 'No projects have been created yet.'}
-              </p>
-              {canEdit && (
-                <button onClick={() => setShowModal(true)}
-                  className="mt-4 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
-                  Create Project
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="text-sm font-medium text-gray-600">No projects match your search</p>
+          <p className="text-sm font-medium text-gray-600">No projects yet</p>
+          <p className="text-xs text-gray-600 mt-1">{canEdit ? 'Create a new project to get started.' : 'No projects have been created yet.'}</p>
+          {canEdit && (
+            <button onClick={() => setShowModal(true)}
+              className="mt-4 px-4 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90">
+              Create Project
+            </button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(p => (
-            <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-
-              {/* Card header — dark bg */}
-              <div className="bg-brand-slate px-5 py-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-md tracking-wide">
-                    {p.code || '—'}
-                  </span>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[p.status] || STATUS_COLORS.planning}`}>
+          {projects.map(p => (
+            <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-x-auto hover:shadow-md transition-shadow">
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] || STATUS_COLORS.planning}`}>
                     {STATUS_LABELS[p.status] || p.status}
                   </span>
+                  <span className="bg-brand-slate text-white text-xs font-bold px-2.5 py-1 rounded-lg tracking-wide">
+                    {p.code || '—'}
+                  </span>
                 </div>
-                <h3 className="font-bold text-white text-sm leading-snug line-clamp-2">{p.name}</h3>
-              </div>
-
-              {/* Card body */}
-              <div className="px-5 py-4 flex-1 space-y-1.5">
-                {p.client && (
+                <h3 className="font-semibold text-brand-slate text-sm leading-snug mb-1">{p.name}</h3>
+                <p className="text-xs text-gray-600 mb-3">{p.client || '—'}</p>
+                <div className="border-t border-gray-100 pt-3 space-y-1.5">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Client</span>
-                    <span className="font-medium text-gray-700 text-right truncate max-w-[60%]">{p.client}</span>
-                  </div>
-                )}
-                {p.location && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Location</span>
-                    <span className="text-gray-600 text-right truncate max-w-[60%]">{p.location}</span>
-                  </div>
-                )}
-                {p.contract_number && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Contract No.</span>
-                    <span className="text-gray-600">{p.contract_number}</span>
-                  </div>
-                )}
-                <div className="border-t border-gray-100 pt-2 mt-2 space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Contract Value</span>
-                    <span className="font-semibold text-brand-slate">
-                      KES {Number(p.contract_value || 0).toLocaleString()}
-                    </span>
+                    <span className="text-gray-600">Contract Value</span>
+                    <span className="font-semibold text-brand-slate">KES {Number(p.contract_value || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Period</span>
-                    <span className="text-gray-500">{p.start_date || '—'} → {p.end_date || '—'}</span>
+                    <span className="text-gray-600">Period</span>
+                    <span className="text-gray-600">{p.start_date || '—'} → {p.end_date || '—'}</span>
                   </div>
-                </div>
-
-                {/* Progress bar placeholder */}
-                <div className="pt-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-400">BOQ Progress</span>
-                    <span className="text-gray-500 font-medium">0%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full">
-                    <div className="h-1.5 bg-brand-red rounded-full" style={{ width: '0%' }} />
-                  </div>
+                  {p.location && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-600">Location</span>
+                      <span className="text-gray-600">{p.location}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Card footer */}
               <div className="px-5 pb-4">
                 <button
-                  onClick={() => navigate(`/projects/${p.id}?tab=dashboard`)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                  onClick={() => navigate(`/projects/${p.id}`)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 border border-brand-red text-brand-red text-xs font-medium rounded-lg hover:bg-red-50 transition-colors"
                 >
-                  Open Project <ArrowRightIcon className="h-3.5 w-3.5" />
+                  View Project <ArrowRightIcon className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
