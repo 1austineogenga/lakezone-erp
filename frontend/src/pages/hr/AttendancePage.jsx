@@ -138,12 +138,52 @@ const STATUS_COLORS = {
   off:            'bg-gray-50 text-gray-400',
 }
 
+const PAGE_SIZE = 12
+
+function Pagination({ page, total, pageSize, onChange }) {
+  const totalPages = Math.ceil(total / pageSize)
+  if (totalPages <= 1) return null
+  const from = (page - 1) * pageSize + 1
+  const to   = Math.min(page * pageSize, total)
+  return (
+    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-xs text-gray-600">
+      <span>{from}–{to} of {total}</span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(1)} disabled={page === 1}
+          className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40">«</button>
+        <button onClick={() => onChange(page - 1)} disabled={page === 1}
+          className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40">‹</button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+          .reduce((acc, p, idx, arr) => {
+            if (idx > 0 && p - arr[idx - 1] > 1) acc.push('…')
+            acc.push(p)
+            return acc
+          }, [])
+          .map((p, i) => p === '…'
+            ? <span key={`e${i}`} className="px-1">…</span>
+            : <button key={p} onClick={() => onChange(p)}
+                className={`px-2.5 py-1 rounded border text-xs font-medium ${p === page ? 'bg-brand-slate text-white border-brand-slate' : 'border-gray-200 hover:bg-gray-50'}`}>
+                {p}
+              </button>
+          )
+        }
+        <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
+          className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40">›</button>
+        <button onClick={() => onChange(totalPages)} disabled={page === totalPages}
+          className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40">»</button>
+      </div>
+    </div>
+  )
+}
+
 export default function AttendancePage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [view, setView]       = useState('daily')
   const [date, setDate]       = useState(today)
   const [month, setMonth]     = useState(today.slice(0, 7))
+  const [page, setPage]       = useState(1)
 
   const { data: dailySheet, isLoading: loadingDaily } = useQuery({
     queryKey: ['daily-sheet', date],
@@ -166,6 +206,10 @@ export default function AttendancePage() {
   const absent   = dailySheet?.filter(r => r.status === 'absent').length   || 0
   const late     = dailySheet?.filter(r => r.status === 'late').length     || 0
   const onLeave  = dailySheet?.filter(r => r.status === 'on_leave').length || 0
+
+  const totalRows  = dailySheet?.length || 0
+  const safePage   = Math.min(page, Math.max(1, Math.ceil(totalRows / PAGE_SIZE)))
+  const pageSlice  = dailySheet?.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE) ?? []
 
   return (
     <div className="space-y-5">
@@ -191,7 +235,7 @@ export default function AttendancePage() {
         ))}
 
         {view === 'daily' && (
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          <input type="date" value={date} onChange={e => { setDate(e.target.value); setPage(1) }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
         )}
       </div>
@@ -222,7 +266,7 @@ export default function AttendancePage() {
                 Attendance Sheet — {date}
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-600">{dailySheet?.length || 0} employees</span>
+                <span className="text-xs text-gray-600">{totalRows} employees</span>
                 {dailySheet && dailySheet.length > 0 && (<>
                   <button onClick={() => exportCSV(dailySheet, date)}
                     title="Export CSV"
@@ -241,63 +285,67 @@ export default function AttendancePage() {
               ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
               : !dailySheet || dailySheet.length === 0
                 ? <p className="text-sm text-gray-600 p-8 text-center">No attendance data. Add employees first.</p>
-                : <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          {['Employee', 'Time In', 'Time Out', 'Status', 'Location', 'Source', 'Quick Mark'].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {dailySheet.map(rec => (
-                          <tr key={rec.employee_id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <p className="font-medium text-brand-slate text-xs">{rec.employee_number}</p>
-                              <p className="text-xs text-gray-600">{rec.full_name}</p>
-                            </td>
-                            <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_in || '—'}</td>
-                            <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_out || '—'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[rec.status] || 'bg-gray-100 text-gray-600'}`}>
-                                {rec.status?.replace('_', ' ')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <LocationName coords={rec.location} />
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-600 capitalize">{rec.source || '—'}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex gap-1.5">
-                                <button title="Mark Present" onClick={() => markStatus(rec.employee_id, 'present')}
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
-                                    ${rec.status === 'present'
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200'}`}>
-                                  <CheckCircleIcon className="h-3.5 w-3.5" /> P
-                                </button>
-                                <button title="Mark Absent" onClick={() => markStatus(rec.employee_id, 'absent')}
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
-                                    ${rec.status === 'absent'
-                                      ? 'bg-red-600 text-white'
-                                      : 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'}`}>
-                                  <XCircleIcon className="h-3.5 w-3.5" /> A
-                                </button>
-                                <button title="Mark On Leave" onClick={() => markStatus(rec.employee_id, 'on_leave')}
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
-                                    ${rec.status === 'on_leave'
-                                      ? 'bg-brand-slate text-white'
-                                      : 'bg-slate-50 text-brand-slate hover:bg-brand-slate hover:text-white border border-slate-200'}`}>
-                                  <ClockIcon className="h-3.5 w-3.5" /> L
-                                </button>
-                              </div>
-                            </td>
+                : <>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            {['#', 'Employee', 'Time In', 'Time Out', 'Status', 'Location', 'Source', 'Quick Mark'].map(h => (
+                              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {pageSlice.map((rec, idx) => (
+                            <tr key={rec.employee_id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-gray-400 font-mono text-[11px]">{(safePage - 1) * PAGE_SIZE + idx + 1}</td>
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-brand-slate text-xs">{rec.employee_number}</p>
+                                <p className="text-xs text-gray-600">{rec.full_name}</p>
+                              </td>
+                              <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_in || '—'}</td>
+                              <td className="px-4 py-3 text-gray-700 text-xs font-mono">{rec.time_out || '—'}</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[rec.status] || 'bg-gray-100 text-gray-600'}`}>
+                                  {rec.status?.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <LocationName coords={rec.location} />
+                              </td>
+                              <td className="px-4 py-3 text-xs text-gray-600 capitalize">{rec.source || '—'}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex gap-1.5">
+                                  <button title="Mark Present" onClick={() => markStatus(rec.employee_id, 'present')}
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                      ${rec.status === 'present'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200'}`}>
+                                    <CheckCircleIcon className="h-3.5 w-3.5" /> P
+                                  </button>
+                                  <button title="Mark Absent" onClick={() => markStatus(rec.employee_id, 'absent')}
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                      ${rec.status === 'absent'
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'}`}>
+                                    <XCircleIcon className="h-3.5 w-3.5" /> A
+                                  </button>
+                                  <button title="Mark On Leave" onClick={() => markStatus(rec.employee_id, 'on_leave')}
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
+                                      ${rec.status === 'on_leave'
+                                        ? 'bg-brand-slate text-white'
+                                        : 'bg-slate-50 text-brand-slate hover:bg-brand-slate hover:text-white border border-slate-200'}`}>
+                                    <ClockIcon className="h-3.5 w-3.5" /> L
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Pagination page={safePage} total={totalRows} pageSize={PAGE_SIZE} onChange={setPage} />
+                  </>
             }
           </div>
         </div>
@@ -311,6 +359,7 @@ export default function AttendancePage() {
 
 function BiometricLog() {
   const [dateFilter, setDateFilter] = useState(today)
+  const [page, setPage] = useState(1)
 
   const { data: records, isLoading } = useQuery({
     queryKey: ['attendance-log', dateFilter],
@@ -318,49 +367,58 @@ function BiometricLog() {
     select: r => r.data?.results ?? r.data,
   })
 
+  const total     = records?.length || 0
+  const safePage  = Math.min(page, Math.max(1, Math.ceil(total / PAGE_SIZE)))
+  const pageSlice = records?.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE) ?? []
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+        <input type="date" value={dateFilter} onChange={e => { setDateFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red" />
         <span className="text-xs text-gray-600">Showing biometric-sourced records only</span>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-        <div className="px-5 py-3.5 border-b border-gray-100">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-brand-slate text-sm">Biometric Attendance Log — {dateFilter}</h3>
+          {total > 0 && <span className="text-xs text-gray-500">{total} records</span>}
         </div>
         {isLoading
           ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !records || records.length === 0
             ? <p className="text-sm text-gray-600 p-8 text-center">No biometric records for this date.</p>
-            : <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>{['Employee', 'Device', 'Time In', 'Time Out', 'Status', 'Late Mins'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
-                  ))}</tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {records.map(r => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-brand-slate text-xs">{r.employee_number}</p>
-                        <p className="text-xs text-gray-600">{r.full_name}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{r.device_name || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{r.time_in || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{r.time_out || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] || ''}`}>
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-yellow-700">
-                        {r.late_minutes > 0 ? `${r.late_minutes} min` : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            : <>
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>{['#', 'Employee', 'Device', 'Time In', 'Time Out', 'Status', 'Late Mins'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pageSlice.map((r, idx) => (
+                      <tr key={r.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-400 font-mono text-[11px]">{(safePage - 1) * PAGE_SIZE + idx + 1}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-brand-slate text-xs">{r.employee_number}</p>
+                          <p className="text-xs text-gray-600">{r.full_name}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{r.device_name || '—'}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{r.time_in || '—'}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{r.time_out || '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] || ''}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-yellow-700">
+                          {r.late_minutes > 0 ? `${r.late_minutes} min` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <Pagination page={safePage} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+              </>
         }
       </div>
     </div>
