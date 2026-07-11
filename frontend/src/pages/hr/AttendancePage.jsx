@@ -281,6 +281,9 @@ export default function AttendancePage() {
                 </>)}
               </div>
             </div>
+            {!loadingDaily && dailySheet && dailySheet.length > 0 &&
+              <Pagination page={safePage} total={totalRows} pageSize={PAGE_SIZE} onChange={setPage} />
+            }
             {loadingDaily
               ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
               : !dailySheet || dailySheet.length === 0
@@ -383,6 +386,9 @@ function BiometricLog() {
           <h3 className="font-semibold text-brand-slate text-sm">Biometric Attendance Log — {dateFilter}</h3>
           {total > 0 && <span className="text-xs text-gray-500">{total} records</span>}
         </div>
+        {!isLoading && total > 0 &&
+          <Pagination page={safePage} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+        }
         {isLoading
           ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
           : !records || records.length === 0
