@@ -377,20 +377,12 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
 // ── Profile Tab ───────────────────────────────────────────────────────────────
 function ProfileTab({ user, refetch }) {
   const photoRef = useRef()
-  const [form, setForm] = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', phone: user?.phone || '' })
   const [pwForm, setPwForm] = useState({ old_password: '', new_password: '', confirm: '' })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }))
 
   const photoUrl = user?.profile_photo
     ? (user.profile_photo.startsWith('http') ? user.profile_photo : `${API_BASE}${user.profile_photo}`)
     : null
-
-  const updateMut = useMutation({
-    mutationFn: (data) => patchMe(data),
-    onSuccess: () => { toast.success('Profile updated'); refetch() },
-    onError: () => toast.error('Failed to update profile'),
-  })
 
   const photoMut = useMutation({
     mutationFn: (file) => {
@@ -450,24 +442,6 @@ function ProfileTab({ user, refetch }) {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Edit form */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 className="font-semibold text-brand-slate text-sm mb-4">Edit Personal Information</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[['first_name','First Name'],['last_name','Last Name'],['phone','Phone']].map(([k, label]) => (
-            <div key={k}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-              <input value={form[k]} onChange={e => set(k, e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-red" />
-            </div>
-          ))}
-        </div>
-        <button onClick={() => updateMut.mutate(form)} disabled={updateMut.isPending}
-          className="mt-4 px-5 py-2 bg-brand-red text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-          {updateMut.isPending ? 'Saving…' : 'Save Changes'}
-        </button>
       </div>
 
       {/* Change password */}
