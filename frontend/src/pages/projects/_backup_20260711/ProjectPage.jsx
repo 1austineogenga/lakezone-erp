@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
@@ -120,18 +119,17 @@ export default function ProjectPage() {
   return (
     <div className="space-y-4">
       {/* Project identity bar */}
-      <div className="bg-white border border-gray-200 rounded-xl px-5 py-3.5 flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3">
         <button onClick={() => navigate('/projects')}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-slate font-medium transition-colors">
+          className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-slate">
           <ArrowLeftIcon className="h-3.5 w-3.5" /> All Projects
         </button>
         {!isLoading && (
           <>
-            <span className="text-gray-200">|</span>
-            <span className="bg-brand-slate text-white text-xs font-bold px-2.5 py-1 rounded-md">{project.code || '—'}</span>
-            <span className="text-sm font-bold text-brand-slate truncate">{project.name}</span>
-            {project.client && <span className="text-xs text-gray-400 hidden sm:block">· {project.client}</span>}
-            <span className={`ml-auto px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[project.status] || STATUS_COLORS.planning}`}>
+            <span className="text-gray-300">·</span>
+            <span className="bg-brand-slate text-white text-xs font-bold px-2 py-0.5 rounded">{project.code || '—'}</span>
+            <span className="text-sm font-semibold text-brand-slate truncate">{project.name}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project.status] || STATUS_COLORS.planning}`}>
               {STATUS_LABELS[project.status] || '—'}
             </span>
           </>

@@ -18,26 +18,41 @@ import {
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 
-const PROJECT_NAV = [
-  { tab: 'dashboard',      label: 'Dashboard',          icon: ChartBarIcon },
-  { tab: 'boq',            label: 'Bill of Quantities', icon: ClipboardDocumentListIcon },
-  { tab: 'budget',         label: 'Budget / Workbook',  icon: BanknotesIcon },
-  { tab: 'wbs',            label: 'WBS / Activities',   icon: ListBulletIcon },
-  { tab: 'chainage',       label: 'Chainage Segments',  icon: MapPinIcon },
-  { tab: 'ipcs',           label: 'IPCs',               icon: DocumentCheckIcon },
-  { tab: 'evm',            label: 'EVM & Finance',      icon: PresentationChartLineIcon },
-  { tab: 'site-diary',     label: 'Site Diary',         icon: BookOpenIcon },
-  { tab: 'progress',       label: 'Weekly Progress',    icon: CalendarDaysIcon },
-  { tab: 'qa',             label: 'QA / Testing',       icon: BeakerIcon },
-  { tab: 'ncr',            label: 'NCR',                icon: ExclamationCircleIcon },
-  { tab: 'rfi-list',       label: 'RFIs',               icon: QuestionMarkCircleIcon },
-  { tab: 'safety',         label: 'Safety',             icon: ShieldExclamationIcon },
-  { tab: 'subcontractors', label: 'Subcontractors',     icon: BuildingOfficeIcon },
-  { tab: 'fleet',          label: 'Fleet',              icon: TruckIcon },
-  { tab: 'team',           label: 'Team',               icon: UsersIcon },
-  { tab: 'risks',          label: 'Risk Register',      icon: ExclamationTriangleIcon },
-  { tab: 'photos',         label: 'Photos',             icon: DocumentChartBarIcon },
-  { tab: 'reports',        label: 'Reports',            icon: DocumentTextIcon },
+// Project sidebar groups — each group has items OR is a single direct link
+const PROJECT_NAV_GROUPS = [
+  { key: 'overview',   label: 'Overview',         icon: ChartBarIcon,             tab: 'dashboard',  single: true },
+  { key: 'planning',   label: 'Planning',          icon: CalendarDaysIcon,         items: [
+      { tab: 'boq',      label: 'Bill of Quantities', icon: ClipboardDocumentListIcon },
+      { tab: 'wbs',      label: 'WBS / Activities',   icon: ListBulletIcon },
+      { tab: 'chainage', label: 'Chainage',            icon: MapPinIcon },
+  ]},
+  { key: 'resources',  label: 'Resources',         icon: UsersIcon,                items: [
+      { tab: 'team',           label: 'Team',           icon: UsersIcon },
+      { tab: 'fleet',          label: 'Fleet',          icon: TruckIcon },
+      { tab: 'subcontractors', label: 'Subcontractors', icon: BuildingOfficeIcon },
+  ]},
+  { key: 'financials', label: 'Financials',        icon: BanknotesIcon,            items: [
+      { tab: 'budget', label: 'Budget / Workbook', icon: BanknotesIcon },
+      { tab: 'ipcs',   label: 'IPCs',              icon: DocumentCheckIcon },
+      { tab: 'evm',    label: 'EVM & Finance',     icon: PresentationChartLineIcon },
+  ]},
+  { key: 'documents',  label: 'Documents',         icon: DocumentTextIcon,         items: [
+      { tab: 'rfi-list', label: 'RFIs', icon: QuestionMarkCircleIcon },
+  ]},
+  { key: 'progress',   label: 'Progress',          icon: ArrowTrendingUpIcon,      items: [
+      { tab: 'site-diary', label: 'Site Diary',      icon: BookOpenIcon },
+      { tab: 'progress',   label: 'Weekly Progress', icon: CalendarDaysIcon },
+      { tab: 'photos',     label: 'Photos',          icon: DocumentChartBarIcon },
+  ]},
+  { key: 'quality',    label: 'Quality & Safety',  icon: ShieldCheckIcon,          items: [
+      { tab: 'qa',     label: 'QA / Testing',  icon: BeakerIcon },
+      { tab: 'ncr',    label: 'NCR',            icon: ExclamationCircleIcon },
+      { tab: 'safety', label: 'Safety',         icon: ShieldExclamationIcon },
+      { tab: 'risks',  label: 'Risk Register',  icon: ExclamationTriangleIcon },
+  ]},
+  { key: 'reports',    label: 'Reports',           icon: DocumentTextIcon,         items: [
+      { tab: 'reports', label: 'Field Reports', icon: DocumentTextIcon },
+  ]},
 ]
 import useAuthStore from '../../store/authStore'
 import { logout as apiLogout } from '../../api/auth'
@@ -136,6 +151,12 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const [open, setOpen] = useState(initialOpen)
   const toggle = key => setOpen(o => ({ ...o, [key]: !o[key] }))
 
+  const [projectGroupOpen, setProjectGroupOpen] = useState({
+    planning: false, resources: false, financials: false,
+    documents: false, progress: false, quality: false, reports: false,
+  })
+  const toggleProjectGroup = (k) => setProjectGroupOpen(o => ({ ...o, [k]: !o[k] }))
+
   const handleLogout = async () => {
     try { await apiLogout(refreshToken) } catch {}
     logout()
@@ -191,6 +212,12 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
             const projectId = projectMatch?.[1]
             const currentTab = new URLSearchParams(location.search).get('tab') || 'dashboard'
             const isOpen = open[item.key]
+
+            // The group that contains the active tab (for auto-highlight)
+            const activeGroup = projectId
+              ? PROJECT_NAV_GROUPS.find(g => g.single ? g.tab === currentTab : g.items?.some(i => i.tab === currentTab))?.key
+              : null
+
             return (
               <div key={item.key}>
                 <button onClick={() => !collapsed && toggle(item.key)}
@@ -208,6 +235,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
                 </button>
                 {!collapsed && isOpen && (
                   <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                    {/* All Projects link */}
                     <NavLink to="/projects" end
                       className={({ isActive }) =>
                         `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
@@ -215,15 +243,47 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
                       <FolderIcon className="h-3.5 w-3.5 shrink-0" />
                       All Projects
                     </NavLink>
-                    {projectId && PROJECT_NAV.map(({ tab, label, icon: LIcon }) => {
-                      const active = currentTab === tab
+
+                    {/* Per-project grouped nav */}
+                    {projectId && PROJECT_NAV_GROUPS.map(group => {
+                      if (group.single) {
+                        const active = currentTab === group.tab
+                        return (
+                          <Link key={group.key} to={`/projects/${projectId}?tab=${group.tab}`}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                              ${active ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                            <group.icon className="h-3.5 w-3.5 shrink-0" />
+                            {group.label}
+                          </Link>
+                        )
+                      }
+                      const groupActive = group.items.some(i => i.tab === currentTab)
+                      const isGOpen = projectGroupOpen[group.key] || group.key === activeGroup
                       return (
-                        <Link key={tab} to={`/projects/${projectId}?tab=${tab}`}
-                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
-                            ${active ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
-                          <LIcon className="h-3.5 w-3.5 shrink-0" />
-                          {label}
-                        </Link>
+                        <div key={group.key}>
+                          <button onClick={() => toggleProjectGroup(group.key)}
+                            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors
+                              ${groupActive ? 'text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                            <group.icon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="flex-1 text-left">{group.label}</span>
+                            <ChevronDownIcon className={`h-3 w-3 shrink-0 transition-transform ${isGOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          {isGOpen && (
+                            <div className="ml-3 pl-2 border-l border-white/8 space-y-0.5 mt-0.5">
+                              {group.items.map(({ tab, label, icon: LIcon }) => {
+                                const active = currentTab === tab
+                                return (
+                                  <Link key={tab} to={`/projects/${projectId}?tab=${tab}`}
+                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                                      ${active ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                                    <LIcon className="h-3.5 w-3.5 shrink-0" />
+                                    {label}
+                                  </Link>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
