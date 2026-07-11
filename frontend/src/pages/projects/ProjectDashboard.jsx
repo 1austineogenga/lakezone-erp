@@ -138,6 +138,21 @@ export default function ProjectDashboard({ dashData: prefetched }) {
   })
 
   const data = prefetched || fetched
+  const qc = useQueryClient()
+  const goTab = (tab) => navigate(`/projects/${projectId}?tab=${tab}`)
+
+  const generateWBSMut = useMutation({
+    mutationFn: (replace) =>
+      import('../../api/client').then(({ default: api }) =>
+        api.post(`/projects/${projectId}/wbs/generate/`, { replace })
+      ),
+    onSuccess: (res) => {
+      toast.success(res.data.detail)
+      qc.invalidateQueries({ queryKey: ['wbs', projectId] })
+      goTab('wbs')
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Failed to generate WBS.'),
+  })
 
   if (isLoading) {
     return (
@@ -164,22 +179,6 @@ export default function ProjectDashboard({ dashData: prefetched }) {
   const boqProgress   = contractValue > 0 ? Math.min(100, Math.round((totalActual / contractValue) * 100)) : 0
   const variance      = totalActual - contractValue
   const isOverrun     = variance > 0
-
-  const qc = useQueryClient()
-  const goTab = (tab) => navigate(`/projects/${projectId}?tab=${tab}`)
-
-  const generateWBSMut = useMutation({
-    mutationFn: (replace) =>
-      import('../../api/client').then(({ default: api }) =>
-        api.post(`/projects/${projectId}/wbs/generate/`, { replace })
-      ),
-    onSuccess: (res) => {
-      toast.success(res.data.detail)
-      qc.invalidateQueries({ queryKey: ['wbs', projectId] })
-      goTab('wbs')
-    },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Failed to generate WBS.'),
-  })
 
   return (
     <div className="space-y-5">
