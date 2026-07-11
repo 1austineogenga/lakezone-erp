@@ -266,10 +266,6 @@ function RequestItemsModal({ onClose }) {
 function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab, onRequestItems }) {
   const navigate = useNavigate()
 
-  const photoUrl = user?.profile_photo
-    ? (user.profile_photo.startsWith('http') ? user.profile_photo : `${API_BASE}${user.profile_photo}`)
-    : null
-
   const pendingLeave    = leaves.filter(l => l.status === 'submitted').length
   const pendingAdvance  = advances.filter(a => a.status === 'pending').length
   const totalLeaveLeft  = leaveBalances.reduce((s, b) => s + Number(b.balance || 0), 0)
@@ -288,27 +284,6 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
 
   return (
     <div className="space-y-6">
-      {/* Profile card */}
-      <div className="bg-gradient-to-r from-[#1a2332] to-[#243347] rounded-xl p-6 flex items-center gap-5 text-white">
-        <div className="shrink-0">
-          {photoUrl
-            ? <img src={photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-white/30" />
-            : <div className="h-16 w-16 rounded-full bg-brand-red flex items-center justify-center text-2xl font-bold border-2 border-white/30">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
-          }
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-bold">{user?.first_name} {user?.last_name}</h2>
-          <p className="text-white/70 text-sm capitalize">{user?.role_display || user?.role?.replace(/_/g, ' ')}</p>
-          <p className="text-white/50 text-xs mt-0.5">{user?.department_name || 'No department'} · {user?.email}</p>
-        </div>
-        <button onClick={() => setTab('profile')}
-          className="shrink-0 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors">
-          Edit Profile
-        </button>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
@@ -375,7 +350,29 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ user, refetch }) {
+function InfoField({ label, value }) {
+  return (
+    <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-sm font-medium text-brand-slate">{value || '—'}</p>
+    </div>
+  )
+}
+
+function ProfileSection({ title, children }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+        <h3 className="font-semibold text-brand-slate text-sm">{title}</h3>
+      </div>
+      <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ProfileTab({ user, employee, refetch }) {
   const photoRef = useRef()
   const [pwForm, setPwForm] = useState({ old_password: '', new_password: '', confirm: '' })
   const setPw = (k, v) => setPwForm(f => ({ ...f, [k]: v }))
@@ -405,16 +402,18 @@ function ProfileTab({ user, refetch }) {
   })
 
   const mismatch = pwForm.new_password && pwForm.confirm && pwForm.new_password !== pwForm.confirm
+  const fmt_date = (v) => v ? new Date(v).toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
   return (
-    <div className="space-y-6">
-      {/* Avatar + read-only info */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col sm:flex-row gap-6">
-        <div className="flex flex-col items-center gap-3 shrink-0">
+    <div className="space-y-5">
+      {/* Header card: photo + name + change password inline */}
+      <div className="bg-gradient-to-r from-[#1a2332] to-[#243347] rounded-xl p-6 flex flex-col sm:flex-row gap-6 text-white">
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
             {photoUrl
-              ? <img src={photoUrl} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-gray-200" />
-              : <div className="h-24 w-24 rounded-full bg-brand-red flex items-center justify-center text-white text-3xl font-bold">
+              ? <img src={photoUrl} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-white/30" />
+              : <div className="h-24 w-24 rounded-full bg-brand-red flex items-center justify-center text-white text-3xl font-bold border-2 border-white/30">
                   {user?.first_name?.[0]}{user?.last_name?.[0]}
                 </div>
             }
@@ -425,44 +424,104 @@ function ProfileTab({ user, refetch }) {
             <input ref={photoRef} type="file" accept="image/*" className="hidden"
               onChange={e => e.target.files[0] && photoMut.mutate(e.target.files[0])} />
           </div>
-          {photoMut.isPending && <p className="text-xs text-amber-600">Uploading…</p>}
-          <p className="text-xs text-gray-600 text-center">Click camera to change photo</p>
+          {photoMut.isPending
+            ? <p className="text-xs text-amber-300">Uploading…</p>
+            : <p className="text-xs text-white/50 text-center">Click camera to change</p>
+          }
         </div>
-        <div className="flex-1 grid grid-cols-2 gap-3">
-          {[
-            { label: 'Email',       value: user?.email },
-            { label: 'Role',        value: user?.role_display || user?.role?.replace(/_/g, ' ') },
-            { label: 'Department',  value: user?.department_name || '—' },
-            { label: 'Branch',      value: user?.branch_name || '—' },
-            { label: 'Date Joined', value: user?.date_joined ? new Date(user.date_joined).toLocaleDateString() : '—' },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-gray-50 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">{label}</p>
-              <p className="text-sm font-medium text-brand-slate capitalize">{value}</p>
+
+        {/* Name + role + Change Password form */}
+        <div className="flex-1 flex flex-col justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">{user?.first_name} {user?.last_name}</h2>
+            <p className="text-white/70 text-sm capitalize mt-0.5">{user?.role_display || user?.role?.replace(/_/g, ' ')}</p>
+            <p className="text-white/50 text-xs mt-0.5">{user?.department_name || '—'} · {user?.email}</p>
+          </div>
+
+          {/* Change Password — right here in the header */}
+          <div className="bg-white/10 rounded-xl p-4">
+            <p className="text-white/80 text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5">
+              <KeyIcon className="h-3.5 w-3.5" /> Change Password
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[['old_password','Current Password'],['new_password','New Password'],['confirm','Confirm New']].map(([k, label]) => (
+                <div key={k}>
+                  <label className="block text-[10px] text-white/60 mb-1">{label}</label>
+                  <input type="password" value={pwForm[k]} onChange={e => setPw(k, e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm bg-white/10 text-white placeholder-white/30 border focus:outline-none focus:border-white/60
+                      ${k === 'confirm' && mismatch ? 'border-red-400' : 'border-white/20'}`} />
+                </div>
+              ))}
             </div>
-          ))}
+            {mismatch && <p className="text-xs text-red-300 mt-1.5">Passwords do not match</p>}
+            <button onClick={() => pwMut.mutate()}
+              disabled={pwMut.isPending || !pwForm.old_password || !pwForm.new_password || mismatch}
+              className="mt-3 px-5 py-2 bg-brand-red text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-50">
+              {pwMut.isPending ? 'Changing…' : 'Change Password'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Change password */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 className="font-semibold text-brand-slate text-sm mb-4">Change Password</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[['old_password','Current Password'],['new_password','New Password'],['confirm','Confirm New Password']].map(([k, label]) => (
-            <div key={k}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-              <input type="password" value={pwForm[k]} onChange={e => setPw(k, e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-brand-red ${k === 'confirm' && mismatch ? 'border-red-400' : 'border-gray-200'}`} />
-            </div>
-          ))}
-        </div>
-        {mismatch && <p className="text-xs text-red-500 mt-2">Passwords do not match</p>}
-        <button onClick={() => pwMut.mutate()}
-          disabled={pwMut.isPending || !pwForm.old_password || !pwForm.new_password || mismatch}
-          className="mt-4 px-5 py-2 bg-brand-slate text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-60">
-          {pwMut.isPending ? 'Changing…' : 'Change Password'}
-        </button>
-      </div>
+      {/* Personal Information */}
+      <ProfileSection title="Personal Information">
+        <InfoField label="First Name"     value={employee?.first_name || user?.first_name} />
+        <InfoField label="Last Name"      value={employee?.last_name  || user?.last_name} />
+        <InfoField label="Gender"         value={employee?.gender} />
+        <InfoField label="Date of Birth"  value={fmt_date(employee?.date_of_birth)} />
+        <InfoField label="Phone"          value={employee?.phone} />
+        <InfoField label="Alt Phone"      value={employee?.alt_phone} />
+        <InfoField label="National ID"    value={employee?.national_id} />
+        <InfoField label="Email"          value={user?.email} />
+        <InfoField label="Employee No."   value={employee?.employee_number} />
+      </ProfileSection>
+
+      {/* Employment Details */}
+      <ProfileSection title="Employment Details">
+        <InfoField label="Department"      value={employee?.department_name} />
+        <InfoField label="Position"        value={employee?.position_title} />
+        <InfoField label="Branch"          value={employee?.branch_name} />
+        <InfoField label="Employment Type" value={employee?.employment_type} />
+        <InfoField label="Date Hired"      value={fmt_date(employee?.date_hired)} />
+        <InfoField label="Contract End"    value={fmt_date(employee?.contract_end_date)} />
+      </ProfileSection>
+
+      {/* Statutory / Payroll IDs */}
+      <ProfileSection title="Statutory Numbers">
+        <InfoField label="KRA PIN"      value={employee?.kra_pin} />
+        <InfoField label="NSSF Number"  value={employee?.nssf_number} />
+        <InfoField label="NHIF / SHA"   value={employee?.nhif_number} />
+      </ProfileSection>
+
+      {/* Banking */}
+      <ProfileSection title="Banking Information">
+        <InfoField label="Bank Name"       value={employee?.bank_name} />
+        <InfoField label="Account Name"    value={employee?.account_name} />
+        <InfoField label="Account Number"  value={employee?.bank_account} />
+        <InfoField label="Bank Branch"     value={employee?.bank_branch} />
+      </ProfileSection>
+
+      {/* Next of Kin */}
+      <ProfileSection title="Next of Kin">
+        <InfoField label="Name"         value={employee?.next_of_kin_name} />
+        <InfoField label="Relation"     value={employee?.next_of_kin_relation} />
+        <InfoField label="Phone"        value={employee?.next_of_kin_phone} />
+        <InfoField label="Alt Phone"    value={employee?.next_of_kin_alt_phone} />
+        <InfoField label="National ID"  value={employee?.next_of_kin_id} />
+      </ProfileSection>
+
+      {/* Emergency Contact */}
+      <ProfileSection title="Emergency Contact">
+        <InfoField label="Name"      value={employee?.emergency_contact_name} />
+        <InfoField label="Phone"     value={employee?.emergency_contact_phone} />
+        <InfoField label="Relation"  value={employee?.emergency_contact_relation} />
+      </ProfileSection>
+
+      {/* Medical */}
+      <ProfileSection title="Medical">
+        <InfoField label="Blood Group"  value={employee?.blood_group} />
+        <InfoField label="Allergies"    value={employee?.allergies} />
+      </ProfileSection>
     </div>
   )
 }
@@ -1282,7 +1341,7 @@ export default function WorkspacePage() {
     <div className="space-y-5">
       {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
       {tab === 'attendance'    && <AttendanceTab />}
-      {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} refetch={refetchUser} />}
+      {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} employee={employee} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
