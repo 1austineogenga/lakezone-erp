@@ -23,16 +23,22 @@ function useProjects() {
   return useQuery({
     queryKey: ['projects-for-fleet-assign'],
     queryFn: async () => {
-      let results = [], page = 1
-      while (true) {
-        const r = await api.get('/projects/', { params: { page, page_size: 100 } })
-        const data = r.data
-        const items = data.results ?? (Array.isArray(data) ? data : [])
-        results = [...results, ...items]
-        if (!data.next || items.length === 0) break
-        page++
+      try {
+        let results = [], page = 1
+        while (true) {
+          const r = await api.get('/projects/', { params: { page, page_size: 100 } })
+          const data = r.data
+          const items = data.results ?? (Array.isArray(data) ? data : [])
+          results = [...results, ...items]
+          if (!data.next || items.length === 0) break
+          page++
+        }
+        console.log('Loaded projects:', results)
+        return results
+      } catch (err) {
+        console.error('Failed to load projects:', err)
+        throw err
       }
-      return results
     },
     staleTime: 60_000,
   })
@@ -68,7 +74,7 @@ function AssignModal({ vehicle, projects, onClose, onSuccess }) {
     if (!form.project_id && !form.location_name) { toast.error('Please select a project or location.'); return }
 
     try {
-      const ops = []
+      const ops = []; console.log('Form data:', form)
       if (form.project_id) {
         ops.push(assignProjectMut.mutateAsync({
           project_id: form.project_id,
@@ -88,7 +94,7 @@ function AssignModal({ vehicle, projects, onClose, onSuccess }) {
       toast.success('Fleet assigned successfully.')
       onSuccess()
       onClose()
-    } catch (err) {
+      console.error('Assignment error:', err)
       const data = err?.response?.data
       const msg = data?.detail || data?.vehicle?.[0] || data?.non_field_errors?.[0] || (typeof data === 'string' ? data : null) || 'Failed to assign fleet.'
       toast.error(msg)

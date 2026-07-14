@@ -1,3 +1,4 @@
+import logging
 from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -6,6 +7,8 @@ from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     Project, BOQ, BOQBill, BOQItem, Budget, BudgetRate, BudgetLineItem,
@@ -412,7 +415,11 @@ class ProjectVehicleListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
-        serializer.save(project=project)
+        try:
+            serializer.save(project=project)
+        except Exception as e:
+            logger.error(f"ProjectVehicle creation failed: {e}")
+            raise
 
 
 class ProjectVehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
