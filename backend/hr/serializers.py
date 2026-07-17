@@ -291,6 +291,7 @@ class EmployeeTransferSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'reason',
             'allowance_eligible', 'staff_category',
             'lunch_days', 'overnight_nights',
+            'transport_to', 'transport_from',
             'relocation_allowance', 'daily_allowance', 'daily_allowance_days', 'total_allowance',
             'status',
             'requested_by', 'requested_by_name',
@@ -309,6 +310,7 @@ class EmployeeTransferCreateSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'reason',
             'allowance_eligible', 'staff_category',
             'lunch_days', 'overnight_nights',
+            'transport_to', 'transport_from',
             'relocation_allowance', 'daily_allowance', 'daily_allowance_days',
         ]
 
