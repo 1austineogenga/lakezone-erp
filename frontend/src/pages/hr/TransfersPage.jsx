@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { getTransfers, createTransfer, submitTransfer, reviewTransfer } from '../../api/transfers'
+import { getTransfers, createTransfer, updateTransfer, submitTransfer, recallTransfer, reviewTransfer } from '../../api/transfers'
 import { getEmployees } from '../../api/hr'
 import api from '../../api/client'
 import {
   PlusIcon, ArrowRightIcon, CheckCircleIcon, XCircleIcon,
   BanknotesIcon, TruckIcon, HomeIcon, InformationCircleIcon,
+  PencilSquareIcon, ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline'
 
 const STATUS_COLORS = {
@@ -58,12 +59,37 @@ function computeAllowances(form) {
 export default function TransfersPage() {
   const qc = useQueryClient()
   const [showForm, setShowForm]         = useState(false)
+  const [editingId, setEditingId]       = useState(null)  // null = create, uuid = edit
   const [form, setForm]                 = useState(emptyForm)
   const [reviewModal, setReviewModal]   = useState(null)
   const [reviewNotes, setReviewNotes]   = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
+  const openEdit = (t) => {
+    setEditingId(t.id)
+    setForm({
+      employee:           t.employee,
+      record_type:        t.transfer_type === 'permanent' ? 'relocation' : 'movement',
+      destination_type:   t.destination_type,
+      from_location:      t.from_location || '',
+      to_location:        t.to_location || '',
+      project:            t.project || '',
+      start_date:         t.start_date || '',
+      end_date:           t.end_date || '',
+      reason:             t.reason || '',
+      allowance_eligible: t.allowance_eligible ?? true,
+      staff_category:     t.staff_category || 'subordinate',
+      lunch_days:         t.lunch_days ?? 0,
+      overnight_nights:   t.overnight_nights ?? 0,
+      transport_to:       t.transport_to ?? '',
+      transport_from:     t.transport_from ?? '',
+    })
+    setShowForm(true)
+  }
+
+  const closeForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm) }
 
   useEffect(() => {
     if (form.record_type === 'relocation') set('end_date', '')
@@ -119,10 +145,25 @@ export default function TransfersPage() {
     onSuccess: () => {
       toast.success('Request saved as draft.')
       qc.invalidateQueries(['transfers'])
-      setShowForm(false)
-      setForm(emptyForm)
+      closeForm()
     },
     onError: e => toast.error(e.response?.data?.detail || 'Failed to save.'),
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, payload }) => updateTransfer(id, payload),
+    onSuccess: () => {
+      toast.success('Record updated.')
+      qc.invalidateQueries(['transfers'])
+      closeForm()
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to update.'),
+  })
+
+  const recallMut = useMutation({
+    mutationFn: (id) => recallTransfer(id),
+    onSuccess: () => { toast.success('Recalled to draft.'); qc.invalidateQueries(['transfers']) },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to recall.'),
   })
 
   const submitMut = useMutation({
@@ -168,7 +209,11 @@ export default function TransfersPage() {
       ...allowances,
     }
     if (form.project) payload.project = form.project
-    createMut.mutate(payload)
+    if (editingId) {
+      updateMut.mutate({ id: editingId, payload })
+    } else {
+      createMut.mutate(payload)
+    }
   }
 
   const cls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red'
@@ -189,7 +234,7 @@ export default function TransfersPage() {
             </button>
           ))}
         </div>
-        <button onClick={() => setShowForm(v => !v)}
+        <button onClick={() => { if (showForm && !editingId) { closeForm() } else { closeForm(); setShowForm(true) } }}
           className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-sm font-semibold rounded-lg hover:opacity-90">
           <PlusIcon className="h-4 w-4" /> New Request
         </button>
@@ -198,7 +243,7 @@ export default function TransfersPage() {
       {/* ── Create form ── */}
       {showForm && (
         <form onSubmit={handleSubmitForm} className="bg-white border border-gray-200 rounded-xl p-6 space-y-5 shadow-sm">
-          <h3 className="font-bold text-brand-slate text-base">New Movement / Relocation Request</h3>
+          <h3 className="font-bold text-brand-slate text-base">{editingId ? 'Edit Movement / Relocation Request' : 'New Movement / Relocation Request'}</h3>
 
           {/* Type toggle */}
           <div className="flex gap-3">
@@ -439,11 +484,11 @@ export default function TransfersPage() {
           </div>
 
           <div className="flex gap-3">
-            <button type="submit" disabled={createMut.isPending}
+            <button type="submit" disabled={createMut.isPending || updateMut.isPending}
               className="px-5 py-2 bg-brand-red text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50">
-              {createMut.isPending ? 'Saving…' : 'Save as Draft'}
+              {(createMut.isPending || updateMut.isPending) ? 'Saving…' : editingId ? 'Save Changes' : 'Save as Draft'}
             </button>
-            <button type="button" onClick={() => { setShowForm(false); setForm(emptyForm) }}
+            <button type="button" onClick={closeForm}
               className="px-5 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
               Cancel
             </button>
@@ -513,12 +558,20 @@ export default function TransfersPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-2 items-center">
-                              {t.status === 'draft' && (
+                            <div className="flex gap-2 items-center flex-wrap">
+                              {t.status === 'draft' && (<>
+                                <button onClick={() => openEdit(t)} title="Edit"
+                                  className="flex items-center gap-1 text-xs font-medium text-brand-slate hover:text-brand-red">
+                                  <PencilSquareIcon className="h-3.5 w-3.5" /> Edit
+                                </button>
                                 <button onClick={() => submitMut.mutate(t.id)}
-                                  className="text-xs font-medium text-brand-slate hover:text-brand-red">Submit</button>
-                              )}
+                                  className="text-xs font-medium text-blue-600 hover:text-blue-800">Submit</button>
+                              </>)}
                               {t.status === 'submitted' && (<>
+                                <button onClick={() => recallMut.mutate(t.id)} disabled={recallMut.isPending} title="Recall to draft"
+                                  className="flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 disabled:opacity-50">
+                                  <ArrowUturnLeftIcon className="h-3.5 w-3.5" /> Recall
+                                </button>
                                 <button onClick={() => { setReviewModal({ transfer: t, action: 'approved' }); setReviewNotes('') }}
                                   title="Approve" className="text-green-600 hover:text-green-800">
                                   <CheckCircleIcon className="h-4 w-4" />
