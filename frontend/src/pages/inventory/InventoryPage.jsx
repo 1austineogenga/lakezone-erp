@@ -760,6 +760,178 @@ function AdjustStockModal({ item, activeStoreId, onClose }) {
   )
 }
 
+// ── Issue Item Modal (storekeeper direct issue) ───────────────────────────────
+
+function IssueItemModal({ item, activeStoreId, onClose }) {
+  const qc = useQueryClient()
+  const currentStock = Number(item.current_stock ?? 0)
+
+  const [issueMode, setIssueMode] = useState('employee') // 'employee' | 'direct'
+  const [form, setForm] = useState({
+    employee_id: '',
+    employee_name: '',
+    direct_usage: '',
+    quantity: '1',
+    notes: '',
+    transaction_date: new Date().toISOString().slice(0, 10),
+  })
+  const field = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-for-issue'],
+    queryFn: () => getEmployees({ page_size: 200 }),
+    select: r => r.data?.results ?? r.data ?? [],
+    staleTime: 60_000,
+  })
+
+  const issueMut = useMutation({
+    mutationFn: (payload) => createTransaction(payload),
+    onSuccess: () => {
+      toast.success('Item issued successfully.')
+      qc.invalidateQueries({ queryKey: ['stock-items'] })
+      qc.invalidateQueries({ queryKey: ['stock-transactions'] })
+      onClose()
+    },
+    onError: e => {
+      const d = e.response?.data
+      toast.error(d?.detail || d?.quantity?.[0] || JSON.stringify(d) || 'Issue failed.')
+    },
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const qty = Number(form.quantity)
+    if (!qty || qty <= 0) { toast.error('Enter a valid quantity.'); return }
+    if (qty > currentStock) { toast.error(`Only ${currentStock} ${item.unit} in stock.`); return }
+    if (issueMode === 'employee' && !form.employee_id) { toast.error('Select an employee.'); return }
+    if (issueMode === 'direct' && !form.direct_usage.trim()) { toast.error('Describe the usage purpose.'); return }
+
+    const selectedEmp = employees.find(emp => String(emp.id) === form.employee_id)
+    const empName = selectedEmp ? (selectedEmp.full_name || selectedEmp.employee_number || '') : ''
+    const payload = {
+      transaction_type: 'issue',
+      item: item.id,
+      store: activeStoreId,
+      quantity: qty,
+      unit_cost: Number(item.weighted_avg_cost || 0),
+      transaction_date: form.transaction_date,
+      ...(issueMode === 'employee' && selectedEmp?.user && { issued_to: selectedEmp.user }),
+      issued_to_name: issueMode === 'employee' ? empName : `Direct usage: ${form.direct_usage.trim()}`,
+      notes: form.notes || (issueMode === 'employee'
+        ? `Issued to ${empName}`
+        : `Direct usage: ${form.direct_usage.trim()}`),
+    }
+    issueMut.mutate(payload)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Issue Item</h2>
+            <p className="text-white/50 text-xs mt-0.5 font-mono">{item.item_code} — {item.name}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+          {/* Current stock */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+            <span className="text-xs text-gray-500 font-semibold">Available Stock</span>
+            <span className="text-lg font-extrabold text-brand-slate">{currentStock.toLocaleString()} <span className="text-xs font-normal text-gray-400">{item.unit}</span></span>
+          </div>
+
+          {/* Issue mode toggle */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Issue To</label>
+            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+              <button type="button"
+                onClick={() => setIssueMode('employee')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${issueMode === 'employee' ? 'bg-white shadow text-brand-slate' : 'text-gray-500 hover:text-gray-700'}`}>
+                Employee
+              </button>
+              <button type="button"
+                onClick={() => setIssueMode('direct')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${issueMode === 'direct' ? 'bg-white shadow text-brand-slate' : 'text-gray-500 hover:text-gray-700'}`}>
+                Direct Usage
+              </button>
+            </div>
+          </div>
+
+          {/* Employee dropdown */}
+          {issueMode === 'employee' && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Employee <span className="text-brand-red">*</span></label>
+              <select className={inp} value={form.employee_id} onChange={e => field('employee_id', e.target.value)} required>
+                <option value="">— Select employee —</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.full_name || emp.employee_number}{emp.department_name ? ` · ${emp.department_name}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Direct usage explanation */}
+          {issueMode === 'direct' && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Usage Purpose <span className="text-brand-red">*</span></label>
+              <input
+                className={inp}
+                value={form.direct_usage}
+                onChange={e => field('direct_usage', e.target.value)}
+                placeholder="e.g. Site maintenance, office cleaning, vehicle repair…"
+                required
+              />
+            </div>
+          )}
+
+          {/* Quantity + Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Quantity <span className="text-brand-red">*</span></label>
+              <input
+                type="number" min="1" step="any" required
+                className={inp}
+                value={form.quantity}
+                onChange={e => field('quantity', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+              <input type="date" className={inp} value={form.transaction_date}
+                onChange={e => field('transaction_date', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input className={inp} value={form.notes} onChange={e => field('notes', e.target.value)}
+              placeholder="Additional remarks…" />
+          </div>
+
+          <div className="flex gap-3 pt-1 border-t border-gray-100">
+            <button type="submit" disabled={issueMut.isPending}
+              className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity">
+              {issueMut.isPending ? 'Issuing…' : 'Issue Item'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Request Items Modal (any employee) ───────────────────────────────────────
 
 function RequestItemsModal({ onClose, stores }) {
@@ -915,6 +1087,7 @@ export default function InventoryPage() {
   const [showAddItem, setShowAddItem] = useState(false)
   const [editItem, setEditItem]   = useState(null)
   const [adjustItem, setAdjustItem] = useState(null)
+  const [issueItem, setIssueItem] = useState(null)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [srAction, setSrAction] = useState(null) // { type, req } for inline action modals
 
@@ -1330,6 +1503,7 @@ export default function InventoryPage() {
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
                         const canAct = !isReadOnly
+                        const isAdmin = role === 'system_admin'
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5">
@@ -1372,12 +1546,20 @@ export default function InventoryPage() {
                               <div className="flex items-center gap-1">
                                 {canAct && (
                                   <button
+                                    onClick={() => setIssueItem(item)}
+                                    disabled={stock === 0}
+                                    className="px-2 py-1 text-xs border border-blue-200 rounded hover:bg-blue-50 text-blue-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+                                    Issue
+                                  </button>
+                                )}
+                                {isAdmin && (
+                                  <button
                                     onClick={() => setAdjustItem(item)}
                                     className="px-2 py-1 text-xs border border-amber-200 rounded hover:bg-amber-50 text-amber-700 font-medium">
                                     Adjust
                                   </button>
                                 )}
-                                {canAct && (
+                                {isAdmin && (
                                   <button
                                     onClick={() => setEditItem(item)}
                                     className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
@@ -1674,6 +1856,12 @@ export default function InventoryPage() {
           item={adjustItem}
           activeStoreId={activeStore?.id}
           onClose={() => setAdjustItem(null)} />
+      )}
+      {issueItem && (
+        <IssueItemModal
+          item={issueItem}
+          activeStoreId={activeStore?.id}
+          onClose={() => setIssueItem(null)} />
       )}
       {showRequestModal && (
         <RequestItemsModal
