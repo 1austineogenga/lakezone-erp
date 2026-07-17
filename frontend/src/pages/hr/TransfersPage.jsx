@@ -169,7 +169,7 @@ export default function TransfersPage() {
   const submitMut = useMutation({
     mutationFn: (id) => submitTransfer(id),
     onSuccess: () => { toast.success('Submitted for approval.'); qc.invalidateQueries(['transfers']) },
-    onError: () => toast.error('Failed to submit.'),
+    onError: e => toast.error(e.response?.data?.detail || JSON.stringify(e.response?.data) || 'Failed to submit.'),
   })
 
   const reviewMut = useMutation({
