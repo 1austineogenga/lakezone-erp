@@ -1503,6 +1503,7 @@ export default function InventoryPage() {
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
                         const canAct = !isReadOnly
+                        const isAdmin = role === 'system_admin'
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5">
@@ -1551,14 +1552,14 @@ export default function InventoryPage() {
                                     Issue
                                   </button>
                                 )}
-                                {canAct && (
+                                {isAdmin && (
                                   <button
                                     onClick={() => setAdjustItem(item)}
                                     className="px-2 py-1 text-xs border border-amber-200 rounded hover:bg-amber-50 text-amber-700 font-medium">
                                     Adjust
                                   </button>
                                 )}
-                                {canAct && (
+                                {isAdmin && (
                                   <button
                                     onClick={() => setEditItem(item)}
                                     className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 text-gray-600">
