@@ -1005,7 +1005,7 @@ class GenerateWBSFromBOQView(APIView):
                         'description': item.description[:500],
                         'planned_start': project.start_date,
                         'planned_end': project.end_date,
-                        'weight': float(item.amount) if float(item.amount or 0) > 0 else 1,
+                        'weight': 1,
                         'status': 'not_started',
                         'order': j,
                     }
