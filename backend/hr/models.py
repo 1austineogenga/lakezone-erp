@@ -690,6 +690,10 @@ class EmployeeTransfer(models.Model):
                                                        help_text='Days eligible for lunch allowance (KES 500/day)')
     overnight_nights     = models.PositiveIntegerField(default=0,
                                                        help_text='Nights requiring accommodation (KES 1,500/night)')
+    transport_to         = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                               help_text='Transport cost to destination (variable)')
+    transport_from       = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                               help_text='Transport cost from destination back (variable)')
     relocation_allowance = models.DecimalField(max_digits=12, decimal_places=2,
                                                default=0, help_text='One-off relocation payment')
     staff_category       = models.CharField(max_length=15, choices=StaffCategory.choices,
@@ -718,7 +722,10 @@ class EmployeeTransfer(models.Model):
 
     @property
     def total_allowance(self):
-        return self.relocation_allowance + (self.daily_allowance * self.daily_allowance_days)
+        return (self.relocation_allowance
+                + (self.daily_allowance * self.daily_allowance_days)
+                + self.transport_to
+                + self.transport_from)
 
 
 # ── Casuals Register ────────────────────────────────────────────────────────────
