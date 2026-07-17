@@ -1086,6 +1086,22 @@ class TransferReviewView(APIView):
                             category=Account.CostCode.LABOUR,
                             amount=transfer.daily_allowance * transfer.daily_allowance_days,
                         )
+                    if (transfer.transport_to or 0) > 0:
+                        ExpenseClaimItem.objects.create(
+                            claim=claim,
+                            date=transfer.start_date,
+                            description=f'Transport to {transfer.to_location}',
+                            category=Account.CostCode.LABOUR,
+                            amount=transfer.transport_to,
+                        )
+                    if (transfer.transport_from or 0) > 0:
+                        ExpenseClaimItem.objects.create(
+                            claim=claim,
+                            date=transfer.start_date,
+                            description=f'Transport from {transfer.to_location}',
+                            category=Account.CostCode.LABOUR,
+                            amount=transfer.transport_from,
+                        )
                     claim.recalculate()
                 except Exception:
                     pass  # Finance integration is best-effort; don't fail the approval

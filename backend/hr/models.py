@@ -722,10 +722,13 @@ class EmployeeTransfer(models.Model):
 
     @property
     def total_allowance(self):
-        return (self.relocation_allowance
-                + (self.daily_allowance * self.daily_allowance_days)
-                + self.transport_to
-                + self.transport_from)
+        from decimal import Decimal
+        return (
+            (self.relocation_allowance or Decimal('0'))
+            + ((self.daily_allowance or Decimal('0')) * (self.daily_allowance_days or 0))
+            + (self.transport_to or Decimal('0'))
+            + (self.transport_from or Decimal('0'))
+        )
 
 
 # ── Casuals Register ────────────────────────────────────────────────────────────
