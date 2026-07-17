@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { toast } from 'react-toastify'
 import { getProjectDashboard, updateProject } from '../../api/projects'
+import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 
 const IPC_STATUS_COLORS = {
@@ -142,10 +143,7 @@ export default function ProjectDashboard({ dashData: prefetched }) {
   const goTab = (tab) => navigate(`/projects/${projectId}?tab=${tab}`)
 
   const generateWBSMut = useMutation({
-    mutationFn: (replace) =>
-      import('../../api/client').then(({ default: api }) =>
-        api.post(`/projects/${projectId}/wbs/generate/`, { replace })
-      ),
+    mutationFn: (replace) => api.post(`/projects/${projectId}/wbs/generate/`, { replace }),
     onSuccess: (res) => {
       toast.success(res.data.detail)
       qc.invalidateQueries({ queryKey: ['wbs', projectId] })
