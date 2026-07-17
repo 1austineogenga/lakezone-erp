@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import authApi from '../../api/client'
 import {
   PlusIcon, ChevronDownIcon, ChevronRightIcon,
   PencilIcon, TrashIcon, ArrowUpIcon,
@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid'
 
-const api = (path, opts = {}) => axios({ url: `/api/v1/projects${path}`, ...opts })
+const api = (path, opts = {}) => authApi({ url: `/projects${path}`, ...opts })
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'bg-gray-100 text-gray-600', Icon: XCircleIcon },
