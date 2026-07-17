@@ -151,9 +151,12 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const [open, setOpen] = useState(initialOpen)
   const toggle = key => setOpen(o => ({ ...o, [key]: !o[key] }))
 
-  const [projectGroupOpen, setProjectGroupOpen] = useState({
-    planning: false, resources: false, financials: false,
-    documents: false, progress: false, quality: false, reports: false,
+  const [projectGroupOpen, setProjectGroupOpen] = useState(() => {
+    const initTab = new URLSearchParams(location.search).get('tab') || 'dashboard'
+    const initGroup = PROJECT_NAV_GROUPS.find(g =>
+      g.single ? g.tab === initTab : g.items?.some(i => i.tab === initTab)
+    )?.key
+    return { planning: false, resources: false, financials: false, documents: false, progress: false, quality: false, reports: false, [initGroup]: true }
   })
   const toggleProjectGroup = (k) => setProjectGroupOpen(o => ({ ...o, [k]: !o[k] }))
 
@@ -258,7 +261,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
                         )
                       }
                       const groupActive = group.items.some(i => i.tab === currentTab)
-                      const isGOpen = projectGroupOpen[group.key] || group.key === activeGroup
+                      const isGOpen = !!projectGroupOpen[group.key]
                       return (
                         <div key={group.key}>
                           <button onClick={() => toggleProjectGroup(group.key)}
