@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import {
   PlusIcon, KeyIcon, ArrowPathIcon, MagnifyingGlassIcon,
   ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, EyeIcon,
-  TruckIcon,
+  TruckIcon, PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import { getEmployees } from '../../api/hr'
@@ -657,6 +657,86 @@ function ToSiteModal({ record, onClose, qc }) {
   )
 }
 
+// ── Change Status Modal (system_admin only) ───────────────────────────────────
+const STATUS_OPTIONS = [
+  { value: 'out',               label: 'Out',           desc: 'Vehicle is currently released / out' },
+  { value: 'dispatched_to_site',label: 'To Site',       desc: 'Vehicle dispatched back to its site' },
+  { value: 'returned',          label: 'Returned',      desc: 'Vehicle has returned to HQ' },
+]
+
+function ChangeStatusModal({ record, onClose, qc }) {
+  const [status, setStatus] = useState(record.status)
+  const [reason, setReason] = useState('')
+
+  const mut = useMutation({
+    mutationFn: () => updateKeyIssuance(record.id, { status, admin_override_reason: reason }),
+    onSuccess: () => {
+      toast.success('Status updated.')
+      qc.invalidateQueries({ queryKey: ['key-issuances'] })
+      onClose()
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to update status.'),
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="bg-brand-slate rounded-t-2xl px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-white font-bold text-base">Change Status</h2>
+            <p className="text-white/50 text-xs mt-0.5">{record.vehicle_label || 'Vehicle'} — {record.issued_to_name}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="space-y-2">
+            {STATUS_OPTIONS.map(opt => (
+              <label key={opt.value}
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors
+                  ${status === opt.value ? 'border-brand-red bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" name="status" value={opt.value}
+                  checked={status === opt.value}
+                  onChange={() => setStatus(opt.value)}
+                  className="mt-0.5 accent-brand-red" />
+                <div>
+                  <p className="text-xs font-semibold text-brand-slate">{opt.label}</p>
+                  <p className="text-[10px] text-gray-500">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Reason for override <span className="text-brand-red">*</span>
+            </label>
+            <input
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g. Wrong button pressed, correcting data entry error…"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button type="button" onClick={onClose}
+            className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+          <button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending || !reason.trim() || status === record.status}
+            className="flex-1 bg-brand-red text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 hover:opacity-90">
+            {mut.isPending ? 'Saving…' : 'Update Status'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function KeyIssuancePage() {
   const { canWrite, role } = usePermissions()
   const qc = useQueryClient()
@@ -664,13 +744,15 @@ export default function KeyIssuancePage() {
   // facility_manager has fleet 'write' via permissions; MD views only; site_manager hidden
   const canIssue = canWrite('fleet')
   const isMDView = role === 'managing_director' || role === 'general_manager'
+  const isAdmin  = role === 'system_admin'
 
-  const [search, setSearch]         = useState('')
-  const [statusFilter, setStatus]   = useState('')
-  const [showIssue, setShowIssue]   = useState(false)
-  const [returnRec, setReturnRec]   = useState(null)
-  const [toSiteRec, setToSiteRec]   = useState(null)
-  const [viewRec, setViewRec]       = useState(null)
+  const [search, setSearch]               = useState('')
+  const [statusFilter, setStatus]         = useState('')
+  const [showIssue, setShowIssue]         = useState(false)
+  const [returnRec, setReturnRec]         = useState(null)
+  const [toSiteRec, setToSiteRec]         = useState(null)
+  const [viewRec, setViewRec]             = useState(null)
+  const [changeStatusRec, setChangeStatus] = useState(null)
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['key-issuances', search, statusFilter],
@@ -802,6 +884,12 @@ export default function KeyIssuancePage() {
                               </button>
                             </>
                           )}
+                          {isAdmin && (
+                            <button onClick={() => setChangeStatus(r)} title="Change Status (Admin)"
+                              className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100">
+                              <PencilSquareIcon className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -817,6 +905,7 @@ export default function KeyIssuancePage() {
       {returnRec && <ReturnModal record={returnRec} onClose={() => setReturnRec(null)} qc={qc} />}
       {toSiteRec && <ToSiteModal record={toSiteRec} onClose={() => setToSiteRec(null)} qc={qc} />}
       {viewRec && <DetailModal record={viewRec} onClose={() => setViewRec(null)} />}
+      {changeStatusRec && <ChangeStatusModal record={changeStatusRec} onClose={() => setChangeStatus(null)} qc={qc} />}
     </div>
   )
 }
