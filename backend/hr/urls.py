@@ -75,6 +75,7 @@ urlpatterns = [
     path('transfers/',                           views.EmployeeTransferListCreateView.as_view()),
     path('transfers/<uuid:pk>/',                 views.EmployeeTransferDetailView.as_view()),
     path('transfers/<uuid:pk>/submit/',          views.TransferSubmitView.as_view()),
+    path('transfers/<uuid:pk>/recall/',          views.TransferRecallView.as_view()),
     path('transfers/<uuid:pk>/review/',          views.TransferReviewView.as_view()),
 
     # Casuals Register

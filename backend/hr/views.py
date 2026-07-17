@@ -1000,8 +1000,12 @@ class EmployeeTransferListCreateView(generics.ListCreateAPIView):
 
 class EmployeeTransferDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset           = EmployeeTransfer.objects.select_related('employee', 'requested_by', 'reviewed_by')
-    serializer_class   = EmployeeTransferSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method in ('PUT', 'PATCH'):
+            return EmployeeTransferCreateSerializer
+        return EmployeeTransferSerializer
 
 
 class TransferSubmitView(APIView):
@@ -1012,6 +1016,18 @@ class TransferSubmitView(APIView):
         if transfer.status != EmployeeTransfer.Status.DRAFT:
             return Response({'detail': 'Only draft transfers can be submitted.'}, status=400)
         transfer.status = EmployeeTransfer.Status.SUBMITTED
+        transfer.save()
+        return Response(EmployeeTransferSerializer(transfer).data)
+
+
+class TransferRecallView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        transfer = get_object_or_404(EmployeeTransfer, pk=pk)
+        if transfer.status != EmployeeTransfer.Status.SUBMITTED:
+            return Response({'detail': 'Only submitted transfers can be recalled.'}, status=400)
+        transfer.status = EmployeeTransfer.Status.DRAFT
         transfer.save()
         return Response(EmployeeTransferSerializer(transfer).data)
 
