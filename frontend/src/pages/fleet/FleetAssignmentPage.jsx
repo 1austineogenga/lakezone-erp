@@ -74,7 +74,7 @@ function AssignModal({ vehicle, projects, onClose, onSuccess }) {
     if (!form.project_id && !form.location_name) { toast.error('Please select a project or location.'); return }
 
     try {
-      const ops = []; console.log('Form data:', form)
+      const ops = []
       if (form.project_id) {
         ops.push(assignProjectMut.mutateAsync({
           project_id: form.project_id,
@@ -94,7 +94,7 @@ function AssignModal({ vehicle, projects, onClose, onSuccess }) {
       toast.success('Fleet assigned successfully.')
       onSuccess()
       onClose()
-      console.error('Assignment error:', err)
+    } catch (err) {
       const data = err?.response?.data
       const msg = data?.detail || data?.vehicle?.[0] || data?.non_field_errors?.[0] || (typeof data === 'string' ? data : null) || 'Failed to assign fleet.'
       toast.error(msg)
