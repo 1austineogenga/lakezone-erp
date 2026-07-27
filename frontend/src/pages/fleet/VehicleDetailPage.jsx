@@ -460,16 +460,21 @@ export default function VehicleDetailPage() {
 
   if (!vehicle) return <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
 
+  const capacity = parseFloat(vehicle.fuel_capacity) || 0
   const fuelChartData = liveHistory
     .filter(d => d.fuel_level != null)
-    .map(d => ({
-      time: new Date(d.fetched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      fuel: Number(d.fuel_level).toFixed(1),
-      speed: Number(d.speed || 0).toFixed(1),
-    }))
+    .map(d => {
+      let fuelL = Number(d.fuel_level)
+      if (d.fuel_unit !== 'L' && capacity > 0) fuelL = fuelL / 100 * capacity
+      return {
+        time: new Date(d.fetched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        fuel: fuelL.toFixed(1),
+        speed: Number(d.speed || 0).toFixed(1),
+      }
+    })
 
   const odomKm = vehicle.last_odometer ? (vehicle.last_odometer / 1000).toFixed(0) : null
-  const fuelUnit = vehicle.fuel_sensor_unit === 'L' ? 'L' : '%'
+  const fuelLiters = vehicle.last_fuel_liters
   const fuelDisplay = (val) => val != null ? Number(val).toFixed(1) : '—'
 
   return (
@@ -531,7 +536,7 @@ export default function VehicleDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Speed',      val: vehicle.last_speed != null ? `${fmt(vehicle.last_speed)} km/h` : '—', icon: BoltIcon,     color: 'text-blue-600' },
-          { label: 'Fuel Level', val: vehicle.last_fuel != null ? `${fuelDisplay(vehicle.last_fuel)} ${fuelUnit}` : '—', icon: BeakerIcon, color: 'text-green-600' },
+          { label: 'Fuel Level', val: fuelLiters != null ? `${fuelDisplay(fuelLiters)} L` : '—', icon: BeakerIcon, color: 'text-green-600' },
           { label: 'Odometer',   val: odomKm != null ? `${odomKm} km` : '—',                              icon: MapPinIcon,   color: 'text-brand-slate' },
           {
             label: 'Last Seen',

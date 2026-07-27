@@ -53,6 +53,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     compliance = serializers.SerializerMethodField()
     current_assignment = serializers.SerializerMethodField()
     project_name = serializers.CharField(source='project.name', read_only=True, allow_null=True, default=None)
+    last_fuel_liters = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -60,6 +61,18 @@ class VehicleSerializer(serializers.ModelSerializer):
 
     def get_odometer_km(self, obj):
         return round(obj.last_odometer / 1000, 2) if obj.last_odometer else 0
+
+    def get_last_fuel_liters(self, obj):
+        """Always return fuel in litres. Converts % → L using fuel_capacity when needed."""
+        if obj.last_fuel is None:
+            return None
+        fuel = float(obj.last_fuel)
+        if obj.fuel_sensor_unit == 'L':
+            return round(fuel, 1)
+        capacity = float(obj.fuel_capacity) if obj.fuel_capacity else 0
+        if capacity > 0:
+            return round(fuel / 100.0 * capacity, 1)
+        return None
 
     def get_last_seen_minutes_ago(self, obj):
         if obj.last_seen:
