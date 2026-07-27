@@ -570,8 +570,8 @@ export default function VehicleDetailPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis domain={fuelUnit === 'L' ? [0, 'auto'] : [0, 100]} tick={{ fontSize: 10 }} unit={fuelUnit} />
-              <Tooltip formatter={(v, n) => [`${v} ${fuelUnit}`, n === 'fuel' ? `Fuel (${fuelUnit})` : 'Speed km/h']} />
+              <YAxis domain={[0, 'auto']} tick={{ fontSize: 10 }} unit="L" />
+              <Tooltip formatter={(v, n) => [`${v} L`, n === 'fuel' ? 'Fuel (L)' : 'Speed km/h']} />
               <Area type="monotone" dataKey="fuel" stroke="#22c55e" fill="url(#fuelGrad)" strokeWidth={2} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
