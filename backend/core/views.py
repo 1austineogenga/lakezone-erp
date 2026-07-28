@@ -307,7 +307,7 @@ class MDDashboardView(APIView):
 
         # ── Finance ──────────────────────────────────────────────────────────
         try:
-            from finance.models import Invoice, Bill, ExpenseClaim
+            from finance.models import Invoice, Bill, ExpenseClaim, BankTransaction
             ar = Invoice.objects.aggregate(
                 total_billed=Sum('total_amount'),
                 total_received=Sum('amount_paid'),
@@ -332,9 +332,20 @@ class MDDashboardView(APIView):
             pending_expenses_value = ExpenseClaim.objects.filter(status='submitted').aggregate(
                 total=Sum('total_amount'))['total'] or 0
 
+            # Fall back to BankTransaction data when no native invoices exist (QB companies)
+            bt_deposits = BankTransaction.objects.filter(txn_type='deposit').aggregate(
+                total=Sum('amount'))['total'] or 0
+            bt_withdrawals = BankTransaction.objects.filter(txn_type='withdrawal').aggregate(
+                total=Sum('amount'))['total'] or 0
+
+            native_ar_billed = float(ar['total_billed'] or 0)
+            native_ar_received = float(ar['total_received'] or 0)
+            effective_ar_billed = native_ar_billed if native_ar_billed > 0 else float(bt_deposits)
+            effective_ar_received = native_ar_received if native_ar_billed > 0 else float(bt_deposits)
+
             finance = {
-                'ar_billed': float(ar['total_billed'] or 0),
-                'ar_received': float(ar['total_received'] or 0),
+                'ar_billed': effective_ar_billed,
+                'ar_received': effective_ar_received,
                 'ar_outstanding': float(ar['total_outstanding'] or 0),
                 'ar_overdue': float(overdue_ar['total'] or 0),
                 'ap_billed': float(ap['total_billed'] or 0),
@@ -343,7 +354,9 @@ class MDDashboardView(APIView):
                 'ap_overdue': float(overdue_ap['total'] or 0),
                 'pending_expenses_count': pending_expenses_count,
                 'pending_expenses_value': float(pending_expenses_value),
-                'collection_rate': round((float(ar['total_received'] or 0) / float(ar['total_billed'] or 1)) * 100, 1),
+                'collection_rate': round((effective_ar_received / max(effective_ar_billed, 1)) * 100, 1),
+                'bt_deposits': float(bt_deposits),
+                'bt_withdrawals': float(bt_withdrawals),
             }
         except Exception as e:
             logger.error(f'MD dashboard finance error: {e}')
