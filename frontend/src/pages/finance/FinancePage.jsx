@@ -126,6 +126,24 @@ export default function FinancePage() {
           <span className="text-sm text-gray-500">{activeGroup?.label}{activeTab ? ` — ${activeTab.label}` : ''}</span>
         </div>
 
+        {/* Sub-tab bar — only when active group has tabs */}
+        {activeGroup?.tabs && activeGroup.tabs.length > 0 && (
+          <div className="flex gap-1 overflow-x-auto scrollbar-none">
+            {activeGroup.tabs.map(({ label, path }) => {
+              const isActive = location.pathname.startsWith(path)
+              return (
+                <button key={path}
+                  onClick={() => navigate(path)}
+                  className={`px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors -mb-px border-b-2
+                    ${isActive
+                      ? 'border-brand-red text-brand-red'
+                      : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Page Content ───────────────────────────────────────────────── */}
