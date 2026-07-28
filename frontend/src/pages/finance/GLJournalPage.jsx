@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import api from '../../api/client'
 import { PlusIcon, TrashIcon, CheckIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
+import Pagination from '../../components/Pagination'
 
 const fmt   = (n) => `KES ${Number(n || 0).toLocaleString()}`
 const fmtN  = (n) => Number(n || 0).toLocaleString()
@@ -24,6 +25,7 @@ export default function GLJournalPage() {
   const [tab, setTab] = useState('journal')
   const [statusFilter, setStatusFilter] = useState('')
   const [periodFilter, setPeriodFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     entry_type: 'manual',
@@ -33,16 +35,18 @@ export default function GLJournalPage() {
     lines: [{ ...EMPTY_LINE }, { ...EMPTY_LINE }],
   })
 
-  const { data: journals, isLoading } = useQuery({
-    queryKey: ['journals', statusFilter, periodFilter],
+  const { data: journalsRaw, isLoading } = useQuery({
+    queryKey: ['journals', statusFilter, periodFilter, page],
     queryFn: () => api.get('/finance/journals/', {
       params: {
         ...(statusFilter && { status: statusFilter }),
         ...(periodFilter && { period: periodFilter }),
+        page,
       }
     }),
-    select: r => r.data?.results ?? r.data,
   })
+  const journals      = journalsRaw?.data?.results ?? journalsRaw?.data ?? []
+  const journalsCount = journalsRaw?.data?.count   ?? 0
 
   const { data: trialBalance } = useQuery({
     queryKey: ['trial-balance', periodFilter],
@@ -138,12 +142,12 @@ export default function GLJournalPage() {
         ))}
 
         {/* Filters */}
-        <input type="month" value={periodFilter} onChange={e => setPeriodFilter(e.target.value)}
+        <input type="month" value={periodFilter} onChange={e => { setPeriodFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red"
           placeholder="Filter by period" />
 
         {tab === 'journal' && (
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red">
             <option value="">All Statuses</option>
             {Object.keys(STATUS_COLORS).map(s => (
@@ -297,7 +301,7 @@ export default function GLJournalPage() {
             ? <p className="text-sm text-gray-600 p-8 text-center">Loading…</p>
             : !journals || journals.length === 0
               ? <p className="text-sm text-gray-600 p-8 text-center">No journal entries yet.</p>
-              : <div className="overflow-x-auto">
+              : <><div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
@@ -345,6 +349,8 @@ export default function GLJournalPage() {
                     </tbody>
                   </table>
                 </div>
+                <Pagination page={page} count={journalsCount} onChange={setPage} />
+              </>
           }
         </div>
       )}
