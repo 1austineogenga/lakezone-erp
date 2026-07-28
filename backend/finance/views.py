@@ -1427,10 +1427,12 @@ class IncomeStatementView(APIView):
             txn_date__lte=period_to,
         )
 
-        for txn in bt_qs.filter(txn_type='deposit').values('description').annotate(total=Sum('amount')):
-            label = txn['description'] or 'Deposits'
-            revenue_map[label] = revenue_map.get(label, 0) + float(txn['total'] or 0)
+        # Deposits grouped by account (payment source), not description
+        deposit_total = bt_qs.filter(txn_type='deposit').aggregate(total=Sum('amount'))['total'] or 0
+        if float(deposit_total) > 0:
+            revenue_map['Bank Deposits'] = revenue_map.get('Bank Deposits', 0) + float(deposit_total)
 
+        # Withdrawals grouped by QB expense category
         for txn in bt_qs.filter(txn_type='withdrawal').values('category').annotate(total=Sum('amount')):
             label = txn['category'] or 'General Expenses'
             expenses_map[label] = expenses_map.get(label, 0) + float(txn['total'] or 0)
