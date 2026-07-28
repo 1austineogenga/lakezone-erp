@@ -76,8 +76,8 @@ class BillListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
         qs = Bill.objects.select_related('supplier', 'project').all()
         if p.get('status'):    qs = qs.filter(status=p['status'])
         if p.get('project'):   qs = qs.filter(project_id=p['project'])
-        if p.get('date_from'): qs = qs.filter(bill_date__gte=p['date_from'])
-        if p.get('date_to'):   qs = qs.filter(bill_date__lte=p['date_to'])
+        if p.get('date_from'): qs = qs.filter(issue_date__gte=p['date_from'])
+        if p.get('date_to'):   qs = qs.filter(issue_date__lte=p['date_to'])
         if p.get('search'):    qs = qs.filter(bill_number__icontains=p['search']) | qs.filter(supplier__name__icontains=p['search'])
         return qs
 
@@ -1450,7 +1450,7 @@ class IncomeStatementView(APIView):
         # ── 4. Bills & Expenses (AP costs not yet in GL) ─────────────────────
         bill_costs = (
             Bill.objects
-            .filter(bill_date__gte=period_from, bill_date__lte=period_to)
+            .filter(issue_date__gte=period_from, issue_date__lte=period_to)
             .exclude(status='draft')
             .aggregate(total=Sum('total_amount'))['total'] or 0
         )
