@@ -214,19 +214,37 @@ class CashFlowView(APIView):
             m_end = m + relativedelta(months=1) - timedelta(days=1)
             label = m.strftime('%b %Y')
 
-            inflows = Payment.objects.filter(
+            # Actual inflows: Payment receipts + BankTransaction deposits
+            payment_inflows = Payment.objects.filter(
                 payment_type='receipt',
                 payment_date__gte=m,
                 payment_date__lte=m_end,
             ).aggregate(total=Sum('amount'))['total'] or 0
 
-            outflows = Payment.objects.filter(
+            bt_inflows = BankTransaction.objects.filter(
+                txn_type='deposit',
+                txn_date__gte=m,
+                txn_date__lte=m_end,
+            ).aggregate(total=Sum('amount'))['total'] or 0
+
+            inflows = float(payment_inflows) + float(bt_inflows)
+
+            # Actual outflows: Payment payments + BankTransaction withdrawals
+            payment_outflows = Payment.objects.filter(
                 payment_type='payment',
                 payment_date__gte=m,
                 payment_date__lte=m_end,
             ).aggregate(total=Sum('amount'))['total'] or 0
 
-            # Upcoming (invoiced but not yet paid) for future months
+            bt_outflows = BankTransaction.objects.filter(
+                txn_type='withdrawal',
+                txn_date__gte=m,
+                txn_date__lte=m_end,
+            ).aggregate(total=Sum('amount'))['total'] or 0
+
+            outflows = float(payment_outflows) + float(bt_outflows)
+
+            # Upcoming (invoiced but not yet paid)
             expected_inflows = Invoice.objects.filter(
                 due_date__gte=m,
                 due_date__lte=m_end,
@@ -242,9 +260,9 @@ class CashFlowView(APIView):
 
             data.append({
                 'month':             label,
-                'inflows':           float(inflows),
-                'outflows':          float(outflows),
-                'net':               float(inflows) - float(outflows),
+                'inflows':           inflows,
+                'outflows':          outflows,
+                'net':               inflows - outflows,
                 'expected_inflows':  float(expected_inflows),
                 'expected_outflows': float(expected_outflows),
             })
@@ -310,6 +328,12 @@ class FinanceDashboardView(APIView):
                         Invoice.Status.PARTIAL, Invoice.Status.OVERDUE]
         ).aggregate(total=Sum('balance_due'))
 
+        # Supplement AR with QB bank deposits when no native invoices exist
+        bt_deposits = BankTransaction.objects.filter(txn_type='deposit').aggregate(
+            total=Sum('amount'))['total'] or 0
+        bt_withdrawals = BankTransaction.objects.filter(txn_type='withdrawal').aggregate(
+            total=Sum('amount'))['total'] or 0
+
         ap = Bill.objects.aggregate(
             total_billed      = Sum('total_amount'),
             total_paid        = Sum('amount_paid'),
@@ -339,23 +363,28 @@ class FinanceDashboardView(APIView):
             bill_type=Bill.BillType.SUBCONTRACTOR
         ).aggregate(total=Sum('retention_amount') if hasattr(Bill, 'retention_amount') else Sum('withholding_tax'))['total'] or 0
 
+        ar_billed = float(ar['total_billed'] or 0) or float(bt_deposits)
         return Response({
             'ar': {
-                'total_billed':      ar['total_billed'] or 0,
-                'total_received':    ar['total_received'] or 0,
-                'total_outstanding': ar['total_outstanding'] or 0,
-                'overdue':           overdue_ar['total'] or 0,
+                'total_billed':      ar_billed,
+                'total_received':    float(ar['total_received'] or 0),
+                'total_outstanding': float(ar['total_outstanding'] or 0),
+                'overdue':           float(overdue_ar['total'] or 0),
             },
             'ap': {
-                'total_billed':      ap['total_billed'] or 0,
-                'total_paid':        ap['total_paid'] or 0,
-                'total_outstanding': ap['total_outstanding'] or 0,
-                'overdue':           overdue_ap['total'] or 0,
+                'total_billed':      float(ap['total_billed'] or 0),
+                'total_paid':        float(ap['total_paid'] or 0),
+                'total_outstanding': float(ap['total_outstanding'] or 0),
+                'overdue':           float(overdue_ap['total'] or 0),
             },
             'pending_expenses':   pending_expenses['count'] or 0,
             'retention_held':     float(retention_held),
             'recent_invoices':    recent_invoices,
             'recent_bills':       recent_bills,
+            'qb_summary': {
+                'total_deposits':    float(bt_deposits),
+                'total_withdrawals': float(bt_withdrawals),
+            },
         })
 
 
@@ -1352,7 +1381,7 @@ class BalanceSheetView(APIView):
 
 
 class IncomeStatementView(APIView):
-    """Profit & Loss for a period, derived from posted GL journal lines."""
+    """Profit & Loss for a period — GL journal lines + QB BankTransactions."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1365,7 +1394,8 @@ class IncomeStatementView(APIView):
         except ValueError:
             return Response({'detail': 'Invalid date. Use YYYY-MM-DD.'}, status=400)
 
-        lines = (
+        # ── 1. GL journal lines (manually posted entries) ────────────────────
+        gl_lines = (
             JournalLine.objects
             .filter(
                 journal__status='posted',
@@ -1373,23 +1403,69 @@ class IncomeStatementView(APIView):
                 journal__entry_date__lte=period_to,
                 account__account_type__in=['revenue', 'expense'],
             )
-            .values('account__id', 'account__code', 'account__name', 'account__account_type')
+            .values('account__code', 'account__name', 'account__account_type')
             .annotate(total_debit=Sum('debit'), total_credit=Sum('credit'))
             .order_by('account__code')
         )
 
-        revenue, expenses = [], []
-        for row in lines:
-            dr = row['total_debit'] or 0
-            cr = row['total_credit'] or 0
+        revenue_map  = {}  # name -> amount
+        expenses_map = {}  # name -> amount
+
+        for row in gl_lines:
+            dr = float(row['total_debit'] or 0)
+            cr = float(row['total_credit'] or 0)
+            name = row['account__name']
             if row['account__account_type'] == 'revenue':
-                amount = float(cr - dr)
-                if amount != 0:
-                    revenue.append({'code': row['account__code'], 'name': row['account__name'], 'amount': amount})
+                revenue_map[name] = revenue_map.get(name, 0) + (cr - dr)
             else:
-                amount = float(dr - cr)
-                if amount != 0:
-                    expenses.append({'code': row['account__code'], 'name': row['account__name'], 'amount': amount})
+                expenses_map[name] = expenses_map.get(name, 0) + (dr - cr)
+
+        # ── 2. QB BankTransactions (actual cash movements) ───────────────────
+        # Deposits → revenue; withdrawals → expenses grouped by category
+        bt_qs = BankTransaction.objects.filter(
+            txn_date__gte=period_from,
+            txn_date__lte=period_to,
+        )
+
+        for txn in bt_qs.filter(txn_type='deposit').values('description').annotate(total=Sum('amount')):
+            label = txn['description'] or 'Deposits'
+            revenue_map[label] = revenue_map.get(label, 0) + float(txn['total'] or 0)
+
+        for txn in bt_qs.filter(txn_type='withdrawal').values('category').annotate(total=Sum('amount')):
+            label = txn['category'] or 'General Expenses'
+            expenses_map[label] = expenses_map.get(label, 0) + float(txn['total'] or 0)
+
+        # ── 3. Invoices paid during period (AR revenue not yet in GL) ────────
+        inv_revenue = (
+            Invoice.objects
+            .filter(issue_date__gte=period_from, issue_date__lte=period_to)
+            .exclude(status__in=['draft', 'cancelled'])
+            .aggregate(total=Sum('total_amount'))['total'] or 0
+        )
+        if float(inv_revenue) > 0:
+            revenue_map['Client Invoices'] = revenue_map.get('Client Invoices', 0) + float(inv_revenue)
+
+        # ── 4. Bills & Expenses (AP costs not yet in GL) ─────────────────────
+        bill_costs = (
+            Bill.objects
+            .filter(bill_date__gte=period_from, bill_date__lte=period_to)
+            .exclude(status='draft')
+            .aggregate(total=Sum('total_amount'))['total'] or 0
+        )
+        if float(bill_costs) > 0:
+            expenses_map['Vendor Bills'] = expenses_map.get('Vendor Bills', 0) + float(bill_costs)
+
+        expense_claims = (
+            ExpenseClaim.objects
+            .filter(created_at__date__gte=period_from, created_at__date__lte=period_to, status='approved')
+            .aggregate(total=Sum('total_amount'))['total'] or 0
+        )
+        if float(expense_claims) > 0:
+            expenses_map['Staff Expenses'] = expenses_map.get('Staff Expenses', 0) + float(expense_claims)
+
+        # ── Build response ────────────────────────────────────────────────────
+        revenue  = [{'code': '', 'name': k, 'amount': v} for k, v in sorted(revenue_map.items())  if v != 0]
+        expenses = [{'code': '', 'name': k, 'amount': v} for k, v in sorted(expenses_map.items()) if v != 0]
 
         total_revenue  = sum(r['amount'] for r in revenue)
         total_expenses = sum(e['amount'] for e in expenses)
