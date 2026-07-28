@@ -1189,6 +1189,48 @@ class QBService:
             except Exception as e:
                 fail += 1; errors.append(f'{ref}: {e}')
 
+        # ── QB Purchases (cash/check/card expense payments) ───────────────────
+        try:
+            purchases = self.query_all('Purchase')
+        except Exception as e:
+            purchases = []
+            errors.append(f'Failed to fetch purchases: {e}')
+
+        for pur in purchases:
+            ref      = f'QB-PUR-{pur.get("Id", "")}'
+            txn_date = pur.get('TxnDate', '')
+            total    = _safe_decimal(pur.get('TotalAmt', 0))
+            memo     = (pur.get('PrivateNote') or '').strip()
+            # Payment account (e.g. Petty Cash, Checking)
+            acct_ref = pur.get('AccountRef') or {}
+            acct     = account_map.get(acct_ref.get('name', '').lower())
+            # Vendor / payee name
+            entity_ref = pur.get('EntityRef') or {}
+            payee      = entity_ref.get('name', '')
+            # Use first line description if no private note
+            if not memo:
+                lines = pur.get('Line', [])
+                if lines:
+                    memo = lines[0].get('Description', '')
+            try:
+                BankTransaction.objects.update_or_create(
+                    reference=ref[:100],
+                    defaults={
+                        'txn_date': _safe_date(txn_date),
+                        'txn_type': 'withdrawal',
+                        'account': acct,
+                        'amount': total,
+                        'description': memo,
+                        'payee': payee[:255] if payee else '',
+                        'source': 'quickbooks',
+                        'created_by': self.user,
+                    },
+                )
+                ok += 1
+            except Exception as e:
+                fail += 1
+                errors.append(f'{ref}: {e}')
+
         return ok, fail, errors
 
     # ── Pull: Credit Memos & Vendor Credits (QB → Lakezone) ───────────────────
