@@ -765,6 +765,8 @@ class BankTransaction(models.Model):
     description    = models.TextField(blank=True)
     payee          = models.CharField(max_length=255, blank=True)
     source         = models.CharField(max_length=20, default='manual', blank=True)
+    category       = models.CharField(max_length=255, blank=True, default='',
+                                      help_text='Expense category (e.g. from QuickBooks account name)')
     created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                        related_name='bank_transactions_created')
     created_at     = models.DateTimeField(auto_now_add=True)
