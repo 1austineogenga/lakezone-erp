@@ -371,7 +371,7 @@ class BankTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model  = BankTransaction
         fields = ['id', 'reference', 'txn_date', 'txn_type', 'account',
-                  'amount', 'description', 'payee', 'source', 'created_at']
+                  'amount', 'description', 'payee', 'category', 'source', 'created_at']
         read_only_fields = ['created_at']
 
 

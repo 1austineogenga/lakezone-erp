@@ -51,7 +51,7 @@ export default function BankTransactionsPage() {
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['Reference', 'Date', 'Type', 'Account', 'Payee', 'Description', 'Amount (KES)'].map(h => (
+                    {['Reference', 'Date', 'Type', 'Account', 'Category', 'Payee', 'Description', 'Amount (KES)'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -67,6 +67,7 @@ export default function BankTransactionsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{txn.account || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs truncate max-w-[140px]">{txn.category || '—'}</td>
                       <td className="px-4 py-3 text-gray-700 truncate max-w-[120px]">{txn.payee || '—'}</td>
                       <td className="px-4 py-3 text-gray-600 truncate max-w-[160px]">{txn.description || '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-700">KES {Number(txn.amount).toLocaleString()}</td>

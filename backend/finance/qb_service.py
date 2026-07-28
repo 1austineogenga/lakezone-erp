@@ -1207,11 +1207,16 @@ class QBService:
             # Vendor / payee name
             entity_ref = pur.get('EntityRef') or {}
             payee      = entity_ref.get('name', '')
+            # Expense category from first line's account (what the money was spent on)
+            lines = pur.get('Line', [])
+            category = ''
+            if lines:
+                detail = lines[0].get('AccountBasedExpenseLineDetail') or {}
+                line_acct = detail.get('AccountRef') or {}
+                category = line_acct.get('name', '')
             # Use first line description if no private note
-            if not memo:
-                lines = pur.get('Line', [])
-                if lines:
-                    memo = lines[0].get('Description', '')
+            if not memo and lines:
+                memo = lines[0].get('Description', '')
             try:
                 BankTransaction.objects.update_or_create(
                     reference=ref[:100],
@@ -1222,6 +1227,7 @@ class QBService:
                         'amount': total,
                         'description': memo,
                         'payee': payee[:255] if payee else '',
+                        'category': category[:255] if category else '',
                         'source': 'quickbooks',
                         'created_by': self.user,
                     },
