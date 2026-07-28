@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getInvoices } from '../../api/finance'
+import { getProjects } from '../../api/projects'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const STATUS_COLORS = {
   draft: 'bg-gray-100 text-gray-600', sent: 'bg-blue-100 text-blue-700',
@@ -12,19 +14,38 @@ const STATUS_COLORS = {
   disputed: 'bg-orange-100 text-orange-700', cancelled: 'bg-gray-100 text-gray-400',
 }
 
+const EMPTY = { search: '', date_from: '', date_to: '', project: '' }
+
 export default function InvoicesPage() {
   const [status, setStatus] = useState('')
+  const [filters, setFilters] = useState(EMPTY)
   const [page, setPage] = useState(1)
 
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters(EMPTY); setPage(1) }
+  function handleStatus(val) { setStatus(val); setPage(1) }
+
   const { data: raw, isLoading } = useQuery({
-    queryKey: ['invoices', status, page],
-    queryFn:  () => getInvoices({ ...(status ? { status } : {}), page }),
+    queryKey: ['invoices', status, filters, page],
+    queryFn:  () => getInvoices({
+      ...(status            ? { status }                       : {}),
+      ...(filters.search    ? { search:    filters.search }    : {}),
+      ...(filters.date_from ? { date_from: filters.date_from } : {}),
+      ...(filters.date_to   ? { date_to:   filters.date_to }   : {}),
+      ...(filters.project   ? { project:   filters.project }   : {}),
+      page,
+    }),
   })
+
+  const { data: projectsRaw } = useQuery({
+    queryKey: ['projects-list'],
+    queryFn:  () => getProjects({ page_size: 200 }),
+    select:   r => r.data?.results ?? r.data ?? [],
+  })
+  const projects = projectsRaw ?? []
 
   const data  = raw?.data?.results ?? raw?.data ?? []
   const count = raw?.data?.count   ?? 0
-
-  function handleFilter(val) { setStatus(val); setPage(1) }
 
   return (
     <div>
@@ -36,15 +57,25 @@ export default function InvoicesPage() {
         </Link>
       </div>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap">
         {['', 'draft', 'sent', 'certified', 'partial', 'paid', 'overdue', 'disputed'].map(s => (
-          <button key={s} onClick={() => handleFilter(s)}
+          <button key={s} onClick={() => handleStatus(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${status === s ? 'bg-brand-slate text-white border-brand-slate' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-slate'}`}>
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
       </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        extras={[{
+          key: 'project', label: 'All Projects', type: 'select',
+          options: projects.map(p => ({ value: p.id, label: p.name })),
+        }]}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading

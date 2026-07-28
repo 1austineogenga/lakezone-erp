@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getCreditNotes } from '../../api/finance'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const STATUS_COLORS = {
   open:    'bg-blue-100 text-blue-700',
@@ -14,26 +15,34 @@ const TYPE_COLORS = {
   ap: 'bg-orange-100 text-orange-700',
 }
 
+const EMPTY = { search: '', date_from: '', date_to: '' }
+
 export default function CreditNotesPage() {
   const [creditType, setCreditType] = useState('')
   const [status, setStatus] = useState('')
+  const [filters, setFilters] = useState(EMPTY)
   const [page, setPage] = useState(1)
 
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters(EMPTY); setPage(1) }
+  function handleTypeFilter(val) { setCreditType(val); setPage(1) }
+  function handleStatusFilter(val) { setStatus(val); setPage(1) }
+
   const { data: raw, isLoading } = useQuery({
-    queryKey: ['credit-notes', creditType, status, page],
+    queryKey: ['credit-notes', creditType, status, filters, page],
     queryFn:  () => {
       const params = { page }
-      if (creditType) params.credit_type = creditType
-      if (status)     params.status      = status
+      if (creditType)       params.credit_type = creditType
+      if (status)           params.status      = status
+      if (filters.search)   params.search      = filters.search
+      if (filters.date_from) params.date_from  = filters.date_from
+      if (filters.date_to)  params.date_to     = filters.date_to
       return getCreditNotes(params)
     },
   })
 
   const data  = raw?.data?.results ?? raw?.data ?? []
   const count = raw?.data?.count   ?? 0
-
-  function handleTypeFilter(val) { setCreditType(val); setPage(1) }
-  function handleStatusFilter(val) { setStatus(val); setPage(1) }
 
   return (
     <div>
@@ -63,6 +72,8 @@ export default function CreditNotesPage() {
           </button>
         ))}
       </div>
+
+      <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters} />
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading

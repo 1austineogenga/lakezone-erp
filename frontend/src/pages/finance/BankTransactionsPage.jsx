@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getBankTransactions } from '../../api/finance'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const TXN_COLORS = {
   deposit:    'bg-green-100 text-green-700',
@@ -10,19 +11,31 @@ const TXN_COLORS = {
   other:      'bg-gray-100 text-gray-600',
 }
 
+const EMPTY = { search: '', date_from: '', date_to: '', category: '' }
+
 export default function BankTransactionsPage() {
   const [txnType, setTxnType] = useState('')
+  const [filters, setFilters] = useState(EMPTY)
   const [page, setPage] = useState(1)
 
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters(EMPTY); setPage(1) }
+  function handleType(val) { setTxnType(val); setPage(1) }
+
   const { data: raw, isLoading } = useQuery({
-    queryKey: ['bank-transactions', txnType, page],
-    queryFn:  () => getBankTransactions({ ...(txnType ? { txn_type: txnType } : {}), page }),
+    queryKey: ['bank-transactions', txnType, filters, page],
+    queryFn:  () => getBankTransactions({
+      ...(txnType           ? { txn_type:  txnType }          : {}),
+      ...(filters.search    ? { search:    filters.search }    : {}),
+      ...(filters.date_from ? { date_from: filters.date_from } : {}),
+      ...(filters.date_to   ? { date_to:   filters.date_to }   : {}),
+      ...(filters.category  ? { category:  filters.category }  : {}),
+      page,
+    }),
   })
 
   const data  = raw?.data?.results ?? raw?.data ?? []
   const count = raw?.data?.count   ?? 0
-
-  function handleFilter(val) { setTxnType(val); setPage(1) }
 
   return (
     <div>
@@ -30,9 +43,9 @@ export default function BankTransactionsPage() {
         <h2 className="font-semibold text-brand-slate">Bank Transactions</h2>
       </div>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap">
         {['', 'deposit', 'withdrawal', 'transfer', 'other'].map(t => (
-          <button key={t} onClick={() => handleFilter(t)}
+          <button key={t} onClick={() => handleType(t)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${txnType === t
                 ? 'bg-brand-slate text-white border-brand-slate'
@@ -41,6 +54,13 @@ export default function BankTransactionsPage() {
           </button>
         ))}
       </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        extras={[{ key: 'category', label: 'Category…', type: 'text' }]}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading

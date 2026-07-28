@@ -51,10 +51,13 @@ class InvoiceListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
         return InvoiceCreateSerializer if self.request.method == 'POST' else InvoiceSerializer
 
     def get_queryset(self):
+        p  = self.request.query_params
         qs = Invoice.objects.select_related('client', 'project').all()
-        s = self.request.query_params.get('status')
-        if s:
-            qs = qs.filter(status=s)
+        if p.get('status'):       qs = qs.filter(status=p['status'])
+        if p.get('project'):      qs = qs.filter(project_id=p['project'])
+        if p.get('date_from'):    qs = qs.filter(issue_date__gte=p['date_from'])
+        if p.get('date_to'):      qs = qs.filter(issue_date__lte=p['date_to'])
+        if p.get('search'):       qs = qs.filter(invoice_number__icontains=p['search']) | qs.filter(client__name__icontains=p['search'])
         return qs
 
 
@@ -69,10 +72,13 @@ class BillListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
         return BillCreateSerializer if self.request.method == 'POST' else BillSerializer
 
     def get_queryset(self):
+        p  = self.request.query_params
         qs = Bill.objects.select_related('supplier', 'project').all()
-        s = self.request.query_params.get('status')
-        if s:
-            qs = qs.filter(status=s)
+        if p.get('status'):    qs = qs.filter(status=p['status'])
+        if p.get('project'):   qs = qs.filter(project_id=p['project'])
+        if p.get('date_from'): qs = qs.filter(bill_date__gte=p['date_from'])
+        if p.get('date_to'):   qs = qs.filter(bill_date__lte=p['date_to'])
+        if p.get('search'):    qs = qs.filter(bill_number__icontains=p['search']) | qs.filter(supplier__name__icontains=p['search'])
         return qs
 
 
@@ -85,13 +91,15 @@ class PaymentListCreateView(FinanceWritePermission, generics.ListCreateAPIView):
     serializer_class   = PaymentSerializer
 
     def get_queryset(self):
+        p  = self.request.query_params
         qs = Payment.objects.all()
-        invoice_id = self.request.query_params.get('invoice')
-        bill_id    = self.request.query_params.get('bill')
-        if invoice_id:
-            qs = qs.filter(invoice=invoice_id)
-        if bill_id:
-            qs = qs.filter(bill=bill_id)
+        if p.get('invoice'):        qs = qs.filter(invoice=p['invoice'])
+        if p.get('bill'):           qs = qs.filter(bill=p['bill'])
+        if p.get('payment_type'):   qs = qs.filter(payment_type=p['payment_type'])
+        if p.get('payment_method'): qs = qs.filter(payment_method=p['payment_method'])
+        if p.get('date_from'):      qs = qs.filter(payment_date__gte=p['date_from'])
+        if p.get('date_to'):        qs = qs.filter(payment_date__lte=p['date_to'])
+        if p.get('search'):         qs = qs.filter(reference__icontains=p['search'])
         return qs
 
 
@@ -99,10 +107,13 @@ class BankTransactionListCreateView(FinanceWritePermission, generics.ListCreateA
     serializer_class = BankTransactionSerializer
 
     def get_queryset(self):
+        p  = self.request.query_params
         qs = BankTransaction.objects.select_related('account').all()
-        txn_type = self.request.query_params.get('txn_type')
-        if txn_type:
-            qs = qs.filter(txn_type=txn_type)
+        if p.get('txn_type'):  qs = qs.filter(txn_type=p['txn_type'])
+        if p.get('category'):  qs = qs.filter(category__icontains=p['category'])
+        if p.get('date_from'): qs = qs.filter(txn_date__gte=p['date_from'])
+        if p.get('date_to'):   qs = qs.filter(txn_date__lte=p['date_to'])
+        if p.get('search'):    qs = qs.filter(description__icontains=p['search']) | qs.filter(payee__icontains=p['search']) | qs.filter(reference__icontains=p['search'])
         return qs
 
 
@@ -110,13 +121,13 @@ class CreditNoteListCreateView(FinanceWritePermission, generics.ListCreateAPIVie
     serializer_class = CreditNoteSerializer
 
     def get_queryset(self):
+        p  = self.request.query_params
         qs = CreditNote.objects.all()
-        credit_type = self.request.query_params.get('credit_type')
-        status = self.request.query_params.get('status')
-        if credit_type:
-            qs = qs.filter(credit_type=credit_type)
-        if status:
-            qs = qs.filter(status=status)
+        if p.get('credit_type'): qs = qs.filter(credit_type=p['credit_type'])
+        if p.get('status'):      qs = qs.filter(status=p['status'])
+        if p.get('date_from'):   qs = qs.filter(txn_date__gte=p['date_from'])
+        if p.get('date_to'):     qs = qs.filter(txn_date__lte=p['date_to'])
+        if p.get('search'):      qs = qs.filter(reference__icontains=p['search']) | qs.filter(memo__icontains=p['search'])
         return qs
 
 
@@ -135,9 +146,12 @@ class ExpenseClaimListCreateView(generics.ListCreateAPIView):
         qs = ExpenseClaim.objects.select_related('submitted_by', 'project').all()
         if role not in privileged:
             qs = qs.filter(submitted_by=user)
-        s = self.request.query_params.get('status')
-        if s:
-            qs = qs.filter(status=s)
+        p = self.request.query_params
+        if p.get('status'):    qs = qs.filter(status=p['status'])
+        if p.get('project'):   qs = qs.filter(project_id=p['project'])
+        if p.get('date_from'): qs = qs.filter(created_at__date__gte=p['date_from'])
+        if p.get('date_to'):   qs = qs.filter(created_at__date__lte=p['date_to'])
+        if p.get('search'):    qs = qs.filter(title__icontains=p['search']) | qs.filter(reference__icontains=p['search'])
         return qs
 
 
@@ -847,10 +861,14 @@ class JournalEntryListCreateView(FinanceWritePermission, generics.ListCreateAPIV
         period  = self.request.query_params.get('period')
         etype   = self.request.query_params.get('entry_type')
         project = self.request.query_params.get('project')
-        if status:  qs = qs.filter(status=status)
-        if period:  qs = qs.filter(period=period)
-        if etype:   qs = qs.filter(entry_type=etype)
-        if project: qs = qs.filter(project_id=project)
+        p = self.request.query_params
+        if p.get('status'):     qs = qs.filter(status=p['status'])
+        if p.get('period'):     qs = qs.filter(period=p['period'])
+        if p.get('entry_type'): qs = qs.filter(entry_type=p['entry_type'])
+        if p.get('project'):    qs = qs.filter(project_id=p['project'])
+        if p.get('date_from'):  qs = qs.filter(entry_date__gte=p['date_from'])
+        if p.get('date_to'):    qs = qs.filter(entry_date__lte=p['date_to'])
+        if p.get('search'):     qs = qs.filter(description__icontains=p['search']) | qs.filter(reference__icontains=p['search'])
         return qs
 
 

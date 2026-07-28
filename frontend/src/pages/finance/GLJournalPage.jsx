@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import api from '../../api/client'
 import { PlusIcon, TrashIcon, CheckIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const fmt   = (n) => `KES ${Number(n || 0).toLocaleString()}`
 const fmtN  = (n) => Number(n || 0).toLocaleString()
@@ -26,6 +27,10 @@ export default function GLJournalPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [periodFilter, setPeriodFilter] = useState('')
   const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState({ search: '', date_from: '', date_to: '', entry_type: '' })
+
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters({ search: '', date_from: '', date_to: '', entry_type: '' }); setPage(1) }
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     entry_type: 'manual',
@@ -36,11 +41,15 @@ export default function GLJournalPage() {
   })
 
   const { data: journalsRaw, isLoading } = useQuery({
-    queryKey: ['journals', statusFilter, periodFilter, page],
+    queryKey: ['journals', statusFilter, periodFilter, filters, page],
     queryFn: () => api.get('/finance/journals/', {
       params: {
-        ...(statusFilter && { status: statusFilter }),
-        ...(periodFilter && { period: periodFilter }),
+        ...(statusFilter         && { status:      statusFilter }),
+        ...(periodFilter         && { period:      periodFilter }),
+        ...(filters.search       && { search:      filters.search }),
+        ...(filters.date_from    && { date_from:   filters.date_from }),
+        ...(filters.date_to      && { date_to:     filters.date_to }),
+        ...(filters.entry_type   && { entry_type:  filters.entry_type }),
         page,
       }
     }),
@@ -292,6 +301,17 @@ export default function GLJournalPage() {
       )}
 
       {/* Journal list */}
+      {tab === 'journal' && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilter}
+          onClear={clearFilters}
+          extras={[{
+            key: 'entry_type', label: 'All Types', type: 'select',
+            options: ENTRY_TYPES.map(t => ({ value: t, label: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) })),
+          }]}
+        />
+      )}
       {tab === 'journal' && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <div className="px-5 py-3.5 border-b border-gray-100">
