@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getBankTransactions } from '../../api/finance'
+import Pagination from '../../components/Pagination'
 
 const TXN_COLORS = {
   deposit:    'bg-green-100 text-green-700',
@@ -11,12 +12,17 @@ const TXN_COLORS = {
 
 export default function BankTransactionsPage() {
   const [txnType, setTxnType] = useState('')
+  const [page, setPage] = useState(1)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['bank-transactions', txnType],
-    queryFn:  () => getBankTransactions(txnType ? { txn_type: txnType } : {}),
-    select:   r => r.data?.results ?? r.data,
+  const { data: raw, isLoading } = useQuery({
+    queryKey: ['bank-transactions', txnType, page],
+    queryFn:  () => getBankTransactions({ ...(txnType ? { txn_type: txnType } : {}), page }),
   })
+
+  const data  = raw?.data?.results ?? raw?.data ?? []
+  const count = raw?.data?.count   ?? 0
+
+  function handleFilter(val) { setTxnType(val); setPage(1) }
 
   return (
     <div>
@@ -26,7 +32,7 @@ export default function BankTransactionsPage() {
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {['', 'deposit', 'withdrawal', 'transfer', 'other'].map(t => (
-          <button key={t} onClick={() => setTxnType(t)}
+          <button key={t} onClick={() => handleFilter(t)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${txnType === t
                 ? 'bg-brand-slate text-white border-brand-slate'
@@ -48,33 +54,38 @@ export default function BankTransactionsPage() {
           : !data?.length
             ? <div className="p-12 text-center text-gray-600 text-sm">No records found.</div>
             : (
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    {['Reference', 'Date', 'Type', 'Account', 'Category', 'Payee', 'Description', 'Amount (KES)'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.map(txn => (
-                    <tr key={txn.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{txn.reference || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{txn.txn_date}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TXN_COLORS[txn.txn_type] || 'bg-gray-100 text-gray-600'}`}>
-                          {txn.txn_type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{txn.account || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs truncate max-w-[140px]">{txn.category || '—'}</td>
-                      <td className="px-4 py-3 text-gray-700 truncate max-w-[120px]">{txn.payee || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate max-w-[160px]">{txn.description || '—'}</td>
-                      <td className="px-4 py-3 font-medium text-gray-700">KES {Number(txn.amount).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        {['Reference', 'Date', 'Type', 'Account', 'Category', 'Payee', 'Description', 'Amount (KES)'].map(h => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.map(txn => (
+                        <tr key={txn.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{txn.reference || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600">{txn.txn_date}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TXN_COLORS[txn.txn_type] || 'bg-gray-100 text-gray-600'}`}>
+                              {txn.txn_type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 text-xs">{txn.account || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600 text-xs truncate max-w-[140px]">{txn.category || '—'}</td>
+                          <td className="px-4 py-3 text-gray-700 truncate max-w-[120px]">{txn.payee || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600 truncate max-w-[160px]">{txn.description || '—'}</td>
+                          <td className="px-4 py-3 font-medium text-gray-700">KES {Number(txn.amount).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination page={page} count={count} onChange={setPage} />
+              </>
             )
         }
       </div>

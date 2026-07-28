@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getInvoices } from '../../api/finance'
 import { PlusIcon } from '@heroicons/react/24/outline'
+import Pagination from '../../components/Pagination'
 
 const STATUS_COLORS = {
   draft: 'bg-gray-100 text-gray-600', sent: 'bg-blue-100 text-blue-700',
@@ -13,11 +14,17 @@ const STATUS_COLORS = {
 
 export default function InvoicesPage() {
   const [status, setStatus] = useState('')
-  const { data, isLoading } = useQuery({
-    queryKey: ['invoices', status],
-    queryFn:  () => getInvoices(status ? { status } : {}),
-    select:   r => r.data?.results ?? r.data,
+  const [page, setPage] = useState(1)
+
+  const { data: raw, isLoading } = useQuery({
+    queryKey: ['invoices', status, page],
+    queryFn:  () => getInvoices({ ...(status ? { status } : {}), page }),
   })
+
+  const data  = raw?.data?.results ?? raw?.data ?? []
+  const count = raw?.data?.count   ?? 0
+
+  function handleFilter(val) { setStatus(val); setPage(1) }
 
   return (
     <div>
@@ -31,7 +38,7 @@ export default function InvoicesPage() {
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {['', 'draft', 'sent', 'certified', 'partial', 'paid', 'overdue', 'disputed'].map(s => (
-          <button key={s} onClick={() => setStatus(s)}
+          <button key={s} onClick={() => handleFilter(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${status === s ? 'bg-brand-slate text-white border-brand-slate' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-slate'}`}>
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -44,38 +51,45 @@ export default function InvoicesPage() {
           ? <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
           : !data?.length
             ? <div className="p-12 text-center text-gray-600 text-sm">No invoices found.</div>
-            : <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    {['Invoice #', 'Type', 'Client', 'Project', 'Status', 'Total', 'Balance Due', 'Due Date', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.map(inv => (
-                    <tr key={inv.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{inv.invoice_number}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs capitalize">{inv.invoice_type.replace('_', ' ')}</td>
-                      <td className="px-4 py-3 font-medium truncate max-w-[120px]">{inv.client_name}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate max-w-[100px]">{inv.project_name || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[inv.status]}`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">KES {Number(inv.total_amount).toLocaleString()}</td>
-                      <td className={`px-4 py-3 font-medium ${Number(inv.balance_due) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        KES {Number(inv.balance_due).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{inv.due_date}</td>
-                      <td className="px-4 py-3">
-                        <Link to={`/finance/invoices/${inv.id}`} className="text-brand-red hover:underline text-xs font-medium">View</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        {['Invoice #', 'Type', 'Client', 'Project', 'Status', 'Total', 'Balance Due', 'Due Date', ''].map(h => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.map(inv => (
+                        <tr key={inv.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono text-xs text-brand-slate font-medium">{inv.invoice_number}</td>
+                          <td className="px-4 py-3 text-gray-600 text-xs capitalize">{inv.invoice_type.replace('_', ' ')}</td>
+                          <td className="px-4 py-3 font-medium truncate max-w-[120px]">{inv.client_name}</td>
+                          <td className="px-4 py-3 text-gray-600 truncate max-w-[100px]">{inv.project_name || '—'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[inv.status]}`}>
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">KES {Number(inv.total_amount).toLocaleString()}</td>
+                          <td className={`px-4 py-3 font-medium ${Number(inv.balance_due) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            KES {Number(inv.balance_due).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{inv.due_date}</td>
+                          <td className="px-4 py-3">
+                            <Link to={`/finance/invoices/${inv.id}`} className="text-brand-red hover:underline text-xs font-medium">View</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination page={page} count={count} onChange={setPage} />
+              </>
+            )
         }
       </div>
     </div>
