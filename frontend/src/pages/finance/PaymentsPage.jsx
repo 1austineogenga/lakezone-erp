@@ -2,25 +2,39 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getPayments } from '../../api/finance'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const TYPE_COLORS = {
   receipt: 'bg-green-100 text-green-700',
   payment: 'bg-orange-100 text-orange-700',
 }
 
+const METHODS = ['bank_transfer', 'cheque', 'cash', 'mpesa', 'rtgs', 'other']
+const EMPTY = { search: '', date_from: '', date_to: '', payment_method: '' }
+
 export default function PaymentsPage() {
   const [paymentType, setPaymentType] = useState('')
+  const [filters, setFilters] = useState(EMPTY)
   const [page, setPage] = useState(1)
 
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters(EMPTY); setPage(1) }
+  function handleType(val) { setPaymentType(val); setPage(1) }
+
   const { data: raw, isLoading } = useQuery({
-    queryKey: ['payments', paymentType, page],
-    queryFn:  () => getPayments({ ...(paymentType ? { payment_type: paymentType } : {}), page }),
+    queryKey: ['payments', paymentType, filters, page],
+    queryFn:  () => getPayments({
+      ...(paymentType             ? { payment_type:   paymentType }            : {}),
+      ...(filters.search          ? { search:          filters.search }         : {}),
+      ...(filters.date_from       ? { date_from:       filters.date_from }      : {}),
+      ...(filters.date_to         ? { date_to:         filters.date_to }        : {}),
+      ...(filters.payment_method  ? { payment_method:  filters.payment_method } : {}),
+      page,
+    }),
   })
 
   const data  = raw?.data?.results ?? raw?.data ?? []
   const count = raw?.data?.count   ?? 0
-
-  function handleFilter(val) { setPaymentType(val); setPage(1) }
 
   return (
     <div>
@@ -28,9 +42,9 @@ export default function PaymentsPage() {
         <h2 className="font-semibold text-brand-slate">Payments</h2>
       </div>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap">
         {['', 'receipt', 'payment'].map(t => (
-          <button key={t} onClick={() => handleFilter(t)}
+          <button key={t} onClick={() => handleType(t)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${paymentType === t
                 ? 'bg-brand-slate text-white border-brand-slate'
@@ -39,6 +53,16 @@ export default function PaymentsPage() {
           </button>
         ))}
       </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        extras={[{
+          key: 'payment_method', label: 'All Methods', type: 'select',
+          options: METHODS.map(m => ({ value: m, label: m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) })),
+        }]}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading

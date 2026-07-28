@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { getExpenses, submitExpense, reviewExpense } from '../../api/finance'
 import { PlusIcon, PaperAirplaneIcon, CheckIcon, XMarkIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
 import Pagination from '../../components/Pagination'
+import FilterBar from '../../components/FilterBar'
 
 const STATUS_COLORS = {
   draft:     'bg-gray-100 text-gray-600',
@@ -17,18 +18,35 @@ const STATUS_COLORS = {
 export default function ExpensesPage() {
   const [status, setStatus] = useState('')
   const [reqOnly, setReqOnly] = useState(false)
+  const [filters, setFilters] = useState({ search: '', date_from: '', date_to: '', project: '' })
   const [page, setPage] = useState(1)
   const qc = useQueryClient()
 
+  const { data: projectsRaw } = useQuery({
+    queryKey: ['projects-list'],
+    queryFn:  () => import('../../api/projects').then(m => m.getProjects({ page_size: 200 })),
+    select:   r => r.data?.results ?? r.data ?? [],
+  })
+  const projects = projectsRaw ?? []
+
   const { data: raw, isLoading } = useQuery({
-    queryKey: ['expenses', status, page],
-    queryFn:  () => getExpenses({ ...(status ? { status } : {}), page }),
+    queryKey: ['expenses', status, filters, page],
+    queryFn:  () => getExpenses({
+      ...(status            ? { status }                       : {}),
+      ...(filters.search    ? { search:    filters.search }    : {}),
+      ...(filters.date_from ? { date_from: filters.date_from } : {}),
+      ...(filters.date_to   ? { date_to:   filters.date_to }   : {}),
+      ...(filters.project   ? { project:   filters.project }   : {}),
+      page,
+    }),
   })
   const allData = raw?.data?.results ?? raw?.data ?? []
   const count   = raw?.data?.count   ?? 0
   const data    = reqOnly ? allData.filter(c => c.requisition_reference) : allData
 
   function handleFilter(val) { setStatus(val); setPage(1) }
+  function setFilter(key, val) { setFilters(f => ({ ...f, [key]: val })); setPage(1) }
+  function clearFilters() { setFilters({ search: '', date_from: '', date_to: '', project: '' }); setPage(1) }
 
   const submitMutation = useMutation({
     mutationFn: (id) => submitExpense(id),
@@ -60,7 +78,7 @@ export default function ExpensesPage() {
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setReqOnly(r => !r)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${reqOnly ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-200 hover:border-purple-400'}`}>
@@ -69,6 +87,16 @@ export default function ExpensesPage() {
           </button>
         </div>
       </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        extras={[{
+          key: 'project', label: 'All Projects', type: 'select',
+          options: projects.map(p => ({ value: p.id, label: p.name })),
+        }]}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading
