@@ -94,15 +94,14 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, linkTo, children })
   )
 }
 
-function KpiCard({ label, value, sub, subOk, valueColor, bg, border, accent, to }) {
+function KpiCard({ label, value, sub, subOk, bg, to }) {
   const navigate = useNavigate()
   return (
     <div onClick={to ? () => navigate(to) : undefined}
-      className={`relative overflow-hidden ${bg} border ${border} rounded-xl p-4 shadow-sm ${to ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all' : ''}`}>
-      {accent && <div className={`absolute top-0 left-0 w-1 h-full ${accent} rounded-l-xl`} />}
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1 pl-1">{label}</p>
-      <p className={`text-xl font-bold pl-1 ${valueColor}`}>{value}</p>
-      {sub && <p className={`text-xs mt-0.5 pl-1 ${subOk == null ? 'text-gray-400' : subOk ? 'text-green-600' : 'text-red-500'}`}>{sub}</p>}
+      className={`relative overflow-hidden ${bg} rounded-xl p-4 shadow-md ${to ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all' : ''}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/70 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      {sub && <p className={`text-xs mt-0.5 font-medium ${subOk == null ? 'text-white/60' : subOk ? 'text-white/80' : 'text-yellow-200'}`}>{sub}</p>}
     </div>
   )
 }
@@ -177,10 +176,10 @@ export default function MDDashboard() {
           <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Finance Overview</h2>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-          <KpiCard label="Total Invoiced (AR)"  value={fmtK(finance.ar_billed)}      sub={`${arPct}% collected`}                                                subOk={arPct >= 70}                   valueColor="text-blue-800"  bg="bg-blue-50"  border="border-blue-100"  accent="bg-blue-400"  to="/finance/invoices" />
-          <KpiCard label="Cash Received"         value={fmtK(finance.ar_received)}    sub="from clients"                                                          subOk={null}                          valueColor="text-green-800" bg="bg-green-50" border="border-green-100" accent="bg-green-400" to="/finance/payments" />
-          <KpiCard label="AR Outstanding"        value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0} valueColor="text-amber-800" bg="bg-amber-50" border="border-amber-100" accent="bg-amber-400" to="/finance/aged" />
-          <KpiCard label="AP Outstanding"        value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0} valueColor="text-red-800"   bg="bg-red-50"   border="border-red-100"   accent="bg-red-400"   to="/finance/bills" />
+          <KpiCard label="Total Revenue (AR)"  value={fmtK(finance.ar_billed)}      sub={`${arPct}% collected`}                                                        subOk={arPct >= 70}                   bg="bg-blue-600"   to="/finance/invoices" />
+          <KpiCard label="Cash Received"        value={fmtK(finance.ar_received)}    sub="from clients"                                                                  subOk={null}                          bg="bg-emerald-600" to="/finance/payments" />
+          <KpiCard label="AR Outstanding"       value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0}      bg="bg-amber-500"  to="/finance/aged" />
+          <KpiCard label="AP Outstanding"       value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0}     bg="bg-rose-600"   to="/finance/bills" />
         </div>
         <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
