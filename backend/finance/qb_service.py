@@ -199,6 +199,22 @@ class QBService:
         r.raise_for_status()
         return r.json()
 
+    def query_all(self, entity, where=''):
+        """Fetch ALL records of an entity using pagination (handles >1000 rows)."""
+        PAGE = 1000
+        start = 1
+        results = []
+        where_clause = f' WHERE {where}' if where else ''
+        while True:
+            sql = f'SELECT * FROM {entity}{where_clause} STARTPOSITION {start} MAXRESULTS {PAGE}'
+            resp = self.query(sql)
+            batch = resp.get('QueryResponse', {}).get(entity, [])
+            results.extend(batch)
+            if len(batch) < PAGE:
+                break
+            start += PAGE
+        return results
+
     def _esc(self, s):
         """Escape single quotes for QB query strings."""
         return str(s).replace("'", "\\'")
@@ -551,8 +567,7 @@ class QBService:
         from .models import Account
         ok, fail, errors = 0, 0, []
         try:
-            resp = self.query('SELECT * FROM Account MAXRESULTS 1000')
-            accounts = resp.get('QueryResponse', {}).get('Account', [])
+            accounts = self.query_all('Account')
         except Exception as e:
             return 0, 0, [f'Failed to fetch accounts from QB: {e}']
 
@@ -624,8 +639,7 @@ class QBService:
         from crm.models import Client
         ok, fail, errors = 0, 0, []
         try:
-            resp = self.query('SELECT * FROM Customer MAXRESULTS 1000')
-            customers = resp.get('QueryResponse', {}).get('Customer', [])
+            customers = self.query_all('Customer')
         except Exception as e:
             return 0, 0, [f'Failed to fetch customers from QB: {e}']
 
@@ -681,8 +695,7 @@ class QBService:
         from procurement.models import Supplier
         ok, fail, errors = 0, 0, []
         try:
-            resp = self.query('SELECT * FROM Vendor MAXRESULTS 1000')
-            vendors = resp.get('QueryResponse', {}).get('Vendor', [])
+            vendors = self.query_all('Vendor')
         except Exception as e:
             return 0, 0, [f'Failed to fetch vendors from QB: {e}']
 
@@ -738,8 +751,7 @@ class QBService:
             return 0, 0, ['pull_invoices requires a user context — trigger via the sync API']
 
         try:
-            resp = self.query('SELECT * FROM Invoice MAXRESULTS 1000')
-            invoices = resp.get('QueryResponse', {}).get('Invoice', [])
+            invoices = self.query_all('Invoice')
         except Exception as e:
             return 0, 0, [f'Failed to fetch invoices from QB: {e}']
 
@@ -841,8 +853,7 @@ class QBService:
             return 0, 0, ['pull_bills requires a user context — trigger via the sync API']
 
         try:
-            resp = self.query('SELECT * FROM Bill MAXRESULTS 1000')
-            bills = resp.get('QueryResponse', {}).get('Bill', [])
+            bills = self.query_all('Bill')
         except Exception as e:
             return 0, 0, [f'Failed to fetch bills from QB: {e}']
 
@@ -946,8 +957,7 @@ class QBService:
         # Build QB Invoice Id → DocNumber (to link payments to local invoices)
         qb_inv_id_to_doc = {}
         try:
-            resp = self.query('SELECT Id, DocNumber FROM Invoice MAXRESULTS 1000')
-            for qi in resp.get('QueryResponse', {}).get('Invoice', []):
+            for qi in self.query_all('Invoice'):
                 if qi.get('DocNumber'):
                     qb_inv_id_to_doc[qi['Id']] = qi['DocNumber']
         except Exception:
@@ -956,8 +966,7 @@ class QBService:
         # Build QB Bill Id → DocNumber
         qb_bill_id_to_doc = {}
         try:
-            resp = self.query('SELECT Id, DocNumber FROM Bill MAXRESULTS 1000')
-            for qb in resp.get('QueryResponse', {}).get('Bill', []):
+            for qb in self.query_all('Bill'):
                 if qb.get('DocNumber'):
                     qb_bill_id_to_doc[qb['Id']] = qb['DocNumber']
         except Exception:
@@ -968,8 +977,7 @@ class QBService:
 
         # ── Customer Payments (AR receipts) ───────────────────────────────────
         try:
-            resp = self.query('SELECT * FROM Payment MAXRESULTS 1000')
-            payments = resp.get('QueryResponse', {}).get('Payment', [])
+            payments = self.query_all('Payment')
         except Exception as e:
             return 0, 0, [f'Failed to fetch QB Payments: {e}']
 
@@ -981,10 +989,6 @@ class QBService:
             note     = (qb_pmt.get('PrivateNote') or '').strip()
             meth_ref = (qb_pmt.get('PaymentMethodRef') or {}).get('name', '').lower()
             method   = QB_PMETHOD_MAP.get(meth_ref, 'bank_transfer')
-
-            if Payment.objects.filter(reference=lz_ref).exists():
-                ok += 1
-                continue
 
             # Resolve linked invoice
             invoice = None
@@ -999,15 +1003,17 @@ class QBService:
                     break
 
             try:
-                Payment.objects.create(
-                    payment_type='receipt',
-                    payment_method=method,
-                    invoice=invoice,
-                    amount=amount,
-                    payment_date=_safe_date(txn_date),
+                Payment.objects.update_or_create(
                     reference=lz_ref,
-                    notes=note or f'Imported from QuickBooks Payment ID {ref}',
-                    recorded_by=self.user,
+                    defaults=dict(
+                        payment_type='receipt',
+                        payment_method=method,
+                        invoice=invoice,
+                        amount=amount,
+                        payment_date=_safe_date(txn_date),
+                        notes=note or f'Imported from QuickBooks Payment ID {ref}',
+                        recorded_by=self.user,
+                    ),
                 )
                 ok += 1
             except Exception as e:
@@ -1016,8 +1022,7 @@ class QBService:
 
         # ── Bill Payments (AP payments to suppliers) ───────────────────────────
         try:
-            resp = self.query('SELECT * FROM BillPayment MAXRESULTS 1000')
-            bill_payments = resp.get('QueryResponse', {}).get('BillPayment', [])
+            bill_payments = self.query_all('BillPayment')
         except Exception:
             bill_payments = []
 
@@ -1027,10 +1032,6 @@ class QBService:
             txn_date = qb_bp.get('TxnDate', '')
             amount   = _safe_decimal(qb_bp.get('TotalAmt', 0))
             note     = (qb_bp.get('PrivateNote') or '').strip()
-
-            if Payment.objects.filter(reference=lz_ref).exists():
-                ok += 1
-                continue
 
             # Resolve linked bill
             bill = None
@@ -1045,15 +1046,17 @@ class QBService:
                     break
 
             try:
-                Payment.objects.create(
-                    payment_type='payment',
-                    payment_method='bank_transfer',
-                    bill=bill,
-                    amount=amount,
-                    payment_date=_safe_date(txn_date),
+                Payment.objects.update_or_create(
                     reference=lz_ref,
-                    notes=note or f'Imported from QuickBooks BillPayment ID {ref}',
-                    recorded_by=self.user,
+                    defaults=dict(
+                        payment_type='payment',
+                        payment_method='bank_transfer',
+                        bill=bill,
+                        amount=amount,
+                        payment_date=_safe_date(txn_date),
+                        notes=note or f'Imported from QuickBooks BillPayment ID {ref}',
+                        recorded_by=self.user,
+                    ),
                 )
                 ok += 1
             except Exception as e:
@@ -1072,8 +1075,7 @@ class QBService:
             return 0, 0, ['pull_journal_entries requires a user context']
 
         try:
-            resp = self.query('SELECT * FROM JournalEntry MAXRESULTS 1000')
-            entries = resp.get('QueryResponse', {}).get('JournalEntry', [])
+            entries = self.query_all('JournalEntry')
         except Exception as e:
             return 0, 0, [f'Failed to fetch journal entries from QB: {e}']
 
@@ -1137,8 +1139,7 @@ class QBService:
         account_map = {a.name.lower(): a for a in Account.objects.filter(is_active=True)}
 
         try:
-            resp = self.query('SELECT * FROM Deposit MAXRESULTS 1000')
-            deposits = resp.get('QueryResponse', {}).get('Deposit', [])
+            deposits = self.query_all('Deposit')
         except Exception as e:
             deposits = []
             errors.append(f'Failed to fetch deposits: {e}')
@@ -1164,8 +1165,7 @@ class QBService:
                 fail += 1; errors.append(f'{ref}: {e}')
 
         try:
-            resp = self.query('SELECT * FROM Transfer MAXRESULTS 1000')
-            transfers = resp.get('QueryResponse', {}).get('Transfer', [])
+            transfers = self.query_all('Transfer')
         except Exception as e:
             transfers = []
             errors.append(f'Failed to fetch transfers: {e}')
@@ -1206,8 +1206,7 @@ class QBService:
         supplier_map = {s.company_name.lower(): s for s in Supplier.objects.all()}
 
         try:
-            resp = self.query('SELECT * FROM CreditMemo MAXRESULTS 1000')
-            credit_memos = resp.get('QueryResponse', {}).get('CreditMemo', [])
+            credit_memos = self.query_all('CreditMemo')
         except Exception as e:
             credit_memos = []
             errors.append(f'Failed to fetch credit memos: {e}')
@@ -1234,8 +1233,7 @@ class QBService:
                 fail += 1; errors.append(f'CreditMemo {ref}: {e}')
 
         try:
-            resp = self.query('SELECT * FROM VendorCredit MAXRESULTS 1000')
-            vendor_credits = resp.get('QueryResponse', {}).get('VendorCredit', [])
+            vendor_credits = self.query_all('VendorCredit')
         except Exception as e:
             vendor_credits = []
             errors.append(f'Failed to fetch vendor credits: {e}')
