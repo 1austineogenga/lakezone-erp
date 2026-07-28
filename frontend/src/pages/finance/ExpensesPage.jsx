@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { getExpenses, submitExpense, reviewExpense } from '../../api/finance'
 import { PlusIcon, PaperAirplaneIcon, CheckIcon, XMarkIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import Pagination from '../../components/Pagination'
 
 const STATUS_COLORS = {
   draft:     'bg-gray-100 text-gray-600',
@@ -15,15 +16,19 @@ const STATUS_COLORS = {
 
 export default function ExpensesPage() {
   const [status, setStatus] = useState('')
-  const [reqOnly, setReqOnly]   = useState(false)
+  const [reqOnly, setReqOnly] = useState(false)
+  const [page, setPage] = useState(1)
   const qc = useQueryClient()
 
-  const { data: rawData, isLoading } = useQuery({
-    queryKey: ['expenses', status],
-    queryFn:  () => getExpenses(status ? { status, page_size: 200 } : { page_size: 200 }),
-    select:   r => r.data?.results ?? r.data ?? [],
+  const { data: raw, isLoading } = useQuery({
+    queryKey: ['expenses', status, page],
+    queryFn:  () => getExpenses({ ...(status ? { status } : {}), page }),
   })
-  const data = reqOnly ? rawData?.filter(c => c.requisition_reference) : rawData
+  const allData = raw?.data?.results ?? raw?.data ?? []
+  const count   = raw?.data?.count   ?? 0
+  const data    = reqOnly ? allData.filter(c => c.requisition_reference) : allData
+
+  function handleFilter(val) { setStatus(val); setPage(1) }
 
   const submitMutation = useMutation({
     mutationFn: (id) => submitExpense(id),
@@ -49,7 +54,7 @@ export default function ExpensesPage() {
 
       <div className="flex gap-2 mb-4 flex-wrap items-center">
         {['', 'draft', 'submitted', 'approved', 'rejected', 'paid'].map(s => (
-          <button key={s} onClick={() => setStatus(s)}
+          <button key={s} onClick={() => handleFilter(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
               ${status === s ? 'bg-brand-slate text-white border-brand-slate' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-slate'}`}>
             {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -70,7 +75,9 @@ export default function ExpensesPage() {
           ? <div className="p-8 text-center text-gray-600 text-sm">Loading…</div>
           : !data?.length
             ? <div className="p-12 text-center text-gray-600 text-sm">No expense claims found.</div>
-            : <table className="min-w-full text-sm">
+            : <>
+              <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {['Reference', 'Title', 'Submitted By', 'Project', 'Status', 'Amount', 'Date', 'Actions'].map(h => (
@@ -131,6 +138,9 @@ export default function ExpensesPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
+              <Pagination page={page} count={reqOnly ? data.length : count} onChange={setPage} />
+            </>
         }
       </div>
     </div>
