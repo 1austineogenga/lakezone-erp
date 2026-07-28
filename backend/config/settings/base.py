@@ -165,6 +165,15 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Nairobi"
 
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    # Pull all data from QuickBooks every hour at :05 past the hour
+    'qb-full-sync-hourly': {
+        'task': 'finance.qb_full_sync',
+        'schedule': crontab(minute=5),
+    },
+}
+
 # ---------------------------------------------------------------------------
 # API Docs
 # ---------------------------------------------------------------------------
