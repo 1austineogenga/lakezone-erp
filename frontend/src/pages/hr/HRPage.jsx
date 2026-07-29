@@ -35,11 +35,10 @@ const GROUPS = (role) => [
     label: 'Workforce',
     icon: UsersIcon,
     defaultPath: '/hr/employees',
-    paths: ['/hr/employees', '/hr/casuals-registry', '/hr/transfers'],
+    paths: ['/hr/employees', '/hr/casuals-registry'],
     tabs: [
-      { label: 'Employees',  path: '/hr/employees' },
-      { label: 'Casuals',    path: '/hr/casuals-registry' },
-      { label: 'Movements',  path: '/hr/transfers' },
+      { label: 'Employees', path: '/hr/employees' },
+      { label: 'Casuals',   path: '/hr/casuals-registry' },
     ],
   },
   {

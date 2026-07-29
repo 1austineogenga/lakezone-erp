@@ -50,6 +50,7 @@ function PageNav({ page, total, onChange }) {
 const STATUS_STYLE = {
   draft:       'bg-gray-100 text-gray-600',
   submitted:   'bg-blue-100 text-blue-700',
+  hr_approved: 'bg-indigo-100 text-indigo-700',
   approved:    'bg-green-100 text-green-700',
   rejected:    'bg-red-100 text-red-700',
   paid:        'bg-violet-100 text-violet-700',
@@ -61,6 +62,7 @@ const STATUS_STYLE = {
 
 const STATUS_LABEL = {
   submitted:   'Pending',
+  hr_approved: 'Pending MD',
   dept_review: 'Pending (Review)',
   approved:    'Approved',
   paid:        'Paid',
@@ -89,18 +91,22 @@ const TYPE_META = {
   materials:         { label: 'Materials',        icon: CubeIcon,                color: 'text-blue-600 bg-blue-50' },
   repair_maintenance:{ label: 'Repair & Maint.', icon: WrenchScrewdriverIcon,   color: 'text-purple-600 bg-purple-50' },
   general_purchase:  { label: 'General Purchase', icon: ShoppingCartIcon,        color: 'text-teal-600 bg-teal-50' },
+  store_request:     { label: 'Store Request',    icon: CubeIcon,                color: 'text-cyan-600 bg-cyan-50' },
+  staff_movement:    { label: 'Staff Movement',   icon: UserIcon,                color: 'text-indigo-600 bg-indigo-50' },
   store_item:        { label: 'Store Item',       icon: CubeIcon,                color: 'text-gray-600 bg-gray-50' },
   external_purchase: { label: 'External Purchase',icon: ShoppingCartIcon,        color: 'text-gray-600 bg-gray-50' },
   service:           { label: 'Service',          icon: ClipboardDocumentListIcon, color: 'text-gray-600 bg-gray-50' },
 }
 
 const TABS = [
-  { key: 'all',              label: 'All',              icon: ClipboardDocumentListIcon },
-  { key: 'fuel',             label: 'Fuel',             icon: BeakerIcon },
-  { key: 'materials',        label: 'Materials',        icon: CubeIcon },
-  { key: 'repair_maintenance',label: 'Repair & Maint.', icon: WrenchScrewdriverIcon },
-  { key: 'general_purchase', label: 'General Purchase', icon: ShoppingCartIcon },
-  { key: 'maintenance_schedule', label: 'Maintenance Schedule', icon: CalendarDaysIcon },
+  { key: 'all',                 label: 'All',                icon: ClipboardDocumentListIcon },
+  { key: 'fuel',                label: 'Fuel',               icon: BeakerIcon },
+  { key: 'materials',           label: 'Materials',          icon: CubeIcon },
+  { key: 'repair_maintenance',  label: 'Repair & Maint.',    icon: WrenchScrewdriverIcon },
+  { key: 'general_purchase',    label: 'General Purchase',   icon: ShoppingCartIcon },
+  { key: 'store_request',       label: 'Store Requests',     icon: CubeIcon },
+  { key: 'staff_movement',      label: 'Staff Movements',    icon: UserIcon },
+  { key: 'maintenance_schedule',label: 'Maint. Schedule',    icon: CalendarDaysIcon },
 ]
 
 const fmt = n => `KES ${Number(n || 0).toLocaleString()}`
@@ -158,7 +164,7 @@ function ApproveButtons({ reqId, onDone, label = 'Review' }) {
 }
 
 // ── Requisition card ──────────────────────────────────────────────────────────
-function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver }) {
+function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver, isHR }) {
   const navigate = useNavigate()
   const meta = TYPE_META[req.req_type] || TYPE_META.store_item
   const Icon = meta.icon
@@ -188,8 +194,9 @@ function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver })
           <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-600 flex-wrap">
             <span className="flex items-center gap-1"><UserIcon className="h-3 w-3" /> {req.requested_by_name}</span>
             {req.project_name && <span>{req.project_name}</span>}
+            {req.source_store_name && <span className="px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded font-medium">{req.source_store_name}</span>}
             <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" /> Need by {fmtDate(req.date_required)}</span>
-            <span className="font-semibold text-brand-slate">{fmt(req.total_amount)}</span>
+            {req.total_amount > 0 && <span className="font-semibold text-brand-slate">{fmt(req.total_amount)}</span>}
           </div>
 
           {/* Maintenance schedule badge */}
@@ -213,15 +220,19 @@ function ReqCard({ req, canApprove, canSeeFuelPayment, isMD, isStage1Approver })
             </button>
           </div>
 
+          {/* HR stage: admin_officer / general_manager reviews store_request / staff_movement */}
+          {isHR && req.status === 'submitted' && ['store_request', 'staff_movement'].includes(req.req_type) && (
+            <ApproveButtons reqId={req.id} label="HR Review" />
+          )}
           {/* Stage-1: admin_officer reviews facility_manager submitted reqs */}
-          {isStage1Approver && req.status === 'submitted' && req.requested_by_role === 'facility_manager' && (
+          {isStage1Approver && req.status === 'submitted' && req.requested_by_role === 'facility_manager' && !['store_request', 'staff_movement'].includes(req.req_type) && (
             <ApproveButtons reqId={req.id} label="Stage 1 Review" />
           )}
-          {/* MD: approves all submitted (non-facility-manager) or dept_review */}
-          {isMD && (req.status === 'submitted' && req.requested_by_role !== 'facility_manager') && (
+          {/* MD: approves all submitted (non-facility-manager, non-store/movement) or dept_review / hr_approved */}
+          {isMD && req.status === 'submitted' && req.requested_by_role !== 'facility_manager' && !['store_request', 'staff_movement'].includes(req.req_type) && (
             <ApproveButtons reqId={req.id} />
           )}
-          {isMD && req.status === 'dept_review' && (
+          {isMD && (req.status === 'dept_review' || req.status === 'hr_approved') && (
             <ApproveButtons reqId={req.id} label="Final Approval" />
           )}
         </div>
@@ -356,9 +367,10 @@ export default function RequisitionsPage() {
   const role = user?.role || ''
 
   // MD/system_admin can approve everything; admin_officer can do stage-1 review of facility_manager reqs
-  const canApprove        = ['managing_director', 'system_admin', 'admin_officer'].includes(role)
+  const canApprove        = ['managing_director', 'system_admin', 'admin_officer', 'general_manager', 'hr_manager'].includes(role)
   const isMD              = ['managing_director', 'system_admin'].includes(role)
   const isStage1Approver  = role === 'admin_officer'
+  const isHR              = ['hr_manager', 'admin_officer', 'general_manager', 'system_admin'].includes(role)
   const canSeeFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
   const canLogSchedule    = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
   const canApproveSchedule = ['managing_director', 'system_admin'].includes(role)
@@ -530,7 +542,7 @@ export default function RequisitionsPage() {
         <div className="space-y-3">
           <PageNav page={safePage} total={filtered.length} onChange={setPage} />
           {paged.map(req => (
-            <ReqCard key={req.id} req={req} canApprove={canApprove} canSeeFuelPayment={canSeeFuelPayment} isMD={isMD} isStage1Approver={isStage1Approver} />
+            <ReqCard key={req.id} req={req} canApprove={canApprove} canSeeFuelPayment={canSeeFuelPayment} isMD={isMD} isStage1Approver={isStage1Approver} isHR={isHR} />
           ))}
           <PageNav page={safePage} total={filtered.length} onChange={setPage} />
         </div>

@@ -25,6 +25,7 @@ import CRMPage from './pages/crm/CRMPage'
 import RequisitionsPage from './pages/requisitions/RequisitionsPage'
 import NewRequisitionPage from './pages/requisitions/NewRequisitionPage'
 import RequisitionDetailPage from './pages/requisitions/RequisitionDetailPage'
+import TransfersPage from './pages/hr/TransfersPage'
 import FinancePage from './pages/finance/FinancePage'
 import HRPage from './pages/hr/HRPage'
 import FleetPage from './pages/fleet/FleetPage'
@@ -66,9 +67,10 @@ export default function App() {
             <Route path="/assets"                element={<PrivateRoute module="assets"><AssetsPage /></PrivateRoute>} />
             <Route path="/assets/:id"            element={<PrivateRoute module="assets"><AssetDetailPage /></PrivateRoute>} />
             <Route path="/crm"                   element={<PrivateRoute module="crm"><CRMPage /></PrivateRoute>} />
-            <Route path="/requisitions"          element={<RequisitionsPage />} />
-            <Route path="/requisitions/new"      element={<NewRequisitionPage />} />
-            <Route path="/requisitions/:id"      element={<RequisitionDetailPage />} />
+            <Route path="/requisitions"             element={<RequisitionsPage />} />
+            <Route path="/requisitions/new"         element={<NewRequisitionPage />} />
+            <Route path="/requisitions/movements"   element={<TransfersPage />} />
+            <Route path="/requisitions/:id"         element={<RequisitionDetailPage />} />
             <Route path="/finance/*"             element={<PrivateRoute module="finance"><FinancePage /></PrivateRoute>} />
             <Route path="/hr/*"                  element={<PrivateRoute module="hr"><HRPage /></PrivateRoute>} />
             <Route path="/fleet/*"               element={<PrivateRoute module="fleet"><FleetPage /></PrivateRoute>} />

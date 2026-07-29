@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { PlusIcon, TrashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { createRequisition } from '../../api/requisitions'
 import { getProjects } from '../../api/projects'
+import { getStores, getStoreItems, getAssets } from '../../api/inventory'
 
-const emptyItem = { description: '', quantity: '', unit: '', unit_price: '', notes: '' }
-
+const emptyItem = { description: '', quantity: '', unit: '', unit_price: '', notes: '', stock_item: '', asset_code: '' }
 const PAYMENT_TYPES = ['fuel', 'materials', 'general_purchase']
 
 const REQ_TYPES = [
@@ -15,19 +15,26 @@ const REQ_TYPES = [
   { value: 'materials',          label: 'Materials Requisition', hint: 'Construction or site materials for purchase' },
   { value: 'repair_maintenance', label: 'Repair & Maintenance',  hint: 'Equipment or facility repair / service' },
   { value: 'general_purchase',   label: 'General Purchase',      hint: 'Any other procurement need' },
+  { value: 'store_request',      label: 'Store Request',         hint: 'Request items from a store (inventory or assets)' },
+  { value: 'staff_movement',     label: 'Staff Movement',        hint: 'Employee transfer / deployment to site or office' },
 ]
 
 export default function NewRequisitionPage() {
-  const navigate = useNavigate()
+  const navigate    = useNavigate()
+  const qc          = useQueryClient()
   const [form, setForm] = useState({
     title: '', req_type: 'fuel', priority: 'medium',
     description: '', date_required: '', project: '',
+    source_store: '',
     payment_method: '',
     payment_business_number: '', payment_account_number: '',
-    payment_till_number: '',
+    payment_till_number: '', payment_send_money_phone: '',
     payment_bank_name: '', payment_account_name: '', payment_branch_name: '',
   })
   const [items, setItems] = useState([{ ...emptyItem }])
+
+  const isStoreReq   = form.req_type === 'store_request'
+  const isMovement   = form.req_type === 'staff_movement'
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
@@ -35,10 +42,37 @@ export default function NewRequisitionPage() {
     select:   r => r.data?.results ?? r.data ?? [],
   })
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn:  () => getStores(),
+    select:   r => r.data?.results ?? r.data ?? [],
+    enabled:  isStoreReq,
+  })
+
+  const { data: storeStockItems = [] } = useQuery({
+    queryKey: ['store-items', form.source_store],
+    queryFn:  () => getStoreItems(form.source_store),
+    select:   r => r.data?.results ?? r.data ?? [],
+    enabled:  isStoreReq && !!form.source_store,
+  })
+
+  const { data: storeAssets = [] } = useQuery({
+    queryKey: ['assets-simple'],
+    queryFn:  () => getAssets({ page_size: 300, status: 'operational' }),
+    select:   r => r.data?.results ?? r.data ?? [],
+    enabled:  isStoreReq,
+  })
+
+  const allStoreItems = [
+    ...storeStockItems.map(si => ({ value: si.id, label: `[STOCK] ${si.name}`, unit: si.unit, asset_code: '' })),
+    ...storeAssets.map(a  => ({ value: a.id,  label: `[ASSET] ${a.name} (${a.asset_code})`, unit: 'unit', asset_code: a.asset_code })),
+  ]
+
   const { mutate, isPending } = useMutation({
     mutationFn: createRequisition,
     onSuccess: (res) => {
       toast.success(`Requisition ${res.data.reference_number} submitted.`)
+      qc.invalidateQueries({ queryKey: ['requisitions'] })
       navigate('/requisitions')
     },
     onError: e => {
@@ -50,6 +84,19 @@ export default function NewRequisitionPage() {
   const setItem = (i, field, value) =>
     setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: value } : it))
 
+  const handleStoreItemSelect = (i, selectedValue) => {
+    const found = allStoreItems.find(s => s.value === selectedValue || s.asset_code === selectedValue)
+    if (!found) { setItem(i, 'stock_item', selectedValue); return }
+    const isAsset = found.label.startsWith('[ASSET]')
+    setItems(prev => prev.map((it, idx) => idx !== i ? it : {
+      ...it,
+      description: found.label.replace('[STOCK] ', '').replace('[ASSET] ', ''),
+      unit:        found.unit || 'unit',
+      stock_item:  isAsset ? '' : found.value,
+      asset_code:  isAsset ? found.asset_code : '',
+    }))
+  }
+
   const estimatedTotal = items.reduce(
     (sum, it) => sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0), 0
   )
@@ -58,6 +105,8 @@ export default function NewRequisitionPage() {
     e.preventDefault()
     const payload = { ...form, items }
     if (!payload.project) delete payload.project
+    if (!payload.source_store) delete payload.source_store
+    // For staff_movement, items list may be just the movement description
     mutate(payload)
   }
 
@@ -71,7 +120,11 @@ export default function NewRequisitionPage() {
           <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Requisitions
         </button>
         <h1 className="text-lg font-bold text-brand-slate">New Requisition</h1>
-        <p className="text-xs text-gray-600 mt-0.5">Submitted directly to MD for approval</p>
+        <p className="text-xs text-gray-600 mt-0.5">
+          {isStoreReq ? 'HR approves → MD approves → Storekeeper issues' :
+           isMovement  ? 'HR reviews → MD approves → Finance records expense' :
+           'Submitted directly to MD for approval'}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -81,7 +134,7 @@ export default function NewRequisitionPage() {
           <h2 className="text-sm font-semibold text-brand-slate mb-3">Requisition Type</h2>
           <div className="grid grid-cols-2 gap-2">
             {REQ_TYPES.map(t => (
-              <button type="button" key={t.value} onClick={() => setForm(f => ({ ...f, req_type: t.value }))}
+              <button type="button" key={t.value} onClick={() => setForm(f => ({ ...f, req_type: t.value, source_store: '' }))}
                 className={`text-left px-3 py-2.5 rounded-xl border text-xs transition-colors
                   ${form.req_type === t.value
                     ? 'border-brand-red bg-red-50 text-brand-red'
@@ -101,7 +154,30 @@ export default function NewRequisitionPage() {
               Finance will record the fuel payment (raised by finance or MD direct payment) once approved.
             </p>
           )}
+          {isStoreReq && (
+            <p className="mt-3 text-xs text-teal-600 bg-teal-50 rounded-lg px-3 py-2">
+              HR will approve first, then MD. The storekeeper will issue items using a Counter Issue Form which requires both signatures.
+            </p>
+          )}
+          {isMovement && (
+            <p className="mt-3 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+              HR reviews and approves, then MD gives final approval. Finance records any allowance expenses.
+            </p>
+          )}
         </div>
+
+        {/* Store selector — only for store_request */}
+        {isStoreReq && (
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-brand-slate mb-3">Select Store</h2>
+            <select required={isStoreReq} value={form.source_store}
+              onChange={e => { setForm(f => ({ ...f, source_store: e.target.value })); setItems([{ ...emptyItem }]) }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
+              <option value="">— Select a store —</option>
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}{s.location ? ` — ${s.location}` : ''}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Details */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
@@ -140,7 +216,9 @@ export default function NewRequisitionPage() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Description / Justification</label>
               <textarea rows={3} value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Provide context or reason for this requisition…"
+                placeholder={isMovement
+                  ? 'State employee name, from/to location, dates and reason for movement…'
+                  : 'Provide context or reason for this requisition…'}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
             </div>
           </div>
@@ -162,67 +240,54 @@ export default function NewRequisitionPage() {
                   <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
-
               {form.payment_method === 'mpesa_paybill' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Business Number *</label>
-                    <input value={form.payment_business_number} onChange={e => setForm(f => ({ ...f, payment_business_number: e.target.value }))}
-                      placeholder="e.g. 400200"
+                    <input value={form.payment_business_number} onChange={e => setForm(f => ({ ...f, payment_business_number: e.target.value }))} placeholder="e.g. 400200"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
-                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))}
-                      placeholder="e.g. REQ-2026-0001"
+                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))} placeholder="e.g. REQ-2026-0001"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                 </div>
               )}
-
               {form.payment_method === 'mpesa_till' && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Till Number *</label>
-                  <input value={form.payment_till_number} onChange={e => setForm(f => ({ ...f, payment_till_number: e.target.value }))}
-                    placeholder="e.g. 123456"
+                  <input value={form.payment_till_number} onChange={e => setForm(f => ({ ...f, payment_till_number: e.target.value }))} placeholder="e.g. 123456"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
               )}
-
               {form.payment_method === 'mpesa_send_money' && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number *</label>
-                  <input value={form.payment_send_money_phone || ''} onChange={e => setForm(f => ({ ...f, payment_send_money_phone: e.target.value }))}
-                    placeholder="e.g. 0712 345 678"
-                    type="tel"
+                  <input value={form.payment_send_money_phone || ''} onChange={e => setForm(f => ({ ...f, payment_send_money_phone: e.target.value }))} placeholder="e.g. 0712 345 678" type="tel"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                 </div>
               )}
-
               {form.payment_method === 'bank_transfer' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name *</label>
-                    <input value={form.payment_bank_name} onChange={e => setForm(f => ({ ...f, payment_bank_name: e.target.value }))}
-                      placeholder="e.g. Equity Bank"
+                    <input value={form.payment_bank_name} onChange={e => setForm(f => ({ ...f, payment_bank_name: e.target.value }))} placeholder="e.g. Equity Bank"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Account Name *</label>
-                    <input value={form.payment_account_name} onChange={e => setForm(f => ({ ...f, payment_account_name: e.target.value }))}
-                      placeholder="Account holder name"
+                    <input value={form.payment_account_name} onChange={e => setForm(f => ({ ...f, payment_account_name: e.target.value }))} placeholder="Account holder name"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
-                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))}
-                      placeholder="e.g. 0123456789"
+                    <input value={form.payment_account_number} onChange={e => setForm(f => ({ ...f, payment_account_number: e.target.value }))} placeholder="e.g. 0123456789"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Branch Name *</label>
-                    <input value={form.payment_branch_name} onChange={e => setForm(f => ({ ...f, payment_branch_name: e.target.value }))}
-                      placeholder="e.g. Nairobi CBD"
+                    <input value={form.payment_branch_name} onChange={e => setForm(f => ({ ...f, payment_branch_name: e.target.value }))} placeholder="e.g. Nairobi CBD"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
                   </div>
                 </div>
@@ -234,55 +299,105 @@ export default function NewRequisitionPage() {
         {/* Line items */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-brand-slate">Line Items</h2>
+            <h2 className="text-sm font-semibold text-brand-slate">
+              {isStoreReq ? 'Items to Request' : isMovement ? 'Movement Details' : 'Line Items'}
+            </h2>
             <button type="button" onClick={() => setItems(p => [...p, { ...emptyItem }])}
               className="flex items-center gap-1 text-xs text-brand-red font-semibold hover:underline">
               <PlusIcon className="h-3.5 w-3.5" /> Add item
             </button>
           </div>
+
+          {isStoreReq && form.source_store && allStoreItems.length > 0 && (
+            <p className="text-[10px] text-gray-500 mb-2">
+              Select from store inventory or assets, or type a custom description.
+            </p>
+          )}
+
           <div className="space-y-2">
             {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Description *</label>}
-                  <input required value={item.description} onChange={e => setItem(i, 'description', e.target.value)}
-                    placeholder="Item or service"
-                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
-                </div>
-                <div className="col-span-2">
-                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Qty *</label>}
-                  <input required type="number" min="0.01" step="0.01" value={item.quantity}
-                    onChange={e => setItem(i, 'quantity', e.target.value)} placeholder="1"
-                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
-                </div>
-                <div className="col-span-2">
-                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit</label>}
-                  <input value={item.unit} onChange={e => setItem(i, 'unit', e.target.value)} placeholder="pcs / L"
-                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
-                </div>
-                <div className="col-span-3">
-                  {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit Price (KES)</label>}
-                  <input type="number" min="0" step="0.01" value={item.unit_price}
-                    onChange={e => setItem(i, 'unit_price', e.target.value)} placeholder="0.00"
-                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  {i === 0 && <div className="h-4 mb-1" />}
-                  <button type="button" disabled={items.length === 1}
-                    onClick={() => setItems(p => p.filter((_, idx) => idx !== i))}
-                    className="p-1.5 text-gray-500 hover:text-red-500 disabled:opacity-30 transition-colors">
-                    <TrashIcon className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+              <div key={i} className="space-y-1">
+                {isStoreReq && form.source_store ? (
+                  /* Store request: show item picker + qty */
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-5">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Item (stock or asset) *</label>}
+                      <select value={item.stock_item || item.asset_code || ''}
+                        onChange={e => handleStoreItemSelect(i, e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red">
+                        <option value="">— Or type below —</option>
+                        {allStoreItems.map(si => <option key={si.value} value={si.value}>{si.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-4">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Description *</label>}
+                      <input required value={item.description} onChange={e => setItem(i, 'description', e.target.value)}
+                        placeholder="Item description"
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-2">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Qty *</label>}
+                      <input required type="number" min="0.01" step="0.01" value={item.quantity}
+                        onChange={e => setItem(i, 'quantity', e.target.value)} placeholder="1"
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      {i === 0 && <div className="h-4 mb-1" />}
+                      <button type="button" disabled={items.length === 1}
+                        onClick={() => setItems(p => p.filter((_, idx) => idx !== i))}
+                        className="p-1.5 text-gray-500 hover:text-red-500 disabled:opacity-30">
+                        <TrashIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard items row */
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-4">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Description *</label>}
+                      <input required value={item.description} onChange={e => setItem(i, 'description', e.target.value)}
+                        placeholder={isMovement ? 'e.g. Employee — John Doe, Site A to Site B' : 'Item or service'}
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-2">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Qty *</label>}
+                      <input required type="number" min="0.01" step="0.01" value={item.quantity}
+                        onChange={e => setItem(i, 'quantity', e.target.value)} placeholder="1"
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-2">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit</label>}
+                      <input value={item.unit} onChange={e => setItem(i, 'unit', e.target.value)} placeholder="pcs / L"
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-3">
+                      {i === 0 && <label className="block text-[10px] text-gray-600 mb-1">Unit Price (KES)</label>}
+                      <input type="number" min="0" step="0.01" value={item.unit_price}
+                        onChange={e => setItem(i, 'unit_price', e.target.value)} placeholder="0.00"
+                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      {i === 0 && <div className="h-4 mb-1" />}
+                      <button type="button" disabled={items.length === 1}
+                        onClick={() => setItems(p => p.filter((_, idx) => idx !== i))}
+                        className="p-1.5 text-gray-500 hover:text-red-500 disabled:opacity-30">
+                        <TrashIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-            <div className="text-xs">
-              <span className="text-gray-600 mr-3">Estimated Total</span>
-              <span className="font-bold text-brand-slate text-sm">KES {estimatedTotal.toLocaleString()}</span>
+
+          {!isStoreReq && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+              <div className="text-xs">
+                <span className="text-gray-600 mr-3">Estimated Total</span>
+                <span className="font-bold text-brand-slate text-sm">KES {estimatedTotal.toLocaleString()}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3">

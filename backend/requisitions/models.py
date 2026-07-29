@@ -19,18 +19,21 @@ class StaffRequisition(models.Model):
         MATERIALS          = 'materials',           'Materials Requisition'
         REPAIR_MAINTENANCE = 'repair_maintenance',  'Repair & Maintenance'
         GENERAL_PURCHASE   = 'general_purchase',    'General Purchase'
+        STORE_REQUEST      = 'store_request',       'Store Request'
+        STAFF_MOVEMENT     = 'staff_movement',      'Staff Movement'
         # Legacy types retained for backward compatibility
         STORE_ITEM         = 'store_item',          'Store Item'
         EXTERNAL_PURCHASE  = 'external_purchase',   'External Purchase'
         SERVICE            = 'service',             'Service Request'
 
     class Status(models.TextChoices):
-        DRAFT     = 'draft',       'Draft'
-        SUBMITTED = 'submitted',   'Submitted'
-        APPROVED  = 'approved',    'Approved'
-        REJECTED  = 'rejected',    'Rejected'
-        PAID      = 'paid',        'Paid'
-        FULFILLED = 'fulfilled',   'Fulfilled'
+        DRAFT      = 'draft',       'Draft'
+        SUBMITTED  = 'submitted',   'Submitted'
+        HR_APPROVED = 'hr_approved', 'Pending MD Approval'
+        APPROVED   = 'approved',    'Approved'
+        REJECTED   = 'rejected',    'Rejected'
+        PAID       = 'paid',        'Paid'
+        FULFILLED  = 'fulfilled',   'Fulfilled'
         # Legacy statuses retained for backward compatibility
         DEPT_REVIEW = 'dept_review', 'Department Review'
         FINANCE     = 'finance',     'Finance Review'
@@ -59,6 +62,9 @@ class StaffRequisition(models.Model):
                                       null=True, blank=True)
     project       = models.ForeignKey('projects.Project', on_delete=models.SET_NULL,
                                       null=True, blank=True)
+    source_store  = models.ForeignKey('inventory.Store', on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name='requisitions',
+                                      help_text='For store_request type: the store items are drawn from')
 
     description      = models.TextField(blank=True)
     date_required    = models.DateField()
@@ -128,6 +134,8 @@ class RequisitionItem(models.Model):
     total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     stock_item  = models.ForeignKey('inventory.StockItem', on_delete=models.SET_NULL,
                                     null=True, blank=True)
+    asset_code  = models.CharField(max_length=50, blank=True,
+                                   help_text='Asset code (LZ-XX-NNN) for asset-type store requests')
     notes       = models.TextField(blank=True)
 
     def clean(self):
@@ -228,3 +236,45 @@ class FuelPaymentRecord(models.Model):
 
     def __str__(self):
         return f'Fuel payment for {self.requisition.reference_number}'
+
+
+class CounterIssueForm(models.Model):
+    """Printable issue/receipt document for store_request requisitions."""
+
+    class Status(models.TextChoices):
+        PENDING  = 'pending',  'Pending Issue'
+        ISSUED   = 'issued',   'Issued by Storekeeper'
+        RECEIVED = 'received', 'Receipt Confirmed'
+        COMPLETE = 'complete', 'Complete'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    requisition = models.OneToOneField(StaffRequisition, on_delete=models.CASCADE,
+                                       related_name='counter_issue')
+
+    # Issuer (storekeeper)
+    issued_by             = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                              null=True, blank=True, related_name='counter_issues_issued')
+    issued_by_name        = models.CharField(max_length=200, blank=True)
+    issued_by_designation = models.CharField(max_length=200, blank=True)
+    issued_at             = models.DateTimeField(null=True, blank=True)
+
+    # Receiver (requester)
+    received_by             = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                                null=True, blank=True, related_name='counter_issues_received')
+    received_by_name        = models.CharField(max_length=200, blank=True)
+    received_by_designation = models.CharField(max_length=200, blank=True)
+    received_at             = models.DateTimeField(null=True, blank=True)
+
+    # Security gate
+    gate_pass_number       = models.CharField(max_length=50, blank=True)
+    security_cleared_by    = models.CharField(max_length=200, blank=True)
+
+    issue_notes = models.TextField(blank=True)
+    status      = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'CIF for {self.requisition.reference_number}'

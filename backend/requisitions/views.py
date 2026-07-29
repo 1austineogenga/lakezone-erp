@@ -3,17 +3,23 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
 from django.db import models as db_models
-from .models import StaffRequisition, RequisitionApproval, MaintenanceSchedule, FuelPaymentRecord
+from .models import StaffRequisition, RequisitionApproval, MaintenanceSchedule, FuelPaymentRecord, CounterIssueForm
 from .serializers import (
     StaffRequisitionSerializer, StaffRequisitionListSerializer,
     StaffRequisitionCreateSerializer, ApprovalActionSerializer,
     MaintenanceScheduleSerializer, MaintenanceScheduleCreateSerializer,
     FuelPaymentRecordSerializer, ScheduleApproveSerializer,
+    CounterIssueFormSerializer,
 )
 
 # ── Role sets ──────────────────────────────────────────────────────────────────
-APPROVER_ROLES       = {'managing_director', 'system_admin'}
+APPROVER_ROLES        = {'managing_director', 'system_admin'}
 STAGE1_APPROVER_ROLES = {'admin_officer', 'system_admin'}   # first-level review for facility_manager reqs
+HR_APPROVER_ROLES     = {'hr_manager', 'admin_officer', 'general_manager', 'system_admin'}   # HR stage for store_request / staff_movement
+STOREKEEPER_ROLES     = {'storekeeper', 'admin_officer', 'system_admin', 'general_manager'}
+
+# req types that require HR approval before MD
+HR_FIRST_TYPES = {StaffRequisition.ReqType.STORE_REQUEST, StaffRequisition.ReqType.STAFF_MOVEMENT}
 ALL_VIEWER_ROLES     = {
     'managing_director', 'general_manager', 'admin_officer',
     'finance_officer', 'finance_manager', 'system_admin', 'procurement_officer',
@@ -77,9 +83,13 @@ class RequisitionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class RequisitionApproveView(APIView):
     """
-    Two-stage approval for facility_manager requisitions:
-      submitted → admin_officer approves → dept_review → MD approves → approved
-    All other requisitions go directly: submitted → MD approves → approved
+    Approval flow:
+      store_request / staff_movement:
+        submitted → HR/admin approves → hr_approved → MD approves → approved
+      facility_manager reqs:
+        submitted → admin_officer approves → dept_review → MD approves → approved
+      All others:
+        submitted → MD approves → approved
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -87,8 +97,9 @@ class RequisitionApproveView(APIView):
         user_role = getattr(request.user, 'role', None)
         is_md     = user_role in APPROVER_ROLES
         is_stage1 = user_role in STAGE1_APPROVER_ROLES
+        is_hr     = user_role in HR_APPROVER_ROLES
 
-        if not is_md and not is_stage1:
+        if not is_md and not is_stage1 and not is_hr:
             return Response(
                 {'detail': 'You are not authorised to approve requisitions.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -100,9 +111,16 @@ class RequisitionApproveView(APIView):
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         from_facility_manager = getattr(req.requested_by, 'role', None) == 'facility_manager'
+        needs_hr_stage = req.req_type in HR_FIRST_TYPES
 
-        # Determine what this user is allowed to act on
-        if is_stage1 and not is_md:
+        # HR approvers for store_request / staff_movement at submitted stage
+        if is_hr and not is_md:
+            if not needs_hr_stage or req.status != StaffRequisition.Status.SUBMITTED:
+                return Response(
+                    {'detail': 'You can only review submitted store/movement requisitions at the HR stage.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        elif is_stage1 and not is_md and not is_hr:
             # Admin officer: can only act on facility_manager reqs at submitted stage
             if not from_facility_manager or req.status != StaffRequisition.Status.SUBMITTED:
                 return Response(
@@ -110,15 +128,19 @@ class RequisitionApproveView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
         elif is_md:
-            # MD: acts on dept_review (from facility_manager flow) or submitted (all others)
-            allowed = {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.MD_REVIEW,
-                       StaffRequisition.Status.DEPT_REVIEW, StaffRequisition.Status.FINANCE}
+            allowed = {StaffRequisition.Status.SUBMITTED, StaffRequisition.Status.HR_APPROVED,
+                       StaffRequisition.Status.MD_REVIEW, StaffRequisition.Status.DEPT_REVIEW,
+                       StaffRequisition.Status.FINANCE}
             if req.status not in allowed:
                 return Response(
                     {'detail': f'Cannot act on a requisition with status: {req.status}.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            # MD should not act on facility_manager reqs still at submitted (admin_officer hasn't reviewed yet)
+            if needs_hr_stage and req.status == StaffRequisition.Status.SUBMITTED:
+                return Response(
+                    {'detail': 'This requisition must first be reviewed by HR.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if from_facility_manager and req.status == StaffRequisition.Status.SUBMITTED:
                 return Response(
                     {'detail': 'This requisition must first be reviewed by the Admin Officer.'},
@@ -139,9 +161,9 @@ class RequisitionApproveView(APIView):
         )
 
         if action == RequisitionApproval.Action.APPROVED:
-            if is_stage1 and not is_md and from_facility_manager:
+            if (is_hr or is_stage1) and not is_md and (needs_hr_stage or from_facility_manager):
                 # Stage 1 approved: pass to MD
-                req.status = StaffRequisition.Status.DEPT_REVIEW
+                req.status = StaffRequisition.Status.HR_APPROVED if needs_hr_stage else StaffRequisition.Status.DEPT_REVIEW
             else:
                 req.status = StaffRequisition.Status.APPROVED
         elif action == RequisitionApproval.Action.REJECTED:
@@ -192,17 +214,27 @@ class RequisitionApproveView(APIView):
                                         f'Account No: {req.payment_account_number}, '
                                         f'Branch: {req.payment_branch_name}')
                     notes = '\n'.join(filter(None, [payment_note, req.description]))
-                    ExpenseClaim.objects.create(
-                        title=req.title,
-                        submitted_by=req.requested_by,
-                        project=req.project,
-                        requisition=req,
-                        status='submitted',
-                        total_amount=req.total_amount,
-                        notes=notes or f'Auto-created from requisition {req.reference_number}',
-                    )
+                    # Store requests don't have monetary value — only create expense for non-store types
+                    if req.req_type != StaffRequisition.ReqType.STORE_REQUEST or req.total_amount > 0:
+                        ExpenseClaim.objects.create(
+                            title=req.title,
+                            submitted_by=req.requested_by,
+                            project=req.project,
+                            requisition=req,
+                            status='submitted',
+                            total_amount=req.total_amount,
+                            notes=notes or f'Auto-created from requisition {req.reference_number}',
+                        )
             except Exception:
                 pass  # Never block approval if expense claim creation fails
+
+            # Auto-create CounterIssueForm for store_request type
+            if req.req_type == StaffRequisition.ReqType.STORE_REQUEST:
+                try:
+                    if not CounterIssueForm.objects.filter(requisition=req).exists():
+                        CounterIssueForm.objects.create(requisition=req)
+                except Exception:
+                    pass
 
         return Response(StaffRequisitionSerializer(req).data)
 
@@ -609,3 +641,79 @@ class FuelPaymentView(APIView):
             created_by=request.user,
         )
         return Response(FuelPaymentRecordSerializer(record).data, status=status.HTTP_201_CREATED)
+
+
+# ── Counter Issue Form ─────────────────────────────────────────────────────────
+
+class CounterIssueFormView(APIView):
+    """Get or update the counter issue form for a store_request requisition."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            cif = CounterIssueForm.objects.select_related(
+                'requisition__source_store', 'issued_by', 'received_by'
+            ).get(requisition__pk=pk)
+        except CounterIssueForm.DoesNotExist:
+            return Response({'detail': 'Counter issue form not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(CounterIssueFormSerializer(cif).data)
+
+
+class CounterIssueIssueView(APIView):
+    """Storekeeper fills issuer details → status becomes 'issued'."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in STOREKEEPER_ROLES:
+            return Response({'detail': 'Only storekeepers can issue items.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            cif = CounterIssueForm.objects.get(requisition__pk=pk)
+        except CounterIssueForm.DoesNotExist:
+            return Response({'detail': 'Counter issue form not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if cif.status not in (CounterIssueForm.Status.PENDING,):
+            return Response({'detail': f'Cannot issue: form is already in status {cif.status}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cif.issued_by             = request.user
+        cif.issued_by_name        = request.data.get('issued_by_name', request.user.get_full_name())
+        cif.issued_by_designation = request.data.get('issued_by_designation', '')
+        cif.gate_pass_number      = request.data.get('gate_pass_number', '')
+        cif.security_cleared_by   = request.data.get('security_cleared_by', '')
+        cif.issue_notes           = request.data.get('issue_notes', '')
+        cif.issued_at             = timezone.now()
+        cif.status                = CounterIssueForm.Status.ISSUED
+        cif.save()
+        return Response(CounterIssueFormSerializer(cif).data)
+
+
+class CounterIssueReceiveView(APIView):
+    """Receiver confirms receipt → status becomes 'received' then 'complete'."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            cif = CounterIssueForm.objects.get(requisition__pk=pk)
+        except CounterIssueForm.DoesNotExist:
+            return Response({'detail': 'Counter issue form not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if cif.status != CounterIssueForm.Status.ISSUED:
+            return Response({'detail': 'Items must be issued before confirming receipt.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cif.received_by             = request.user
+        cif.received_by_name        = request.data.get('received_by_name', request.user.get_full_name())
+        cif.received_by_designation = request.data.get('received_by_designation', '')
+        cif.received_at             = timezone.now()
+        cif.status                  = CounterIssueForm.Status.COMPLETE
+        cif.save()
+
+        # Also mark requisition as fulfilled
+        req = cif.requisition
+        if req.status == StaffRequisition.Status.APPROVED:
+            req.status       = StaffRequisition.Status.FULFILLED
+            req.fulfilled_by = request.user
+            req.fulfilled_at = timezone.now()
+            req.save(update_fields=['status', 'fulfilled_by', 'fulfilled_at'])
+
+        return Response(CounterIssueFormSerializer(cif).data)

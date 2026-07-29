@@ -1,11 +1,17 @@
 from rest_framework import serializers
-from .models import StaffRequisition, RequisitionItem, RequisitionApproval, MaintenanceSchedule, FuelPaymentRecord
+from .models import StaffRequisition, RequisitionItem, RequisitionApproval, MaintenanceSchedule, FuelPaymentRecord, CounterIssueForm
 
 
 class RequisitionItemSerializer(serializers.ModelSerializer):
+    stock_item_name = serializers.SerializerMethodField()
+
     class Meta:
         model  = RequisitionItem
-        fields = ['id', 'description', 'quantity', 'unit', 'unit_price', 'total_price', 'stock_item', 'notes']
+        fields = ['id', 'description', 'quantity', 'unit', 'unit_price', 'total_price',
+                  'stock_item', 'stock_item_name', 'asset_code', 'notes']
+
+    def get_stock_item_name(self, obj):
+        return obj.stock_item.name if obj.stock_item else None
 
     def validate_quantity(self, value):
         if value <= 0:
@@ -89,9 +95,11 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
     requested_by_role    = serializers.CharField(source='requested_by.role', read_only=True)
     department_name      = serializers.CharField(source='department.name', read_only=True)
     project_name         = serializers.CharField(source='project.name', read_only=True)
+    source_store_name    = serializers.CharField(source='source_store.name', read_only=True)
     has_maintenance_schedule = serializers.SerializerMethodField()
     maintenance_schedule = MaintenanceScheduleSerializer(read_only=True)
     fuel_payment         = FuelPaymentRecordSerializer(read_only=True)
+    counter_issue        = CounterIssueFormSerializer(read_only=True)
     paid_by_name         = serializers.CharField(source='paid_by.get_full_name', read_only=True)
     expense_claim_ref    = serializers.SerializerMethodField()
 
@@ -101,6 +109,7 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'id', 'reference_number', 'title', 'req_type', 'status', 'priority',
             'requested_by', 'requested_by_name', 'requested_by_role',
             'department', 'department_name', 'project', 'project_name',
+            'source_store', 'source_store_name',
             'description', 'date_required', 'total_amount', 'rejection_reason',
             'payment_method', 'payment_business_number', 'payment_account_number',
             'payment_till_number', 'payment_send_money_phone', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
@@ -110,7 +119,7 @@ class StaffRequisitionSerializer(serializers.ModelSerializer):
             'paid_by', 'paid_by_name', 'paid_at', 'paid_mode', 'payment_confirmed_notes',
             'expense_claim_ref',
             'items', 'approvals',
-            'has_maintenance_schedule', 'maintenance_schedule', 'fuel_payment',
+            'has_maintenance_schedule', 'maintenance_schedule', 'fuel_payment', 'counter_issue',
         ]
         read_only_fields = ['reference_number', 'requested_by', 'total_amount', 'status', 'rejection_reason']
 
@@ -150,6 +159,7 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = StaffRequisition
         fields = ['title', 'req_type', 'priority', 'department', 'project',
+                  'source_store',
                   'description', 'date_required',
                   'payment_method', 'payment_business_number', 'payment_account_number',
                   'payment_till_number', 'payment_send_money_phone', 'payment_bank_name', 'payment_account_name', 'payment_branch_name',
@@ -194,6 +204,32 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
 class ApprovalActionSerializer(serializers.Serializer):
     action   = serializers.ChoiceField(choices=RequisitionApproval.Action.choices)
     comments = serializers.CharField(required=False, allow_blank=True)
+
+
+class CounterIssueFormSerializer(serializers.ModelSerializer):
+    issued_by_name_display   = serializers.CharField(source='issued_by.get_full_name', read_only=True)
+    received_by_name_display = serializers.CharField(source='received_by.get_full_name', read_only=True)
+    requisition_ref          = serializers.CharField(source='requisition.reference_number', read_only=True)
+    requisition_title        = serializers.CharField(source='requisition.title', read_only=True)
+    store_name               = serializers.SerializerMethodField()
+    items                    = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = CounterIssueForm
+        fields = [
+            'id', 'requisition', 'requisition_ref', 'requisition_title', 'store_name', 'items',
+            'issued_by', 'issued_by_name', 'issued_by_name_display', 'issued_by_designation', 'issued_at',
+            'received_by', 'received_by_name', 'received_by_name_display', 'received_by_designation', 'received_at',
+            'gate_pass_number', 'security_cleared_by',
+            'issue_notes', 'status', 'created_at',
+        ]
+        read_only_fields = ['issued_by', 'received_by', 'issued_at', 'received_at', 'status']
+
+    def get_store_name(self, obj):
+        return obj.requisition.source_store.name if obj.requisition.source_store else None
+
+    def get_items(self, obj):
+        return RequisitionItemSerializer(obj.requisition.items.all(), many=True).data
 
 
 class ScheduleApproveSerializer(serializers.Serializer):
