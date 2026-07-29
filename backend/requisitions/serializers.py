@@ -88,6 +88,32 @@ class FuelPaymentRecordSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by', 'expense_claim']
 
 
+class CounterIssueFormSerializer(serializers.ModelSerializer):
+    issued_by_name_display   = serializers.CharField(source='issued_by.get_full_name', read_only=True)
+    received_by_name_display = serializers.CharField(source='received_by.get_full_name', read_only=True)
+    requisition_ref          = serializers.CharField(source='requisition.reference_number', read_only=True)
+    requisition_title        = serializers.CharField(source='requisition.title', read_only=True)
+    store_name               = serializers.SerializerMethodField()
+    items                    = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = CounterIssueForm
+        fields = [
+            'id', 'requisition', 'requisition_ref', 'requisition_title', 'store_name', 'items',
+            'issued_by', 'issued_by_name', 'issued_by_name_display', 'issued_by_designation', 'issued_at',
+            'received_by', 'received_by_name', 'received_by_name_display', 'received_by_designation', 'received_at',
+            'gate_pass_number', 'security_cleared_by',
+            'issue_notes', 'status', 'created_at',
+        ]
+        read_only_fields = ['issued_by', 'received_by', 'issued_at', 'received_at', 'status']
+
+    def get_store_name(self, obj):
+        return obj.requisition.source_store.name if obj.requisition.source_store else None
+
+    def get_items(self, obj):
+        return RequisitionItemSerializer(obj.requisition.items.all(), many=True).data
+
+
 class StaffRequisitionSerializer(serializers.ModelSerializer):
     items                = RequisitionItemSerializer(many=True, read_only=True)
     approvals            = RequisitionApprovalSerializer(many=True, read_only=True)
@@ -204,32 +230,6 @@ class StaffRequisitionCreateSerializer(serializers.ModelSerializer):
 class ApprovalActionSerializer(serializers.Serializer):
     action   = serializers.ChoiceField(choices=RequisitionApproval.Action.choices)
     comments = serializers.CharField(required=False, allow_blank=True)
-
-
-class CounterIssueFormSerializer(serializers.ModelSerializer):
-    issued_by_name_display   = serializers.CharField(source='issued_by.get_full_name', read_only=True)
-    received_by_name_display = serializers.CharField(source='received_by.get_full_name', read_only=True)
-    requisition_ref          = serializers.CharField(source='requisition.reference_number', read_only=True)
-    requisition_title        = serializers.CharField(source='requisition.title', read_only=True)
-    store_name               = serializers.SerializerMethodField()
-    items                    = serializers.SerializerMethodField()
-
-    class Meta:
-        model  = CounterIssueForm
-        fields = [
-            'id', 'requisition', 'requisition_ref', 'requisition_title', 'store_name', 'items',
-            'issued_by', 'issued_by_name', 'issued_by_name_display', 'issued_by_designation', 'issued_at',
-            'received_by', 'received_by_name', 'received_by_name_display', 'received_by_designation', 'received_at',
-            'gate_pass_number', 'security_cleared_by',
-            'issue_notes', 'status', 'created_at',
-        ]
-        read_only_fields = ['issued_by', 'received_by', 'issued_at', 'received_at', 'status']
-
-    def get_store_name(self, obj):
-        return obj.requisition.source_store.name if obj.requisition.source_store else None
-
-    def get_items(self, obj):
-        return RequisitionItemSerializer(obj.requisition.items.all(), many=True).data
 
 
 class ScheduleApproveSerializer(serializers.Serializer):
