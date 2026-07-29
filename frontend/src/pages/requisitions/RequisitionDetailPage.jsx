@@ -5,12 +5,13 @@ import { toast } from 'react-toastify'
 import {
   ArrowLeftIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon,
   CalendarDaysIcon, CurrencyDollarIcon, UserIcon, WrenchScrewdriverIcon,
-  BeakerIcon, PlusIcon,
+  BeakerIcon, PlusIcon, CubeIcon,
 } from '@heroicons/react/24/outline'
 import {
   getRequisition, approveRequisition, fulfillRequisition,
   createMaintenanceSchedule, updateMaintenanceSchedule,
   recordFuelPayment, confirmPayment,
+  issueCounterForm, receiveCounterForm,
 } from '../../api/requisitions'
 import useAuthStore from '../../store/authStore'
 
@@ -350,6 +351,221 @@ function FuelPaymentPanel({ req, fuelPayment, canRecord }) {
   )
 }
 
+// ── Counter Issue Form panel ──────────────────────────────────────────────────
+function CounterIssuePanel({ req, cif, canIssue, isRequester }) {
+  const qc = useQueryClient()
+  const [issueForm, setIssueForm] = useState({
+    issued_by_name: '', issued_by_designation: '',
+    gate_pass_number: '', security_cleared_by: '', issue_notes: '',
+  })
+  const [receiveForm, setReceiveForm] = useState({ received_by_name: '', received_by_designation: '' })
+  const [mode, setMode] = useState(null) // 'issue' | 'receive' | null
+
+  const issueMut = useMutation({
+    mutationFn: data => issueCounterForm(req.id, data),
+    onSuccess: () => {
+      toast.success('Items issued. Counter Issue Form ready to print.')
+      qc.invalidateQueries({ queryKey: ['requisition', req.id] })
+      setMode(null)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to issue.'),
+  })
+
+  const receiveMut = useMutation({
+    mutationFn: data => receiveCounterForm(req.id, data),
+    onSuccess: () => {
+      toast.success('Receipt confirmed. Form is now complete.')
+      qc.invalidateQueries({ queryKey: ['requisition', req.id] })
+      setMode(null)
+    },
+    onError: e => toast.error(e.response?.data?.detail || 'Failed to confirm.'),
+  })
+
+  const printForm = () => {
+    const items = req.items || []
+    const w = window.open('', '_blank')
+    w.document.write(`
+      <html><head><title>Counter Issue Form — ${req.reference_number}</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
+        h2 { text-align: center; font-size: 14px; margin-bottom: 4px; }
+        .sub { text-align: center; color: #666; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+        th { background: #f3f4f6; font-weight: 600; }
+        .sig-block { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        .sig-box { border: 1px solid #ccc; padding: 12px; min-height: 80px; }
+        .sig-title { font-weight: 600; margin-bottom: 8px; }
+        .sig-name { margin-top: 24px; border-top: 1px solid #333; padding-top: 4px; font-size: 10px; }
+        @media print { body { margin: 0; } }
+      </style></head><body>
+      <h2>Lake Zone Enterprises Ltd</h2>
+      <h2>Counter Issue Form</h2>
+      <div class="sub">Ref: ${req.reference_number} &nbsp;|&nbsp; Date: ${new Date().toLocaleDateString('en-KE')}</div>
+      <table>
+        <tr><th>Store</th><td>${req.source_store_name || '—'}</td><th>Requested By</th><td>${req.requested_by_name}</td></tr>
+        <tr><th>Title</th><td colspan="3">${req.title}</td></tr>
+      </table>
+      <table>
+        <thead><tr><th>#</th><th>Description</th><th>Asset Code</th><th>Qty Requested</th><th>Unit</th><th>Remarks</th></tr></thead>
+        <tbody>${items.map((it, i) => `<tr><td>${i+1}</td><td>${it.description}</td><td>${it.asset_code || '—'}</td><td>${it.quantity}</td><td>${it.unit || '—'}</td><td></td></tr>`).join('')}</tbody>
+      </table>
+      ${cif?.issue_notes ? `<p><strong>Issue Notes:</strong> ${cif.issue_notes}</p>` : ''}
+      ${cif?.gate_pass_number ? `<p><strong>Gate Pass No:</strong> ${cif.gate_pass_number} &nbsp; Security Cleared By: ${cif.security_cleared_by || '—'}</p>` : ''}
+      <div class="sig-block">
+        <div class="sig-box">
+          <div class="sig-title">Issuing Officer (Storekeeper)</div>
+          <div style="margin-top:8px;font-size:11px;">${cif?.issued_by_designation || ''}</div>
+          <div class="sig-name">${cif?.issued_by_name || '…………………………………'}</div>
+          <div style="font-size:9px;margin-top:2px;">Date: ${cif?.issued_at ? new Date(cif.issued_at).toLocaleDateString('en-KE') : '……………………'}</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-title">Receiving Officer</div>
+          <div style="margin-top:8px;font-size:11px;">${cif?.received_by_designation || ''}</div>
+          <div class="sig-name">${cif?.received_by_name || '…………………………………'}</div>
+          <div style="font-size:9px;margin-top:2px;">Date: ${cif?.received_at ? new Date(cif.received_at).toLocaleDateString('en-KE') : '……………………'}</div>
+        </div>
+      </div>
+      <script>window.print()</script></body></html>
+    `)
+    w.document.close()
+  }
+
+  const cifStatus = cif?.status || 'pending'
+
+  return (
+    <div className="bg-white border border-cyan-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-cyan-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CubeIcon className="h-4 w-4 text-cyan-600" />
+          <h3 className="font-semibold text-brand-slate text-sm">Counter Issue Form</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {cifStatus !== 'pending' && (
+            <button onClick={printForm}
+              className="text-xs px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+              🖨 Print
+            </button>
+          )}
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${
+            cifStatus === 'complete' ? 'bg-teal-100 text-teal-700' :
+            cifStatus === 'issued'   ? 'bg-blue-100 text-blue-700' :
+            'bg-gray-100 text-gray-600'
+          }`}>{cifStatus.replace(/_/g, ' ')}</span>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-3">
+        {/* Items summary */}
+        <div className="bg-gray-50 rounded-xl p-3">
+          <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Items</p>
+          {(req.items || []).map((it, i) => (
+            <div key={it.id} className="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0">
+              <span>{i+1}. {it.description}{it.asset_code ? ` (${it.asset_code})` : ''}</span>
+              <span className="font-medium ml-4">{it.quantity} {it.unit}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Issuer info */}
+        {cif?.issued_by_name && (
+          <div className="border-l-2 border-blue-400 pl-3">
+            <p className="text-[10px] font-semibold text-blue-700">Issued by</p>
+            <p className="text-xs font-medium">{cif.issued_by_name}</p>
+            <p className="text-[10px] text-gray-600">{cif.issued_by_designation} · {cif.issued_at ? new Date(cif.issued_at).toLocaleString('en-KE') : ''}</p>
+            {cif.gate_pass_number && <p className="text-[10px] text-gray-600">Gate pass: {cif.gate_pass_number}</p>}
+          </div>
+        )}
+
+        {/* Receiver info */}
+        {cif?.received_by_name && (
+          <div className="border-l-2 border-teal-400 pl-3">
+            <p className="text-[10px] font-semibold text-teal-700">Received by</p>
+            <p className="text-xs font-medium">{cif.received_by_name}</p>
+            <p className="text-[10px] text-gray-600">{cif.received_by_designation} · {cif.received_at ? new Date(cif.received_at).toLocaleString('en-KE') : ''}</p>
+          </div>
+        )}
+
+        {/* Storekeeper: issue action */}
+        {canIssue && cifStatus === 'pending' && req.status === 'approved' && (
+          mode === 'issue' ? (
+            <div className="space-y-2 pt-2">
+              {[
+                { label: 'Your Name *', key: 'issued_by_name', placeholder: 'Full name of issuing officer' },
+                { label: 'Designation', key: 'issued_by_designation', placeholder: 'e.g. Storekeeper' },
+                { label: 'Gate Pass No.', key: 'gate_pass_number', placeholder: 'Optional' },
+                { label: 'Security Cleared By', key: 'security_cleared_by', placeholder: 'Security officer name (optional)' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-[10px] font-medium text-gray-600 mb-0.5">{f.label}</label>
+                  <input value={issueForm[f.key]} onChange={e => setIssueForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                </div>
+              ))}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Issue Notes</label>
+                <textarea rows={2} value={issueForm.issue_notes}
+                  onChange={e => setIssueForm(p => ({ ...p, issue_notes: e.target.value }))}
+                  className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red resize-none" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => issueMut.mutate(issueForm)} disabled={issueMut.isPending || !issueForm.issued_by_name}
+                  className="flex-1 py-2 bg-cyan-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  {issueMut.isPending ? 'Issuing…' : 'Issue Items & Sign'}
+                </button>
+                <button onClick={() => setMode(null)} className="px-3 py-2 border border-gray-200 text-xs rounded-lg">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setMode('issue')}
+              className="w-full py-2 bg-cyan-600 text-white text-xs font-semibold rounded-lg hover:opacity-90">
+              Issue Items (Storekeeper Sign)
+            </button>
+          )
+        )}
+
+        {/* Receiver: confirm receipt */}
+        {isRequester && cifStatus === 'issued' && (
+          mode === 'receive' ? (
+            <div className="space-y-2 pt-2">
+              {[
+                { label: 'Your Name *', key: 'received_by_name', placeholder: 'Your full name' },
+                { label: 'Designation', key: 'received_by_designation', placeholder: 'e.g. Site Engineer' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-[10px] font-medium text-gray-600 mb-0.5">{f.label}</label>
+                  <input value={receiveForm[f.key]} onChange={e => setReceiveForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red" />
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <button onClick={() => receiveMut.mutate(receiveForm)} disabled={receiveMut.isPending || !receiveForm.received_by_name}
+                  className="flex-1 py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  {receiveMut.isPending ? 'Confirming…' : 'Confirm Receipt & Sign'}
+                </button>
+                <button onClick={() => setMode(null)} className="px-3 py-2 border border-gray-200 text-xs rounded-lg">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setMode('receive')}
+              className="w-full py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:opacity-90">
+              Confirm Receipt (My Signature)
+            </button>
+          )
+        )}
+
+        {cifStatus === 'complete' && (
+          <div className="bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs text-teal-700 font-medium text-center">
+            ✓ Counter Issue Form complete. Print for your records.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main detail page ──────────────────────────────────────────────────────────
 export default function RequisitionDetailPage() {
   const { id }   = useParams()
@@ -359,10 +575,12 @@ export default function RequisitionDetailPage() {
   const role     = user?.role || ''
 
   const canApprove         = ['managing_director', 'system_admin'].includes(role)
+  const isHR               = ['hr_manager', 'admin_officer', 'general_manager', 'system_admin'].includes(role)
   const canFulfill         = ['admin_officer', 'finance_officer', 'finance_manager', 'system_admin', 'managing_director', 'general_manager'].includes(role)
   const canConfirmPayment  = ['finance_officer', 'finance_manager', 'system_admin'].includes(role)
   const canFuelPayment     = ['finance_officer', 'finance_manager', 'system_admin'].includes(role)
   const canLogSchedule     = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
+  const canIssue           = ['storekeeper', 'admin_officer', 'system_admin', 'general_manager'].includes(role)
 
   const [comments, setComments]         = useState('')
   const [fulfillNotes, setFulfillNotes] = useState('')
@@ -471,7 +689,8 @@ export default function RequisitionDetailPage() {
               <Field label="Requested By" value={`${req.requested_by_name} (${req.requested_by_role?.replace(/_/g, ' ')})`} />
               <Field label="Date Required" value={req.date_required} />
               <Field label="Project" value={req.project_name} />
-              <Field label="Total Amount" value={`KES ${Number(req.total_amount).toLocaleString()}`} />
+              {req.source_store_name && <Field label="Store" value={req.source_store_name} />}
+              {req.total_amount > 0 && <Field label="Total Amount" value={`KES ${Number(req.total_amount).toLocaleString()}`} />}
               <Field label="Submitted" value={new Date(req.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })} />
             </dl>
             {req.description && (
@@ -536,6 +755,15 @@ export default function RequisitionDetailPage() {
               canRecord={canFuelPayment}
             />
           )}
+
+          {req.req_type === 'store_request' && (
+            <CounterIssuePanel
+              req={req}
+              cif={req.counter_issue}
+              canIssue={canIssue}
+              isRequester={req.requested_by === user?.id || canIssue}
+            />
+          )}
         </div>
 
         {/* Right: approval trail + actions */}
@@ -558,6 +786,30 @@ export default function RequisitionDetailPage() {
                     {a.comments && <p className="text-[10px] text-gray-600 mt-0.5 italic">"{a.comments}"</p>}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* HR action panel — for store_request / staff_movement at submitted stage */}
+          {isHR && !canApprove && pendingAction && req.status === 'submitted' && ['store_request', 'staff_movement'].includes(req.req_type) && (
+            <div className="bg-white border border-indigo-200 rounded-2xl shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-brand-slate mb-3">HR Review</h2>
+              <textarea rows={3} value={comments} onChange={e => setComments(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-400 resize-none mb-3"
+                placeholder="HR comments (optional)…" />
+              <div className="space-y-2">
+                <button onClick={() => approveMut.mutate({ action: 'approved', comments })} disabled={approveMut.isPending}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  <CheckCircleIcon className="h-3.5 w-3.5" /> HR Approve → Forward to MD
+                </button>
+                <button onClick={() => approveMut.mutate({ action: 'returned', comments })} disabled={approveMut.isPending}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  <ArrowPathIcon className="h-3.5 w-3.5" /> Return for Revision
+                </button>
+                <button onClick={() => approveMut.mutate({ action: 'rejected', comments })} disabled={approveMut.isPending}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                  <XCircleIcon className="h-3.5 w-3.5" /> Reject
+                </button>
               </div>
             </div>
           )}

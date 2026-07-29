@@ -6,6 +6,7 @@ from .views import (
     MaintenanceScheduleListCreateView, MaintenanceScheduleDetailView,
     MaintenanceScheduleApproveView, FuelPaymentView,
     RequisitionConfirmPaymentView,
+    CounterIssueFormView, CounterIssueIssueView, CounterIssueReceiveView,
 )
 
 urlpatterns = [
@@ -17,6 +18,11 @@ urlpatterns = [
     path('<uuid:pk>/fulfill/',                   RequisitionFulfillView.as_view(),           name='requisition-fulfill'),
     path('<uuid:pk>/confirm-payment/',           RequisitionConfirmPaymentView.as_view(),    name='requisition-confirm-payment'),
     path('<uuid:pk>/fuel-payment/',              FuelPaymentView.as_view(),                  name='fuel-payment'),
+
+    # Counter Issue Forms
+    path('<uuid:pk>/counter-issue/',         CounterIssueFormView.as_view(),    name='counter-issue-form'),
+    path('<uuid:pk>/counter-issue/issue/',   CounterIssueIssueView.as_view(),   name='counter-issue-issue'),
+    path('<uuid:pk>/counter-issue/receive/', CounterIssueReceiveView.as_view(), name='counter-issue-receive'),
 
     # Maintenance Schedules
     path('maintenance-schedules/',               MaintenanceScheduleListCreateView.as_view(), name='maintenance-schedule-list'),
