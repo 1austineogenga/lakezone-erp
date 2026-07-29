@@ -78,13 +78,13 @@ const NAV = (role, isAdmin) => [
   },
   { type: 'projects', key: 'projects', label: 'Projects', icon: FolderIcon, root: '/projects', module: 'projects' },
 
+  { type: 'link', to: '/requisitions', icon: DocumentTextIcon, label: 'Requisitions', module: null },
+
   {
     type: 'dropdown', key: 'procurement', label: 'Procurement', icon: ClipboardDocumentListIcon,
     root: '/procurement', module: 'procurement',
-    isActive: (p) => p.startsWith('/procurement') || p.startsWith('/requisitions'),
     links: [
       { to: '/procurement',      label: 'Purchase Orders', icon: ClipboardDocumentListIcon, end: true },
-      { to: '/requisitions',     label: 'Requisitions',    icon: DocumentTextIcon },
       { to: '/procurement/rfqs', label: 'RFQ / Bids',      icon: DocumentCheckIcon },
     ],
   },
