@@ -239,7 +239,7 @@ export default function NewRequisitionModal({ onClose }) {
   const clsXs = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-6 px-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-2 px-2 md:py-6 md:px-4">
       <div className="relative w-full max-w-5xl bg-gray-50 rounded-2xl shadow-2xl">
 
         {/* Modal header */}
@@ -256,14 +256,37 @@ export default function NewRequisitionModal({ onClose }) {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
       <form onSubmit={handleSubmit}>
 
-        {/* Two-column layout: type picker left, form right */}
+        {/* Mobile-only type dropdown */}
+        <div className="md:hidden mb-4">
+          <label className="block text-xs font-semibold text-brand-slate mb-1 uppercase tracking-wide">Requisition Type</label>
+          <select
+            value={form.req_type}
+            onChange={e => { setForm(f => ({ ...f, req_type: e.target.value })); setItems([{ ...emptyItem }]); setMovement({ ...emptyMovement }); setSr({ ...emptyStore }) }}
+            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-red/30">
+            {REQ_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          {form.req_type === 'repair_maintenance' && (
+            <p className="mt-2 text-xs text-purple-600 bg-purple-50 rounded-lg px-3 py-2">A maintenance schedule will be created once submitted.</p>
+          )}
+          {form.req_type === 'fuel' && (
+            <p className="mt-2 text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2">Finance will record the fuel payment once approved.</p>
+          )}
+          {isStoreReq && (
+            <p className="mt-2 text-xs text-teal-600 bg-teal-50 rounded-lg px-3 py-2">Goes directly to MD. Storekeeper issues via Counter Issue Form.</p>
+          )}
+          {isMovement && (
+            <p className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">HR reviews first, then MD gives final approval.</p>
+          )}
+        </div>
+
+        {/* Two-column layout: type picker left, form right (desktop only) */}
         <div className="flex gap-5 items-start">
 
-        {/* LEFT: type selector (fixed width) */}
-        <div className="w-56 shrink-0">
+        {/* LEFT: type selector (fixed width, desktop only) */}
+        <div className="hidden md:block w-56 shrink-0">
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 sticky top-[73px]">
           <h2 className="text-xs font-semibold text-brand-slate mb-2 uppercase tracking-wide">Type</h2>
           <div className="flex flex-col gap-1.5">
@@ -300,7 +323,8 @@ export default function NewRequisitionModal({ onClose }) {
             </p>
           )}
         </div>
-        </div>
+        </div>{/* end sticky card */}
+        </div>{/* end hidden md:block */}
 
         {/* RIGHT: form content */}
         <div className="flex-1 min-w-0 space-y-4">
