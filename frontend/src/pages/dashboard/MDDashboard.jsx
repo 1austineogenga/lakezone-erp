@@ -2,11 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getMDDashboard } from '../../api/auth'
 import { getPortfolioSummary } from '../../api/projects'
-import { getPipeline } from '../../api/crm'
 import {
   BanknotesIcon, FolderIcon, TruckIcon, UsersIcon,
-  ClipboardDocumentListIcon, CubeIcon,
-  UserGroupIcon, ChartBarIcon,
+  ClipboardDocumentListIcon, CubeIcon, ChartBarIcon,
   ArrowTrendingUpIcon, ArrowTrendingDownIcon,
   CheckCircleIcon, ExclamationTriangleIcon,
   MapPinIcon, ShieldCheckIcon, DocumentTextIcon,
@@ -80,23 +78,6 @@ function MetricRow({ label, value, sub, color = 'text-gray-800', onClick }) {
   )
 }
 
-function Ring({ pct = 0, color = '#22c55e', size = 56, stroke = 5 }) {
-  const r = (size - stroke) / 2
-  const circ = 2 * Math.PI * r
-  const dash = (pct / 100) * circ
-  return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90" style={{ display: 'block' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f3f4f6" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[11px] font-bold text-gray-700">{pct}%</span>
-      </div>
-    </div>
-  )
-}
 
 function PipelineBar({ stages = [] }) {
   const total = stages.reduce((s, x) => s + (x.value || 0), 0)
@@ -156,12 +137,6 @@ export default function MDDashboard() {
     select: r => r.data,
     refetchInterval: 60_000,
   })
-  const { data: crmPipeline } = useQuery({
-    queryKey: ['crm-pipeline'],
-    queryFn: getPipeline,
-    select: r => r.data,
-    refetchInterval: 60_000,
-  })
 
   if (isLoading) {
     return (
@@ -190,28 +165,26 @@ export default function MDDashboard() {
   return (
     <div className="space-y-8">
 
+      {/* ── Operational Pulse ────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={ChartBarIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="Operational Pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <KpiCard label="Fleet Online"   value={`${fleet.online||0}/${fleet.total||0}`}                        sub={`${fleetPct}% availability`}       subOk={fleetPct >= 60}       bg={fleetPct >= 60 ? 'bg-cyan-600' : 'bg-red-600'}      to="/fleet/vehicles"     icon={TruckIcon} />
+          <KpiCard label="Attendance"     value={`${hr.present_today||0}/${hr.total_employees||0}`}             sub={`${attendancePct}% present`}       subOk={attendancePct >= 80}  bg={attendancePct >= 80 ? 'bg-green-600' : 'bg-amber-500'} to="/hr/attendance"    icon={UsersIcon} />
+          <KpiCard label="Asset Health"   value={`${inventory.active_assets||0}/${inventory.total_assets||0}`} sub={`${assetPct}% operational`}        subOk={assetPct >= 80}       bg={assetPct >= 80 ? 'bg-orange-500' : 'bg-red-600'}    to="/assets"             icon={ShieldCheckIcon} />
+          <KpiCard label="Req Approval"   value={`${requisitions.approved||0}/${requisitions.total_mtd||0}`}   sub={`${reqApprovalPct}% approved MTD`} subOk={reqApprovalPct >= 50} bg="bg-violet-600"                                       to="/requisitions"       icon={DocumentTextIcon} />
+          <KpiCard label="AR Collection"  value={`${arPct}%`}                                                  sub="collected"                         subOk={arPct >= 70}          bg={arPct >= 70 ? 'bg-blue-600' : 'bg-red-600'}         to="/finance/invoices"   icon={BanknotesIcon} />
+        </div>
+      </div>
+
       {/* ── Finance ──────────────────────────────────────────────────────────── */}
       <div>
         <SectionHeading icon={BanknotesIcon} iconBg="bg-blue-100" iconColor="text-blue-600" title="Finance Overview" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-          <KpiCard label="Total Revenue (AR)"  value={fmtK(finance.ar_billed)}      sub={`${arPct}% collected`}                                                         subOk={arPct >= 70}              bg="bg-blue-600"    to="/finance/invoices"  icon={ArrowTrendingUpIcon} />
-          <KpiCard label="Cash Received"        value={fmtK(finance.ar_received)}    sub="from clients"                                                                   subOk={null}                     bg="bg-emerald-600" to="/finance/payments"  icon={CheckCircleIcon} />
-          <KpiCard label="AR Outstanding"       value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0} bg="bg-amber-500"   to="/finance/aged"     icon={ExclamationTriangleIcon} />
-          <KpiCard label="AP Outstanding"       value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0} bg="bg-rose-600"    to="/finance/bills"    icon={ArrowTrendingDownIcon} />
-        </div>
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-gray-600">AR Collection Rate</p>
-            <span className={`text-xs font-bold ${arPct >= 70 ? 'text-green-600' : 'text-amber-600'}`}>{arPct}%</span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
-            <div className={`${arPct >= 70 ? 'bg-green-500' : 'bg-amber-400'} h-2 rounded-full`} style={{ width: `${arPct}%` }} />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {finance.pending_expenses_count > 0 && <AlertPill count={finance.pending_expenses_count} label={`expense claims pending (${fmtK(finance.pending_expenses_value)})`} color="bg-amber-100 text-amber-800" onClick={() => navigate('/finance')} />}
-            {finance.ar_overdue > 0 && <AlertPill count={1} label={`AR overdue: ${fmtK(finance.ar_overdue)}`} color="bg-red-100 text-red-700"   onClick={() => navigate('/finance/aged')} />}
-            {finance.ap_overdue > 0 && <AlertPill count={1} label={`AP overdue: ${fmtK(finance.ap_overdue)}`} color="bg-rose-100 text-rose-700" onClick={() => navigate('/finance/bills')} />}
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Total Revenue (AR)"  value={fmtK(finance.ar_billed)}      sub={`${arPct}% collected`}                                                          subOk={arPct >= 70}              bg="bg-blue-600"    to="/finance/invoices" icon={ArrowTrendingUpIcon} />
+          <KpiCard label="Cash Received"        value={fmtK(finance.ar_received)}    sub="from clients"                                                                    subOk={null}                     bg="bg-emerald-600" to="/finance/payments" icon={CheckCircleIcon} />
+          <KpiCard label="AR Outstanding"       value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'}  subOk={finance.ar_overdue === 0} bg="bg-amber-500"   to="/finance/aged"    icon={ExclamationTriangleIcon} />
+          <KpiCard label="AP Outstanding"       value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0} bg="bg-rose-600"    to="/finance/bills"   icon={ArrowTrendingDownIcon} />
         </div>
       </div>
 
@@ -287,52 +260,6 @@ export default function MDDashboard() {
         </div>
       </div>
 
-      {/* ── Operational Pulse (rings) ─────────────────────────────────────────── */}
-      <div>
-        <SectionHeading icon={ChartBarIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="Operational Pulse" />
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[
-            { label: 'Fleet Online',  pct: fleetPct,       color: fleetPct >= 60 ? '#06b6d4' : '#ef4444',      val: `${fleet.online||0}/${fleet.total||0}`,                        sub: 'vehicles',      to: '/fleet/vehicles' },
-            { label: 'Attendance',    pct: attendancePct,  color: attendancePct >= 80 ? '#22c55e' : '#f59e0b',  val: `${hr.present_today||0}/${hr.total_employees||0}`,             sub: 'present today', to: '/hr/attendance' },
-            { label: 'Asset Health',  pct: assetPct,       color: assetPct >= 80 ? '#f97316' : '#ef4444',       val: `${inventory.active_assets||0}/${inventory.total_assets||0}`, sub: 'operational',   to: '/assets' },
-            { label: 'Req Approval',  pct: reqApprovalPct, color: '#8b5cf6',                                    val: `${requisitions.approved||0}/${requisitions.total_mtd||0}`,   sub: 'approved MTD',  to: '/requisitions' },
-            { label: 'AR Collection', pct: arPct,          color: arPct >= 70 ? '#3b82f6' : '#ef4444',          val: `${arPct}%`,                                                  sub: 'collected',     to: '/finance/invoices' },
-          ].map(m => (
-            <div key={m.label} onClick={() => navigate(m.to)}
-              className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col items-center gap-2 cursor-pointer hover:shadow-md transition-all">
-              <Ring pct={m.pct} color={m.color} size={56} stroke={5} />
-              <div className="text-center">
-                <p className="text-xs font-bold text-gray-700">{m.val}</p>
-                <p className="text-[10px] text-gray-400">{m.sub}</p>
-                <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{m.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── System Users ─────────────────────────────────────────────────────── */}
-      <div>
-        <SectionHeading icon={UserGroupIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="System Users" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-          <KpiCard label="Total Users" value={users.total || 0} sub="active accounts" subOk={null} bg="bg-slate-600" to="/users" icon={UserGroupIcon} />
-        </div>
-        {(users.by_role || []).length > 0 && (
-          <DetailCard title="Users by Role" linkTo="/users">
-            <div className="space-y-2">
-              {(users.by_role || []).map((r, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-32 truncate capitalize">{r.role?.replace(/_/g,' ')}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
-                    <div className="bg-slate-500 h-2 rounded-full" style={{ width: `${users.total > 0 ? (r.count/users.total)*100 : 0}%` }} />
-                  </div>
-                  <span className="text-xs font-bold text-gray-500 w-4 text-right">{r.count}</span>
-                </div>
-              ))}
-            </div>
-          </DetailCard>
-        )}
-      </div>
 
       {/* ── Project Health Scorecard ──────────────────────────────────────────── */}
       {portfolio && portfolio.project_cards?.length > 0 && (
@@ -389,39 +316,6 @@ export default function MDDashboard() {
               {portfolio.risks.high > 0 && <AlertPill count={portfolio.risks.high} label="high-impact risks" color="bg-red-100 text-red-700" onClick={() => navigate('/projects')} />}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── CRM Pipeline ─────────────────────────────────────────────────────── */}
-      {crmPipeline && (
-        <div>
-          <SectionHeading icon={UserGroupIcon} iconBg="bg-emerald-100" iconColor="text-emerald-600" title="CRM Pipeline" />
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-            <KpiCard label="Weighted Pipeline" value={fmtK(crmPipeline.weighted_pipeline_value)}                                                  subOk={null} bg="bg-emerald-600" to="/crm" icon={ArrowTrendingUpIcon} />
-            <KpiCard label="Win Rate"          value={crmPipeline.win_rate != null ? `${(crmPipeline.win_rate * 100).toFixed(1)}%` : '—'}         subOk={null} bg="bg-blue-600"   to="/crm" icon={ChartBarIcon} />
-            <KpiCard label="Won Value"         value={fmtK(crmPipeline.by_stage?.won?.total_estimated_value)} sub="closed deals"                  subOk={null} bg="bg-green-600"  to="/crm" icon={CheckCircleIcon} />
-          </div>
-          <DetailCard title="Pipeline by Stage" linkTo="/crm">
-            <div className="space-y-2">
-              {['prospect', 'qualified', 'bid_prep', 'submitted', 'won', 'lost'].map(stage => {
-                const s = crmPipeline.by_stage?.[stage] || { count: 0, total_estimated_value: 0 }
-                const COLORS = { prospect: 'bg-gray-400', qualified: 'bg-blue-500', bid_prep: 'bg-amber-500', submitted: 'bg-purple-500', won: 'bg-green-500', lost: 'bg-red-400' }
-                const LABELS = { prospect: 'Prospect', qualified: 'Qualified', bid_prep: 'Bid Prep', submitted: 'Submitted', won: 'Won', lost: 'Lost' }
-                const maxVal = Math.max(...['prospect','qualified','bid_prep','submitted','won','lost'].map(k => Number(crmPipeline.by_stage?.[k]?.total_estimated_value || 0)), 1)
-                const pct = (Number(s.total_estimated_value || 0) / maxVal) * 100
-                return (
-                  <div key={stage} className="flex items-center gap-3">
-                    <span className="text-[10px] text-gray-500 w-20 shrink-0">{LABELS[stage]}</span>
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full ${COLORS[stage]} rounded-full`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="text-[10px] text-gray-600 w-20 text-right shrink-0">{fmtK(s.total_estimated_value)}</span>
-                    <span className="text-[10px] text-gray-400 w-12 text-right shrink-0">{s.count} deal{s.count !== 1 ? 's' : ''}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </DetailCard>
         </div>
       )}
 
