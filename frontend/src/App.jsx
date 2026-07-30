@@ -68,7 +68,7 @@ export default function App() {
             <Route path="/assets/:id"            element={<PrivateRoute module="assets"><AssetDetailPage /></PrivateRoute>} />
             <Route path="/crm"                   element={<PrivateRoute module="crm"><CRMPage /></PrivateRoute>} />
             <Route path="/requisitions"             element={<RequisitionsPage />} />
-            <Route path="/requisitions/new"         element={<NewRequisitionPage />} />
+            <Route path="/requisitions/new"         element={<Navigate to="/requisitions" replace />} />
             <Route path="/requisitions/movements"   element={<TransfersPage />} />
             <Route path="/requisitions/:id"         element={<RequisitionDetailPage />} />
             <Route path="/finance/*"             element={<PrivateRoute module="finance"><FinancePage /></PrivateRoute>} />

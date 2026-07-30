@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import NewRequisitionModal from './NewRequisitionModal'
 import { toast } from 'react-toastify'
 import {
   PlusIcon, ClipboardDocumentListIcon, BeakerIcon,
@@ -379,6 +380,7 @@ export default function RequisitionsPage() {
   const [statusFilter, setStatus] = useState('')
   const [search, setSearch]     = useState('')
   const [page, setPage]         = useState(1)
+  const [showModal, setShowModal] = useState(false)
 
   const resetPage = () => setPage(1)
 
@@ -415,6 +417,7 @@ export default function RequisitionsPage() {
 
   return (
     <div className="space-y-5">
+      {showModal && <NewRequisitionModal onClose={() => setShowModal(false)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -422,7 +425,7 @@ export default function RequisitionsPage() {
           <h2 className="text-lg font-bold text-brand-slate">Requisitions</h2>
           <p className="text-xs text-gray-600 mt-0.5">Fuel · Materials · Repairs · General purchases</p>
         </div>
-        <button onClick={() => navigate('/requisitions/new')}
+        <button onClick={() => setShowModal(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
           <PlusIcon className="h-3.5 w-3.5" /> New Requisition
         </button>
@@ -533,7 +536,7 @@ export default function RequisitionsPage() {
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
           <ClipboardDocumentListIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-600">No requisitions found.</p>
-          <button onClick={() => navigate('/requisitions/new')}
+          <button onClick={() => setShowModal(true)}
             className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
             <PlusIcon className="h-3.5 w-3.5" /> Create one
           </button>
