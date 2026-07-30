@@ -19,7 +19,7 @@ HR_APPROVER_ROLES     = {'hr_manager', 'admin_officer', 'general_manager', 'syst
 STOREKEEPER_ROLES     = {'storekeeper', 'admin_officer', 'system_admin', 'general_manager'}
 
 # req types that require HR approval before MD
-HR_FIRST_TYPES = {StaffRequisition.ReqType.STORE_REQUEST, StaffRequisition.ReqType.STAFF_MOVEMENT}
+HR_FIRST_TYPES = {StaffRequisition.ReqType.STAFF_MOVEMENT}
 ALL_VIEWER_ROLES     = {
     'managing_director', 'general_manager', 'admin_officer',
     'finance_officer', 'finance_manager', 'system_admin', 'procurement_officer',
