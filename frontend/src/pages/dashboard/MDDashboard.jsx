@@ -165,18 +165,6 @@ export default function MDDashboard() {
   return (
     <div className="space-y-8">
 
-      {/* ── Operational Pulse ────────────────────────────────────────────────── */}
-      <div>
-        <SectionHeading icon={ChartBarIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="Operational Pulse" />
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <KpiCard label="Fleet Online"   value={`${fleet.online||0}/${fleet.total||0}`}                        sub={`${fleetPct}% availability`}       subOk={fleetPct >= 60}       bg={fleetPct >= 60 ? 'bg-cyan-600' : 'bg-red-600'}      to="/fleet/vehicles"     icon={TruckIcon} />
-          <KpiCard label="Attendance"     value={`${hr.present_today||0}/${hr.total_employees||0}`}             sub={`${attendancePct}% present`}       subOk={attendancePct >= 80}  bg={attendancePct >= 80 ? 'bg-green-600' : 'bg-amber-500'} to="/hr/attendance"    icon={UsersIcon} />
-          <KpiCard label="Asset Health"   value={`${inventory.active_assets||0}/${inventory.total_assets||0}`} sub={`${assetPct}% operational`}        subOk={assetPct >= 80}       bg={assetPct >= 80 ? 'bg-orange-500' : 'bg-red-600'}    to="/assets"             icon={ShieldCheckIcon} />
-          <KpiCard label="Req Approval"   value={`${requisitions.approved||0}/${requisitions.total_mtd||0}`}   sub={`${reqApprovalPct}% approved MTD`} subOk={reqApprovalPct >= 50} bg="bg-violet-600"                                       to="/requisitions"       icon={DocumentTextIcon} />
-          <KpiCard label="AR Collection"  value={`${arPct}%`}                                                  sub="collected"                         subOk={arPct >= 70}          bg={arPct >= 70 ? 'bg-blue-600' : 'bg-red-600'}         to="/finance/invoices"   icon={BanknotesIcon} />
-        </div>
-      </div>
-
       {/* ── Finance ──────────────────────────────────────────────────────────── */}
       <div>
         <SectionHeading icon={BanknotesIcon} iconBg="bg-blue-100" iconColor="text-blue-600" title="Finance Overview" />
