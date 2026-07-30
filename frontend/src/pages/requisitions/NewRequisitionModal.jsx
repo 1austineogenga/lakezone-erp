@@ -322,7 +322,6 @@ export default function NewRequisitionModal({ onClose }) {
               HR reviews first, then MD gives final approval.
             </p>
           )}
-        </div>
         </div>{/* end sticky card */}
         </div>{/* end hidden md:block */}
 
