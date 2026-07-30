@@ -370,10 +370,9 @@ export default function RequisitionsPage() {
   const isMD              = ['managing_director', 'system_admin'].includes(role)
   const isFinance         = ['finance_officer', 'finance_manager'].includes(role)
   const isHR              = ['hr_manager', 'admin_officer', 'general_manager', 'system_admin'].includes(role)
-  // Regular users only see their own; MD/admin/HR/finance/etc see all
+  // seeAll: roles that can view everyone's requisitions (finance gets this via the "All" tab)
   const seeAll            = ['managing_director', 'system_admin', 'admin_officer', 'general_manager',
-                              'hr_manager', 'finance_officer', 'finance_manager', 'procurement_officer',
-                              'site_manager'].includes(role)
+                              'hr_manager', 'procurement_officer', 'site_manager'].includes(role)
   const canApprove        = isMD || ['admin_officer', 'general_manager', 'hr_manager'].includes(role)
   const isStage1Approver  = role === 'admin_officer'
   const canSeeFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
@@ -388,13 +387,15 @@ export default function RequisitionsPage() {
 
   const resetPage = () => setPage(1)
 
+  // finance: 'all' tab = own reqs, 'finance_all' tab = all requisitions
+  const isFinanceAllTab = isFinance && tab === 'finance_all'
   const params = {}
-  if (tab !== 'all' && tab !== 'maintenance_schedule') params.req_type = tab
+  if (tab !== 'all' && tab !== 'maintenance_schedule' && tab !== 'finance_all') params.req_type = tab
   if (statusFilter) params.status = statusFilter
-  if (!seeAll) params.mine = 'true'   // regular users only see their own
+  if (!seeAll && !isFinanceAllTab) params.mine = 'true'  // own reqs unless privileged or finance viewing all
 
   const { data: reqs = [], isLoading: reqLoading } = useQuery({
-    queryKey: ['requisitions', tab, statusFilter, seeAll],
+    queryKey: ['requisitions', tab, statusFilter, seeAll, isFinanceAllTab],
     queryFn:  () => getRequisitions({ ...params, page_size: 200 }),
     select:   r => r.data?.results ?? r.data ?? [],
     enabled:  tab !== 'maintenance_schedule',
@@ -430,12 +431,10 @@ export default function RequisitionsPage() {
           <h2 className="text-lg font-bold text-brand-slate">Requisitions</h2>
           <p className="text-xs text-gray-600 mt-0.5">Fuel · Materials · Repairs · General purchases</p>
         </div>
-        {!isFinance && (
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
-            <PlusIcon className="h-3.5 w-3.5" /> New Requisition
-          </button>
-        )}
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
+          <PlusIcon className="h-3.5 w-3.5" /> New Requisition
+        </button>
       </div>
 
       {/* MD alert */}
@@ -471,26 +470,45 @@ export default function RequisitionsPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1">
-        {TABS.map(t => {
-          const Icon = t.icon
-          const badge = t.key === 'maintenance_schedule' ? pendingSchedCount
-                      : t.key === 'all' ? pendingCount : 0
-          return (
-            <button key={t.key} onClick={() => { setTab(t.key); setStatus(''); resetPage() }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border
-                ${tab === t.key
-                  ? 'bg-brand-red text-white border-brand-red'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
-              <Icon className="h-3.5 w-3.5" />
-              {t.label}
-              {badge > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${tab === t.key ? 'bg-white/30' : 'bg-red-100 text-red-700'}`}>
-                  {badge}
-                </span>
-              )}
-            </button>
-          )
-        })}
+        {/* Finance gets a special "My Requisitions" + "All Requisitions" tab pair */}
+        {isFinance ? (
+          <>
+            {[
+              { key: 'all',         label: 'My Requisitions',  Icon: ClipboardDocumentListIcon },
+              { key: 'finance_all', label: 'All Requisitions', Icon: ClipboardDocumentListIcon },
+            ].map(({ key, label, Icon }) => (
+              <button key={key} onClick={() => { setTab(key); setStatus(''); resetPage() }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border
+                  ${tab === key
+                    ? 'bg-brand-red text-white border-brand-red'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </>
+        ) : (
+          TABS.map(t => {
+            const Icon = t.icon
+            const badge = t.key === 'maintenance_schedule' ? pendingSchedCount
+                        : t.key === 'all' ? pendingCount : 0
+            return (
+              <button key={t.key} onClick={() => { setTab(t.key); setStatus(''); resetPage() }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border
+                  ${tab === t.key
+                    ? 'bg-brand-red text-white border-brand-red'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+                {badge > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${tab === t.key ? 'bg-white/30' : 'bg-red-100 text-red-700'}`}>
+                    {badge}
+                  </span>
+                )}
+              </button>
+            )
+          })
+        )}
       </div>
 
       {/* Status filters (not for schedule tab) */}
@@ -543,12 +561,10 @@ export default function RequisitionsPage() {
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
           <ClipboardDocumentListIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-600">No requisitions found.</p>
-          {!isFinance && (
-            <button onClick={() => setShowModal(true)}
-              className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
-              <PlusIcon className="h-3.5 w-3.5" /> Create one
-            </button>
-          )}
+          <button onClick={() => setShowModal(true)}
+            className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
+            <PlusIcon className="h-3.5 w-3.5" /> Create one
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
