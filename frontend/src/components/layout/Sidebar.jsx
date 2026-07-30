@@ -72,8 +72,6 @@ const NAV = (role, isAdmin) => [
       { tab: 'leave',         label: 'Leave',          icon: CalendarDaysIcon },
       { tab: 'advance',       label: 'Salary Advance', icon: CurrencyDollarIcon },
       { tab: 'payslips',      label: 'Payslips',       icon: DocumentTextIcon },
-      { tab: 'storerequests', label: 'Store Requests', icon: ArchiveBoxArrowDownIcon },
-      { tab: 'requisitions',  label: 'Requisitions',   icon: ClipboardDocumentListIcon },
     ],
   },
   { type: 'projects', key: 'projects', label: 'Projects', icon: FolderIcon, root: '/projects', module: 'projects' },

@@ -23,6 +23,7 @@ HR_FIRST_TYPES = {StaffRequisition.ReqType.STAFF_MOVEMENT}
 ALL_VIEWER_ROLES     = {
     'managing_director', 'general_manager', 'admin_officer',
     'finance_officer', 'finance_manager', 'system_admin', 'procurement_officer',
+    'hr_manager',
 }
 SITE_STAFF_ROLES     = {'site_engineer', 'site_foreman', 'site_surveyor'}
 FINANCE_ROLES        = {'finance_officer', 'finance_manager', 'system_admin', 'managing_director'}

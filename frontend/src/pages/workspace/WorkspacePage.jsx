@@ -77,8 +77,6 @@ const NAV = [
   { id: 'leave',         label: 'Leave',            Icon: CalendarDaysIcon },
   { id: 'advance',       label: 'Salary Advance',   Icon: CurrencyDollarIcon },
   { id: 'payslips',      label: 'Payslips',         Icon: DocumentTextIcon },
-  { id: 'storerequests', label: 'Store Requests',   Icon: ArchiveBoxArrowDownIcon },
-  { id: 'requisitions',  label: 'Requisitions',     Icon: ClipboardDocumentListIcon },
 ]
 
 // ── Print payslip ─────────────────────────────────────────────────────────────
@@ -263,7 +261,7 @@ function RequestItemsModal({ onClose }) {
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab, onRequestItems }) {
+function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab }) {
   const navigate = useNavigate()
 
   const pendingLeave    = leaves.filter(l => l.status === 'submitted').length
@@ -273,7 +271,6 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
   const quickActions = [
     { label: 'Apply for Leave',    icon: CalendarDaysIcon,         color: 'text-green-600 bg-green-50',   tab: 'leave' },
     { label: 'Request Advance',    icon: CurrencyDollarIcon,       color: 'text-blue-600 bg-blue-50',     tab: 'advance' },
-    { label: 'Request Items',      icon: ArchiveBoxArrowDownIcon,  color: 'text-orange-600 bg-orange-50', action: onRequestItems },
     { label: 'View Payslips',      icon: DocumentTextIcon,         color: 'text-purple-600 bg-purple-50', tab: 'payslips' },
   ]
 
@@ -1299,7 +1296,7 @@ export default function WorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab') || 'overview'
   const setTab = (id) => setSearchParams({ tab: id })
-  const [showRequestModal, setShowRequestModal] = useState(false)
+
 
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['me'],
@@ -1339,16 +1336,12 @@ export default function WorkspacePage() {
 
   return (
     <div className="space-y-5">
-      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} onRequestItems={() => setShowRequestModal(true)} />}
+      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} />}
       {tab === 'attendance'    && <AttendanceTab />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} employee={employee} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}
       {tab === 'advance'       && <AdvanceTab employeeId={employeeId} />}
       {tab === 'payslips'      && <PayslipsTab employeeId={employeeId} user={currentUser} />}
-      {tab === 'storerequests' && <MyStoreRequestsTab onNewRequest={() => setShowRequestModal(true)} />}
-      {tab === 'requisitions'  && <RequisitionsTab />}
-
-      {showRequestModal && <RequestItemsModal onClose={() => setShowRequestModal(false)} />}
     </div>
   )
 }

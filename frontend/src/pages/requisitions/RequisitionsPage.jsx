@@ -367,14 +367,18 @@ export default function RequisitionsPage() {
   const { user } = useAuthStore()
   const role = user?.role || ''
 
-  // MD/system_admin can approve everything; admin_officer can do stage-1 review of facility_manager reqs
-  const canApprove        = ['managing_director', 'system_admin', 'admin_officer', 'general_manager', 'hr_manager'].includes(role)
   const isMD              = ['managing_director', 'system_admin'].includes(role)
-  const isStage1Approver  = role === 'admin_officer'
+  const isFinance         = ['finance_officer', 'finance_manager'].includes(role)
   const isHR              = ['hr_manager', 'admin_officer', 'general_manager', 'system_admin'].includes(role)
+  // Regular users only see their own; MD/admin/HR/finance/etc see all
+  const seeAll            = ['managing_director', 'system_admin', 'admin_officer', 'general_manager',
+                              'hr_manager', 'finance_officer', 'finance_manager', 'procurement_officer',
+                              'site_manager'].includes(role)
+  const canApprove        = isMD || ['admin_officer', 'general_manager', 'hr_manager'].includes(role)
+  const isStage1Approver  = role === 'admin_officer'
   const canSeeFuelPayment = ['finance_officer', 'finance_manager', 'system_admin', 'managing_director'].includes(role)
   const canLogSchedule    = ['site_manager', 'admin_officer', 'system_admin', 'managing_director', 'general_manager'].includes(role)
-  const canApproveSchedule = ['managing_director', 'system_admin'].includes(role)
+  const canApproveSchedule = isMD
 
   const [tab, setTab]           = useState('all')
   const [statusFilter, setStatus] = useState('')
@@ -387,9 +391,10 @@ export default function RequisitionsPage() {
   const params = {}
   if (tab !== 'all' && tab !== 'maintenance_schedule') params.req_type = tab
   if (statusFilter) params.status = statusFilter
+  if (!seeAll) params.mine = 'true'   // regular users only see their own
 
   const { data: reqs = [], isLoading: reqLoading } = useQuery({
-    queryKey: ['requisitions', tab, statusFilter],
+    queryKey: ['requisitions', tab, statusFilter, seeAll],
     queryFn:  () => getRequisitions({ ...params, page_size: 200 }),
     select:   r => r.data?.results ?? r.data ?? [],
     enabled:  tab !== 'maintenance_schedule',
@@ -425,10 +430,12 @@ export default function RequisitionsPage() {
           <h2 className="text-lg font-bold text-brand-slate">Requisitions</h2>
           <p className="text-xs text-gray-600 mt-0.5">Fuel · Materials · Repairs · General purchases</p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
-          <PlusIcon className="h-3.5 w-3.5" /> New Requisition
-        </button>
+        {!isFinance && (
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-red text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity">
+            <PlusIcon className="h-3.5 w-3.5" /> New Requisition
+          </button>
+        )}
       </div>
 
       {/* MD alert */}
@@ -536,10 +543,12 @@ export default function RequisitionsPage() {
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-14 text-center">
           <ClipboardDocumentListIcon className="h-12 w-12 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-600">No requisitions found.</p>
-          <button onClick={() => setShowModal(true)}
-            className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
-            <PlusIcon className="h-3.5 w-3.5" /> Create one
-          </button>
+          {!isFinance && (
+            <button onClick={() => setShowModal(true)}
+              className="mt-3 text-xs text-brand-red font-semibold hover:underline flex items-center gap-1 mx-auto">
+              <PlusIcon className="h-3.5 w-3.5" /> Create one
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
