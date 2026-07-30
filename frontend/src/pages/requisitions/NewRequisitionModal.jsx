@@ -239,8 +239,8 @@ export default function NewRequisitionModal({ onClose }) {
   const clsXs = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand-red'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4">
-      <div className="relative w-full max-w-2xl bg-gray-50 rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-6 px-4">
+      <div className="relative w-full max-w-5xl bg-gray-50 rounded-2xl shadow-2xl">
 
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white rounded-t-2xl border-b border-gray-200 sticky top-0 z-10">
@@ -257,9 +257,57 @@ export default function NewRequisitionModal({ onClose }) {
         </div>
 
         <div className="p-6">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit}>
 
-        {/* Type selector */}
+        {/* Two-column layout: type picker left, form right */}
+        <div className="flex gap-5 items-start">
+
+        {/* LEFT: type selector (fixed width) */}
+        <div className="w-56 shrink-0">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 sticky top-[73px]">
+          <h2 className="text-xs font-semibold text-brand-slate mb-2 uppercase tracking-wide">Type</h2>
+          <div className="flex flex-col gap-1.5">
+            {REQ_TYPES.map(t => (
+              <button type="button" key={t.value}
+                onClick={() => { setForm(f => ({ ...f, req_type: t.value })); setItems([{ ...emptyItem }]); setMovement({ ...emptyMovement }); setSr({ ...emptyStore }) }}
+                className={`text-left px-3 py-2 rounded-xl border text-xs transition-colors
+                  ${form.req_type === t.value
+                    ? 'border-brand-red bg-red-50 text-brand-red'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                <p className="font-semibold">{t.label}</p>
+                <p className={`mt-0.5 text-[10px] leading-tight ${form.req_type === t.value ? 'text-red-400' : 'text-gray-500'}`}>{t.hint}</p>
+              </button>
+            ))}
+          </div>
+          {form.req_type === 'repair_maintenance' && (
+            <p className="mt-3 text-[10px] text-purple-600 bg-purple-50 rounded-lg px-2.5 py-2">
+              A maintenance schedule will be created by the site manager or admin once submitted.
+            </p>
+          )}
+          {form.req_type === 'fuel' && (
+            <p className="mt-3 text-[10px] text-orange-600 bg-orange-50 rounded-lg px-2.5 py-2">
+              Finance will record the fuel payment once approved.
+            </p>
+          )}
+          {isStoreReq && (
+            <p className="mt-3 text-[10px] text-teal-600 bg-teal-50 rounded-lg px-2.5 py-2">
+              Goes directly to MD. Storekeeper issues via Counter Issue Form.
+            </p>
+          )}
+          {isMovement && (
+            <p className="mt-3 text-[10px] text-blue-600 bg-blue-50 rounded-lg px-2.5 py-2">
+              HR reviews first, then MD gives final approval.
+            </p>
+          )}
+        </div>
+        </div>
+
+        {/* RIGHT: form content */}
+        <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Hidden — type selector already in left panel, keep old one removed */}
+        {/* Type selector — old block replaced by left panel above */}
+        <div className="hidden">
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <h2 className="text-sm font-semibold text-brand-slate mb-3">Requisition Type</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -296,6 +344,7 @@ export default function NewRequisitionModal({ onClose }) {
             </p>
           )}
         </div>
+        </div>{/* end hidden */}
 
         {/* ── STORE REQUEST ─────────────────────────────────────────────────── */}
         {isStoreReq && (
@@ -770,7 +819,10 @@ export default function NewRequisitionModal({ onClose }) {
           </>
         )}
 
-        <div className="flex justify-end gap-3">
+        </div>{/* end right column */}
+        </div>{/* end two-column flex */}
+
+        <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-200">
           <button type="button" onClick={onClose}
             className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50">
             Cancel
