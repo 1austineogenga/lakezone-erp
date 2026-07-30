@@ -54,6 +54,8 @@ class VehicleSerializer(serializers.ModelSerializer):
     current_assignment = serializers.SerializerMethodField()
     project_name = serializers.CharField(source='project.name', read_only=True, allow_null=True, default=None)
     last_fuel_liters = serializers.SerializerMethodField()
+    fuel_percent = serializers.SerializerMethodField()
+    fuel_stats = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -73,6 +75,70 @@ class VehicleSerializer(serializers.ModelSerializer):
         if capacity > 0:
             return round(fuel / 100.0 * capacity, 1)
         return None
+
+    def get_fuel_percent(self, obj):
+        """Return current fuel as a percentage of tank capacity (0-100)."""
+        liters = self.get_last_fuel_liters(obj)
+        if liters is None:
+            return None
+        capacity = float(obj.fuel_capacity) if obj.fuel_capacity else 0
+        if capacity > 0:
+            return round(min(liters / capacity * 100, 100), 1)
+        return None
+
+    def get_fuel_stats(self, obj):
+        """Return 24-hour fuel consumption stats computed from VehicleLiveData history."""
+        from django.utils import timezone
+        from datetime import timedelta
+        cutoff = timezone.now() - timedelta(hours=24)
+        snapshots = list(
+            obj.live_data.filter(fetched_at__gte=cutoff, fuel_level__isnull=False)
+            .order_by('fetched_at')
+            .values('fuel_level', 'fuel_unit', 'fetched_at')
+        )
+        capacity = float(obj.fuel_capacity) if obj.fuel_capacity else 0
+
+        def to_liters(level, unit):
+            if level is None:
+                return None
+            fval = float(level)
+            if unit == 'L':
+                return fval
+            if capacity > 0:
+                return round(fval / 100.0 * capacity, 1)
+            return None
+
+        if len(snapshots) < 2:
+            return {'consumed_24h': None, 'lph': None, 'refills_24h': 0}
+
+        consumed = 0.0
+        refills = 0
+        DRAIN_THRESHOLD = 1.0
+        FILL_THRESHOLD = 5.0
+        prev_l = to_liters(snapshots[0]['fuel_level'], snapshots[0]['fuel_unit'])
+        for snap in snapshots[1:]:
+            curr_l = to_liters(snap['fuel_level'], snap['fuel_unit'])
+            if prev_l is None or curr_l is None:
+                prev_l = curr_l
+                continue
+            delta = curr_l - prev_l
+            if delta <= -DRAIN_THRESHOLD:
+                consumed += abs(delta)
+            elif delta >= FILL_THRESHOLD:
+                refills += 1
+            prev_l = curr_l
+
+        # Time span in hours
+        first_ts = snapshots[0]['fetched_at']
+        last_ts = snapshots[-1]['fetched_at']
+        hours = max((last_ts - first_ts).total_seconds() / 3600, 0.1)
+        lph = round(consumed / hours, 2) if consumed > 0 else None
+
+        return {
+            'consumed_24h': round(consumed, 1),
+            'lph': lph,
+            'refills_24h': refills,
+        }
 
     def get_last_seen_minutes_ago(self, obj):
         if obj.last_seen:

@@ -534,26 +534,62 @@ export default function VehicleDetailPage() {
 
       {/* Live stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Speed',      val: vehicle.last_speed != null ? `${fmt(vehicle.last_speed)} km/h` : '—', icon: BoltIcon,     color: 'text-blue-600' },
-          { label: 'Fuel Level', val: fuelLiters != null ? `${fuelDisplay(fuelLiters)} L` : '—', icon: BeakerIcon, color: 'text-green-600' },
-          { label: 'Odometer',   val: odomKm != null ? `${odomKm} km` : '—',                              icon: MapPinIcon,   color: 'text-brand-slate' },
-          {
-            label: 'Last Seen',
-            val: vehicle.last_seen_minutes_ago != null
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <BoltIcon className="h-5 w-5 text-blue-600 mb-1" />
+          <p className="text-xl font-bold text-blue-600">{vehicle.last_speed != null ? `${fmt(vehicle.last_speed)} km/h` : '—'}</p>
+          <p className="text-xs text-gray-600 mt-0.5">Speed</p>
+        </div>
+
+        {/* Fuel gauge card */}
+        {(() => {
+          const pct = vehicle.fuel_percent
+          const cap = parseFloat(vehicle.fuel_capacity) || 0
+          const stats = vehicle.fuel_stats || {}
+          const barPct = pct != null ? Math.min(pct, 100) : 0
+          const barColor = barPct > 40 ? 'bg-green-500' : barPct > 15 ? 'bg-amber-400' : 'bg-red-500'
+          return (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 col-span-2 md:col-span-1">
+              <div className="flex items-center justify-between mb-1">
+                <BeakerIcon className="h-5 w-5 text-green-600" />
+                {pct != null && <span className="text-xs font-semibold text-gray-500">{pct.toFixed(0)}%</span>}
+              </div>
+              <p className="text-xl font-bold text-green-600">
+                {fuelLiters != null ? `${fuelDisplay(fuelLiters)} L` : '—'}
+                {cap > 0 && <span className="text-xs font-normal text-gray-400 ml-1">/ {cap.toFixed(0)} L</span>}
+              </p>
+              {pct != null && (
+                <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${barPct}%` }} />
+                </div>
+              )}
+              <p className="text-xs text-gray-600 mt-1">Fuel Level</p>
+              {(stats.consumed_24h != null || stats.refills_24h > 0) && (
+                <div className="mt-2 pt-2 border-t border-gray-100 flex gap-3 text-xs text-gray-500">
+                  {stats.consumed_24h != null && <span>{stats.consumed_24h} L used (24h)</span>}
+                  {stats.lph != null && <span>{stats.lph} L/hr</span>}
+                  {stats.refills_24h > 0 && <span>{stats.refills_24h} refill{stats.refills_24h > 1 ? 's' : ''}</span>}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <MapPinIcon className="h-5 w-5 text-brand-slate mb-1" />
+          <p className="text-xl font-bold text-brand-slate">{odomKm != null ? `${odomKm} km` : '—'}</p>
+          <p className="text-xs text-gray-600 mt-0.5">Odometer</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <ArrowPathIcon className="h-5 w-5 text-gray-500 mb-1" />
+          <p className="text-xl font-bold text-gray-500">
+            {vehicle.last_seen_minutes_ago != null
               ? vehicle.last_seen_minutes_ago < 2 ? 'Just now'
               : vehicle.last_seen_minutes_ago < 60 ? `${Math.round(vehicle.last_seen_minutes_ago)}m ago`
               : `${Math.round(vehicle.last_seen_minutes_ago / 60)}h ago`
-              : '—',
-            icon: ArrowPathIcon, color: 'text-gray-500',
-          },
-        ].map(s => (
-          <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
-            <s.icon className={`h-5 w-5 ${s.color} mb-1`} />
-            <p className={`text-xl font-bold ${s.color}`}>{s.val}</p>
-            <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
-          </div>
-        ))}
+              : '—'}
+          </p>
+          <p className="text-xs text-gray-600 mt-0.5">Last Seen</p>
+        </div>
       </div>
 
       {/* Fuel trend chart */}
