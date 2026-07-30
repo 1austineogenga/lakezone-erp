@@ -167,7 +167,8 @@ export default function NewRequisitionModal({ onClose }) {
   }
 
   const selectedStoreItem = storeItems.find(i => String(i.id) === String(sr.item))
-  const selectedAsset     = assetList.find(a => String(a.id) === String(sr.item))
+  // Unique asset names for the picker
+  const uniqueAssetNames  = [...new Set(assetList.map(a => a.name))].sort()
 
   // ── Submit ────────────────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
@@ -215,7 +216,7 @@ export default function NewRequisitionModal({ onClose }) {
       if (!sr.justification.trim()) return toast.error('Justification is required.')
 
       const storeName = isAsset ? 'Assets Register' : (stores.find(s => String(s.id) === String(sr.store))?.name || 'Store')
-      const itemName  = isAsset ? (selectedAsset?.name || 'Asset') : (selectedStoreItem?.name || 'Item')
+      const itemName  = isAsset ? sr.item : (selectedStoreItem?.name || 'Item')
       mutate({
         title: `Store Request — ${itemName} from ${storeName}`,
         req_type: 'store_request',
@@ -229,7 +230,6 @@ export default function NewRequisitionModal({ onClose }) {
           unit: isAsset ? 'unit' : (selectedStoreItem?.unit || 'pcs'),
           unit_price: 0,
           stock_item: isAsset ? undefined : sr.item,
-          asset_code: isAsset ? selectedAsset?.asset_code : undefined,
           notes: sr.justification,
         }],
       })
@@ -438,29 +438,32 @@ export default function NewRequisitionModal({ onClose }) {
               </div>
             )}
 
-            {/* Asset picker */}
+            {/* Asset picker — by name only; department issues the specific unit */}
             {sr.item_category === 'asset' && (
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Asset <span className="text-red-500">*</span></label>
                 {fetchingAssets ? (
                   <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
-                ) : assetList.length === 0 ? (
+                ) : uniqueAssetNames.length === 0 ? (
                   <p className="text-xs text-gray-500 italic">No assets found.</p>
                 ) : (
-                  <select className={clsXs} value={sr.item}
-                    onChange={e => setSr(p => ({ ...p, item: e.target.value }))}>
-                    <option value="">— Select an asset —</option>
-                    {assetList.map(a => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.asset_code}) — {a.status}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {selectedAsset && (
-                  <p className={`text-xs mt-1 ${selectedAsset.status === 'operational' ? 'text-green-700' : 'text-amber-600'}`}>
-                    Status: <strong>{selectedAsset.status}</strong>
-                  </p>
+                  <>
+                    <select className={clsXs} value={sr.item}
+                      onChange={e => setSr(p => ({ ...p, item: e.target.value }))}>
+                      <option value="">— Select an asset type —</option>
+                      {uniqueAssetNames.map(name => {
+                        const count = assetList.filter(a => a.name === name).length
+                        return (
+                          <option key={name} value={name}>
+                            {name} ({count} unit{count !== 1 ? 's' : ''})
+                          </option>
+                        )
+                      })}
+                    </select>
+                    {sr.item && (
+                      <p className="text-xs mt-1 text-gray-500">The responsible department will assign a specific unit upon approval.</p>
+                    )}
+                  </>
                 )}
               </div>
             )}
