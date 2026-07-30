@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { PlusIcon, TrashIcon, XMarkIcon, TruckIcon, HomeIcon, BanknotesIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { createRequisition } from '../../api/requisitions'
 import { getProjects } from '../../api/projects'
-import { getStores, getStoreItems } from '../../api/inventory'
+import { getStores, getStoreItems, getAssets } from '../../api/inventory'
 import { getEmployees } from '../../api/hr'
 import api from '../../api/client'
 
@@ -58,7 +58,7 @@ function computeAllowances(m) {
 }
 
 // ── Store request state ───────────────────────────────────────────────────────
-const emptyStore = { store: '', item: '', quantity: '', justification: '', date_required: '' }
+const emptyStore = { store: '', item_category: 'inventory', item: '', quantity: '', justification: '', date_required: '' }
 
 export default function NewRequisitionModal({ onClose }) {
   const qc = useQueryClient()
@@ -111,7 +111,13 @@ export default function NewRequisitionModal({ onClose }) {
     queryKey: ['store-items', sr.store],
     queryFn:  () => getStoreItems(sr.store),
     select:   r => r.data?.results ?? r.data ?? [],
-    enabled:  isStoreReq && !!sr.store,
+    enabled:  isStoreReq && !!sr.store && sr.item_category === 'inventory',
+  })
+  const { data: assetList = [], isFetching: fetchingAssets } = useQuery({
+    queryKey: ['assets-simple'],
+    queryFn:  () => getAssets({ page_size: 500 }),
+    select:   r => r.data?.results ?? r.data ?? [],
+    enabled:  isStoreReq && sr.item_category === 'asset',
   })
 
   // ── Mutation ──────────────────────────────────────────────────────────────────
@@ -161,6 +167,7 @@ export default function NewRequisitionModal({ onClose }) {
   }
 
   const selectedStoreItem = storeItems.find(i => String(i.id) === String(sr.item))
+  const selectedAsset     = assetList.find(a => String(a.id) === String(sr.item))
 
   // ── Submit ────────────────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
@@ -201,26 +208,28 @@ export default function NewRequisitionModal({ onClose }) {
     }
 
     if (isStoreReq) {
-      if (!sr.store) return toast.error('Select a store.')
+      const isAsset = sr.item_category === 'asset'
+      if (!isAsset && !sr.store) return toast.error('Select a store.')
       if (!sr.item) return toast.error('Select an item.')
       if (!sr.quantity) return toast.error('Quantity is required.')
       if (!sr.justification.trim()) return toast.error('Justification is required.')
 
-      const storeName = stores.find(s => String(s.id) === String(sr.store))?.name || 'Store'
-      const itemName  = selectedStoreItem?.name || 'Item'
+      const storeName = isAsset ? 'Assets Register' : (stores.find(s => String(s.id) === String(sr.store))?.name || 'Store')
+      const itemName  = isAsset ? (selectedAsset?.name || 'Asset') : (selectedStoreItem?.name || 'Item')
       mutate({
         title: `Store Request — ${itemName} from ${storeName}`,
         req_type: 'store_request',
         priority: form.priority,
-        source_store: sr.store,
+        source_store: isAsset ? undefined : sr.store,
         date_required: sr.date_required || undefined,
         description: sr.justification,
         items: [{
           description: itemName,
           quantity: Number(sr.quantity),
-          unit: selectedStoreItem?.unit || 'pcs',
+          unit: isAsset ? 'unit' : (selectedStoreItem?.unit || 'pcs'),
           unit_price: 0,
-          stock_item: sr.item,
+          stock_item: isAsset ? undefined : sr.item,
+          asset_code: isAsset ? selectedAsset?.asset_code : undefined,
           notes: sr.justification,
         }],
       })
@@ -374,16 +383,34 @@ export default function NewRequisitionModal({ onClose }) {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
             <h2 className="text-sm font-semibold text-brand-slate">Request Items from Store</h2>
 
+            {/* Category toggle: Inventory | Assets */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Store <span className="text-red-500">*</span></label>
-              <select className={clsXs} value={sr.store}
-                onChange={e => { setSr(p => ({ ...p, store: e.target.value, item: '' })) }}>
-                <option value="">— Select a store —</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Item Category <span className="text-red-500">*</span></label>
+              <div className="inline-flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium">
+                {[{ v: 'inventory', label: 'Inventory Items' }, { v: 'asset', label: 'Assets' }].map(opt => (
+                  <button key={opt.v} type="button"
+                    onClick={() => setSr(p => ({ ...p, item_category: opt.v, store: opt.v === 'asset' ? '' : p.store, item: '' }))}
+                    className={`px-4 py-2 transition-colors ${sr.item_category === opt.v ? 'bg-brand-red text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {sr.store && (
+            {/* Store picker — only for inventory */}
+            {sr.item_category === 'inventory' && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Store <span className="text-red-500">*</span></label>
+                <select className={clsXs} value={sr.store}
+                  onChange={e => { setSr(p => ({ ...p, store: e.target.value, item: '' })) }}>
+                  <option value="">— Select a store —</option>
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Inventory item picker */}
+            {sr.item_category === 'inventory' && sr.store && (
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Item <span className="text-red-500">*</span></label>
                 {fetchingItems ? (
@@ -407,6 +434,33 @@ export default function NewRequisitionModal({ onClose }) {
                       </p>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* Asset picker */}
+            {sr.item_category === 'asset' && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Asset <span className="text-red-500">*</span></label>
+                {fetchingAssets ? (
+                  <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
+                ) : assetList.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">No assets found.</p>
+                ) : (
+                  <select className={clsXs} value={sr.item}
+                    onChange={e => setSr(p => ({ ...p, item: e.target.value }))}>
+                    <option value="">— Select an asset —</option>
+                    {assetList.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.asset_code}) — {a.status}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {selectedAsset && (
+                  <p className={`text-xs mt-1 ${selectedAsset.status === 'operational' ? 'text-green-700' : 'text-amber-600'}`}>
+                    Status: <strong>{selectedAsset.status}</strong>
+                  </p>
                 )}
               </div>
             )}
