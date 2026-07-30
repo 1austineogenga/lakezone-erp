@@ -6,10 +6,10 @@ import { getPipeline } from '../../api/crm'
 import {
   BanknotesIcon, FolderIcon, TruckIcon, UsersIcon,
   ClipboardDocumentListIcon, CubeIcon,
-  DocumentTextIcon, UserGroupIcon,
-  ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon,
-  CheckCircleIcon, ExclamationTriangleIcon, LockClosedIcon,
-  MapPinIcon, WrenchScrewdriverIcon, ShieldCheckIcon,
+  UserGroupIcon, ChartBarIcon,
+  ArrowTrendingUpIcon, ArrowTrendingDownIcon,
+  CheckCircleIcon, ExclamationTriangleIcon,
+  MapPinIcon, ShieldCheckIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 
 const fmtK = (n) => {
@@ -18,60 +18,48 @@ const fmtK = (n) => {
   if (v >= 1_000) return `KES ${(v / 1_000).toFixed(0)}K`
   return `KES ${v.toLocaleString()}`
 }
-const fmt = (n) => `KES ${Number(n || 0).toLocaleString()}`
 
-// ── Shared StatCard (matches module-level financial overview style) ───────────
-function StatCard({ label, value, sub, subColor = 'text-gray-400', icon: Icon, iconBg, iconColor, onClick, alert }) {
+// ── Solid-color KPI card (same style as original Finance Overview) ────────────
+function KpiCard({ label, value, sub, subOk, bg, to, icon: Icon }) {
+  const navigate = useNavigate()
   return (
     <div
-      onClick={onClick}
-      className={`bg-white rounded-xl border border-gray-200 p-5 ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-300 transition-all' : ''}`}
+      onClick={to ? () => navigate(to) : undefined}
+      className={`relative overflow-hidden ${bg} rounded-xl p-4 shadow-md ${to ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all' : ''}`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-        {Icon && (
-          <div className={`p-2 rounded-lg ${iconBg || 'bg-gray-100'}`}>
-            <Icon className={`h-4 w-4 ${iconColor || 'text-gray-500'}`} />
-          </div>
-        )}
-      </div>
-      <p className="text-xl font-bold text-brand-slate">{value}</p>
-      {sub && <p className={`text-xs mt-1 ${subColor}`}>{sub}</p>}
-      {alert && (
-        <p className="text-[10px] mt-2 text-red-600 font-medium">{alert}</p>
+      {Icon && <Icon className="absolute top-3 right-3 h-5 w-5 text-white/20" />}
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/70 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      {sub && (
+        <p className={`text-xs mt-0.5 font-medium ${
+          subOk == null ? 'text-white/60' : subOk ? 'text-white/80' : 'text-yellow-200'
+        }`}>{sub}</p>
       )}
     </div>
   )
 }
 
-// ── Section heading (matches module overview style) ───────────────────────────
+// ── Section heading ───────────────────────────────────────────────────────────
 function SectionHeading({ icon: Icon, iconBg, iconColor, title }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <div className={`p-1.5 rounded-lg ${iconBg}`}>
         <Icon className={`h-4 w-4 ${iconColor}`} />
       </div>
-      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</h2>
+      <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">{title}</h2>
     </div>
   )
 }
 
-// ── Section card (white, border, header bar) ──────────────────────────────────
-function SectionCard({ icon: Icon, iconBg, iconColor, title, linkTo, children }) {
+// ── Detail card (white, for tables / lists / pipeline charts) ─────────────────
+function DetailCard({ title, linkTo, children }) {
   const navigate = useNavigate()
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${iconBg}`}>
-            <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
-          </div>
-          <h3 className="text-xs font-semibold text-brand-slate uppercase tracking-wide">{title}</h3>
-        </div>
+        <h3 className="font-semibold text-brand-slate text-sm">{title}</h3>
         {linkTo && (
-          <button onClick={() => navigate(linkTo)} className="text-xs text-brand-red hover:underline font-medium">
-            View all →
-          </button>
+          <button onClick={() => navigate(linkTo)} className="text-xs text-brand-red hover:underline">View all →</button>
         )}
       </div>
       <div className="px-5 py-4">{children}</div>
@@ -153,16 +141,9 @@ function IndexBadge({ value }) {
   return <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${color}`}>{value.toFixed(2)}</span>
 }
 
-const STATUS_COLORS = {
-  draft: 'bg-gray-100 text-gray-600', sent: 'bg-blue-100 text-blue-700',
-  certified: 'bg-indigo-100 text-indigo-700', partial: 'bg-yellow-100 text-yellow-700',
-  paid: 'bg-green-100 text-green-700', overdue: 'bg-red-100 text-red-700',
-  disputed: 'bg-orange-100 text-orange-700', cancelled: 'bg-gray-100 text-gray-400',
-  pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700',
-}
-
 export default function MDDashboard() {
   const navigate = useNavigate()
+
   const { data, isLoading } = useQuery({
     queryKey: ['md-dashboard'],
     queryFn: getMDDashboard,
@@ -185,12 +166,14 @@ export default function MDDashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 bg-gray-100 rounded-xl" />)}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-64 bg-gray-100 rounded-xl" />)}
-        </div>
+        {[0,1,2,3].map(i => (
+          <div key={i}>
+            <div className="h-4 bg-gray-100 rounded w-40 mb-3" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[0,1,2,3].map(j => <div key={j} className="h-24 bg-gray-100 rounded-xl" />)}
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -198,80 +181,128 @@ export default function MDDashboard() {
   if (!data) return null
 
   const { finance = {}, projects = {}, fleet = {}, hr = {}, procurement = {}, requisitions = {}, inventory = {}, users = {} } = data
+  const arPct          = finance.collection_rate || 0
   const fleetPct       = fleet.total > 0 ? Math.round((fleet.online / fleet.total) * 100) : 0
   const attendancePct  = hr.total_employees > 0 ? Math.round(((hr.present_today || 0) / hr.total_employees) * 100) : 0
-  const arPct          = finance.collection_rate || 0
   const assetPct       = inventory.total_assets > 0 ? Math.round(((inventory.active_assets || 0) / inventory.total_assets) * 100) : 0
   const reqApprovalPct = requisitions.total_mtd > 0 ? Math.round(((requisitions.approved || 0) / requisitions.total_mtd) * 100) : 0
 
   return (
     <div className="space-y-8">
 
-      {/* ── Finance Overview ─────────────────────────────────────────────────── */}
+      {/* ── Finance ──────────────────────────────────────────────────────────── */}
       <div>
         <SectionHeading icon={BanknotesIcon} iconBg="bg-blue-100" iconColor="text-blue-600" title="Finance Overview" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <StatCard
-            label="Total Revenue (AR)" value={fmtK(finance.ar_billed)}
-            icon={ArrowTrendingUpIcon} iconBg="bg-blue-50" iconColor="text-blue-500"
-            sub={`${arPct}% collected`} subColor={arPct >= 70 ? 'text-green-600' : 'text-amber-600'}
-            onClick={() => navigate('/finance/invoices')}
-          />
-          <StatCard
-            label="Cash Received" value={fmtK(finance.ar_received)}
-            icon={CheckCircleIcon} iconBg="bg-green-50" iconColor="text-green-500"
-            sub="from clients" subColor="text-green-600"
-            onClick={() => navigate('/finance/payments')}
-          />
-          <StatCard
-            label="AR Outstanding" value={fmtK(finance.ar_outstanding)}
-            icon={ArrowTrendingUpIcon} iconBg="bg-amber-50" iconColor="text-amber-500"
-            sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'}
-            subColor={finance.ar_overdue > 0 ? 'text-red-500' : 'text-green-600'}
-            onClick={() => navigate('/finance/aged')}
-          />
-          <StatCard
-            label="AP Outstanding" value={fmtK(finance.ap_outstanding)}
-            icon={ArrowTrendingDownIcon} iconBg="bg-rose-50" iconColor="text-rose-500"
-            sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'}
-            subColor={finance.ap_overdue > 0 ? 'text-red-500' : 'text-green-600'}
-            onClick={() => navigate('/finance/bills')}
-          />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          <KpiCard label="Total Revenue (AR)"  value={fmtK(finance.ar_billed)}      sub={`${arPct}% collected`}                                                         subOk={arPct >= 70}              bg="bg-blue-600"    to="/finance/invoices"  icon={ArrowTrendingUpIcon} />
+          <KpiCard label="Cash Received"        value={fmtK(finance.ar_received)}    sub="from clients"                                                                   subOk={null}                     bg="bg-emerald-600" to="/finance/payments"  icon={CheckCircleIcon} />
+          <KpiCard label="AR Outstanding"       value={fmtK(finance.ar_outstanding)} sub={finance.ar_overdue > 0 ? `${fmtK(finance.ar_overdue)} overdue` : 'No overdue'} subOk={finance.ar_overdue === 0} bg="bg-amber-500"   to="/finance/aged"     icon={ExclamationTriangleIcon} />
+          <KpiCard label="AP Outstanding"       value={fmtK(finance.ap_outstanding)} sub={finance.ap_overdue > 0 ? `${fmtK(finance.ap_overdue)} overdue` : 'All current'} subOk={finance.ap_overdue === 0} bg="bg-rose-600"    to="/finance/bills"    icon={ArrowTrendingDownIcon} />
         </div>
-
-        {/* AR progress bar + alerts */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium text-gray-600">AR Collection Rate</p>
             <span className={`text-xs font-bold ${arPct >= 70 ? 'text-green-600' : 'text-amber-600'}`}>{arPct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
-            <div className={`${arPct >= 70 ? 'bg-green-500' : 'bg-amber-400'} h-2 rounded-full transition-all`} style={{ width: `${arPct}%` }} />
+            <div className={`${arPct >= 70 ? 'bg-green-500' : 'bg-amber-400'} h-2 rounded-full`} style={{ width: `${arPct}%` }} />
           </div>
           <div className="flex gap-2 flex-wrap">
             {finance.pending_expenses_count > 0 && <AlertPill count={finance.pending_expenses_count} label={`expense claims pending (${fmtK(finance.pending_expenses_value)})`} color="bg-amber-100 text-amber-800" onClick={() => navigate('/finance')} />}
-            {finance.ar_overdue > 0 && <AlertPill count={1} label={`AR overdue: ${fmtK(finance.ar_overdue)}`}  color="bg-red-100 text-red-700"   onClick={() => navigate('/finance/aged')} />}
-            {finance.ap_overdue > 0 && <AlertPill count={1} label={`AP overdue: ${fmtK(finance.ap_overdue)}`}  color="bg-rose-100 text-rose-700" onClick={() => navigate('/finance/bills')} />}
+            {finance.ar_overdue > 0 && <AlertPill count={1} label={`AR overdue: ${fmtK(finance.ar_overdue)}`} color="bg-red-100 text-red-700"   onClick={() => navigate('/finance/aged')} />}
+            {finance.ap_overdue > 0 && <AlertPill count={1} label={`AP overdue: ${fmtK(finance.ap_overdue)}`} color="bg-rose-100 text-rose-700" onClick={() => navigate('/finance/bills')} />}
           </div>
         </div>
       </div>
 
-      {/* ── Operational Pulse ────────────────────────────────────────────────── */}
+      {/* ── Projects ─────────────────────────────────────────────────────────── */}
       <div>
-        <SectionHeading icon={ChartBarIcon} iconBg="bg-violet-100" iconColor="text-violet-600" title="Operational Pulse" />
+        <SectionHeading icon={FolderIcon} iconBg="bg-violet-100" iconColor="text-violet-600" title="Projects" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          <KpiCard label="Active Projects"   value={projects.active    || 0} sub={`${(projects.active||0) + (projects.on_hold||0) + (projects.completed||0)} total`} subOk={null} bg="bg-violet-600" to="/projects?status=active" icon={FolderIcon} />
+          <KpiCard label="On Hold"           value={projects.on_hold   || 0} sub="paused"                                                                             subOk={null} bg="bg-amber-500"  to="/projects?status=on_hold" icon={ExclamationTriangleIcon} />
+          <KpiCard label="Completed"         value={projects.completed || 0} sub="finished"                                                                           subOk={null} bg="bg-green-600"  to="/projects?status=completed" icon={CheckCircleIcon} />
+          <KpiCard label="Portfolio Value"   value={fmtK(portfolio?.totals?.total_contract_value)} sub="total contract"                                               subOk={null} bg="bg-indigo-600" to="/projects" icon={ChartBarIcon} />
+        </div>
+        {projects.recent?.length > 0 && (
+          <DetailCard title="Recent Projects" linkTo="/projects">
+            {projects.recent.slice(0, 4).map(p => (
+              <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
+                className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 -mx-5 px-5">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status==='active'?'bg-green-500':p.status==='completed'?'bg-violet-500':'bg-amber-500'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
+                  <p className="text-[10px] text-gray-400">{p.client_name || '—'}</p>
+                </div>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${p.status==='active'?'bg-green-100 text-green-700':p.status==='completed'?'bg-violet-100 text-violet-700':'bg-amber-100 text-amber-700'}`}>
+                  {p.status?.replace('_',' ')}
+                </span>
+              </div>
+            ))}
+          </DetailCard>
+        )}
+      </div>
+
+      {/* ── Fleet ────────────────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={TruckIcon} iconBg="bg-cyan-100" iconColor="text-cyan-600" title="Fleet" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Fleet Online"   value={`${fleet.online||0}/${fleet.total||0}`} sub={`${fleetPct}% availability`}      subOk={fleetPct >= 60}  bg="bg-cyan-600"   to="/fleet/vehicles" icon={TruckIcon} />
+          <KpiCard label="Moving Now"     value={fleet.moving  || 0}                      sub="live GPS"                         subOk={null}            bg="bg-green-600"  to="/fleet/vehicles" icon={MapPinIcon} />
+          <KpiCard label="Idle / Stopped" value={(fleet.idle||0) + (fleet.stopped||0)}   sub={`${fleet.idle||0} idle · ${fleet.stopped||0} stopped`} subOk={null} bg="bg-slate-500" to="/fleet/vehicles" icon={ExclamationTriangleIcon} />
+          <KpiCard label="Fleet Alerts"   value={fleet.alerts_unacked || 0}               sub={fleet.low_fuel > 0 ? `${fleet.low_fuel} low fuel` : 'Fuel OK'} subOk={fleet.alerts_unacked === 0} bg="bg-rose-600" to="/fleet/alerts" icon={ExclamationTriangleIcon} />
+        </div>
+      </div>
+
+      {/* ── HR ───────────────────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={UsersIcon} iconBg="bg-indigo-100" iconColor="text-indigo-600" title="Human Resources" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Total Workforce"   value={hr.total_employees || 0}       sub={`${hr.staff||0} staff · ${hr.casuals||0} casual`}         subOk={null}                             bg="bg-indigo-600" to="/hr/employees"  icon={UsersIcon} />
+          <KpiCard label="Present Today"     value={hr.present_today   || 0}       sub={`${attendancePct}% attendance`}                            subOk={attendancePct >= 80}              bg="bg-green-600"  to="/hr/attendance" icon={CheckCircleIcon} />
+          <KpiCard label="On Leave"          value={hr.on_leave_today  || 0}       sub="today"                                                     subOk={null}                             bg="bg-amber-500"  to="/hr/leave"      icon={ExclamationTriangleIcon} />
+          <KpiCard label="Pending Leaves"    value={hr.pending_leaves  || 0}       sub={hr.expiring_contracts > 0 ? `${hr.expiring_contracts} expiring contracts` : 'Contracts OK'} subOk={hr.pending_leaves === 0} bg="bg-purple-600" to="/hr/leave" icon={DocumentTextIcon} />
+        </div>
+      </div>
+
+      {/* ── Procurement & Requisitions ───────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={ClipboardDocumentListIcon} iconBg="bg-purple-100" iconColor="text-purple-600" title="Procurement & Requisitions" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Pending PRs"       value={procurement.pending_prs  || 0} sub="awaiting approval"                                        subOk={procurement.pending_prs === 0}   bg="bg-amber-500"  to="/procurement"   icon={ClipboardDocumentListIcon} />
+          <KpiCard label="Approved PRs"      value={procurement.approved_prs || 0} sub="this period"                                              subOk={null}                             bg="bg-green-600"  to="/procurement"   icon={CheckCircleIcon} />
+          <KpiCard label="Open PO Value"     value={fmtK(procurement.po_value_open)} sub={`${procurement.open_pos||0} open POs`}                  subOk={null}                             bg="bg-blue-600"   to="/procurement"   icon={ArrowTrendingUpIcon} />
+          <KpiCard label="Requisitions MTD"  value={requisitions.total_mtd   || 0} sub={`${requisitions.pending||0} pending · ${reqApprovalPct}% approved`} subOk={requisitions.pending === 0} bg="bg-violet-600" to="/requisitions" icon={DocumentTextIcon} />
+        </div>
+      </div>
+
+      {/* ── Inventory & Assets ───────────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={CubeIcon} iconBg="bg-orange-100" iconColor="text-orange-600" title="Inventory & Assets" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Stock Items"       value={inventory.total_items   || 0} sub="total SKUs"                                                subOk={null}                             bg="bg-orange-500" to="/inventory"  icon={CubeIcon} />
+          <KpiCard label="Low Stock"         value={inventory.low_stock     || 0} sub="below reorder level"                                       subOk={inventory.low_stock === 0}        bg="bg-red-600"    to="/inventory"  icon={ExclamationTriangleIcon} />
+          <KpiCard label="Total Assets"      value={inventory.total_assets  || 0} sub={`${inventory.active_assets||0} operational`}              subOk={null}                             bg="bg-teal-600"   to="/assets"     icon={ShieldCheckIcon} />
+          <KpiCard label="Asset Health"      value={`${assetPct}%`}              sub={inventory.under_repair > 0 ? `${inventory.under_repair} under repair` : 'All operational'} subOk={assetPct >= 80} bg="bg-emerald-600" to="/assets" icon={CheckCircleIcon} />
+        </div>
+      </div>
+
+      {/* ── Operational Pulse (rings) ─────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={ChartBarIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="Operational Pulse" />
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { label: 'Fleet Online',  pct: fleetPct,       color: fleetPct >= 60 ? '#06b6d4' : '#ef4444',      val: `${fleet.online||0}/${fleet.total||0}`,                        sub: 'vehicles',      to: '/fleet/vehicles',    iconBg: 'bg-cyan-50',    iconColor: 'text-cyan-500',    icon: TruckIcon },
-            { label: 'Attendance',    pct: attendancePct,  color: attendancePct >= 80 ? '#22c55e' : '#f59e0b',  val: `${hr.present_today||0}/${hr.total_employees||0}`,             sub: 'present today', to: '/hr/attendance',     iconBg: 'bg-green-50',   iconColor: 'text-green-500',   icon: UsersIcon },
-            { label: 'Asset Health',  pct: assetPct,       color: assetPct >= 80 ? '#f97316' : '#ef4444',       val: `${inventory.active_assets||0}/${inventory.total_assets||0}`, sub: 'operational',   to: '/assets',            iconBg: 'bg-orange-50',  iconColor: 'text-orange-500',  icon: ShieldCheckIcon },
-            { label: 'Req Approval',  pct: reqApprovalPct, color: '#8b5cf6',                                    val: `${requisitions.approved||0}/${requisitions.total_mtd||0}`,   sub: 'approved MTD',  to: '/requisitions',      iconBg: 'bg-purple-50',  iconColor: 'text-purple-500',  icon: DocumentTextIcon },
-            { label: 'AR Collection', pct: arPct,          color: arPct >= 70 ? '#3b82f6' : '#ef4444',          val: `${arPct}%`,                                                  sub: 'collected',     to: '/finance/invoices',  iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    icon: BanknotesIcon },
+            { label: 'Fleet Online',  pct: fleetPct,       color: fleetPct >= 60 ? '#06b6d4' : '#ef4444',      val: `${fleet.online||0}/${fleet.total||0}`,                        sub: 'vehicles',      to: '/fleet/vehicles' },
+            { label: 'Attendance',    pct: attendancePct,  color: attendancePct >= 80 ? '#22c55e' : '#f59e0b',  val: `${hr.present_today||0}/${hr.total_employees||0}`,             sub: 'present today', to: '/hr/attendance' },
+            { label: 'Asset Health',  pct: assetPct,       color: assetPct >= 80 ? '#f97316' : '#ef4444',       val: `${inventory.active_assets||0}/${inventory.total_assets||0}`, sub: 'operational',   to: '/assets' },
+            { label: 'Req Approval',  pct: reqApprovalPct, color: '#8b5cf6',                                    val: `${requisitions.approved||0}/${requisitions.total_mtd||0}`,   sub: 'approved MTD',  to: '/requisitions' },
+            { label: 'AR Collection', pct: arPct,          color: arPct >= 70 ? '#3b82f6' : '#ef4444',          val: `${arPct}%`,                                                  sub: 'collected',     to: '/finance/invoices' },
           ].map(m => (
             <div key={m.label} onClick={() => navigate(m.to)}
-              className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all">
+              className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col items-center gap-2 cursor-pointer hover:shadow-md transition-all">
               <Ring pct={m.pct} color={m.color} size={56} stroke={5} />
               <div className="text-center">
-                <p className="text-sm font-bold text-brand-slate">{m.val}</p>
+                <p className="text-xs font-bold text-gray-700">{m.val}</p>
                 <p className="text-[10px] text-gray-400">{m.sub}</p>
                 <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{m.label}</p>
               </div>
@@ -280,161 +311,48 @@ export default function MDDashboard() {
         </div>
       </div>
 
-      {/* ── Row 1: Projects · HR · Fleet ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-
-        <SectionCard icon={FolderIcon} iconBg="bg-violet-100" iconColor="text-violet-600" title="Projects" linkTo="/projects">
-          <div className="mb-4">
-            <PipelineBar stages={[
-              { label: 'Active',    value: projects.active    || 0, color: '#22c55e' },
-              { label: 'On Hold',   value: projects.on_hold   || 0, color: '#f59e0b' },
-              { label: 'Completed', value: projects.completed || 0, color: '#8b5cf6' },
-            ]} />
-          </div>
-          {projects.recent?.length > 0 ? projects.recent.slice(0, 4).map(p => (
-            <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
-              className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 -mx-5 px-5">
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status==='active'?'bg-green-500':p.status==='completed'?'bg-violet-500':'bg-amber-500'}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
-                <p className="text-[10px] text-gray-400">{p.client_name || '—'}</p>
-              </div>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${p.status==='active'?'bg-green-100 text-green-700':p.status==='completed'?'bg-violet-100 text-violet-700':'bg-amber-100 text-amber-700'}`}>
-                {p.status?.replace('_',' ')}
-              </span>
-            </div>
-          )) : <p className="text-xs text-gray-400 text-center py-4">No projects yet</p>}
-        </SectionCard>
-
-        <SectionCard icon={UsersIcon} iconBg="bg-indigo-100" iconColor="text-indigo-600" title="Human Resources" linkTo="/hr/employees">
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-indigo-600">{hr.total_employees || 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Total Workforce</p>
-              <p className="text-[10px] text-gray-400 mt-1">{hr.staff||0} staff · {hr.casuals||0} casual</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{hr.present_today || 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Present Today</p>
-              <p className="text-[10px] text-amber-500 mt-1">{hr.on_leave_today||0} on leave</p>
-            </div>
-          </div>
-          <div className="border-t border-gray-100 pt-1">
-            <MetricRow label="Pending Leave Applications" value={hr.pending_leaves||0}     color={hr.pending_leaves > 0 ? 'text-amber-600' : 'text-green-600'} onClick={() => navigate('/hr/leave')} />
-            <MetricRow label="Expiring Contracts (30d)"   value={hr.expiring_contracts||0} color={hr.expiring_contracts > 0 ? 'text-red-500' : 'text-green-600'} onClick={() => navigate('/hr/employees')} />
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={TruckIcon} iconBg="bg-cyan-100" iconColor="text-cyan-600" title="Fleet" linkTo="/fleet/vehicles">
-          <div className="mb-4">
-            <PipelineBar stages={[
-              { label: 'Moving',  value: fleet.moving  || 0, color: '#22c55e' },
-              { label: 'Idle',    value: fleet.idle    || 0, color: '#f59e0b' },
-              { label: 'Stopped', value: fleet.stopped || 0, color: '#94a3b8' },
-            ]} />
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center mb-4">
-            {[
-              { label: 'Online',  value: fleet.online  || 0, color: 'text-cyan-600' },
-              { label: 'Moving',  value: fleet.moving  || 0, color: 'text-green-600' },
-              { label: 'Stopped', value: fleet.stopped || 0, color: 'text-gray-500' },
-            ].map(s => (
-              <div key={s.label} className="bg-gray-50 rounded-xl py-2.5">
-                <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-gray-400">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          {(fleet.alerts_unacked > 0 || fleet.low_fuel > 0) && (
-            <div className="flex gap-2 flex-wrap">
-              <AlertPill count={fleet.alerts_unacked} label="unacked alerts" color="bg-red-100 text-red-700"    onClick={() => navigate('/fleet/alerts')} />
-              <AlertPill count={fleet.low_fuel}       label="low fuel"       color="bg-amber-100 text-amber-700" onClick={() => navigate('/fleet/fuel')} />
-            </div>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* ── Row 2: Procurement · Inventory & Assets · System Users ───────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-
-        <SectionCard icon={ClipboardDocumentListIcon} iconBg="bg-purple-100" iconColor="text-purple-600" title="Procurement" linkTo="/procurement">
-          <div className="mb-4">
-            <PipelineBar stages={[
-              { label: 'Pending PRs',  value: procurement.pending_prs  || 0, color: '#f59e0b' },
-              { label: 'Approved PRs', value: procurement.approved_prs || 0, color: '#22c55e' },
-              { label: 'Open POs',     value: procurement.open_pos     || 0, color: '#8b5cf6' },
-            ]} />
-          </div>
-          <MetricRow label="Open PO Value"      value={fmtK(procurement.po_value_open)} onClick={() => navigate('/procurement')} />
-          <MetricRow label="Pending Reqs"        value={requisitions.pending||0} sub="awaiting approval" color={requisitions.pending > 0 ? 'text-amber-600' : 'text-gray-800'} onClick={() => navigate('/requisitions')} />
-          <MetricRow label="Requisitions MTD"    value={requisitions.total_mtd||0} sub={`${requisitions.approved||0} approved`} onClick={() => navigate('/requisitions')} />
-        </SectionCard>
-
-        <SectionCard icon={CubeIcon} iconBg="bg-orange-100" iconColor="text-orange-600" title="Inventory & Assets" linkTo="/inventory">
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-orange-600">{inventory.total_items || 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Stock Items</p>
-              <p className={`text-[10px] mt-1 ${inventory.low_stock > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                {inventory.low_stock > 0 ? `${inventory.low_stock} below reorder` : 'All stocked'}
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-orange-600">{inventory.total_assets || 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Total Assets</p>
-              <p className="text-[10px] text-green-600 mt-1">{inventory.active_assets||0} operational</p>
-            </div>
-          </div>
-          <div className="border-t border-gray-100 pt-3">
-            <PipelineBar stages={[
-              { label: 'Operational',  value: inventory.active_assets || 0, color: '#f97316' },
-              { label: 'Under Repair', value: inventory.under_repair  || 0, color: '#f59e0b' },
-              { label: 'Low Stock',    value: inventory.low_stock     || 0, color: '#ef4444' },
-            ]} />
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={UserGroupIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="System Users" linkTo="/users">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-gray-50 rounded-xl p-3 text-center shrink-0">
-              <p className="text-2xl font-bold text-slate-700">{users.total || 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Total Users</p>
-            </div>
-            <div className="flex-1 space-y-1.5">
-              {(users.by_role || []).slice(0, 6).map((r, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-600 w-24 truncate capitalize">{r.role?.replace(/_/g,' ')}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                    <div className="bg-slate-400 h-1.5 rounded-full" style={{ width: `${users.total > 0 ? (r.count/users.total)*100 : 0}%` }} />
+      {/* ── System Users ─────────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeading icon={UserGroupIcon} iconBg="bg-slate-100" iconColor="text-slate-600" title="System Users" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          <KpiCard label="Total Users" value={users.total || 0} sub="active accounts" subOk={null} bg="bg-slate-600" to="/users" icon={UserGroupIcon} />
+        </div>
+        {(users.by_role || []).length > 0 && (
+          <DetailCard title="Users by Role" linkTo="/users">
+            <div className="space-y-2">
+              {(users.by_role || []).map((r, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-32 truncate capitalize">{r.role?.replace(/_/g,' ')}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-2">
+                    <div className="bg-slate-500 h-2 rounded-full" style={{ width: `${users.total > 0 ? (r.count/users.total)*100 : 0}%` }} />
                   </div>
-                  <span className="text-[10px] font-bold text-gray-500 w-3 text-right">{r.count}</span>
+                  <span className="text-xs font-bold text-gray-500 w-4 text-right">{r.count}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </SectionCard>
+          </DetailCard>
+        )}
       </div>
 
-      {/* ── Project Health Scorecard ─────────────────────────────────────────── */}
+      {/* ── Project Health Scorecard ──────────────────────────────────────────── */}
       {portfolio && portfolio.project_cards?.length > 0 && (
         <div>
           <SectionHeading icon={ChartBarIcon} iconBg="bg-violet-100" iconColor="text-violet-600" title="Project Health Scorecard" />
           <div className="flex items-center justify-end gap-4 -mt-2 mb-3 text-[10px] text-gray-400">
-            <span>Total Portfolio: <strong className="text-gray-700">{fmtK(portfolio.totals?.total_contract_value)}</strong></span>
+            <span>Portfolio: <strong className="text-gray-700">{fmtK(portfolio.totals?.total_contract_value)}</strong></span>
             <span className="text-green-600 font-semibold">IPC Certified: {fmtK(portfolio.ipc?.certified)}</span>
             <span className="text-amber-600 font-semibold">IPC Paid: {fmtK(portfolio.ipc?.paid)}</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {portfolio.project_cards.map(p => {
               const pct = p.pct_complete ?? (p.bac > 0 ? Math.round((p.ev / p.bac) * 100) : 0)
-              const borderColor = p.cpi == null ? 'border-gray-200' : p.cpi >= 1.0 ? 'border-green-200' : p.cpi >= 0.9 ? 'border-amber-200' : 'border-red-200'
-              const bgColor     = p.cpi == null ? 'bg-white' : p.cpi >= 1.0 ? 'bg-green-50/50' : p.cpi >= 0.9 ? 'bg-amber-50/50' : 'bg-red-50/50'
+              const cpiColor = p.cpi == null ? 'border-gray-200 bg-white' : p.cpi >= 1.0 ? 'border-green-200 bg-green-50' : p.cpi >= 0.9 ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'
               return (
                 <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
-                  className={`border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all ${borderColor} ${bgColor}`}>
-                  <div className="flex items-start justify-between mb-3">
+                  className={`border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all ${cpiColor}`}>
+                  <div className="flex items-start justify-between mb-2">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[10px] font-bold text-brand-slate bg-brand-slate/10 px-1.5 py-0.5 rounded">{p.code}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.status?.replace('_', ' ')}</span>
                       </div>
@@ -443,17 +361,16 @@ export default function MDDashboard() {
                     </div>
                     <div className="shrink-0 ml-2 text-right">
                       <p className="text-[10px] text-gray-400">CPI</p>
-                      <IndexBadge value={p.cpi} />
+                      {(() => { const color = p.cpi == null ? 'bg-gray-100 text-gray-400' : p.cpi >= 1.0 ? 'bg-green-100 text-green-700' : p.cpi >= 0.9 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'; return p.cpi != null ? <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${color}`}>{p.cpi.toFixed(2)}</span> : <span className="text-gray-400 text-xs">—</span> })()}
                       <p className="text-[10px] text-gray-400 mt-1">SPI</p>
-                      <IndexBadge value={p.spi} />
+                      {(() => { const color = p.spi == null ? 'bg-gray-100 text-gray-400' : p.spi >= 1.0 ? 'bg-green-100 text-green-700' : p.spi >= 0.9 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'; return p.spi != null ? <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${color}`}>{p.spi.toFixed(2)}</span> : <span className="text-gray-400 text-xs">—</span> })()}
                     </div>
                   </div>
                   <div className="mb-2">
                     <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                      <span>Progress</span>
-                      <span>{pct}%</span>
+                      <span>Progress</span><span>{pct}%</span>
                     </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
                       <div className="h-full bg-brand-red rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
                     </div>
                   </div>
@@ -479,26 +396,18 @@ export default function MDDashboard() {
       {crmPipeline && (
         <div>
           <SectionHeading icon={UserGroupIcon} iconBg="bg-emerald-100" iconColor="text-emerald-600" title="CRM Pipeline" />
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="grid grid-cols-3 gap-4 mb-5">
-              {[
-                { label: 'Weighted Pipeline', value: fmtK(crmPipeline.weighted_pipeline_value), color: 'text-emerald-700' },
-                { label: 'Win Rate',           value: crmPipeline.win_rate != null ? `${(crmPipeline.win_rate * 100).toFixed(1)}%` : '—', color: 'text-blue-700' },
-                { label: 'Won Value',          value: fmtK(crmPipeline.by_stage?.won?.total_estimated_value), color: 'text-green-700' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="text-center">
-                  <p className={`text-xl font-bold ${color}`}>{value}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+            <KpiCard label="Weighted Pipeline" value={fmtK(crmPipeline.weighted_pipeline_value)}                                                  subOk={null} bg="bg-emerald-600" to="/crm" icon={ArrowTrendingUpIcon} />
+            <KpiCard label="Win Rate"          value={crmPipeline.win_rate != null ? `${(crmPipeline.win_rate * 100).toFixed(1)}%` : '—'}         subOk={null} bg="bg-blue-600"   to="/crm" icon={ChartBarIcon} />
+            <KpiCard label="Won Value"         value={fmtK(crmPipeline.by_stage?.won?.total_estimated_value)} sub="closed deals"                  subOk={null} bg="bg-green-600"  to="/crm" icon={CheckCircleIcon} />
+          </div>
+          <DetailCard title="Pipeline by Stage" linkTo="/crm">
             <div className="space-y-2">
               {['prospect', 'qualified', 'bid_prep', 'submitted', 'won', 'lost'].map(stage => {
                 const s = crmPipeline.by_stage?.[stage] || { count: 0, total_estimated_value: 0 }
                 const COLORS = { prospect: 'bg-gray-400', qualified: 'bg-blue-500', bid_prep: 'bg-amber-500', submitted: 'bg-purple-500', won: 'bg-green-500', lost: 'bg-red-400' }
                 const LABELS = { prospect: 'Prospect', qualified: 'Qualified', bid_prep: 'Bid Prep', submitted: 'Submitted', won: 'Won', lost: 'Lost' }
-                const allVals = ['prospect','qualified','bid_prep','submitted','won','lost'].map(k => Number(crmPipeline.by_stage?.[k]?.total_estimated_value || 0))
-                const maxVal = Math.max(...allVals, 1)
+                const maxVal = Math.max(...['prospect','qualified','bid_prep','submitted','won','lost'].map(k => Number(crmPipeline.by_stage?.[k]?.total_estimated_value || 0)), 1)
                 const pct = (Number(s.total_estimated_value || 0) / maxVal) * 100
                 return (
                   <div key={stage} className="flex items-center gap-3">
@@ -512,10 +421,7 @@ export default function MDDashboard() {
                 )
               })}
             </div>
-            <div className="mt-3 text-right">
-              <button onClick={() => navigate('/crm')} className="text-[10px] text-emerald-600 font-semibold hover:underline">View CRM →</button>
-            </div>
-          </div>
+          </DetailCard>
         </div>
       )}
 
