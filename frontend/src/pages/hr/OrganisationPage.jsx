@@ -6,6 +6,7 @@ import { getPositions, getJobGrades } from '../../api/hr'
 import {
   BuildingOfficeIcon, MapPinIcon, PlusIcon,
   PencilIcon, TrashIcon, CheckIcon, XMarkIcon, BriefcaseIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 // ── API helpers ────────────────────────────────────────────────────────────────
@@ -37,14 +38,40 @@ function StatusBadge({ active }) {
   )
 }
 
+function DeleteModal({ name, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Confirm Delete</h3>
+            <p className="text-xs text-gray-500 mt-0.5">This action cannot be undone.</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-700 mb-5">
+          Are you sure you want to delete <span className="font-semibold">"{name}"</span>?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button onClick={onConfirm} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Delete</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Departments tab ────────────────────────────────────────────────────────────
 
 function DepartmentsTab() {
   const qc = useQueryClient()
-  const [editId, setEditId]   = useState(null)
-  const [editVal, setEditVal] = useState({ name: '', branch: '', is_active: true })
-  const [adding, setAdding]   = useState(false)
-  const [newVal, setNewVal]   = useState({ name: '', branch: '' })
+  const [editId, setEditId]     = useState(null)
+  const [editVal, setEditVal]   = useState({ name: '', branch: '', is_active: true })
+  const [adding, setAdding]     = useState(false)
+  const [newVal, setNewVal]     = useState({ name: '', branch: '' })
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const { data: departments = [], isLoading } = useQuery({ queryKey: ['departments-all'], queryFn: fetchDepts })
   const { data: branches = [] } = useQuery({ queryKey: ['branches-all'], queryFn: fetchBranches })
@@ -62,19 +89,25 @@ function DepartmentsTab() {
   })
   const deleteMut = useMutation({
     mutationFn: (id) => deleteDept(id),
-    onSuccess: () => { toast.success('Department deactivated'); qc.invalidateQueries({ queryKey: ['departments-all'] }); qc.invalidateQueries({ queryKey: ['departments'] }) },
-    onError: () => toast.error('Failed to deactivate department'),
+    onSuccess: () => { toast.success('Department deleted'); qc.invalidateQueries({ queryKey: ['departments-all'] }); qc.invalidateQueries({ queryKey: ['departments'] }); setDeleteTarget(null) },
+    onError: () => { toast.error('Failed to delete department'); setDeleteTarget(null) },
   })
 
   const startEdit = (d) => { setEditId(d.id); setEditVal({ name: d.name, branch: d.branch || '', is_active: d.is_active }) }
   const handleSave = () => { if (!editVal.name.trim()) return toast.error('Name required'); saveMut.mutate({ id: editId, data: editVal }) }
   const handleCreate = () => { if (!newVal.name.trim()) return toast.error('Name required'); createMut.mutate(newVal) }
-  const handleDelete = (d) => { if (window.confirm(`Deactivate "${d.name}"?`)) deleteMut.mutate(d.id) }
 
   if (isLoading) return <p className="text-sm text-gray-400 py-8 text-center">Loading…</p>
 
   return (
     <div className="space-y-4">
+      {deleteTarget && (
+        <DeleteModal
+          name={deleteTarget.name}
+          onConfirm={() => deleteMut.mutate(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-brand-slate uppercase tracking-wider">Departments</h3>
         <button onClick={() => setAdding(true)}
@@ -135,7 +168,7 @@ function DepartmentsTab() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <button onClick={() => startEdit(d)} className="flex items-center gap-1 text-xs font-medium text-brand-slate hover:text-brand-red"><PencilIcon className="h-3.5 w-3.5" /> Edit</button>
-                        {d.is_active && <button onClick={() => handleDelete(d)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Deactivate</button>}
+                        <button onClick={() => setDeleteTarget(d)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Delete</button>
                       </div>
                     </td>
                   </>
@@ -153,10 +186,11 @@ function DepartmentsTab() {
 
 function WorkLocationsTab() {
   const qc = useQueryClient()
-  const [editId, setEditId]   = useState(null)
-  const [editVal, setEditVal] = useState({ name: '', location: '', is_active: true })
-  const [adding, setAdding]   = useState(false)
-  const [newVal, setNewVal]   = useState({ name: '', location: '' })
+  const [editId, setEditId]     = useState(null)
+  const [editVal, setEditVal]   = useState({ name: '', location: '', is_active: true })
+  const [adding, setAdding]     = useState(false)
+  const [newVal, setNewVal]     = useState({ name: '', location: '' })
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const { data: branches = [], isLoading } = useQuery({ queryKey: ['branches-all'], queryFn: fetchBranches })
 
@@ -172,19 +206,25 @@ function WorkLocationsTab() {
   })
   const deleteMut = useMutation({
     mutationFn: (id) => deleteBranch(id),
-    onSuccess: () => { toast.success('Work location deactivated'); qc.invalidateQueries({ queryKey: ['branches-all'] }); qc.invalidateQueries({ queryKey: ['branches'] }) },
-    onError: () => toast.error('Failed to deactivate work location'),
+    onSuccess: () => { toast.success('Work location deleted'); qc.invalidateQueries({ queryKey: ['branches-all'] }); qc.invalidateQueries({ queryKey: ['branches'] }); setDeleteTarget(null) },
+    onError: () => { toast.error('Failed to delete work location'); setDeleteTarget(null) },
   })
 
   const startEdit = (b) => { setEditId(b.id); setEditVal({ name: b.name, location: b.location || '', is_active: b.is_active }) }
   const handleSave = () => { if (!editVal.name.trim()) return toast.error('Name required'); saveMut.mutate({ id: editId, data: editVal }) }
   const handleCreate = () => { if (!newVal.name.trim()) return toast.error('Name required'); createMut.mutate(newVal) }
-  const handleDelete = (b) => { if (window.confirm(`Deactivate "${b.name}"?`)) deleteMut.mutate(b.id) }
 
   if (isLoading) return <p className="text-sm text-gray-400 py-8 text-center">Loading…</p>
 
   return (
     <div className="space-y-4">
+      {deleteTarget && (
+        <DeleteModal
+          name={deleteTarget.name}
+          onConfirm={() => deleteMut.mutate(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-brand-slate uppercase tracking-wider">Work Locations</h3>
         <button onClick={() => setAdding(true)}
@@ -235,7 +275,7 @@ function WorkLocationsTab() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <button onClick={() => startEdit(b)} className="flex items-center gap-1 text-xs font-medium text-brand-slate hover:text-brand-red"><PencilIcon className="h-3.5 w-3.5" /> Edit</button>
-                        {b.is_active && <button onClick={() => handleDelete(b)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Deactivate</button>}
+                        <button onClick={() => setDeleteTarget(b)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Delete</button>
                       </div>
                     </td>
                   </>
@@ -253,10 +293,11 @@ function WorkLocationsTab() {
 
 function PositionsTab() {
   const qc = useQueryClient()
-  const [editId, setEditId]   = useState(null)
-  const [editVal, setEditVal] = useState({ title: '', department: '', job_grade: '', is_active: true })
-  const [adding, setAdding]   = useState(false)
-  const [newVal, setNewVal]   = useState({ title: '', department: '', job_grade: '' })
+  const [editId, setEditId]     = useState(null)
+  const [editVal, setEditVal]   = useState({ title: '', department: '', job_grade: '', is_active: true })
+  const [adding, setAdding]     = useState(false)
+  const [newVal, setNewVal]     = useState({ title: '', department: '', job_grade: '' })
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const { data: positions = [], isLoading } = useQuery({
     queryKey: ['positions-all'],
@@ -281,21 +322,27 @@ function PositionsTab() {
     onSuccess: () => { toast.success('Position created'); qc.invalidateQueries({ queryKey: ['positions-all'] }); qc.invalidateQueries({ queryKey: ['positions'] }); setAdding(false); setNewVal({ title: '', department: '', job_grade: '' }) },
     onError: () => toast.error('Failed to create position'),
   })
-  const deactivateMut = useMutation({
-    mutationFn: (id) => updatePosition(id, { is_active: false }),
-    onSuccess: () => { toast.success('Position deactivated'); qc.invalidateQueries({ queryKey: ['positions-all'] }); qc.invalidateQueries({ queryKey: ['positions'] }) },
-    onError: () => toast.error('Failed to deactivate position'),
+  const deleteMut = useMutation({
+    mutationFn: (id) => deletePosition(id),
+    onSuccess: () => { toast.success('Position deleted'); qc.invalidateQueries({ queryKey: ['positions-all'] }); qc.invalidateQueries({ queryKey: ['positions'] }); setDeleteTarget(null) },
+    onError: () => { toast.error('Failed to delete position'); setDeleteTarget(null) },
   })
 
   const startEdit = (p) => { setEditId(p.id); setEditVal({ title: p.title, department: p.department || '', job_grade: p.job_grade || '', is_active: p.is_active }) }
   const handleSave = () => { if (!editVal.title.trim()) return toast.error('Title required'); saveMut.mutate({ id: editId, data: editVal }) }
   const handleCreate = () => { if (!newVal.title.trim()) return toast.error('Title required'); createMut.mutate(newVal) }
-  const handleDeactivate = (p) => { if (window.confirm(`Deactivate "${p.title}"?`)) deactivateMut.mutate(p.id) }
 
   if (isLoading) return <p className="text-sm text-gray-400 py-8 text-center">Loading…</p>
 
   return (
     <div className="space-y-4">
+      {deleteTarget && (
+        <DeleteModal
+          name={deleteTarget.title}
+          onConfirm={() => deleteMut.mutate(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-brand-slate uppercase tracking-wider">Positions / Roles</h3>
         <button onClick={() => setAdding(true)}
@@ -369,7 +416,7 @@ function PositionsTab() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <button onClick={() => startEdit(p)} className="flex items-center gap-1 text-xs font-medium text-brand-slate hover:text-brand-red"><PencilIcon className="h-3.5 w-3.5" /> Edit</button>
-                        {p.is_active && <button onClick={() => handleDeactivate(p)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Deactivate</button>}
+                        <button onClick={() => setDeleteTarget(p)} className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700"><TrashIcon className="h-3.5 w-3.5" /> Delete</button>
                       </div>
                     </td>
                   </>
