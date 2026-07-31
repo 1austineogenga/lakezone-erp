@@ -260,6 +260,7 @@ class ResetAllPasswordsView(APIView):
 
 class BranchListCreateView(generics.ListCreateAPIView):
     serializer_class = BranchSerializer
+    pagination_class = None
 
     def get_queryset(self):
         show_all = self.request.query_params.get('all') == 'true'
@@ -287,6 +288,7 @@ class BranchDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class DepartmentListCreateView(generics.ListCreateAPIView):
     serializer_class = DepartmentSerializer
+    pagination_class = None
 
     def get_queryset(self):
         show_all = self.request.query_params.get('all') == 'true'
