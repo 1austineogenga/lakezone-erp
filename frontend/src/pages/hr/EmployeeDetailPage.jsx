@@ -78,10 +78,10 @@ export default function EmployeeDetailPage() {
     select: r => r.data?.results ?? r.data,
     enabled: tab === 'leave',
   })
-  const { data: users } = useQuery({
-    queryKey: ['users-list'],
-    queryFn: () => api.get('/auth/users/', { params: { page_size: 200 } }),
-    select: r => r.data?.results ?? r.data,
+  const { data: employeeList } = useQuery({
+    queryKey: ['employees-list-for-reports-to'],
+    queryFn: () => api.get('/hr/employees/', { params: { page_size: 500 } }),
+    select: r => (r.data?.results ?? r.data ?? []).filter(e => e.user),
     enabled: editing,
   })
 
@@ -331,7 +331,11 @@ export default function EmployeeDetailPage() {
               <Field label="Reports To">
                 <select {...ef('reports_to')} className={cls}>
                   <option value="">— None —</option>
-                  {users?.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{u.role ? ` (${u.role.replace(/_/g,' ')})` : ''}</option>)}
+                  {employeeList?.map(e => (
+                    <option key={e.user} value={e.user}>
+                      {e.full_name}{e.position_title ? ` (${e.position_title})` : ''}
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field label="Date Hired *"><input required type="date" {...ef('date_hired')} className={cls} /></Field>
