@@ -1420,3 +1420,78 @@ class CasualReportApproveView(APIView):
             report.save(update_fields=['status', 'approved_by', 'approved_at', 'expense_claim', 'notes'])
 
         return Response(CasualDailyReportSerializer(report).data)
+
+
+class WorkspaceAlertsView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from datetime import date, timedelta
+        today = date.today()
+        soon = today + timedelta(days=30)
+        user = request.user
+
+        result = {
+            'licence_expiry': [],
+            'probation_ending': [],
+            'my_licence_expiry': None,
+            'my_probation_end': None,
+        }
+
+        # Personal alerts — own employee profile
+        try:
+            me = user.employee_profile
+            if me.licence_expiry and me.licence_expiry <= soon:
+                days_left = (me.licence_expiry - today).days
+                result['my_licence_expiry'] = {
+                    'expiry': str(me.licence_expiry),
+                    'days_left': days_left,
+                    'position': me.position.title if me.position else '',
+                }
+            if me.employment_status == 'probation' and me.probation_end_date and me.probation_end_date <= soon:
+                days_left = (me.probation_end_date - today).days
+                result['my_probation_end'] = {
+                    'end_date': str(me.probation_end_date),
+                    'days_left': days_left,
+                }
+        except Exception:
+            pass
+
+        # HR-role alerts — all employees
+        hr_roles = {'hr_manager', 'system_admin', 'managing_director', 'general_manager'}
+        if getattr(user, 'role', None) in hr_roles:
+            # Licence expiry across all employees
+            expiring = Employee.objects.filter(
+                licence_expiry__isnull=False,
+                licence_expiry__lte=soon,
+                licence_expiry__gte=today,
+                is_active=True,
+            ).select_related('position').order_by('licence_expiry')
+            for emp in expiring:
+                result['licence_expiry'].append({
+                    'id': str(emp.id),
+                    'full_name': emp.full_name,
+                    'position': emp.position.title if emp.position else '',
+                    'licence_number': emp.licence_number,
+                    'expiry': str(emp.licence_expiry),
+                    'days_left': (emp.licence_expiry - today).days,
+                })
+
+            # Probation ending soon
+            probation = Employee.objects.filter(
+                employment_status='probation',
+                probation_end_date__isnull=False,
+                probation_end_date__lte=soon,
+                probation_end_date__gte=today,
+                is_active=True,
+            ).order_by('probation_end_date')
+            for emp in probation:
+                result['probation_ending'].append({
+                    'id': str(emp.id),
+                    'full_name': emp.full_name,
+                    'position': emp.position.title if emp.position else '',
+                    'end_date': str(emp.probation_end_date),
+                    'days_left': (emp.probation_end_date - today).days,
+                })
+
+        return Response(result)

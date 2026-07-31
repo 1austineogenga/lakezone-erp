@@ -96,6 +96,8 @@ export default function EmployeeDetailPage() {
         nssf_number: emp.nssf_number || '', nhif_number: emp.nhif_number || '',
         department: emp.department || '', position: emp.position || '', branch: emp.branch || '',
         date_hired: emp.date_hired || '', contract_end_date: emp.contract_end_date || '',
+        employment_status: emp.employment_status || 'confirmed', probation_end_date: emp.probation_end_date || '',
+        licence_number: emp.licence_number || '', licence_expiry: emp.licence_expiry || '',
         basic_salary: emp.basic_salary || '', house_allowance: emp.house_allowance || '',
         transport_allowance: emp.transport_allowance || '', medical_allowance: emp.medical_allowance || '',
         other_allowances: emp.other_allowances || '', daily_rate: emp.daily_rate || '',
@@ -130,7 +132,7 @@ export default function EmployeeDetailPage() {
   const ef = k => ({ value: editData[k] ?? '', onChange: e => setEditData(p => ({ ...p, [k]: e.target.value })) })
   const handleSave = () => {
     const payload = { ...editData }
-    ;['contract_end_date','date_of_birth','department','position','branch','reports_to'].forEach(k => { if (!payload[k]) delete payload[k] })
+    ;['contract_end_date','date_of_birth','department','position','branch','reports_to','probation_end_date','licence_expiry'].forEach(k => { if (!payload[k]) delete payload[k] })
     updateMut.mutate(payload)
   }
 
@@ -245,6 +247,12 @@ export default function EmployeeDetailPage() {
             <InfoRow label="Department"    value={emp.department_name} />
             <InfoRow label="Position"      value={emp.position_title} />
             <InfoRow label="Branch"        value={emp.branch_name} />
+            <InfoRow label="Status"        value={emp.employment_status === 'probation' ? 'On Probation' : 'Confirmed'} />
+            {emp.employment_status === 'probation' && emp.probation_end_date && (
+              <InfoRow label="Probation End" value={emp.probation_end_date} />
+            )}
+            {emp.licence_number && <InfoRow label="Licence No."  value={emp.licence_number} />}
+            {emp.licence_expiry  && <InfoRow label="Licence Exp." value={emp.licence_expiry} />}
           </Section>
 
           <Section icon={BanknotesIcon} title="Bank Details" color="text-green-600" bg="bg-green-50" border="border-green-100">
@@ -308,45 +316,73 @@ export default function EmployeeDetailPage() {
           </EditCard>
 
           <EditCard title="Employment" icon={BriefcaseIcon} color="text-brand-slate">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Employee Number"><input {...ef('employee_number')} className={cls} /></Field>
-              <Field label="Department">
-                <select {...ef('department')} className={cls}>
-                  <option value="">— None —</option>
-                  {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Position">
-                <select {...ef('position')} className={cls}>
-                  <option value="">— None —</option>
-                  {positions?.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
-              </Field>
-              <Field label="Branch">
-                <select {...ef('branch')} className={cls}>
-                  <option value="">— None —</option>
-                  {branches?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Reports To">
-                <select {...ef('reports_to')} className={cls}>
-                  <option value="">— None —</option>
-                  {employeeList?.map(e => (
-                    <option key={e.user} value={e.user}>
-                      {e.full_name}{e.position_title ? ` (${e.position_title})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Date Hired *"><input required type="date" {...ef('date_hired')} className={cls} /></Field>
-              <Field label="Contract End Date"><input type="date" {...ef('contract_end_date')} className={cls} /></Field>
-              <Field label="Status">
-                <select value={editData.is_active ? 'true' : 'false'} onChange={e => setEditData(p => ({ ...p, is_active: e.target.value === 'true' }))} className={cls}>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </Field>
-            </div>
+            {(() => {
+              const selPos = positions?.find(p => String(p.id) === String(editData.position))
+              const posTitle = (selPos?.title || '').toLowerCase()
+              const needsLicence = posTitle.includes('driver') || posTitle.includes('operator')
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <Field label="Employee Number"><input {...ef('employee_number')} className={cls} /></Field>
+                  <Field label="Department">
+                    <select {...ef('department')} className={cls}>
+                      <option value="">— None —</option>
+                      {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Position">
+                    <select {...ef('position')} className={cls}>
+                      <option value="">— None —</option>
+                      {positions?.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Branch">
+                    <select {...ef('branch')} className={cls}>
+                      <option value="">— None —</option>
+                      {branches?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Reports To">
+                    <select {...ef('reports_to')} className={cls}>
+                      <option value="">— None —</option>
+                      {employeeList?.map(e => (
+                        <option key={e.user} value={e.user}>
+                          {e.full_name}{e.position_title ? ` (${e.position_title})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Date Hired *"><input required type="date" {...ef('date_hired')} className={cls} /></Field>
+                  <Field label="Contract End Date"><input type="date" {...ef('contract_end_date')} className={cls} /></Field>
+                  <Field label="Employment Status">
+                    <select {...ef('employment_status')} className={cls}>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="probation">On Probation</option>
+                    </select>
+                  </Field>
+                  {editData.employment_status === 'probation' && (
+                    <Field label="Probation End Date">
+                      <input type="date" {...ef('probation_end_date')} className={cls} />
+                    </Field>
+                  )}
+                  {needsLicence && (
+                    <>
+                      <Field label="Licence Number">
+                        <input {...ef('licence_number')} placeholder="e.g. DL/123456" className={cls} />
+                      </Field>
+                      <Field label="Licence Expiry">
+                        <input type="date" {...ef('licence_expiry')} className={cls} />
+                      </Field>
+                    </>
+                  )}
+                  <Field label="Active Status">
+                    <select value={editData.is_active ? 'true' : 'false'} onChange={e => setEditData(p => ({ ...p, is_active: e.target.value === 'true' }))} className={cls}>
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </Field>
+                </div>
+              )
+            })()}
           </EditCard>
 
           <EditCard title="Bank Details" icon={BanknotesIcon} color="text-green-600">

@@ -5,7 +5,7 @@ import { toast } from 'react-toastify'
 import {
   UserCircleIcon, KeyIcon, CalendarDaysIcon, CurrencyDollarIcon,
   ClipboardDocumentListIcon, DocumentTextIcon, CameraIcon,
-  CheckCircleIcon, ClockIcon, BanknotesIcon, PlusIcon,
+  CheckCircleIcon, ClockIcon, BanknotesIcon, PlusIcon, ExclamationTriangleIcon,
   PrinterIcon, ChartBarIcon, ArrowRightIcon, ArchiveBoxArrowDownIcon,
   FingerPrintIcon, MapPinIcon,
 } from '@heroicons/react/24/outline'
@@ -261,7 +261,7 @@ function RequestItemsModal({ onClose }) {
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab }) {
+function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, setTab, alerts }) {
   const navigate = useNavigate()
 
   const pendingLeave    = leaves.filter(l => l.status === 'submitted').length
@@ -279,8 +279,80 @@ function OverviewTab({ user, employee, leaveBalances, leaves, advances, reqs, se
     ...advances.slice(0, 3).map(a => ({ type: 'Advance', label: `${fmt(a.amount)} advance`, status: a.status, date: a.created_at })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8)
 
+  const hasPersonalAlerts = alerts?.my_licence_expiry || alerts?.my_probation_end
+  const hasHrAlerts = (alerts?.licence_expiry?.length > 0) || (alerts?.probation_ending?.length > 0)
+
   return (
     <div className="space-y-6">
+      {/* Personal alerts */}
+      {hasPersonalAlerts && (
+        <div className="space-y-2">
+          {alerts.my_licence_expiry && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Licence Expiring Soon</p>
+                <p className="text-xs text-red-700 mt-0.5">
+                  Your {alerts.my_licence_expiry.position} licence expires on <strong>{alerts.my_licence_expiry.expiry}</strong>
+                  {' '}({alerts.my_licence_expiry.days_left <= 0 ? 'EXPIRED' : `${alerts.my_licence_expiry.days_left} days left`}). Please renew promptly.
+                </p>
+              </div>
+            </div>
+          )}
+          {alerts.my_probation_end && (
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <ClockIcon className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Probation Period Ending</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Your probation ends on <strong>{alerts.my_probation_end.end_date}</strong>
+                  {' '}({alerts.my_probation_end.days_left <= 0 ? 'ended' : `${alerts.my_probation_end.days_left} days left`}).
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* HR alerts — visible to HR/Admin/MD */}
+      {hasHrAlerts && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-amber-50">
+            <h3 className="font-semibold text-amber-800 text-sm flex items-center gap-2">
+              <ExclamationTriangleIcon className="h-4 w-4" /> HR Alerts
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {alerts.probation_ending?.map(emp => (
+              <div key={emp.id} className="flex items-center gap-3 px-5 py-3">
+                <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Probation</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-brand-slate truncate">{emp.full_name}</p>
+                  <p className="text-xs text-gray-500">{emp.position}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-semibold text-amber-700">Ends {emp.end_date}</p>
+                  <p className="text-xs text-gray-500">{emp.days_left <= 0 ? 'Ended' : `${emp.days_left}d left`}</p>
+                </div>
+              </div>
+            ))}
+            {alerts.licence_expiry?.map(emp => (
+              <div key={emp.id} className="flex items-center gap-3 px-5 py-3">
+                <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Licence</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-brand-slate truncate">{emp.full_name}</p>
+                  <p className="text-xs text-gray-500">{emp.position} · {emp.licence_number}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-semibold text-red-700">Expires {emp.expiry}</p>
+                  <p className="text-xs text-gray-500">{emp.days_left <= 0 ? 'EXPIRED' : `${emp.days_left}d left`}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
@@ -1332,11 +1404,17 @@ export default function WorkspacePage() {
   })
   const pendingSRCount = myStoreRequests.filter(r => ['submitted', 'approved', 'dispatched'].includes(r.status)).length
 
+  const { data: workspaceAlerts } = useQuery({
+    queryKey: ['workspace-alerts'],
+    queryFn: () => api.get('/hr/workspace-alerts/').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  })
+
   const currentUser = user || authUser
 
   return (
     <div className="space-y-5">
-      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} />}
+      {tab === 'overview'      && <OverviewTab user={currentUser} employee={employee} leaveBalances={leaveBalances} leaves={leaves} advances={advances} reqs={[]} setTab={setTab} alerts={workspaceAlerts} />}
       {tab === 'attendance'    && <AttendanceTab />}
       {tab === 'profile'       && currentUser && <ProfileTab user={currentUser} employee={employee} refetch={refetchUser} />}
       {tab === 'leave'         && <LeaveTab employeeId={employeeId} />}

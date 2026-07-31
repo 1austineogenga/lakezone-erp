@@ -99,6 +99,14 @@ class Employee(models.Model):
     work_location             = models.CharField(max_length=100, blank=True)
     date_hired                = models.DateField()
     contract_end_date         = models.DateField(null=True, blank=True)
+    employment_status         = models.CharField(
+                                    max_length=20,
+                                    choices=[('probation', 'On Probation'), ('confirmed', 'Confirmed')],
+                                    default='confirmed',
+                                )
+    probation_end_date        = models.DateField(null=True, blank=True)
+    licence_number            = models.CharField(max_length=100, blank=True)
+    licence_expiry            = models.DateField(null=True, blank=True)
     is_active                 = models.BooleanField(default=True)
     termination_date          = models.DateField(null=True, blank=True)
     termination_reason        = models.TextField(blank=True)
