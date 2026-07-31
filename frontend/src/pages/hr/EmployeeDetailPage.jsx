@@ -58,8 +58,9 @@ export default function EmployeeDetailPage() {
   })
   const { data: positions } = useQuery({
     queryKey: ['positions'],
-    queryFn: () => api.get('/hr/positions/'),
+    queryFn: () => api.get('/hr/positions/', { params: { page_size: 200 } }),
     select: r => r.data?.results ?? r.data,
+    staleTime: 0,
   })
   const { data: branches } = useQuery({
     queryKey: ['branches'],
@@ -78,11 +79,12 @@ export default function EmployeeDetailPage() {
     select: r => r.data?.results ?? r.data,
     enabled: tab === 'leave',
   })
-  const { data: employeeList } = useQuery({
-    queryKey: ['employees-list-for-reports-to'],
-    queryFn: () => api.get('/hr/employees/', { params: { page_size: 500 } }),
-    select: r => (r.data?.results ?? r.data ?? []).filter(e => e.user),
+  const { data: activeUsers } = useQuery({
+    queryKey: ['active-users-lite'],
+    queryFn: () => api.get('/auth/users/active/'),
+    select: r => r.data ?? [],
     enabled: editing,
+    staleTime: 0,
   })
 
   useEffect(() => {
@@ -344,9 +346,9 @@ export default function EmployeeDetailPage() {
                   <Field label="Reports To">
                     <select {...ef('reports_to')} className={cls}>
                       <option value="">— None —</option>
-                      {employeeList?.map(e => (
-                        <option key={e.user} value={e.user}>
-                          {e.full_name}{e.position_title ? ` (${e.position_title})` : ''}
+                      {activeUsers?.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name}{u.role_display ? ` (${u.role_display})` : ''}
                         </option>
                       ))}
                     </select>
