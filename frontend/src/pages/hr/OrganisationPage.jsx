@@ -10,8 +10,8 @@ import {
 
 // ── API helpers ────────────────────────────────────────────────────────────────
 
-const fetchDepts    = () => api.get('/auth/departments/?all=true').then(r => r.data?.results ?? r.data ?? [])
-const fetchBranches = () => api.get('/auth/branches/?all=true').then(r => r.data?.results ?? r.data ?? [])
+const fetchDepts    = () => api.get('/auth/departments/', { params: { page_size: 500 } }).then(r => r.data?.results ?? r.data ?? [])
+const fetchBranches = () => api.get('/auth/branches/', { params: { page_size: 500 } }).then(r => r.data?.results ?? r.data ?? [])
 const createDept    = (d)      => api.post('/auth/departments/', d)
 const updateDept    = (id, d)  => api.patch(`/auth/departments/${id}/`, d)
 const deleteDept    = (id)     => api.delete(`/auth/departments/${id}/`)
@@ -260,7 +260,8 @@ function PositionsTab() {
 
   const { data: positions = [], isLoading } = useQuery({
     queryKey: ['positions-all'],
-    queryFn: () => getPositions({ all: true }).then(r => r.data?.results ?? r.data ?? []),
+    queryFn: () => getPositions({ page_size: 500 }).then(r => r.data?.results ?? r.data ?? []),
+    staleTime: 0,
   })
   const { data: departments = [] } = useQuery({ queryKey: ['departments-all'], queryFn: fetchDepts })
   const { data: jobGrades = [] } = useQuery({
