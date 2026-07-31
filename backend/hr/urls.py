@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     # Dashboard
     path('dashboard/',                           views.HRDashboardView.as_view()),
+    path('workspace-alerts/',                    views.WorkspaceAlertsView.as_view()),
 
     # Job Grades
     path('job-grades/',                          views.JobGradeListCreateView.as_view()),

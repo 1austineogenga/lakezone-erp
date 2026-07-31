@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon, ArrowDownTrayIcon, PrinterIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, KeyIcon, ClipboardDocumentIcon, XMarkIcon, ArrowDownTrayIcon, PrinterIcon, ShieldExclamationIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../api/client'
 import usePermissions from '../../hooks/usePermissions'
 import { ROLE_GROUPS, ALL_ROLES, getPermissions } from '../../utils/permissions'
@@ -10,6 +10,7 @@ import { resetAllPasswords } from '../../api/auth'
 const getUsers      = (p) => api.get('/auth/users/', { params: p })
 const createUser    = (d) => api.post('/auth/users/', d)
 const updateUser    = (id, d) => api.patch(`/auth/users/${id}/`, d)
+const deleteUser    = (id) => api.delete(`/auth/users/${id}/`)
 const resetPassword = (id) => api.post(`/auth/users/${id}/reset-password/`)
 
 const ROLE_COLORS = {
@@ -279,6 +280,7 @@ export default function UsersPage() {
   const [modal, setModal]             = useState(null)
   const [newUserPassword, setNewUserPassword] = useState(null)
   const [resetUser, setResetUser]     = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [previewRole, setPreviewRole] = useState('')
   const [credentials, setCredentials] = useState(null)
   const [resetAllLoading, setResetAllLoading] = useState(false)
@@ -341,6 +343,12 @@ export default function UsersPage() {
         : data?.detail || 'Failed to save user'
       toast.error(msg)
     },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => deleteUser(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('User deleted'); setDeleteTarget(null) },
+    onError: () => toast.error('Failed to delete user'),
   })
 
   const filtered = users.filter(u =>
@@ -479,6 +487,13 @@ export default function UsersPage() {
                           className="flex items-center gap-1 px-2 py-1 border border-amber-200 text-amber-700 rounded text-xs hover:bg-amber-50">
                           <KeyIcon className="h-3 w-3" /> Reset PW
                         </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setDeleteTarget(u)}
+                            className="flex items-center gap-1 px-2 py-1 border border-red-200 text-red-600 rounded text-xs hover:bg-red-50">
+                            <TrashIcon className="h-3 w-3" /> Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   )}
@@ -504,6 +519,30 @@ export default function UsersPage() {
 
       {resetUser && (
         <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} />
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-brand-slate text-base">Delete User</h3>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to permanently delete <span className="font-semibold text-brand-slate">{deleteTarget.full_name}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMut.mutate(deleteTarget.id)}
+                disabled={deleteMut.isPending}
+                className="px-4 py-2 text-xs font-medium bg-red-600 text-white rounded-lg hover:opacity-90 disabled:opacity-60">
+                {deleteMut.isPending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {newUserPassword && (
