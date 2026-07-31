@@ -37,6 +37,7 @@ class JobGradeListCreateView(generics.ListCreateAPIView):
     queryset           = JobGrade.objects.all()
     serializer_class   = JobGradeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class   = None
 
 
 class JobGradeDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -48,6 +49,7 @@ class JobGradeDetailView(generics.RetrieveUpdateDestroyAPIView):
 class PositionListCreateView(generics.ListCreateAPIView):
     serializer_class   = PositionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class   = None
 
     def get_queryset(self):
         qs = Position.objects.select_related('department', 'job_grade')
