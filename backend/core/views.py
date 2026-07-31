@@ -177,6 +177,24 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsSystemAdmin]
 
+
+class ActiveUsersLiteView(generics.ListAPIView):
+    """Lightweight read-only user list for dropdowns (accessible to all authenticated users)."""
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        users = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        data = [
+            {
+                'id': str(u.id),
+                'full_name': u.get_full_name() or u.email,
+                'role': u.role,
+                'role_display': u.get_role_display() if hasattr(u, 'get_role_display') else u.role,
+            }
+            for u in users
+        ]
+        return Response(data)
+
     def perform_update(self, serializer):
         user = serializer.save()
         # Link or re-link employee record if provided
