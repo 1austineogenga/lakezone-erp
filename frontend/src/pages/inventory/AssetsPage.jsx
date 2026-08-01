@@ -524,10 +524,17 @@ function AssetModal({ asset, deptName, isAdmin, employees, onClose }) {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
                 <select className={inp} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
-                  <option value="">— Select employee —</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
-                  ))}
+                  <option value="">— Select —</option>
+                  <optgroup label="Departments / Locations">
+                    {['IT', 'Operations', 'Control Room', 'Reception', 'HR', 'Finance', 'Kitchen', 'Store', 'Board Room', 'Security'].map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Employees">
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
               <div>
