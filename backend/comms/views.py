@@ -92,7 +92,7 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         conv_type = data.get('conversation_type', 'direct')
         is_reply_disabled = data.get('is_reply_disabled', False)
         broadcast_scope = data.get('broadcast_scope', 'all')
-        recipient_ids = data.get('recipient_ids', [])
+        recipient_ids = data.getlist('recipient_ids') if hasattr(data, 'getlist') else data.get('recipient_ids', [])
 
         if not subject or not body:
             return Response({'detail': 'subject and body are required.'}, status=status.HTTP_400_BAD_REQUEST)
