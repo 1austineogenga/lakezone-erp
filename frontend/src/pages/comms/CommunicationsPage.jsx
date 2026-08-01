@@ -158,16 +158,10 @@ function ComposePanel({ onClose, user }) {
     staleTime: 60_000,
   })
 
-  const filteredUsers = activeUsers.filter(u =>
-    u.id !== user?.id &&
-    !recipients.find(r => r.id === u.id) &&
-    (u.full_name ?? u.username ?? '').toLowerCase().includes(recipientSearch.toLowerCase())
-  )
+  const filteredUsers = activeUsers.filter(u => u.id !== user?.id)
 
   const addRecipient = (u) => {
     setRecipients(prev => [...prev, u])
-    setRecipientSearch('')
-    setDropdownOpen(false)
   }
 
   const removeRecipient = (id) => setRecipients(prev => prev.filter(r => r.id !== id))
@@ -230,7 +224,7 @@ function ComposePanel({ onClose, user }) {
             {['direct', 'group', ...(canBroadcast ? ['broadcast'] : [])].map(t => (
               <button
                 key={t}
-                onClick={() => setType(t)}
+                onClick={() => { setType(t); setRecipients([]); setRecipientSearch(''); setDropdownOpen(false) }}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                   type === t
                     ? 'bg-brand-red text-white border-brand-red'
@@ -284,47 +278,110 @@ function ComposePanel({ onClose, user }) {
         {/* Recipients */}
         {type !== 'broadcast' && (
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Recipients</label>
-            {/* Selected recipients */}
-            {recipients.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {recipients.map(r => (
-                  <span key={r.id} className="flex items-center gap-1 bg-red-50 border border-red-200 text-red-700 text-xs rounded-full px-2 py-0.5">
-                    {r.full_name ?? r.username}
-                    <button onClick={() => removeRecipient(r.id)} className="hover:text-red-900">
-                      <XMarkIcon className="h-3 w-3" />
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              {type === 'direct' ? 'Recipient' : 'Recipients'}
+            </label>
+
+            {/* Direct: single-select native dropdown */}
+            {type === 'direct' && (
+              <div className="relative">
+                <input
+                  type="text"
+                  className={inputCls}
+                  placeholder="Search users..."
+                  value={recipientSearch}
+                  onChange={e => { setRecipientSearch(e.target.value); setDropdownOpen(true) }}
+                  onFocus={() => setDropdownOpen(true)}
+                />
+                {/* Selected chip */}
+                {recipients.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <Avatar name={recipients[0].full_name ?? recipients[0].username} size="sm" />
+                    <span className="flex-1 text-sm text-red-700 font-medium">{recipients[0].full_name ?? recipients[0].username}</span>
+                    <button onClick={() => { setRecipients([]); setRecipientSearch('') }} className="text-red-400 hover:text-red-700">
+                      <XMarkIcon className="h-4 w-4" />
                     </button>
-                  </span>
-                ))}
+                  </div>
+                )}
+                {dropdownOpen && (
+                  <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                    {filteredUsers.filter(u => !recipients.find(r => r.id === u.id)).filter(u =>
+                      (u.full_name ?? u.username ?? '').toLowerCase().includes(recipientSearch.toLowerCase())
+                    ).map(u => (
+                      <button
+                        key={u.id}
+                        onMouseDown={e => { e.preventDefault(); setRecipients([u]); setRecipientSearch(''); setDropdownOpen(false) }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Avatar name={u.full_name ?? u.username} size="sm" />
+                        <div>
+                          <div className="font-medium text-gray-800">{u.full_name ?? u.username}</div>
+                          {u.role_display && <div className="text-xs text-gray-400">{u.role_display}</div>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-            <div className="relative">
-              <input
-                type="text"
-                className={inputCls}
-                placeholder="Search users..."
-                value={recipientSearch}
-                onChange={e => { setRecipientSearch(e.target.value); setDropdownOpen(true) }}
-                onFocus={() => setDropdownOpen(true)}
-              />
-              {dropdownOpen && recipientSearch && filteredUsers.length > 0 && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {filteredUsers.slice(0, 20).map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => addRecipient(u)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Avatar name={u.full_name ?? u.username} size="sm" />
-                      <div>
-                        <div className="font-medium text-gray-800">{u.full_name ?? u.username}</div>
-                        {u.role && <div className="text-xs text-gray-400">{u.role}</div>}
-                      </div>
-                    </button>
-                  ))}
+
+            {/* Group: multi-select with search + checkboxes */}
+            {type === 'group' && (
+              <div>
+                {/* Selected chips */}
+                {recipients.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {recipients.map(r => (
+                      <span key={r.id} className="flex items-center gap-1 bg-red-50 border border-red-200 text-red-700 text-xs rounded-full px-2 py-0.5">
+                        {r.full_name ?? r.username}
+                        <button onClick={() => removeRecipient(r.id)} className="hover:text-red-900">
+                          <XMarkIcon className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                  {/* Search within list */}
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <input
+                      type="text"
+                      className="w-full text-sm outline-none placeholder-gray-400"
+                      placeholder="Search users..."
+                      value={recipientSearch}
+                      onChange={e => setRecipientSearch(e.target.value)}
+                    />
+                  </div>
+                  {/* Scrollable user list with checkboxes */}
+                  <div className="max-h-48 overflow-y-auto">
+                    {activeUsers.filter(u =>
+                      u.id !== user?.id &&
+                      (u.full_name ?? u.username ?? '').toLowerCase().includes(recipientSearch.toLowerCase())
+                    ).map(u => {
+                      const checked = !!recipients.find(r => r.id === u.id)
+                      return (
+                        <label
+                          key={u.id}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => checked ? removeRecipient(u.id) : addRecipient(u)}
+                            className="accent-brand-red h-4 w-4 rounded"
+                          />
+                          <Avatar name={u.full_name ?? u.username} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-800 truncate">{u.full_name ?? u.username}</div>
+                            {u.role_display && <div className="text-xs text-gray-400">{u.role_display}</div>}
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
