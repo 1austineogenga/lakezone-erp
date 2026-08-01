@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { fetchUnreadCount } from '../../api/comms'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
@@ -15,6 +17,8 @@ import {
   ChevronLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, DocumentDuplicateIcon,
   PlusIcon, FingerPrintIcon, ArchiveBoxArrowDownIcon,
   ExclamationCircleIcon, QuestionMarkCircleIcon, ListBulletIcon,
+  ChatBubbleLeftRightIcon,
+  InboxIcon, MegaphoneIcon, PaperAirplaneIcon, ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import logoFull from '../../assets/logo-full.png'
 
@@ -128,6 +132,16 @@ const NAV = (role, isAdmin) => [
   { type: 'link', to: '/assets',     icon: BuildingOfficeIcon,         label: 'Assets',           module: 'assets' },
   { type: 'link', to: '/crm',        icon: UserGroupIcon,              label: 'CRM',              module: 'crm' },
 
+  {
+    type: 'dropdown', key: 'communications', label: 'Communications', icon: ChatBubbleLeftRightIcon,
+    root: '/communications', module: null,
+    links: [
+      { to: '/communications/inbox',         label: 'Inbox',         icon: InboxIcon,            unreadBadge: true },
+      { to: '/communications/announcements', label: 'Announcements', icon: MegaphoneIcon },
+      { to: '/communications/sent',          label: 'Sent',          icon: PaperAirplaneIcon },
+      { to: '/communications/archived',      label: 'Archived',      icon: ArchiveBoxIcon },
+    ],
+  },
   { type: 'link', to: '/alerts',     icon: BellAlertIcon,              label: 'Alerts',           module: null,
     roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'head_of_security']) },
   { type: 'link', to: '/users',      icon: KeyIcon,                    label: 'Users',            module: 'users' },
@@ -141,6 +155,12 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
   const role = user?.role || ''
 
   const nav = NAV(role, isAdmin)
+
+  const { data: commsUnread = 0 } = useQuery({
+    queryKey: ['comms-unread-count'],
+    queryFn: fetchUnreadCount,
+    refetchInterval: 30_000,
+  })
 
   const initialOpen = {}
   nav.filter(i => i.type === 'dropdown' || i.type === 'projects').forEach(i => {
@@ -196,12 +216,25 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
           if (item.roles && !item.roles.has(role)) return null
 
           if (item.type === 'link') {
+            const badgeCount = item.unreadBadge ? commsUnread : 0
             return (
               <NavLink key={item.to} to={item.to} end={!!item.end}
                 title={collapsed ? item.label : undefined}
                 className={({ isActive }) => linkCls(isActive)}>
-                <item.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <span className="relative shrink-0">
+                  <item.icon className="h-4 w-4" />
+                  {badgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white text-[8px] font-bold leading-none">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
+                </span>
+                {!collapsed && <span className="flex-1">{item.label}</span>}
+                {!collapsed && badgeCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-white text-[10px] font-bold">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
               </NavLink>
             )
           }
@@ -354,15 +387,23 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
 
               {!collapsed && isOpen && (
                 <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-white/10 space-y-0.5">
-                  {visibleLinks.map(({ to, label, icon: LIcon, end }) => (
-                    <NavLink key={to} to={to} end={!!end}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
-                         ${isActive ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
-                      <LIcon className="h-3.5 w-3.5 shrink-0" />
-                      {label}
-                    </NavLink>
-                  ))}
+                  {visibleLinks.map(({ to, label, icon: LIcon, end, unreadBadge }) => {
+                    const linkBadge = unreadBadge ? commsUnread : 0
+                    return (
+                      <NavLink key={to} to={to} end={!!end}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors
+                           ${isActive ? 'bg-brand-red text-white font-medium' : 'text-slate-400 hover:bg-white/8 hover:text-white'}`}>
+                        <LIcon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="flex-1">{label}</span>
+                        {linkBadge > 0 && (
+                          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                            {linkBadge > 99 ? '99+' : linkBadge}
+                          </span>
+                        )}
+                      </NavLink>
+                    )
+                  })}
                 </div>
               )}
             </div>

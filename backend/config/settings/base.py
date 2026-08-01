@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "quality",
     "documents",
     "deployment",
+    "comms",
 ]
 
 MIDDLEWARE = [
