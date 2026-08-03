@@ -463,175 +463,160 @@ function SummaryCard({ icon: Icon, label, value, sub, bg, color, onClick, active
   )
 }
 
-const CERT_TABS = [
-  { key: 'insurance',      label: 'Insurance',       icon: ShieldExclamationIcon },
-  { key: 'inspection',     label: 'Inspection',       icon: WrenchScrewdriverIcon },
-  { key: 'speed_governor', label: 'Speed Governor',   icon: TruckIcon },
-]
+function daysBadge(days) {
+  if (days < 0) return { label: `${Math.abs(days)} days overdue`, cls: 'bg-red-600 text-white' }
+  if (days === 0) return { label: 'Expires today', cls: 'bg-red-600 text-white' }
+  if (days <= 3) return { label: `${days} days left`, cls: 'bg-red-500 text-white' }
+  if (days <= 7) return { label: `${days} days left`, cls: 'bg-amber-500 text-white' }
+  if (days <= 30) return { label: `${days} days left`, cls: 'bg-amber-400 text-white' }
+  return { label: `${days} days left`, cls: 'bg-gray-600 text-white' }
+}
 
-function ComplianceTabView({ complianceAlerts, complianceCases, compLoading, onOpenCase }) {
-  const [certTab, setCertTab] = useState('insurance')
-  const [statusFilter, setStatusFilter] = useState('')
+function ComplianceDashboard({ complianceAlerts, licences, complianceCases, compLoading, onOpenCase }) {
+  const [certTab, setCertTab] = useState('all')
 
-  // Flatten to per-cert rows
-  const rows = complianceAlerts.flatMap(vehicle =>
-    (vehicle.certificates ?? []).map(cert => ({ ...vehicle, ...cert, vehicleId: vehicle.id }))
+  // Flatten vehicle certs to rows
+  const certRows = complianceAlerts.flatMap(vehicle =>
+    (vehicle.certificates ?? []).map(cert => ({
+      ...cert,
+      asset_name:         vehicle.asset_name,
+      asset_ref:          vehicle.asset_ref,
+      registration_plate: vehicle.registration_plate,
+      source:             vehicle.source,
+      isLicence:          false,
+    }))
   )
 
-  const tabRows = rows.filter(r => r.compliance_type === certTab)
-  const filteredRows = statusFilter ? tabRows.filter(r => r.alert_level === statusFilter) : tabRows
+  const licenceRows = (licences ?? []).map(l => ({ ...l, isLicence: true }))
 
-  const sortedRows = [...filteredRows].sort((a, b) => a.days_left - b.days_left)
+  const allRows = [...certRows, ...licenceRows].sort((a, b) => a.days_left - b.days_left)
 
-  const countFor = (key) => rows.filter(r => r.compliance_type === key && r.alert_level !== 'ok').length
-  const expiredFor = (key) => rows.filter(r => r.compliance_type === key && r.alert_level === 'expired').length
+  const urgentCount  = allRows.filter(r => r.alert_level === 'expired' || r.alert_level === 'critical').length
+  const week7Count   = allRows.filter(r => r.alert_level === 'warning').length
+  const days30Count  = allRows.filter(r => r.days_left >= 0 && r.days_left <= 30 && r.alert_level === 'ok').length
+
+  const TAB_KEYS = ['all', 'insurance', 'inspection', 'speed_governor', 'driving_licence']
+  const TAB_LABELS = { all: 'All', insurance: 'Insurance', inspection: 'Inspection', speed_governor: 'Speed Governor', driving_licence: 'Licences' }
+
+  const tabCount = (key) => key === 'all'
+    ? allRows.filter(r => r.alert_level !== 'ok').length
+    : allRows.filter(r => r.compliance_type === key && r.alert_level !== 'ok').length
+
+  const shownRows = certTab === 'all'
+    ? allRows.filter(r => r.alert_level !== 'ok')
+    : allRows.filter(r => r.compliance_type === certTab)
+
+  const TYPE_ICON = {
+    insurance:       ShieldExclamationIcon,
+    inspection:      WrenchScrewdriverIcon,
+    speed_governor:  TruckIcon,
+    driving_licence: UserCircleIcon,
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Summary mini-cards */}
-      <div className="grid grid-cols-3 gap-3">
-        {CERT_TABS.map(({ key, label, icon: Icon }) => {
-          const count = countFor(key)
-          const expired = expiredFor(key)
+    <div className="rounded-2xl overflow-hidden shadow-lg" style={{ background: '#1a1f2e' }}>
+      {/* Stats row */}
+      <div className="grid grid-cols-4 divide-x divide-white/10 border-b border-white/10">
+        {[
+          { label: 'Overdue / critical', value: urgentCount,  color: urgentCount > 0 ? '#ef4444' : '#6b7280',  sub: 'requires immediate action' },
+          { label: 'Due in 7 days',      value: week7Count,   color: week7Count > 0  ? '#f59e0b' : '#6b7280',  sub: 'act soon' },
+          { label: 'Due in 30 days',     value: days30Count,  color: '#9ca3af',                                 sub: 'plan ahead' },
+          { label: 'Total tracked',      value: allRows.length, color: '#9ca3af',                               sub: 'all certificates & licences' },
+        ].map(({ label, value, color, sub }) => (
+          <div key={label} className="px-5 py-4">
+            <p className="text-[10px] font-medium mb-1" style={{ color: color === '#ef4444' ? '#fca5a5' : color === '#f59e0b' ? '#fcd34d' : '#9ca3af' }}>
+              {label}
+            </p>
+            <p className="text-3xl font-bold" style={{ color }}>{value}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: '#6b7280' }}>{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 px-4 py-3 border-b border-white/10 overflow-x-auto">
+        {TAB_KEYS.map(key => {
+          const count = tabCount(key)
           const active = certTab === key
           return (
-            <button key={key} onClick={() => { setCertTab(key); setStatusFilter('') }}
-              className={`text-left p-4 rounded-2xl border shadow-sm transition-all
+            <button key={key} onClick={() => setCertTab(key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all
                 ${active
-                  ? 'bg-brand-red text-white border-brand-red shadow-md'
-                  : count > 0
-                    ? 'bg-white border-red-100 hover:border-brand-red'
-                    : 'bg-white border-gray-100 hover:border-gray-300'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-1.5 rounded-lg ${active ? 'bg-white/20' : count > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                  <Icon className={`h-4 w-4 ${active ? 'text-white' : count > 0 ? 'text-red-500' : 'text-green-500'}`} />
-                </div>
-                {expired > 0 && (
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold
-                    ${active ? 'bg-white/25 text-white' : 'bg-red-100 text-red-600'}`}>
-                    {expired} expired
-                  </span>
-                )}
-              </div>
-              <p className={`text-2xl font-bold ${active ? 'text-white' : count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
-              <p className={`text-xs font-semibold mt-0.5 ${active ? 'text-white/90' : 'text-gray-600'}`}>{label}</p>
-              <p className={`text-[10px] mt-0.5 ${active ? 'text-white/70' : 'text-gray-400'}`}>
-                {count === 0 ? 'All valid' : `${count} vehicle${count !== 1 ? 's' : ''} need attention`}
-              </p>
+                  ? 'bg-white/15 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>
+              {key !== 'all' && (() => { const Icon = TYPE_ICON[key]; return <Icon className="h-3.5 w-3.5" /> })()}
+              {TAB_LABELS[key]}
+              {count > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                  ${active ? 'bg-brand-red text-white' : 'bg-white/10 text-gray-300'}`}>
+                  {count}
+                </span>
+              )}
             </button>
           )
         })}
       </div>
 
-      {/* Status filter pills */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {[
-          { value: '',         label: 'All' },
-          { value: 'expired',  label: 'Expired' },
-          { value: 'critical', label: 'Critical (≤3 days)' },
-          { value: 'warning',  label: 'Warning (≤7 days)' },
-          { value: 'ok',       label: 'Valid' },
-        ].map(({ value, label }) => (
-          <button key={value} onClick={() => setStatusFilter(value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
-              ${statusFilter === value
-                ? 'bg-brand-red text-white border-brand-red'
-                : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
+      {/* List */}
       {compLoading ? (
-        <div className="space-y-px">
+        <div className="p-4 space-y-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse h-14" />
+            <div key={i} className="h-14 rounded-lg animate-pulse" style={{ background: '#ffffff10' }} />
           ))}
         </div>
-      ) : sortedRows.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
-          <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-          <p className="text-sm font-medium text-gray-600">
-            {statusFilter === 'ok' || !statusFilter ? 'All certificates are up to date' : `No ${statusFilter} certificates`}
-          </p>
+      ) : shownRows.length === 0 ? (
+        <div className="py-16 text-center">
+          <CheckCircleIcon className="h-10 w-10 mx-auto mb-3 text-green-400 opacity-60" />
+          <p className="text-sm text-gray-400">All up to date</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-            <span>Vehicle</span>
-            <span>Registration Plate</span>
-            <span>Expiry Date</span>
-            <span>Status</span>
-            <span />
-          </div>
-          <div className="divide-y divide-gray-50">
-            {sortedRows.map((row, i) => {
-              const s = COMPLIANCE_STYLES[row.alert_level] || COMPLIANCE_STYLES.ok
-              const activeCase = complianceCases.find(c =>
-                c.asset_ref === row.asset_ref &&
-                c.compliance_type === row.compliance_type &&
-                c.status !== 'closed'
-              )
-              return (
-                <div key={i}
-                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-gray-50 transition-colors
-                    ${row.alert_level === 'expired' ? 'bg-red-50/40' : ''}`}>
-                  {/* Vehicle name */}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm text-brand-slate truncate">{row.asset_name}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 capitalize">{row.source === 'fleet' ? 'Fleet' : 'Asset Register'}</p>
-                  </div>
-                  {/* Plate */}
-                  <div>
-                    {row.registration_plate
-                      ? <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{row.registration_plate}</span>
-                      : <span className="text-gray-300 text-xs">—</span>
-                    }
-                  </div>
-                  {/* Expiry + days */}
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700">{row.expiry_date}</p>
-                    <p className={`text-[10px] mt-0.5 font-medium ${row.days_left < 0 ? 'text-red-500' : row.days_left <= 7 ? 'text-amber-500' : 'text-gray-400'}`}>
-                      {row.days_left < 0
-                        ? `${Math.abs(row.days_left)}d overdue`
-                        : `${row.days_left}d remaining`}
-                    </p>
-                  </div>
-                  {/* Status badge */}
-                  <div>
-                    <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold ${s.badge}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                      {s.label}
-                    </span>
-                    {activeCase && (
-                      <p className="text-[9px] text-indigo-500 mt-1 font-medium">
-                        {STEP_LABELS_MAP[activeCase.status]}
-                      </p>
-                    )}
-                  </div>
-                  {/* Action */}
-                  <div className="shrink-0">
-                    {row.alert_level !== 'ok' && (
-                      <button
-                        onClick={() => onOpenCase({ ...row, certificates: undefined })}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap
-                          ${activeCase
-                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                            : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
-                        <ArrowRightIcon className="h-3 w-3" />
-                        {activeCase ? 'Manage' : 'Renew'}
-                      </button>
-                    )}
-                  </div>
+        <div className="divide-y divide-white/5">
+          {shownRows.map((row, i) => {
+            const badge = daysBadge(row.days_left)
+            const Icon = TYPE_ICON[row.compliance_type] || ShieldExclamationIcon
+            const activeCase = !row.isLicence && complianceCases.find(c =>
+              c.asset_ref === row.asset_ref &&
+              c.compliance_type === row.compliance_type &&
+              c.status !== 'closed'
+            )
+            const subtitle = row.isLicence
+              ? [row.position, row.department].filter(Boolean).join(' · ')
+              : [row.registration_plate, row.compliance_label].filter(Boolean).join(' — ')
+            const title = row.isLicence
+              ? `${row.asset_name} — driving licence expired`
+              : `${row.registration_plate || row.asset_name} — ${(row.compliance_label || '').toLowerCase()}`
+
+            return (
+              <div key={i}
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/5 transition-colors cursor-default group">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: row.alert_level === 'expired' ? '#7f1d1d40' : row.alert_level === 'critical' ? '#7c2d1240' : '#37415140' }}>
+                  <Icon className={`h-4 w-4 ${row.alert_level === 'expired' ? 'text-red-400' : row.alert_level === 'critical' ? 'text-orange-400' : 'text-gray-400'}`} />
                 </div>
-              )
-            })}
-          </div>
-          <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
-            {sortedRows.length} record{sortedRows.length !== 1 ? 's' : ''} · sorted by expiry date
-          </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{title}</p>
+                  {subtitle && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{subtitle}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  {!row.isLicence && row.alert_level !== 'ok' && (
+                    <button onClick={() => onOpenCase({ ...row })}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 rounded-lg text-[11px] font-semibold bg-brand-red text-white hover:opacity-90">
+                      {activeCase ? 'Manage' : 'Renew'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {shownRows.length > 0 && (
+        <div className="px-5 py-3 border-t border-white/10 text-[10px] text-gray-500">
+          {shownRows.length} record{shownRows.length !== 1 ? 's' : ''} · sorted by urgency
         </div>
       )}
     </div>
@@ -653,11 +638,13 @@ export default function AlertsPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [caseAlert, setCaseAlert]       = useState(null)  // alert being worked on in workflow panel
 
-  const { data: complianceAlerts = [], isLoading: compLoading } = useQuery({
+  const { data: _compData = {}, isLoading: compLoading } = useQuery({
     queryKey: ['compliance-alerts'],
-    queryFn:  () => getComplianceAlerts().then(r => r.data ?? []),
+    queryFn:  () => getComplianceAlerts().then(r => r.data ?? {}),
     refetchInterval: 5 * 60 * 1000,
   })
+  const complianceAlerts = Array.isArray(_compData) ? _compData : (_compData.vehicles ?? [])
+  const licences = Array.isArray(_compData) ? [] : (_compData.licences ?? [])
 
   const { data: fleetAlerts = [], isLoading: fleetLoading } = useQuery({
     queryKey: ['fleet-alerts', showAcked],
@@ -711,10 +698,14 @@ export default function AlertsPage() {
     onSuccess: () => qc.invalidateQueries(['scheduled-actions']),
   })
 
-  // Compliance stats — only expired / critical / warning (≤7 days) are actionable
-  const expiredCount  = complianceAlerts.filter(a => a.alert_level === 'expired').length
-  const criticalCount = complianceAlerts.filter(a => a.alert_level === 'critical').length
-  const warningCount  = complianceAlerts.filter(a => a.alert_level === 'warning').length
+  // Compliance stats from flattened cert rows + licences
+  const allCertRows = [
+    ...complianceAlerts.flatMap(v => v.certificates ?? []),
+    ...licences,
+  ]
+  const expiredCount  = allCertRows.filter(r => r.alert_level === 'expired').length
+  const criticalCount = allCertRows.filter(r => r.alert_level === 'critical').length
+  const warningCount  = allCertRows.filter(r => r.alert_level === 'warning').length
   const compUrgent    = expiredCount + criticalCount + warningCount
 
   const fuelAlerts    = fleetAlerts.filter(a => ['fuel_fill','fuel_drain','geofence'].includes(a.alert_type))
@@ -869,8 +860,9 @@ export default function AlertsPage() {
 
       {/* ── Compliance ── */}
       {tab === 'compliance' && (
-        <ComplianceTabView
+        <ComplianceDashboard
           complianceAlerts={complianceAlerts}
+          licences={licences}
           complianceCases={complianceCases}
           compLoading={compLoading}
           onOpenCase={setCaseAlert}
