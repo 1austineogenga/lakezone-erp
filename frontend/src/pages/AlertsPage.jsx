@@ -758,7 +758,9 @@ export default function AlertsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="font-bold text-brand-slate text-sm">{alert.asset_name}</span>
-                          <span className="text-xs text-gray-600 font-mono">{alert.asset_ref}</span>
+                          {alert.registration_plate && (
+                            <span className="text-xs text-gray-600 font-mono">{alert.registration_plate}</span>
+                          )}
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
                           <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
                             {typeLabel}
