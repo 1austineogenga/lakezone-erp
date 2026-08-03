@@ -514,27 +514,25 @@ function ComplianceDashboard({ complianceAlerts, licences, complianceCases, comp
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden shadow-lg" style={{ background: '#1a1f2e' }}>
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
       {/* Stats row */}
-      <div className="grid grid-cols-4 divide-x divide-white/10 border-b border-white/10">
+      <div className="grid grid-cols-4 divide-x divide-gray-100 border-b border-gray-100">
         {[
-          { label: 'Overdue / critical', value: urgentCount,  color: urgentCount > 0 ? '#ef4444' : '#6b7280',  sub: 'requires immediate action' },
-          { label: 'Due in 7 days',      value: week7Count,   color: week7Count > 0  ? '#f59e0b' : '#6b7280',  sub: 'act soon' },
-          { label: 'Due in 30 days',     value: days30Count,  color: '#9ca3af',                                 sub: 'plan ahead' },
-          { label: 'Total tracked',      value: allRows.length, color: '#9ca3af',                               sub: 'all certificates & licences' },
-        ].map(({ label, value, color, sub }) => (
+          { label: 'Overdue / critical', value: urgentCount,    valueCls: urgentCount > 0 ? 'text-red-600' : 'text-gray-400',   labelCls: urgentCount > 0 ? 'text-red-400' : 'text-gray-400',  sub: 'requires immediate action' },
+          { label: 'Due in 7 days',      value: week7Count,     valueCls: week7Count > 0  ? 'text-amber-500' : 'text-gray-400', labelCls: week7Count > 0  ? 'text-amber-400' : 'text-gray-400', sub: 'act soon' },
+          { label: 'Due in 30 days',     value: days30Count,    valueCls: 'text-gray-500',  labelCls: 'text-gray-400', sub: 'plan ahead' },
+          { label: 'Total tracked',      value: allRows.length, valueCls: 'text-gray-700',  labelCls: 'text-gray-400', sub: 'all certificates & licences' },
+        ].map(({ label, value, valueCls, labelCls, sub }) => (
           <div key={label} className="px-5 py-4">
-            <p className="text-[10px] font-medium mb-1" style={{ color: color === '#ef4444' ? '#fca5a5' : color === '#f59e0b' ? '#fcd34d' : '#9ca3af' }}>
-              {label}
-            </p>
-            <p className="text-3xl font-bold" style={{ color }}>{value}</p>
-            <p className="text-[10px] mt-0.5" style={{ color: '#6b7280' }}>{sub}</p>
+            <p className={`text-[10px] font-medium mb-1 ${labelCls}`}>{label}</p>
+            <p className={`text-3xl font-bold ${valueCls}`}>{value}</p>
+            <p className="text-[10px] mt-0.5 text-gray-400">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 px-4 py-3 border-b border-white/10 overflow-x-auto">
+      <div className="flex items-center gap-1 px-4 py-2.5 border-b border-gray-100 overflow-x-auto bg-gray-50/50">
         {TAB_KEYS.map(key => {
           const count = tabCount(key)
           const active = certTab === key
@@ -542,13 +540,13 @@ function ComplianceDashboard({ complianceAlerts, licences, complianceCases, comp
             <button key={key} onClick={() => setCertTab(key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all
                 ${active
-                  ? 'bg-white/15 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>
+                  ? 'bg-white text-brand-red shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/70'}`}>
               {key !== 'all' && (() => { const Icon = TYPE_ICON[key]; return <Icon className="h-3.5 w-3.5" /> })()}
               {TAB_LABELS[key]}
               {count > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold
-                  ${active ? 'bg-brand-red text-white' : 'bg-white/10 text-gray-300'}`}>
+                  ${active ? 'bg-brand-red text-white' : 'bg-gray-200 text-gray-600'}`}>
                   {count}
                 </span>
               )}
@@ -561,16 +559,16 @@ function ComplianceDashboard({ complianceAlerts, licences, complianceCases, comp
       {compLoading ? (
         <div className="p-4 space-y-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-14 rounded-lg animate-pulse" style={{ background: '#ffffff10' }} />
+            <div key={i} className="h-14 rounded-lg animate-pulse bg-gray-100" />
           ))}
         </div>
       ) : shownRows.length === 0 ? (
         <div className="py-16 text-center">
-          <CheckCircleIcon className="h-10 w-10 mx-auto mb-3 text-green-400 opacity-60" />
-          <p className="text-sm text-gray-400">All up to date</p>
+          <CheckCircleIcon className="h-10 w-10 mx-auto mb-3 text-green-400" />
+          <p className="text-sm text-gray-500">All up to date</p>
         </div>
       ) : (
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-gray-50">
           {shownRows.map((row, i) => {
             const badge = daysBadge(row.days_left)
             const Icon = TYPE_ICON[row.compliance_type] || ShieldExclamationIcon
@@ -583,18 +581,20 @@ function ComplianceDashboard({ complianceAlerts, licences, complianceCases, comp
               ? [row.position, row.department].filter(Boolean).join(' · ')
               : [row.registration_plate, row.compliance_label].filter(Boolean).join(' — ')
             const title = row.isLicence
-              ? `${row.asset_name} — driving licence expired`
+              ? `${row.asset_name} — driving licence`
               : `${row.registration_plate || row.asset_name} — ${(row.compliance_label || '').toLowerCase()}`
+            const rowBg = row.alert_level === 'expired' ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-gray-50'
 
             return (
               <div key={i}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/5 transition-colors cursor-default group">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: row.alert_level === 'expired' ? '#7f1d1d40' : row.alert_level === 'critical' ? '#7c2d1240' : '#37415140' }}>
-                  <Icon className={`h-4 w-4 ${row.alert_level === 'expired' ? 'text-red-400' : row.alert_level === 'critical' ? 'text-orange-400' : 'text-gray-400'}`} />
+                className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-default group ${rowBg}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                  ${row.alert_level === 'expired' ? 'bg-red-100' : row.alert_level === 'critical' ? 'bg-orange-100' : row.alert_level === 'warning' ? 'bg-amber-50' : 'bg-gray-100'}`}>
+                  <Icon className={`h-4 w-4
+                    ${row.alert_level === 'expired' ? 'text-red-500' : row.alert_level === 'critical' ? 'text-orange-500' : row.alert_level === 'warning' ? 'text-amber-500' : 'text-gray-400'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{title}</p>
+                  <p className="text-sm font-semibold text-brand-slate truncate">{title}</p>
                   {subtitle && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{subtitle}</p>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -615,7 +615,7 @@ function ComplianceDashboard({ complianceAlerts, licences, complianceCases, comp
       )}
 
       {shownRows.length > 0 && (
-        <div className="px-5 py-3 border-t border-white/10 text-[10px] text-gray-500">
+        <div className="px-5 py-3 border-t border-gray-100 text-[10px] text-gray-400 bg-gray-50/50">
           {shownRows.length} record{shownRows.length !== 1 ? 's' : ''} · sorted by urgency
         </div>
       )}
@@ -782,60 +782,6 @@ export default function AlertsPage() {
       <div>
         <h1 className="text-lg font-bold text-brand-slate">System Alerts</h1>
         <p className="text-xs text-gray-600 mt-0.5">Compliance, fuel, safety, inventory and scheduled action alerts</p>
-      </div>
-
-      {/* Dashboard summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <SummaryCard
-          icon={ShieldExclamationIcon}
-          label="Expired Documents"
-          value={expiredCount}
-          sub="Compliance"
-          bg="bg-red-50"
-          color="text-red-600"
-          onClick={() => setTab('compliance')}
-          active={tab === 'compliance'}
-        />
-        <SummaryCard
-          icon={ExclamationTriangleIcon}
-          label="Expiring ≤ 3 Days"
-          value={criticalCount}
-          sub="Compliance"
-          bg="bg-orange-50"
-          color="text-orange-600"
-          onClick={() => setTab('compliance')}
-          active={tab === 'compliance'}
-        />
-        <SummaryCard
-          icon={ClockIcon}
-          label="Due Within 7 Days"
-          value={warningCount}
-          sub="Compliance"
-          bg="bg-amber-50"
-          color="text-amber-600"
-          onClick={() => setTab('compliance')}
-          active={tab === 'compliance'}
-        />
-        <SummaryCard
-          icon={BeakerIcon}
-          label="Fuel Alerts"
-          value={unAckedFuel}
-          sub="Unacknowledged"
-          bg="bg-blue-50"
-          color="text-blue-600"
-          onClick={() => setTab('fuel')}
-          active={tab === 'fuel'}
-        />
-        <SummaryCard
-          icon={CubeIcon}
-          label="Low Stock Items"
-          value={lowStockCount}
-          sub="Below reorder level"
-          bg="bg-purple-50"
-          color="text-purple-600"
-          onClick={() => setTab('stock')}
-          active={tab === 'stock'}
-        />
       </div>
 
       {/* Tabs */}
