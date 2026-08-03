@@ -747,24 +747,28 @@ export default function AlertsPage() {
               <div className="space-y-2">
                 {shown.map(alert => {
                   const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
-                  const typeLabel = alert.compliance_label || COMPLIANCE_TYPE_LABELS[alert.compliance_type] || alert.compliance_type
-                  const activeCase = complianceCases.find(c =>
-                    c.asset_ref === alert.asset_ref && c.compliance_type === alert.compliance_type && c.status !== 'closed'
-                  )
+                  const certs = alert.certificates ?? []
+                  // For the action button, pick the first non-ok cert that has/needs a case
+                  const firstActionCert = certs.find(c => c.alert_level !== 'ok') ?? certs[0]
+                  const activeCase = firstActionCert
+                    ? complianceCases.find(c =>
+                        c.asset_ref === alert.asset_ref &&
+                        c.compliance_type === firstActionCert.compliance_type &&
+                        c.status !== 'closed'
+                      )
+                    : null
                   const stepIdx = activeCase ? STEP_KEYS.indexOf(activeCase.status) : -1
                   return (
-                    <div key={alert.id} className={`${s.bg} border border-l-4 ${s.border} border-gray-100 rounded-2xl px-5 py-4 flex items-center gap-4`}>
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} />
+                    <div key={alert.id} className={`${s.bg} border border-l-4 ${s.border} border-gray-100 rounded-2xl px-5 py-4 flex items-start gap-4`}>
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ${s.dot}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {/* Vehicle header */}
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
                           <span className="font-bold text-brand-slate text-sm">{alert.asset_name}</span>
                           {alert.registration_plate && (
                             <span className="text-xs text-gray-600 font-mono">{alert.registration_plate}</span>
                           )}
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
-                          <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
-                            {typeLabel}
-                          </span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
                             alert.source === 'fleet'
                               ? 'bg-blue-50 text-blue-600 border-blue-200'
@@ -778,19 +782,31 @@ export default function AlertsPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600">
-                          Expires: <span className="font-semibold">{alert.expiry_date}</span>
-                          {' · '}
-                          <span className={alert.days_left < 0 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                            {alert.days_left < 0
-                              ? `${Math.abs(alert.days_left)} days overdue`
-                              : `${alert.days_left} days remaining`}
-                          </span>
-                        </p>
-                        {alert.notes && <p className="text-[10px] text-gray-600 mt-0.5 italic">{alert.notes}</p>}
+                        {/* Certificate rows */}
+                        <div className="space-y-1">
+                          {certs.map((cert, ci) => {
+                            const cs = COMPLIANCE_STYLES[cert.alert_level] || COMPLIANCE_STYLES.ok
+                            return (
+                              <div key={ci} className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
+                                  {cert.compliance_label}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  Expires: <span className="font-semibold text-gray-700">{cert.expiry_date}</span>
+                                  {' · '}
+                                  <span className={cert.days_left < 0 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
+                                    {cert.days_left < 0
+                                      ? `${Math.abs(cert.days_left)} days overdue`
+                                      : `${cert.days_left} days remaining`}
+                                  </span>
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                      {alert.alert_level !== 'ok' && (
-                        <button onClick={() => setCaseAlert(alert)}
+                      {alert.alert_level !== 'ok' && firstActionCert && (
+                        <button onClick={() => setCaseAlert({ ...alert, ...firstActionCert, certificates: undefined })}
                           className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-colors
                             ${activeCase
                               ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'

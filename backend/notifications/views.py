@@ -143,24 +143,54 @@ def compliance_alerts(request):
     except Exception:
         pass
 
-    # Deduplicate: same registration plate + same compliance type from both
-    # Fleet and Asset Register means the same physical vehicle. Keep Fleet
-    # entries (more authoritative) and drop Asset duplicates.
-    fleet_keys = set()
+    # Group by vehicle: one entry per vehicle containing all its certificates.
+    # Key = (source, asset_ref) so fleet and asset entries stay separate unless
+    # the same plate appears in both (fleet wins, asset duplicate dropped).
+    fleet_plates = set()
     for r in result:
         if r['source'] == 'fleet' and r['registration_plate']:
-            fleet_keys.add((r['registration_plate'].strip().upper(), r['compliance_type']))
+            fleet_plates.add(r['registration_plate'].strip().upper())
 
-    deduped = []
+    # Drop asset entries whose plate is already covered by fleet
+    filtered = []
     for r in result:
         if r['source'] == 'asset' and r['registration_plate']:
-            key = (r['registration_plate'].strip().upper(), r['compliance_type'])
-            if key in fleet_keys:
-                continue  # already covered by fleet entry
-        deduped.append(r)
+            if r['registration_plate'].strip().upper() in fleet_plates:
+                continue
+        filtered.append(r)
 
-    deduped.sort(key=lambda x: x['days_left'])
-    return Response(deduped)
+    # Group by vehicle key
+    ALERT_RANK = {'expired': 0, 'critical': 1, 'warning': 2, 'ok': 3}
+    grouped = {}
+    for r in filtered:
+        vkey = (r['source'], r['asset_ref'])
+        if vkey not in grouped:
+            grouped[vkey] = {
+                'id':                r['id'],
+                'source':            r['source'],
+                'asset_name':        r['asset_name'],
+                'asset_ref':         r['asset_ref'],
+                'registration_plate': r['registration_plate'],
+                'alert_level':       r['alert_level'],
+                'min_days_left':     r['days_left'],
+                'certificates': [],
+            }
+        entry = grouped[vkey]
+        entry['certificates'].append({
+            'compliance_type':  r['compliance_type'],
+            'compliance_label': r.get('compliance_label') or r['compliance_type'].replace('_', ' ').title(),
+            'expiry_date':      r['expiry_date'],
+            'days_left':        r['days_left'],
+            'alert_level':      r['alert_level'],
+        })
+        # Escalate to worst alert level
+        if ALERT_RANK.get(r['alert_level'], 99) < ALERT_RANK.get(entry['alert_level'], 99):
+            entry['alert_level'] = r['alert_level']
+        if r['days_left'] < entry['min_days_left']:
+            entry['min_days_left'] = r['days_left']
+
+    vehicles = sorted(grouped.values(), key=lambda x: x['min_days_left'])
+    return Response(vehicles)
 
 
 # ── Scheduled Actions ──────────────────────────────────────────────────────────
