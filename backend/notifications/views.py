@@ -190,7 +190,31 @@ def compliance_alerts(request):
             entry['min_days_left'] = r['days_left']
 
     vehicles = sorted(grouped.values(), key=lambda x: x['min_days_left'])
-    return Response(vehicles)
+
+    # ── Driver licences ───────────────────────────────────────────────────────
+    licences = []
+    try:
+        from hr.models import Employee
+        for emp in Employee.objects.filter(is_active=True, licence_expiry__isnull=False).select_related('department', 'position'):
+            days_left = (emp.licence_expiry - today).days
+            licences.append({
+                'id':             f'licence-{emp.id}',
+                'source':         'licence',
+                'asset_name':     emp.full_name,
+                'asset_ref':      emp.employee_number,
+                'registration_plate': emp.licence_number or '',
+                'compliance_type': 'driving_licence',
+                'compliance_label': 'Driving Licence',
+                'expiry_date':    str(emp.licence_expiry),
+                'days_left':      days_left,
+                'alert_level':    _alert_level(days_left),
+                'department':     emp.department.name if emp.department else '',
+                'position':       emp.position.title if emp.position else '',
+            })
+    except Exception:
+        pass
+
+    return Response({'vehicles': vehicles, 'licences': licences})
 
 
 # ── Scheduled Actions ──────────────────────────────────────────────────────────
