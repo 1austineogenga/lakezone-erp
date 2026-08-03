@@ -698,19 +698,33 @@ export default function AlertsPage() {
           {/* Compliance sub-cards */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { key: 'insurance',      label: 'Insurance',            icon: ShieldExclamationIcon },
-              { key: 'inspection',     label: 'Inspection',           icon: WrenchScrewdriverIcon },
-              { key: 'speed_governor', label: 'Speed Governor',       icon: TruckIcon },
+              { key: 'insurance',      label: 'Insurance',      icon: ShieldExclamationIcon },
+              { key: 'inspection',     label: 'Inspection',     icon: WrenchScrewdriverIcon },
+              { key: 'speed_governor', label: 'Speed Governor', icon: TruckIcon },
             ].map(({ key, label, icon: Icon }) => {
-              const count = complianceAlerts.filter(a => a.compliance_type === key && a.alert_level !== 'ok').length
+              const count = complianceAlerts.reduce((acc, a) => {
+                const certs = a.certificates ?? []
+                return acc + certs.filter(c => c.compliance_type === key && c.alert_level !== 'ok').length
+              }, 0)
+              const expired = complianceAlerts.reduce((acc, a) => {
+                const certs = a.certificates ?? []
+                return acc + certs.filter(c => c.compliance_type === key && c.alert_level === 'expired').length
+              }, 0)
               return (
-                <div key={key} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className="h-4 w-4 text-gray-400" />
-                    <p className="text-xs font-semibold text-gray-600">{label}</p>
+                <div key={key} className={`bg-white border rounded-2xl p-4 shadow-sm ${count > 0 ? 'border-red-100' : 'border-gray-100'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${count > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                        <Icon className={`h-4 w-4 ${count > 0 ? 'text-red-500' : 'text-green-500'}`} />
+                      </div>
+                      <p className="text-xs font-semibold text-gray-600">{label}</p>
+                    </div>
+                    {count > 0 && expired > 0 && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-bold">{expired} expired</span>
+                    )}
                   </div>
-                  <p className={`text-xl font-bold ${count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
-                  <p className="text-[10px] text-gray-600">{count === 0 ? 'All valid' : 'Action required'}</p>
+                  <p className={`text-2xl font-bold ${count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{count === 0 ? 'All valid' : `vehicle${count !== 1 ? 's' : ''} need attention`}</p>
                 </div>
               )
             })}
@@ -748,7 +762,6 @@ export default function AlertsPage() {
                 {shown.map(alert => {
                   const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
                   const certs = alert.certificates ?? []
-                  // For the action button, pick the first non-ok cert that has/needs a case
                   const firstActionCert = certs.find(c => c.alert_level !== 'ok') ?? certs[0]
                   const activeCase = firstActionCert
                     ? complianceCases.find(c =>
@@ -759,17 +772,19 @@ export default function AlertsPage() {
                     : null
                   const stepIdx = activeCase ? STEP_KEYS.indexOf(activeCase.status) : -1
                   return (
-                    <div key={alert.id} className={`${s.bg} border border-l-4 ${s.border} border-gray-100 rounded-2xl px-5 py-4 flex items-start gap-4`}>
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ${s.dot}`} />
-                      <div className="flex-1 min-w-0">
-                        {/* Vehicle header */}
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="font-bold text-brand-slate text-sm">{alert.asset_name}</span>
+                    <div key={alert.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                      {/* Vehicle header bar */}
+                      <div className={`flex items-center justify-between px-5 py-3 border-b ${s.bg} border-l-4 ${s.border}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
+                          <span className="font-bold text-brand-slate text-sm truncate">{alert.asset_name}</span>
                           {alert.registration_plate && (
-                            <span className="text-xs text-gray-600 font-mono">{alert.registration_plate}</span>
+                            <span className="text-xs font-mono font-semibold text-gray-500 bg-white/70 px-2 py-0.5 rounded-md border border-gray-200 shrink-0">
+                              {alert.registration_plate}
+                            </span>
                           )}
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.badge} shrink-0`}>{s.label}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${
                             alert.source === 'fleet'
                               ? 'bg-blue-50 text-blue-600 border-blue-200'
                               : 'bg-purple-50 text-purple-600 border-purple-200'
@@ -777,44 +792,41 @@ export default function AlertsPage() {
                             {alert.source === 'fleet' ? 'Fleet' : 'Asset Register'}
                           </span>
                           {activeCase && (
-                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium">
+                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium shrink-0">
                               Case: Step {stepIdx + 1}/7 — {STEP_LABELS_MAP[activeCase.status]}
                             </span>
                           )}
                         </div>
-                        {/* Certificate rows */}
-                        <div className="space-y-1">
-                          {certs.map((cert, ci) => {
-                            const cs = COMPLIANCE_STYLES[cert.alert_level] || COMPLIANCE_STYLES.ok
-                            return (
-                              <div key={ci} className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] px-2 py-0.5 bg-white/60 text-gray-600 rounded-full border border-gray-200">
-                                  {cert.compliance_label}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  Expires: <span className="font-semibold text-gray-700">{cert.expiry_date}</span>
-                                  {' · '}
-                                  <span className={cert.days_left < 0 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                                    {cert.days_left < 0
-                                      ? `${Math.abs(cert.days_left)} days overdue`
-                                      : `${cert.days_left} days remaining`}
-                                  </span>
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
+                        {alert.alert_level !== 'ok' && firstActionCert && (
+                          <button onClick={() => setCaseAlert({ ...alert, ...firstActionCert, certificates: undefined })}
+                            className={`shrink-0 ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors
+                              ${activeCase
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
+                            <ArrowRightIcon className="h-3.5 w-3.5" />
+                            {activeCase ? 'Manage Case' : 'Start Renewal'}
+                          </button>
+                        )}
                       </div>
-                      {alert.alert_level !== 'ok' && firstActionCert && (
-                        <button onClick={() => setCaseAlert({ ...alert, ...firstActionCert, certificates: undefined })}
-                          className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-colors
-                            ${activeCase
-                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                              : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
-                          <ArrowRightIcon className="h-3.5 w-3.5" />
-                          {activeCase ? 'Manage Case' : 'Start Renewal'}
-                        </button>
-                      )}
+                      {/* Certificate rows */}
+                      <div className="divide-y divide-gray-50">
+                        {certs.map((cert, ci) => {
+                          const cs = COMPLIANCE_STYLES[cert.alert_level] || COMPLIANCE_STYLES.ok
+                          return (
+                            <div key={ci} className="flex items-center gap-4 px-5 py-2.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cs.dot}`} />
+                              <span className="text-xs font-medium text-gray-700 w-44 shrink-0">{cert.compliance_label}</span>
+                              <span className="text-xs text-gray-400 shrink-0">Expires</span>
+                              <span className="text-xs font-semibold text-gray-700 shrink-0">{cert.expiry_date}</span>
+                              <span className={`text-xs font-semibold shrink-0 ${cert.days_left < 0 ? 'text-red-500' : cert.days_left <= 30 ? 'text-amber-500' : 'text-green-600'}`}>
+                                {cert.days_left < 0
+                                  ? `${Math.abs(cert.days_left)} days overdue`
+                                  : `${cert.days_left} days remaining`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   )
                 })}
