@@ -463,6 +463,181 @@ function SummaryCard({ icon: Icon, label, value, sub, bg, color, onClick, active
   )
 }
 
+const CERT_TABS = [
+  { key: 'insurance',      label: 'Insurance',       icon: ShieldExclamationIcon },
+  { key: 'inspection',     label: 'Inspection',       icon: WrenchScrewdriverIcon },
+  { key: 'speed_governor', label: 'Speed Governor',   icon: TruckIcon },
+]
+
+function ComplianceTabView({ complianceAlerts, complianceCases, compLoading, onOpenCase }) {
+  const [certTab, setCertTab] = useState('insurance')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  // Flatten to per-cert rows
+  const rows = complianceAlerts.flatMap(vehicle =>
+    (vehicle.certificates ?? []).map(cert => ({ ...vehicle, ...cert, vehicleId: vehicle.id }))
+  )
+
+  const tabRows = rows.filter(r => r.compliance_type === certTab)
+  const filteredRows = statusFilter ? tabRows.filter(r => r.alert_level === statusFilter) : tabRows
+
+  const sortedRows = [...filteredRows].sort((a, b) => a.days_left - b.days_left)
+
+  const countFor = (key) => rows.filter(r => r.compliance_type === key && r.alert_level !== 'ok').length
+  const expiredFor = (key) => rows.filter(r => r.compliance_type === key && r.alert_level === 'expired').length
+
+  return (
+    <div className="space-y-4">
+      {/* Summary mini-cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {CERT_TABS.map(({ key, label, icon: Icon }) => {
+          const count = countFor(key)
+          const expired = expiredFor(key)
+          const active = certTab === key
+          return (
+            <button key={key} onClick={() => { setCertTab(key); setStatusFilter('') }}
+              className={`text-left p-4 rounded-2xl border shadow-sm transition-all
+                ${active
+                  ? 'bg-brand-red text-white border-brand-red shadow-md'
+                  : count > 0
+                    ? 'bg-white border-red-100 hover:border-brand-red'
+                    : 'bg-white border-gray-100 hover:border-gray-300'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className={`p-1.5 rounded-lg ${active ? 'bg-white/20' : count > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                  <Icon className={`h-4 w-4 ${active ? 'text-white' : count > 0 ? 'text-red-500' : 'text-green-500'}`} />
+                </div>
+                {expired > 0 && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold
+                    ${active ? 'bg-white/25 text-white' : 'bg-red-100 text-red-600'}`}>
+                    {expired} expired
+                  </span>
+                )}
+              </div>
+              <p className={`text-2xl font-bold ${active ? 'text-white' : count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
+              <p className={`text-xs font-semibold mt-0.5 ${active ? 'text-white/90' : 'text-gray-600'}`}>{label}</p>
+              <p className={`text-[10px] mt-0.5 ${active ? 'text-white/70' : 'text-gray-400'}`}>
+                {count === 0 ? 'All valid' : `${count} vehicle${count !== 1 ? 's' : ''} need attention`}
+              </p>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Status filter pills */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {[
+          { value: '',         label: 'All' },
+          { value: 'expired',  label: 'Expired' },
+          { value: 'critical', label: 'Critical (≤3 days)' },
+          { value: 'warning',  label: 'Warning (≤7 days)' },
+          { value: 'ok',       label: 'Valid' },
+        ].map(({ value, label }) => (
+          <button key={value} onClick={() => setStatusFilter(value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
+              ${statusFilter === value
+                ? 'bg-brand-red text-white border-brand-red'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      {compLoading ? (
+        <div className="space-y-px">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse h-14" />
+          ))}
+        </div>
+      ) : sortedRows.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
+          <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
+          <p className="text-sm font-medium text-gray-600">
+            {statusFilter === 'ok' || !statusFilter ? 'All certificates are up to date' : `No ${statusFilter} certificates`}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          {/* Table header */}
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            <span>Vehicle</span>
+            <span>Registration Plate</span>
+            <span>Expiry Date</span>
+            <span>Status</span>
+            <span />
+          </div>
+          <div className="divide-y divide-gray-50">
+            {sortedRows.map((row, i) => {
+              const s = COMPLIANCE_STYLES[row.alert_level] || COMPLIANCE_STYLES.ok
+              const activeCase = complianceCases.find(c =>
+                c.asset_ref === row.asset_ref &&
+                c.compliance_type === row.compliance_type &&
+                c.status !== 'closed'
+              )
+              return (
+                <div key={i}
+                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-gray-50 transition-colors
+                    ${row.alert_level === 'expired' ? 'bg-red-50/40' : ''}`}>
+                  {/* Vehicle name */}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-brand-slate truncate">{row.asset_name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 capitalize">{row.source === 'fleet' ? 'Fleet' : 'Asset Register'}</p>
+                  </div>
+                  {/* Plate */}
+                  <div>
+                    {row.registration_plate
+                      ? <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{row.registration_plate}</span>
+                      : <span className="text-gray-300 text-xs">—</span>
+                    }
+                  </div>
+                  {/* Expiry + days */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700">{row.expiry_date}</p>
+                    <p className={`text-[10px] mt-0.5 font-medium ${row.days_left < 0 ? 'text-red-500' : row.days_left <= 7 ? 'text-amber-500' : 'text-gray-400'}`}>
+                      {row.days_left < 0
+                        ? `${Math.abs(row.days_left)}d overdue`
+                        : `${row.days_left}d remaining`}
+                    </p>
+                  </div>
+                  {/* Status badge */}
+                  <div>
+                    <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold ${s.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                      {s.label}
+                    </span>
+                    {activeCase && (
+                      <p className="text-[9px] text-indigo-500 mt-1 font-medium">
+                        {STEP_LABELS_MAP[activeCase.status]}
+                      </p>
+                    )}
+                  </div>
+                  {/* Action */}
+                  <div className="shrink-0">
+                    {row.alert_level !== 'ok' && (
+                      <button
+                        onClick={() => onOpenCase({ ...row, certificates: undefined })}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap
+                          ${activeCase
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                            : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
+                        <ArrowRightIcon className="h-3 w-3" />
+                        {activeCase ? 'Manage' : 'Renew'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
+            {sortedRows.length} record{sortedRows.length !== 1 ? 's' : ''} · sorted by expiry date
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AlertsPage() {
   const qc = useQueryClient()
   const [tab, setTab]             = useState('compliance')
@@ -627,8 +802,8 @@ export default function AlertsPage() {
           sub="Compliance"
           bg="bg-red-50"
           color="text-red-600"
-          onClick={() => { setTab('compliance'); setFilterAlert('expired') }}
-          active={tab === 'compliance' && filterAlert === 'expired'}
+          onClick={() => setTab('compliance')}
+          active={tab === 'compliance'}
         />
         <SummaryCard
           icon={ExclamationTriangleIcon}
@@ -637,8 +812,8 @@ export default function AlertsPage() {
           sub="Compliance"
           bg="bg-orange-50"
           color="text-orange-600"
-          onClick={() => { setTab('compliance'); setFilterAlert('critical') }}
-          active={tab === 'compliance' && filterAlert === 'critical'}
+          onClick={() => setTab('compliance')}
+          active={tab === 'compliance'}
         />
         <SummaryCard
           icon={ClockIcon}
@@ -647,8 +822,8 @@ export default function AlertsPage() {
           sub="Compliance"
           bg="bg-amber-50"
           color="text-amber-600"
-          onClick={() => { setTab('compliance'); setFilterAlert('warning') }}
-          active={tab === 'compliance' && filterAlert === 'warning'}
+          onClick={() => setTab('compliance')}
+          active={tab === 'compliance'}
         />
         <SummaryCard
           icon={BeakerIcon}
@@ -694,146 +869,12 @@ export default function AlertsPage() {
 
       {/* ── Compliance ── */}
       {tab === 'compliance' && (
-        <div className="space-y-4">
-          {/* Compliance sub-cards */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { key: 'insurance',      label: 'Insurance',      icon: ShieldExclamationIcon },
-              { key: 'inspection',     label: 'Inspection',     icon: WrenchScrewdriverIcon },
-              { key: 'speed_governor', label: 'Speed Governor', icon: TruckIcon },
-            ].map(({ key, label, icon: Icon }) => {
-              const count = complianceAlerts.reduce((acc, a) => {
-                const certs = a.certificates ?? []
-                return acc + certs.filter(c => c.compliance_type === key && c.alert_level !== 'ok').length
-              }, 0)
-              const expired = complianceAlerts.reduce((acc, a) => {
-                const certs = a.certificates ?? []
-                return acc + certs.filter(c => c.compliance_type === key && c.alert_level === 'expired').length
-              }, 0)
-              return (
-                <div key={key} className={`bg-white border rounded-2xl p-4 shadow-sm ${count > 0 ? 'border-red-100' : 'border-gray-100'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-lg ${count > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                        <Icon className={`h-4 w-4 ${count > 0 ? 'text-red-500' : 'text-green-500'}`} />
-                      </div>
-                      <p className="text-xs font-semibold text-gray-600">{label}</p>
-                    </div>
-                    {count > 0 && expired > 0 && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-bold">{expired} expired</span>
-                    )}
-                  </div>
-                  <p className={`text-2xl font-bold ${count > 0 ? 'text-red-600' : 'text-green-600'}`}>{count}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{count === 0 ? 'All valid' : `vehicle${count !== 1 ? 's' : ''} need attention`}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {['', 'expired', 'critical', 'warning', 'ok'].map(level => (
-              <button key={level} onClick={() => setFilterAlert(level)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize
-                  ${filterAlert === level
-                    ? 'bg-brand-red text-white border-brand-red'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'}`}>
-                {level === '' ? 'All Alerts' : level === 'ok' ? 'Valid' : level}
-              </button>
-            ))}
-          </div>
-
-          {compLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse h-16" />)}
-            </div>
-          ) : (() => {
-            const shown = filterAlert
-              ? complianceAlerts.filter(a => a.alert_level === filterAlert)
-              : complianceAlerts.filter(a => a.alert_level !== 'ok')
-            return shown.length === 0 ? (
-              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-16 text-center">
-                <CheckCircleIcon className="h-12 w-12 mx-auto mb-3 text-green-400" />
-                <p className="text-sm font-medium text-gray-600">
-                  {filterAlert === 'ok' ? 'No valid certificates to show' : 'All compliance documents are up to date'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {shown.map(alert => {
-                  const s = COMPLIANCE_STYLES[alert.alert_level] || COMPLIANCE_STYLES.ok
-                  const certs = alert.certificates ?? []
-                  const firstActionCert = certs.find(c => c.alert_level !== 'ok') ?? certs[0]
-                  const activeCase = firstActionCert
-                    ? complianceCases.find(c =>
-                        c.asset_ref === alert.asset_ref &&
-                        c.compliance_type === firstActionCert.compliance_type &&
-                        c.status !== 'closed'
-                      )
-                    : null
-                  const stepIdx = activeCase ? STEP_KEYS.indexOf(activeCase.status) : -1
-                  return (
-                    <div key={alert.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                      {/* Vehicle header bar */}
-                      <div className={`flex items-center justify-between px-5 py-3 border-b ${s.bg} border-l-4 ${s.border}`}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
-                          <span className="font-bold text-brand-slate text-sm truncate">{alert.asset_name}</span>
-                          {alert.registration_plate && (
-                            <span className="text-xs font-mono font-semibold text-gray-500 bg-white/70 px-2 py-0.5 rounded-md border border-gray-200 shrink-0">
-                              {alert.registration_plate}
-                            </span>
-                          )}
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.badge} shrink-0`}>{s.label}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${
-                            alert.source === 'fleet'
-                              ? 'bg-blue-50 text-blue-600 border-blue-200'
-                              : 'bg-purple-50 text-purple-600 border-purple-200'
-                          }`}>
-                            {alert.source === 'fleet' ? 'Fleet' : 'Asset Register'}
-                          </span>
-                          {activeCase && (
-                            <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium shrink-0">
-                              Case: Step {stepIdx + 1}/7 — {STEP_LABELS_MAP[activeCase.status]}
-                            </span>
-                          )}
-                        </div>
-                        {alert.alert_level !== 'ok' && firstActionCert && (
-                          <button onClick={() => setCaseAlert({ ...alert, ...firstActionCert, certificates: undefined })}
-                            className={`shrink-0 ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors
-                              ${activeCase
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                : 'bg-brand-red text-white border-brand-red hover:opacity-90'}`}>
-                            <ArrowRightIcon className="h-3.5 w-3.5" />
-                            {activeCase ? 'Manage Case' : 'Start Renewal'}
-                          </button>
-                        )}
-                      </div>
-                      {/* Certificate rows */}
-                      <div className="divide-y divide-gray-50">
-                        {certs.map((cert, ci) => {
-                          const cs = COMPLIANCE_STYLES[cert.alert_level] || COMPLIANCE_STYLES.ok
-                          return (
-                            <div key={ci} className="flex items-center gap-4 px-5 py-2.5">
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cs.dot}`} />
-                              <span className="text-xs font-medium text-gray-700 w-44 shrink-0">{cert.compliance_label}</span>
-                              <span className="text-xs text-gray-400 shrink-0">Expires</span>
-                              <span className="text-xs font-semibold text-gray-700 shrink-0">{cert.expiry_date}</span>
-                              <span className={`text-xs font-semibold shrink-0 ${cert.days_left < 0 ? 'text-red-500' : cert.days_left <= 30 ? 'text-amber-500' : 'text-green-600'}`}>
-                                {cert.days_left < 0
-                                  ? `${Math.abs(cert.days_left)} days overdue`
-                                  : `${cert.days_left} days remaining`}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
-        </div>
+        <ComplianceTabView
+          complianceAlerts={complianceAlerts}
+          complianceCases={complianceCases}
+          compLoading={compLoading}
+          onOpenCase={setCaseAlert}
+        />
       )}
 
       {/* ── Fuel ── */}
