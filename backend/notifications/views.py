@@ -143,8 +143,24 @@ def compliance_alerts(request):
     except Exception:
         pass
 
-    result.sort(key=lambda x: x['days_left'])
-    return Response(result)
+    # Deduplicate: same registration plate + same compliance type from both
+    # Fleet and Asset Register means the same physical vehicle. Keep Fleet
+    # entries (more authoritative) and drop Asset duplicates.
+    fleet_keys = set()
+    for r in result:
+        if r['source'] == 'fleet' and r['registration_plate']:
+            fleet_keys.add((r['registration_plate'].strip().upper(), r['compliance_type']))
+
+    deduped = []
+    for r in result:
+        if r['source'] == 'asset' and r['registration_plate']:
+            key = (r['registration_plate'].strip().upper(), r['compliance_type'])
+            if key in fleet_keys:
+                continue  # already covered by fleet entry
+        deduped.append(r)
+
+    deduped.sort(key=lambda x: x['days_left'])
+    return Response(deduped)
 
 
 # ── Scheduled Actions ──────────────────────────────────────────────────────────
