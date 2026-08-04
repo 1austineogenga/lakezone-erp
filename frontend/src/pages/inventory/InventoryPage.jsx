@@ -1503,7 +1503,7 @@ export default function InventoryPage() {
                         const isOut = stock === 0
                         const isLow = stock > 0 && stock <= reorder
                         const canAct = !isReadOnly
-                        const isAdmin = role === 'system_admin'
+                        const isAdmin = role === 'system_admin' || role === 'site_manager'
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5">
