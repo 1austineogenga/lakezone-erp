@@ -4,7 +4,38 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { getEmployees, deleteEmployee } from '../../api/hr'
 import api from '../../api/client'
-import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+
+function exportToExcel(employees) {
+  const rows = [
+    ['Employee Number', 'First Name', 'Last Name', 'Type', 'Department', 'Branch', 'Position', 'Phone', 'Date Hired', 'Status'],
+    ...employees.map(e => {
+      const parts = (e.full_name || '').trim().split(' ')
+      const firstName = parts[0] || ''
+      const lastName = parts.slice(1).join(' ') || ''
+      return [
+        e.employee_number || '',
+        firstName,
+        lastName,
+        e.employment_type === 'staff' ? 'Staff' : 'Casual',
+        e.department_name || '',
+        e.branch_name || '',
+        e.position_title || '',
+        e.phone || '',
+        e.date_hired || '',
+        e.is_active ? 'Active' : 'Inactive',
+      ]
+    }),
+  ]
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `employees_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const PAGE_SIZE = 12
 
@@ -52,16 +83,18 @@ export default function EmployeesPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [searchParams] = useSearchParams()
-  const [search, setSearch]   = useState('')
-  const [typeFilter, setType] = useState(searchParams.get('type') || '')
-  const [deptFilter, setDept] = useState('')
-  const [page, setPage]       = useState(1)
+  const [search, setSearch]       = useState('')
+  const [typeFilter, setType]     = useState(searchParams.get('type') || '')
+  const [deptFilter, setDept]     = useState('')
+  const [branchFilter, setBranch] = useState('')
+  const [page, setPage]           = useState(1)
 
   const { data: employees, isLoading } = useQuery({
-    queryKey: ['employees', typeFilter, deptFilter],
+    queryKey: ['employees', typeFilter, deptFilter, branchFilter],
     queryFn: () => getEmployees({
       ...(typeFilter && { employment_type: typeFilter }),
       ...(deptFilter && { department: deptFilter }),
+      ...(branchFilter && { branch: branchFilter }),
       is_active: 'true',
       page_size: 500,
     }),
@@ -71,6 +104,12 @@ export default function EmployeesPage() {
   const { data: departments } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get('/auth/departments/'),
+    select: r => r.data?.results ?? r.data,
+  })
+
+  const { data: branches } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => api.get('/auth/branches/'),
     select: r => r.data?.results ?? r.data,
   })
 
@@ -95,9 +134,10 @@ export default function EmployeesPage() {
     }
   }
 
-  const handleSearch = (val) => { setSearch(val); setPage(1) }
-  const handleType   = (val) => { setType(val);   setPage(1) }
-  const handleDept   = (val) => { setDept(val);   setPage(1) }
+  const handleSearch = (val) => { setSearch(val);   setPage(1) }
+  const handleType   = (val) => { setType(val);     setPage(1) }
+  const handleDept   = (val) => { setDept(val);     setPage(1) }
+  const handleBranch = (val) => { setBranch(val);   setPage(1) }
 
   return (
     <div className="space-y-4">
@@ -112,10 +152,17 @@ export default function EmployeesPage() {
             <span className="text-xs text-brand-slate font-medium">{filtered.filter(e => e.employment_type === 'casual').length} casuals</span>
           </div>
         </div>
-        <Link to="/hr/employees/new"
-          className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-sm font-semibold rounded-xl hover:opacity-90">
-          <PlusIcon className="h-4 w-4" /> Add Employee
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToExcel(filtered)}
+            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 bg-white text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50">
+            <ArrowDownTrayIcon className="h-4 w-4" /> Export
+          </button>
+          <Link to="/hr/employees/new"
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-red text-white text-sm font-semibold rounded-xl hover:opacity-90">
+            <PlusIcon className="h-4 w-4" /> Add Employee
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -136,6 +183,11 @@ export default function EmployeesPage() {
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
           <option value="">All Departments</option>
           {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <select value={branchFilter} onChange={e => handleBranch(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red">
+          <option value="">All Branches</option>
+          {branches?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
 
