@@ -4,22 +4,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { getEmployees, deleteEmployee } from '../../api/hr'
 import api from '../../api/client'
-import * as XLSX from 'xlsx'
 import { PlusIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 
 function exportToExcel(employees) {
-  const rows = employees.map(e => {
+  const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const cell = v => `<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`
+  const headers = ['Employee Number', 'First Name', 'Last Name']
+  const dataRows = employees.map(e => {
     const parts = (e.full_name || '').trim().split(' ')
-    return {
-      'Employee Number': e.employee_number || '',
-      'First Name': parts[0] || '',
-      'Last Name': parts.slice(1).join(' ') || '',
-    }
+    return [e.employee_number || '', parts[0] || '', parts.slice(1).join(' ') || '']
   })
-  const ws = XLSX.utils.json_to_sheet(rows)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Employees')
-  XLSX.writeFile(wb, `employees_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  const xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Employees">
+  <Table>
+   <Row>${headers.map(cell).join('')}</Row>
+   ${dataRows.map(r => `<Row>${r.map(cell).join('')}</Row>`).join('\n   ')}
+  </Table>
+ </Worksheet>
+</Workbook>`
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `employees_${new Date().toISOString().slice(0, 10)}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 const PAGE_SIZE = 12
