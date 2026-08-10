@@ -115,7 +115,12 @@ export default function EmployeeDetailPage() {
   const updateMut = useMutation({
     mutationFn: data => updateEmployee(id, data),
     onSuccess: () => { toast.success('Employee updated.'); qc.invalidateQueries(['employee', id]); setEditing(false) },
-    onError: e => toast.error(e.response?.data?.detail || 'Update failed.'),
+    onError: e => {
+      const data = e.response?.data
+      if (!data) return toast.error('Update failed.')
+      const msg = data.detail || Object.entries(data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+      toast.error(msg || 'Update failed.')
+    },
   })
   const docCreateMut = useMutation({
     mutationFn: data => createEmployeeDocument({ ...data, employee: id }),
