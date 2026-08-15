@@ -108,7 +108,7 @@ const NAV = (role, isAdmin) => [
     root: '/hr', module: 'hr',
     links: [
       { to: '/hr',                       label: 'Dashboard',         icon: ChartBarIcon,          end: true,  hideRoles: new Set(['site_manager']) },
-      { to: '/hr/employees',             label: 'Employees',         icon: UsersIcon },
+      { to: '/hr/employees',             label: 'Employees',         icon: UsersIcon,             hideRoles: new Set(['site_manager']) },
       { to: '/hr/attendance',            label: 'Attendance',        icon: ClockIcon,             hideRoles: new Set(['site_manager']) },
       { to: '/hr/leave',                 label: 'Leave',             icon: CalendarDaysIcon,      hideRoles: new Set(['site_manager']) },
       { to: '/hr/payroll',               label: 'Payroll',           icon: BanknotesIcon,         hideRoles: new Set(['site_manager']) },

@@ -755,7 +755,7 @@ class Casual(models.Model):
     full_name   = models.CharField(max_length=200, help_text='Full name as it appears on ID')
     phone       = models.CharField(max_length=20, help_text='Phone for mobile money payment')
     placement   = models.CharField(max_length=200, help_text='Head Office or project site location')
-    assignment  = models.TextField(help_text='Work assigned to the casual')
+    assignment  = models.TextField(blank=True, help_text='Work assigned to the casual')
     daily_rate  = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status      = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
 
@@ -812,11 +812,12 @@ class CasualDailyLog(models.Model):
 
 class CasualDailyReport(models.Model):
     class Status(models.TextChoices):
-        DRAFT     = 'draft',     'Draft'
-        SUBMITTED = 'submitted', 'Submitted for Approval'
-        APPROVED  = 'approved',  'Approved'
-        REJECTED  = 'rejected',  'Rejected'
-        PAID      = 'paid',      'Paid'
+        DRAFT       = 'draft',       'Draft'
+        SUBMITTED   = 'submitted',   'Submitted for Approval'
+        HR_APPROVED = 'hr_approved', 'HR Approved'
+        APPROVED    = 'approved',    'Approved'
+        REJECTED    = 'rejected',    'Rejected'
+        PAID        = 'paid',        'Paid'
 
     id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reference     = models.CharField(max_length=30, unique=True, blank=True)
@@ -831,6 +832,11 @@ class CasualDailyReport(models.Model):
     approved_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                       null=True, blank=True, related_name='casual_reports_approved')
     approved_at   = models.DateTimeField(null=True, blank=True)
+    hr_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='casual_reports_hr_approved'
+    )
+    hr_approved_at = models.DateTimeField(null=True, blank=True)
     rejection_notes = models.TextField(blank=True)
 
     expense_claim = models.OneToOneField(
@@ -883,3 +889,27 @@ class CasualDailyReportItem(models.Model):
 
     def __str__(self):
         return f'{self.full_name} — KES {self.amount}'
+
+
+class CasualWorkEvidence(models.Model):
+    """Photo evidence of work done by casuals on a given day."""
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    work_date   = models.DateField(db_index=True)
+    image       = models.ImageField(upload_to='casual_evidence/%Y/%m/')
+    caption     = models.CharField(max_length=300, blank=True)
+    casual      = models.ForeignKey(
+        Casual, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='work_evidence',
+        help_text='Leave blank for overall site evidence'
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='casual_evidence_uploaded'
+    )
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Evidence {self.work_date} — {self.caption or self.id}'
