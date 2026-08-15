@@ -62,6 +62,13 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True, validators=[validate_password])
 
+    def validate(self, data):
+        if data.get('old_password') and data.get('new_password') == data['old_password']:
+            raise serializers.ValidationError(
+                {'new_password': 'New password must be different from your current password.'}
+            )
+        return data
+
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
