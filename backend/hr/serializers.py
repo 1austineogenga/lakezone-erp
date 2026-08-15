@@ -5,6 +5,7 @@ from .models import (
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
     EmployeeTransfer, Casual, CasualDailyLog, CasualDailyReport, CasualDailyReportItem,
+    CasualWorkEvidence,
 )
 
 
@@ -373,12 +374,13 @@ class CasualDailyReportItemSerializer(serializers.ModelSerializer):
 
 
 class CasualDailyReportSerializer(serializers.ModelSerializer):
-    items              = CasualDailyReportItemSerializer(many=True, read_only=True)
-    submitted_by_name  = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
-    approved_by_name   = serializers.CharField(source='approved_by.get_full_name',  read_only=True)
-    expense_reference  = serializers.CharField(source='expense_claim.reference',    read_only=True)
-    expense_status     = serializers.CharField(source='expense_claim.status',       read_only=True)
-    status_display     = serializers.CharField(source='get_status_display',         read_only=True)
+    items                = CasualDailyReportItemSerializer(many=True, read_only=True)
+    submitted_by_name    = serializers.CharField(source='submitted_by.get_full_name',    read_only=True)
+    approved_by_name     = serializers.CharField(source='approved_by.get_full_name',     read_only=True)
+    hr_approved_by_name  = serializers.CharField(source='hr_approved_by.get_full_name',  read_only=True, allow_null=True)
+    expense_reference    = serializers.CharField(source='expense_claim.reference',       read_only=True)
+    expense_status       = serializers.CharField(source='expense_claim.status',          read_only=True)
+    status_display       = serializers.CharField(source='get_status_display',            read_only=True)
 
     class Meta:
         model  = CasualDailyReport
@@ -386,5 +388,23 @@ class CasualDailyReportSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'reference', 'submitted_by', 'submitted_at',
             'approved_by', 'approved_at', 'expense_claim',
+            'hr_approved_by', 'hr_approved_at',
             'total_amount', 'created_at', 'updated_at',
         ]
+
+
+class CasualWorkEvidenceSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.get_full_name', read_only=True)
+    casual_name      = serializers.CharField(source='casual.full_name', read_only=True, allow_null=True)
+    image_url        = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = CasualWorkEvidence
+        fields = '__all__'
+        read_only_fields = ['uploaded_by', 'created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url if obj.image else None

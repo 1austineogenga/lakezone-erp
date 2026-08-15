@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .models import (
     JobGrade, Position, Employee, EmployeeDocument,
@@ -14,6 +15,7 @@ from .models import (
     LeaveType, LeaveBalance, LeaveApplication,
     PayrollPeriod, PayrollEntry, SalaryAdvance, DisciplinaryRecord,
     EmployeeTransfer, Casual, CasualDailyLog, CasualDailyReport, CasualDailyReportItem,
+    CasualWorkEvidence,
 )
 from .serializers import (
     JobGradeSerializer, PositionSerializer,
@@ -28,6 +30,7 @@ from .serializers import (
     EmployeeTransferSerializer, EmployeeTransferCreateSerializer, TransferReviewSerializer,
     CasualSerializer, CasualDailyLogSerializer,
     CasualDailyReportSerializer, CasualDailyReportItemSerializer,
+    CasualWorkEvidenceSerializer,
 )
 
 
@@ -1216,10 +1219,16 @@ class CasualToggleActiveView(APIView):
 
         today = date.today()
         if casual.activated_date == today:
-            casual.activated_date = None   # deactivate
+            casual.activated_date = None
+            casual.save(update_fields=['activated_date'])
         else:
-            casual.activated_date = today  # activate for today
-        casual.save(update_fields=['activated_date'])
+            casual.activated_date = today
+            update_fields = ['activated_date']
+            assignment = request.data.get('assignment', '').strip()
+            if assignment:
+                casual.assignment = assignment
+                update_fields.append('assignment')
+            casual.save(update_fields=update_fields)
         return Response(CasualSerializer(casual).data)
 
 
@@ -1359,7 +1368,7 @@ class CasualReportSubmitView(APIView):
 
 
 class CasualReportApproveView(APIView):
-    """MD approves or rejects. Approval auto-creates an ExpenseClaim in Finance."""
+    """HR approve → MD final approve. MD approval auto-creates an ExpenseClaim in Finance."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -1368,13 +1377,25 @@ class CasualReportApproveView(APIView):
         except CasualDailyReport.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if report.status != CasualDailyReport.Status.SUBMITTED:
-            return Response({'error': 'Only submitted reports can be actioned.'}, status=400)
-
-        action = request.data.get('action')  # 'approve' | 'reject'
+        action = request.data.get('action')
         notes  = request.data.get('notes', '')
 
+        # HR approves submitted report
+        if action == 'hr_approve':
+            if report.status != CasualDailyReport.Status.SUBMITTED:
+                return Response({'error': 'Only submitted reports can be HR-approved.'}, status=400)
+            report.status          = CasualDailyReport.Status.HR_APPROVED
+            report.hr_approved_by  = request.user
+            report.hr_approved_at  = timezone.now()
+            if notes:
+                report.notes = notes
+            report.save(update_fields=['status', 'hr_approved_by', 'hr_approved_at', 'notes'])
+            return Response(CasualDailyReportSerializer(report).data)
+
+        # Reject at any non-final stage
         if action == 'reject':
+            if report.status not in (CasualDailyReport.Status.SUBMITTED, CasualDailyReport.Status.HR_APPROVED):
+                return Response({'error': 'Cannot reject at this stage.'}, status=400)
             report.status          = CasualDailyReport.Status.REJECTED
             report.rejection_notes = notes
             report.approved_by     = request.user
@@ -1382,46 +1403,71 @@ class CasualReportApproveView(APIView):
             report.save(update_fields=['status', 'rejection_notes', 'approved_by', 'approved_at'])
             return Response(CasualDailyReportSerializer(report).data)
 
-        if action != 'approve':
-            return Response({'error': 'Invalid action. Use "approve" or "reject".'}, status=400)
-
-        # Create ExpenseClaim in Finance
-        from finance.models import ExpenseClaim, ExpenseClaimItem, Account
-        with transaction.atomic():
-            claim = ExpenseClaim.objects.create(
-                title=f'Casual Workers Payment — {report.report_date}',
-                submitted_by=request.user,
-                status=ExpenseClaim.Status.SUBMITTED,
-                notes=(
-                    f'Daily casual workers payment batch.\n'
-                    f'Report reference: {report.reference}\n'
-                    f'Approved by: {request.user.get_full_name()}\n'
-                    + (f'Notes: {notes}' if notes else '')
-                ).strip(),
-            )
-            for item in report.items.all():
-                ExpenseClaimItem.objects.create(
-                    claim=claim,
-                    date=report.report_date,
-                    description=(
-                        f'{item.full_name} — {item.assignment} '
-                        f'[Send Money: {item.phone}] ({item.placement})'
-                    ),
-                    category=Account.CostCode.LABOUR,
-                    amount=item.amount,
-                    receipt_ref=f'ID: {item.id_number}',
+        # MD final approval — creates ExpenseClaim
+        if action == 'approve':
+            if report.status != CasualDailyReport.Status.HR_APPROVED:
+                return Response({'error': 'Report must be HR-approved before MD approval.'}, status=400)
+            from finance.models import ExpenseClaim, ExpenseClaimItem, Account
+            with transaction.atomic():
+                claim = ExpenseClaim.objects.create(
+                    title=f'Casual Workers Payment — {report.report_date}',
+                    submitted_by=request.user,
+                    status=ExpenseClaim.Status.SUBMITTED,
+                    notes=(
+                        f'Daily casual workers payment batch.\n'
+                        f'Report reference: {report.reference}\n'
+                        f'Approved by: {request.user.get_full_name()}\n'
+                        + (f'Notes: {notes}' if notes else '')
+                    ).strip(),
                 )
-            claim.recalculate()
+                for item in report.items.all():
+                    ExpenseClaimItem.objects.create(
+                        claim=claim,
+                        date=report.report_date,
+                        description=(
+                            f'{item.full_name} — {item.assignment} '
+                            f'[Send Money: {item.phone}] ({item.placement})'
+                        ),
+                        category=Account.CostCode.LABOUR,
+                        amount=item.amount,
+                        receipt_ref=f'ID: {item.id_number}',
+                    )
+                claim.recalculate()
+                report.status        = CasualDailyReport.Status.APPROVED
+                report.approved_by   = request.user
+                report.approved_at   = timezone.now()
+                report.expense_claim = claim
+                if notes:
+                    report.notes = notes
+                report.save(update_fields=['status', 'approved_by', 'approved_at', 'expense_claim', 'notes'])
+            return Response(CasualDailyReportSerializer(report).data)
 
-            report.status       = CasualDailyReport.Status.APPROVED
-            report.approved_by  = request.user
-            report.approved_at  = timezone.now()
-            report.expense_claim = claim
-            if notes:
-                report.notes = notes
-            report.save(update_fields=['status', 'approved_by', 'approved_at', 'expense_claim', 'notes'])
+        return Response({'error': 'Invalid action. Use "hr_approve", "approve", or "reject".'}, status=400)
 
-        return Response(CasualDailyReportSerializer(report).data)
+
+class CasualWorkEvidenceListCreateView(generics.ListCreateAPIView):
+    serializer_class   = CasualWorkEvidenceSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes     = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        qs = CasualWorkEvidence.objects.select_related('casual', 'uploaded_by')
+        work_date = self.request.query_params.get('work_date')
+        casual_id = self.request.query_params.get('casual')
+        if work_date:
+            qs = qs.filter(work_date=work_date)
+        if casual_id:
+            qs = qs.filter(casual_id=casual_id)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(uploaded_by=self.request.user)
+
+
+class CasualWorkEvidenceDetailView(generics.RetrieveDestroyAPIView):
+    queryset           = CasualWorkEvidence.objects.all()
+    serializer_class   = CasualWorkEvidenceSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class WorkspaceAlertsView(generics.GenericAPIView):
