@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 import {
@@ -21,24 +22,26 @@ import LeaveApplicationPage from './LeaveApplicationPage'
 import OrganisationPage from './OrganisationPage'
 import LabourDeploymentPage from './LabourDeploymentPage'
 
-const GROUPS = (role) => [
-  {
+const GROUPS = (role) => {
+  const isSiteManager = role === 'site_manager'
+  return [
+  ...(!isSiteManager ? [{
     id: 'overview',
     label: 'Overview',
     icon: ChartBarIcon,
     paths: ['/hr'],
     defaultPath: '/hr',
     exact: true,
-  },
+  }] : []),
   {
     id: 'workforce',
     label: 'Workforce',
     icon: UsersIcon,
-    defaultPath: '/hr/employees',
+    defaultPath: isSiteManager ? '/hr/casuals-registry' : '/hr/employees',
     paths: ['/hr/employees', '/hr/casuals-registry'],
     tabs: [
-      { label: 'Employees', path: '/hr/employees' },
-      { label: 'Casuals',   path: '/hr/casuals-registry' },
+      ...(!isSiteManager ? [{ label: 'Employees', path: '/hr/employees' }] : []),
+      { label: 'Casuals', path: '/hr/casuals-registry' },
     ],
   },
   {
@@ -63,7 +66,8 @@ const GROUPS = (role) => [
       { label: 'Salary Advances',  path: '/hr/advances' },
     ],
   },
-]
+  ]}
+
 
 export default function HRPage() {
   const { user } = useAuthStore()
@@ -72,6 +76,13 @@ export default function HRPage() {
   const role      = user?.role || ''
 
   const groups = GROUPS(role)
+
+  // Site manager has no /hr dashboard — redirect straight to casuals
+  useEffect(() => {
+    if (role === 'site_manager' && location.pathname === '/hr') {
+      navigate('/hr/casuals-registry', { replace: true })
+    }
+  }, [role, location.pathname, navigate])
 
   const activeGroup = groups.find(g =>
     g.exact
