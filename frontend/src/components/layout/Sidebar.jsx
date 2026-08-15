@@ -107,13 +107,13 @@ const NAV = (role, isAdmin) => [
     type: 'dropdown', key: 'hr', label: 'HR', icon: UsersIcon,
     root: '/hr', module: 'hr',
     links: [
-      { to: '/hr',                       label: 'Dashboard',         icon: ChartBarIcon,          end: true },
+      { to: '/hr',                       label: 'Dashboard',         icon: ChartBarIcon,          end: true,  hideRoles: new Set(['site_manager']) },
       { to: '/hr/employees',             label: 'Employees',         icon: UsersIcon },
-      { to: '/hr/attendance',            label: 'Attendance',        icon: ClockIcon },
-      { to: '/hr/leave',                 label: 'Leave',             icon: CalendarDaysIcon },
-      { to: '/hr/payroll',               label: 'Payroll',           icon: BanknotesIcon },
-      { to: '/hr/disciplinary',          label: 'Disciplinary',      icon: ShieldExclamationIcon },
-      { to: '/hr/organisation',          label: 'Organisation',      icon: BuildingOfficeIcon },
+      { to: '/hr/attendance',            label: 'Attendance',        icon: ClockIcon,             hideRoles: new Set(['site_manager']) },
+      { to: '/hr/leave',                 label: 'Leave',             icon: CalendarDaysIcon,      hideRoles: new Set(['site_manager']) },
+      { to: '/hr/payroll',               label: 'Payroll',           icon: BanknotesIcon,         hideRoles: new Set(['site_manager']) },
+      { to: '/hr/disciplinary',          label: 'Disciplinary',      icon: ShieldExclamationIcon, hideRoles: new Set(['site_manager']) },
+      { to: '/hr/organisation',          label: 'Organisation',      icon: BuildingOfficeIcon,    hideRoles: new Set(['site_manager']) },
     ],
   },
 
@@ -143,7 +143,7 @@ const NAV = (role, isAdmin) => [
     ],
   },
   { type: 'link', to: '/alerts',     icon: BellAlertIcon,              label: 'Alerts',           module: null,
-    roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'head_of_security']) },
+    roles: new Set(['system_admin', 'managing_director', 'admin_officer', 'head_of_security', 'site_manager']) },
   { type: 'link', to: '/users',      icon: KeyIcon,                    label: 'Users',            module: 'users' },
 ]
 
