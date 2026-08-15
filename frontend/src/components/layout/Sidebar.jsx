@@ -109,6 +109,7 @@ const NAV = (role, isAdmin) => [
     links: [
       { to: '/hr',                       label: 'Dashboard',         icon: ChartBarIcon,          end: true,  hideRoles: new Set(['site_manager']) },
       { to: '/hr/employees',             label: 'Employees',         icon: UsersIcon,             hideRoles: new Set(['site_manager']) },
+      { to: '/hr/casuals-registry',      label: 'Casuals',           icon: UserGroupIcon,         showRoles: new Set(['site_manager']) },
       { to: '/hr/attendance',            label: 'Attendance',        icon: ClockIcon,             hideRoles: new Set(['site_manager']) },
       { to: '/hr/leave',                 label: 'Leave',             icon: CalendarDaysIcon,      hideRoles: new Set(['site_manager']) },
       { to: '/hr/payroll',               label: 'Payroll',           icon: BanknotesIcon,         hideRoles: new Set(['site_manager']) },
@@ -367,7 +368,11 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }) {
             )
           }
 
-          const visibleLinks = item.links.filter(l => !l.hideRoles || !l.hideRoles.has(role))
+          const visibleLinks = item.links.filter(l => {
+            if (l.hideRoles && l.hideRoles.has(role)) return false
+            if (l.showRoles && !l.showRoles.has(role)) return false
+            return true
+          })
 
           return (
             <div key={item.key}>
